@@ -70,16 +70,17 @@ describe('VietsubPage', () => {
     expect(within(nav).getByRole('link', { name: 'Lấy Engsub' })).toHaveAttribute('href', '/');
   });
 
-  it('lists only videos with Vietsub, newest update first', async () => {
+  it('manages only videos with Vietsub, newest update first', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none, older, newer] }]);
     renderPage();
 
-    const list = await screen.findByRole('region', { name: 'Video có Vietsub' });
+    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
     expect(within(items[0]).getByText('7 câu')).toBeInTheDocument();
-    expect(within(items[0]).getByRole('link', { name: 'Xem Học Spring Boot' })).toHaveAttribute('href', `/vietsub/${ID}`);
+    // Management list only: watching happens from /vietsub/list.
+    expect(within(list).queryByRole('link')).not.toBeInTheDocument();
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
   });
 
@@ -149,7 +150,7 @@ describe('VietsubPage', () => {
       { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
     ]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Video có Vietsub' });
+    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
 
     await userEvent.setup().upload(within(list).getByLabelText('Thay Vietsub của Học Spring Boot'), srtFile());
 
@@ -163,7 +164,7 @@ describe('VietsubPage', () => {
       { method: 'DELETE', path: `/api/videos/${ID}/vietsub`, status: 204 },
     ]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Video có Vietsub' });
+    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Xoá Vietsub của Học Spring Boot' }));
 
@@ -176,7 +177,7 @@ describe('VietsubPage', () => {
     vi.mocked(window.confirm).mockReturnValue(false);
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Video có Vietsub' });
+    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Xoá Vietsub của Học Spring Boot' }));
 

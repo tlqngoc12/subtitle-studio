@@ -4,13 +4,7 @@ import { addVietsub, deleteVietsub, listVideos, type VideoDto } from '../api/cli
 import { VietsubForm } from '../components/VietsubForm';
 import { VietsubList } from '../components/VietsubList';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
-
-/** Videos with Vietsub, most recently updated first. */
-function withVietsub(videos: VideoDto[]): VideoDto[] {
-  return videos
-    .filter((v) => v.viCueCount > 0)
-    .sort((a, b) => (b.viUpdatedAt ?? '').localeCompare(a.viUpdatedAt ?? ''));
-}
+import { withVietsub } from '../lib/vietsub';
 
 export default function VietsubPage() {
   const navigate = useNavigate();

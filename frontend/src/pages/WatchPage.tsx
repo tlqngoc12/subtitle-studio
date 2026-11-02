@@ -31,7 +31,7 @@ export default function WatchPage() {
 
   return (
     <main className="page">
-      <Link className="back-link" to="/vietsub">
+      <Link className="back-link" to="/vietsub/list">
         ← Danh sách Vietsub
       </Link>
 

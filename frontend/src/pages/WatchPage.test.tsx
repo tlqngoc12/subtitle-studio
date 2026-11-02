@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,13 +62,15 @@ describe('WatchPage', () => {
   afterEach(() => {
     // jsdom has no Fullscreen API; tests that need it install a mock.
     delete (HTMLElement.prototype as { requestFullscreen?: unknown }).requestFullscreen;
+    delete (document as { exitFullscreen?: unknown }).exitFullscreen;
+    delete (document as { fullscreenElement?: unknown }).fullscreenElement;
   });
 
   it('shows the video title and a link back to the Vietsub list', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Danh sách Vietsub/ })).toHaveAttribute('href', '/vietsub');
+    expect(screen.getByRole('link', { name: /Danh sách Vietsub/ })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('shows the subtitle for the current time', async () => {
@@ -96,6 +98,42 @@ describe('WatchPage', () => {
 
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     expect(requestFullscreen.mock.contexts[0]).toHaveClass('player');
+  });
+
+  it('puts the fullscreen button inside the player frame, like YouTube', async () => {
+    renderPage();
+
+    const button = await screen.findByRole('button', { name: 'Toàn màn hình' });
+    expect(button.closest('.player')).not.toBeNull();
+  });
+
+  it('exits fullscreen with the same button', async () => {
+    const exitFullscreen = vi.fn().mockResolvedValue(undefined);
+    (document as { exitFullscreen?: unknown }).exitFullscreen = exitFullscreen;
+    renderPage();
+    const frame = (await screen.findByRole('button', { name: 'Toàn màn hình' })).closest('.player')!;
+
+    act(() => {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => frame });
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Thoát toàn màn hình' }));
+
+    expect(exitFullscreen).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles fullscreen with the F key but not with Ctrl+F', async () => {
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    (HTMLElement.prototype as { requestFullscreen?: unknown }).requestFullscreen = requestFullscreen;
+    renderPage();
+    await screen.findByRole('button', { name: 'Toàn màn hình' });
+
+    const user = userEvent.setup();
+    await user.keyboard('{Control>}f{/Control}');
+    expect(requestFullscreen).not.toHaveBeenCalled();
+
+    await user.keyboard('f');
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
   });
 
   it('explains when embedding is blocked', async () => {

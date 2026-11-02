@@ -1,4 +1,3 @@
-import { Link } from 'react-router';
 import type { VideoDto } from '../api/client';
 
 interface Props {
@@ -10,8 +9,8 @@ interface Props {
 
 export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
   return (
-    <section className="history" aria-label="Video có Vietsub">
-      <h2 className="history__heading">Video có Vietsub</h2>
+    <section className="history" aria-label="Quản lý Vietsub">
+      <h2 className="history__heading">Quản lý Vietsub</h2>
       {videos === null ? (
         <p className="muted">Đang tải danh sách…</p>
       ) : videos.length === 0 ? (
@@ -22,13 +21,13 @@ export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
             const busy = busyId === v.id;
             return (
               <li key={v.id} className="history__item" aria-busy={busy}>
-                <Link className="history__open" to={`/vietsub/${v.id}`} aria-label={`Xem ${v.title}`}>
+                <span className="history__open history__open--static">
                   <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                   <span className="history__text">
                     <span className="history__title">{v.title}</span>
                     <span className="history__sub">{v.viCueCount} câu</span>
                   </span>
-                </Link>
+                </span>
                 <span className="history__actions">
                   <label className="button button--small">
                     {busy ? 'Đang thay…' : 'Thay Vietsub'}

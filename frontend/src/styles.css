@@ -447,6 +447,10 @@ a.history__open {
   text-decoration: none;
 }
 
+.history__open--static {
+  cursor: default;
+}
+
 .history__open:hover .history__title {
   text-decoration: underline;
 }
@@ -578,15 +582,6 @@ a.history__open {
   color: var(--ink);
 }
 
-.player-wrap {
-  display: grid;
-  gap: 10px;
-}
-
-.player-wrap__controls {
-  display: flex;
-  justify-content: flex-end;
-}
 
 /* The frame stays dark in both themes: it is the video. Fullscreen applies to this frame,
    so the overlay stays visible (YouTube's own fullscreen button is disabled). */
@@ -624,6 +619,48 @@ a.history__open {
   padding: 24px;
   color: #e6ebf1;
   text-align: center;
+}
+
+/* Fullscreen button where YouTube puts its own (bottom-right), shown while the pointer is over
+   the video, like YouTube's controls. Always visible when focused with the keyboard. */
+.player__fs {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.player:hover .player__fs,
+.player__fs:focus-visible {
+  opacity: 1;
+}
+
+.player__fs svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: none) {
+  .player__fs {
+    opacity: 1;
+  }
 }
 
 .overlay {

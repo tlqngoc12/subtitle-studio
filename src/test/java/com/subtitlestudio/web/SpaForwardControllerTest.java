@@ -20,7 +20,7 @@ class SpaForwardControllerTest {
     private MockMvc mvc;
 
     @ParameterizedTest
-    @ValueSource(strings = {"/vietsub", "/vietsub/", "/vietsub/dQw4w9WgXcQ", "/vietsub/dQw4w9WgXcQ/"})
+    @ValueSource(strings = {"/vietsub", "/vietsub/", "/vietsub/list", "/vietsub/dQw4w9WgXcQ", "/vietsub/dQw4w9WgXcQ/"})
     void forwardsVietsubRoutesToIndex(String path) throws Exception {
         mvc.perform(get(path))
                 .andExpect(status().isOk())

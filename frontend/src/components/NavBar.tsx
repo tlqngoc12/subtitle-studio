@@ -1,14 +1,21 @@
-import { NavLink } from 'react-router';
+import { Link, useLocation } from 'react-router';
+
+const SECTIONS = [
+  { to: '/', label: 'Lấy Engsub', isCurrent: (p: string) => p === '/' },
+  { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => p === '/vietsub' || p === '/vietsub/' },
+  // The watch page (/vietsub/:id) belongs to the list it is opened from.
+  { to: '/vietsub/list', label: 'Danh sách Vietsub', isCurrent: (p: string) => /^\/vietsub\/[^/]+\/?$/.test(p) },
+];
 
 export function NavBar() {
+  const { pathname } = useLocation();
   return (
     <nav className="nav" aria-label="Chính">
-      <NavLink className="nav__link" to="/" end>
-        Lấy Engsub
-      </NavLink>
-      <NavLink className="nav__link" to="/vietsub">
-        Vietsub
-      </NavLink>
+      {SECTIONS.map((s) => (
+        <Link key={s.to} className="nav__link" to={s.to} aria-current={s.isCurrent(pathname) ? 'page' : undefined}>
+          {s.label}
+        </Link>
+      ))}
     </nav>
   );
 }
