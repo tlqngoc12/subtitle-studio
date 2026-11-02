@@ -59,15 +59,26 @@ export function useYouTubePlayer(container: RefObject<HTMLDivElement | null>, vi
   }, [container, videoId]);
 
   useEffect(() => {
-    if (state !== 'playing') return;
-    let frame = 0;
-    const tick = () => {
+    if (state === 'loading') return;
+    // Only re-render when the time actually changed.
+    const read = () => {
       const player = playerRef.current;
-      if (player) setCurrentMs(player.getCurrentTime() * 1000);
-      frame = requestAnimationFrame(tick);
+      if (!player) return;
+      const ms = player.getCurrentTime() * 1000;
+      setCurrentMs((prev) => (prev === ms ? prev : ms));
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    if (state === 'playing') {
+      let frame = 0;
+      const tick = () => {
+        read();
+        frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(frame);
+    }
+    // Paused/ready/ended: YouTube often fires no event for a seek, so poll slowly.
+    const timer = setInterval(read, 250);
+    return () => clearInterval(timer);
   }, [state]);
 
   return { currentMs, state, error };

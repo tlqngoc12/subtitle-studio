@@ -83,6 +83,24 @@ class SrtParserTest {
     }
 
     @Test
+    void splitsBlocksMissingTheBlankLineBetweenThem() {
+        SrtParseResult r = parser.parse(utf8("1\n00:00:01,000 --> 00:00:02,000\nmột\n"
+                + "2\n00:00:03,000 --> 00:00:04,000\nhai\n"));
+
+        assertThat(r.entries()).containsExactly(
+                new SrtEntry(1, 1_000, 2_000, "một"),
+                new SrtEntry(2, 3_000, 4_000, "hai"));
+    }
+
+    @Test
+    void splitsBlocksMissingBothBlankLineAndIndex() {
+        SrtParseResult r = parser.parse(utf8("00:00:01,000 --> 00:00:02,000\nmột\n00:00:03,000 --> 00:00:04,000\nhai\n"));
+
+        assertThat(r.entries()).extracting(SrtEntry::text).containsExactly("một", "hai");
+        assertThat(r.entries()).extracting(SrtEntry::startMs).containsExactly(1_000L, 3_000L);
+    }
+
+    @Test
     void keepsMarkupAsIs() {
         assertThat(parser.parse(utf8("1\n00:00:01,000 --> 00:00:02,000\n<i>nghiêng</i>\n")).entries().get(0).text())
                 .isEqualTo("<i>nghiêng</i>");

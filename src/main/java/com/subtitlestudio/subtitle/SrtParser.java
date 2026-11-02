@@ -36,32 +36,44 @@ public class SrtParser {
             if (block.isBlank()) {
                 continue;
             }
-            position++;
             String[] lines = block.split("\n");
-            int timingLine;
-            int index;
-            if (TIMING.matcher(lines[0].strip()).find()) {
-                timingLine = 0;
-                index = position;
-            } else if (lines.length > 1 && INDEX.matcher(lines[0].strip()).matches()
-                    && TIMING.matcher(lines[1].strip()).find()) {
-                timingLine = 1;
-                index = Integer.parseInt(lines[0].strip());
-            } else {
+            // Every timing line starts a cue, so a block missing the blank line before the next cue
+            // (an easy slip when hand-editing a translation) still splits correctly.
+            List<Integer> timings = new ArrayList<>();
+            for (int i = 0; i < lines.length; i++) {
+                if (TIMING.matcher(lines[i].strip()).find()) {
+                    timings.add(i);
+                }
+            }
+            if (timings.isEmpty() || timings.get(0) > 1
+                    || (timings.get(0) == 1 && !isIndex(lines[0]))) {
                 skipped++;
                 continue;
             }
 
-            Matcher m = TIMING.matcher(lines[timingLine].strip());
-            m.find();
-            List<String> textLines = new ArrayList<>();
-            for (int i = timingLine + 1; i < lines.length; i++) {
-                String line = lines[i].strip();
-                if (!line.isEmpty()) {
-                    textLines.add(line);
+            for (int t = 0; t < timings.size(); t++) {
+                position++;
+                int timingLine = timings.get(t);
+                boolean hasIndex = timingLine > 0 && isIndex(lines[timingLine - 1]);
+                int index = hasIndex ? Integer.parseInt(lines[timingLine - 1].strip()) : position;
+
+                int end = lines.length;
+                if (t + 1 < timings.size()) {
+                    int next = timings.get(t + 1);
+                    end = next - 1 > timingLine && isIndex(lines[next - 1]) ? next - 1 : next;
                 }
+
+                Matcher m = TIMING.matcher(lines[timingLine].strip());
+                m.find();
+                List<String> textLines = new ArrayList<>();
+                for (int i = timingLine + 1; i < end; i++) {
+                    String line = lines[i].strip();
+                    if (!line.isEmpty()) {
+                        textLines.add(line);
+                    }
+                }
+                entries.add(new SrtEntry(index, millis(m, 1), millis(m, 5), String.join("\n", textLines)));
             }
-            entries.add(new SrtEntry(index, millis(m, 1), millis(m, 5), String.join("\n", textLines)));
         }
 
         if (entries.isEmpty()) {
@@ -83,6 +95,10 @@ public class SrtParser {
         } catch (CharacterCodingException e) {
             throw new InvalidSrtException("Subtitle file must be UTF-8 encoded");
         }
+    }
+
+    private static boolean isIndex(String line) {
+        return INDEX.matcher(line.strip()).matches();
     }
 
     private static long millis(Matcher m, int firstGroup) {
