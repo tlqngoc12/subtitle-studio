@@ -1,3 +1,4 @@
+import { FileUp, Trash2 } from 'lucide-react';
 import { viSrtUrl, type VideoDto } from '../api/client';
 
 interface Props {
@@ -32,8 +33,8 @@ export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
                   <a className="button button--small" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
                     Download Vietsub
                   </a>
-                  <label className="button button--small">
-                    {busy ? 'Replacing…' : 'Replace Vietsub'}
+                  <label className="button button--icon" title={busy ? 'Replacing…' : 'Replace Vietsub'}>
+                    <FileUp className="icon" aria-hidden="true" />
                     <input
                       className="visually-hidden"
                       type="file"
@@ -48,13 +49,14 @@ export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
                     />
                   </label>
                   <button
-                    className="button button--small button--danger"
+                    className="button button--icon button--danger"
                     type="button"
                     disabled={busy}
                     onClick={() => onDelete(v)}
                     aria-label={`Delete Vietsub: ${v.title}`}
+                    title="Delete Vietsub"
                   >
-                    Delete Vietsub
+                    <Trash2 className="icon" aria-hidden="true" />
                   </button>
                 </span>
               </li>

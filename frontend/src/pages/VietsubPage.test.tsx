@@ -149,8 +149,14 @@ describe('VietsubPage', () => {
     const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
     const item = within(list).getByRole('listitem');
 
-    expect(within(item).getByText('Replace Vietsub')).toBeInTheDocument();
-    expect(within(item).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' })).toHaveTextContent('Delete Vietsub');
+    // Replace and Delete are icon buttons with tooltips.
+    const replace = within(item).getByLabelText('Replace Vietsub: Học Spring Boot').closest('label')!;
+    const remove = within(item).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' });
+    for (const [el, tip] of [[replace, 'Replace Vietsub'], [remove, 'Delete Vietsub']] as const) {
+      expect(el).toHaveAttribute('title', tip);
+      expect(el.textContent?.trim()).toBe('');
+      expect(el.querySelector('svg')).not.toBeNull();
+    }
     const download = within(item).getByRole('link', { name: 'Download Vietsub: Học Spring Boot' });
     expect(download).toHaveTextContent('Download Vietsub');
     expect(download).toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
