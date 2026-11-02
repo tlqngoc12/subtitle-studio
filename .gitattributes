@@ -1,3 +1,13 @@
+# Normalize text files to LF in the repo and in checkouts, so files built into the
+# Linux Docker image never pick up CRLF from a Windows checkout.
+* text=auto eol=lf
+
 # Keep subtitle fixtures byte-exact (whitespace-only lines and line endings matter)
 *.vtt -text -whitespace
 *.srt -text -whitespace
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.woff binary
+*.woff2 binary

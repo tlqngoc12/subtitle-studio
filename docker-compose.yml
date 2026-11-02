@@ -1,0 +1,15 @@
+services:
+  subtitle-studio:
+    build: .
+    image: subtitle-studio:local
+    ports:
+      - "8080:8080"
+    volumes:
+      # Named volume: works on every OS without host permission issues.
+      # To browse the downloaded .vtt files on the host, use a bind mount instead,
+      # e.g. "./data:/data" (on Linux the folder must be writable by uid 10001).
+      - subtitle-studio-data:/data
+    restart: unless-stopped
+
+volumes:
+  subtitle-studio-data:

@@ -48,6 +48,7 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Fixture đặt trong `src/test/resources/` (vd `vtt/auto-rolling.vtt`, `ytdlp/info-manual-only.json`).
 - Fixture `.vtt`/`.srt` phải giữ đúng byte: dòng chỉ có dấu cách là có chủ đích (YouTube auto-caption có loại dòng này). Tạo bằng `printf` và kiểm tra bằng `cat -A`; `.gitattributes` đặt `-text -whitespace` cho 2 loại file này.
 - Trước khi báo xong task: chạy **toàn bộ** `mvn test`, không chỉ class vừa viết.
+- **Golden test** (`GoldenSubtitleTest`) dùng phụ đề YouTube thật trong `src/test/resources/golden/`. Thư mục này **gitignore, không bao giờ commit** (bản quyền, repo public). Thay đổi `VttParser`/`CaptionNormalizer`/`SrtWriter` làm golden fail thì phải xem diff bằng mắt rồi mới cập nhật golden, không cập nhật mù.
 
 ### Bảo mật khi gọi yt-dlp
 - `videoId` phải qua `UrlParser`, khớp regex `^[A-Za-z0-9_-]{11}$`, rồi mới được truyền vào process.

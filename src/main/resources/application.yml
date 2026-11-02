@@ -2,7 +2,8 @@ spring:
   application:
     name: subtitle-studio
   datasource:
-    url: jdbc:h2:file:./data/subtitle-studio;AUTO_SERVER=TRUE
+    # Derived from data-dir so one setting (env SUBTITLESTUDIO_DATADIR) moves both the DB and the .vtt files.
+    url: jdbc:h2:file:${subtitle-studio.data-dir}/subtitle-studio;AUTO_SERVER=TRUE
     username: sa
     password:
   jpa:

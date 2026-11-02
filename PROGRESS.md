@@ -151,9 +151,9 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 | T08 | Entity + Repository + `SubtitleService` | ✅ Xong | 21 test; app khởi động thật OK |
 | T09 | Controller + `@RestControllerAdvice` | ✅ Xong | 23 test + smoke test curl trên app thật |
 | T10 | Frontend React + Vite + TS (gộp vào jar) | ✅ Xong | 32 test Vitest; jar chứa frontend |
-| T11 | Dockerfile + docker-compose + README | ⏭️ Tiếp theo | cần cài yt-dlp để test video thật |
+| T11 | Dockerfile + docker-compose + README | 🟡 Gần xong | DoD 3 video thật ✅, golden test ✅; **còn: build Docker image** (máy chưa có Docker), mở `.srt` bằng VLC (máy chưa có VLC) |
 
-**Tổng: 10/11 task. Backend `mvn test`: 189/189 pass. Frontend `npm test`: 32/32 pass.**
+**Tổng: 10/11 task (T11 gần xong). Backend `mvn test`: 192/192 pass (3 golden test chỉ chạy khi có golden local). Frontend `npm test`: 32/32 pass.**
 
 **Definition of Done:** dán link 3 video thật (1 có manual sub, 1 chỉ có auto sub, 1 dài trên 1 giờ). File `.srt` phải mở đúng trong VLC, không có dòng lặp, timing khớp với lời nói.
 
@@ -250,12 +250,41 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 - [ ] Dùng hoàn toàn bằng bàn phím (Tab qua ô nhập, nút, danh sách)
 - [ ] Dark mode, màn hình hẹp
 
+### 2026-11-02: T11 Docker + README 🟡 (đang làm)
+- `Dockerfile` multi-stage: `maven:3.9-eclipse-temurin-21` build cả backend lẫn frontend (chạy luôn JUnit + Vitest) → `eclipse-temurin:21-jre-noble` + python3 venv + **yt-dlp `2026.10.26`** (`[default]`, có `yt-dlp-ejs`) + **deno `2.9.8`**; chạy bằng user không phải root (uid 10001); `VOLUME /data`; healthcheck `GET /api/videos`.
+- `docker-compose.yml`: cổng 8080, named volume `subtitle-studio-data` (tránh lỗi quyền của bind mount trên Linux).
+- `.dockerignore`; `.gitattributes` thêm `* text=auto eol=lf` để file không bị CRLF khi build trên Linux.
+- `application.yml`: URL datasource suy ra từ `subtitle-studio.data-dir`. Đã kiểm tra trên jar thật: `SUBTITLESTUDIO_DATADIR=<dir>` tạo DB trong `<dir>`, không tạo `./data`.
+- `README.md` (tiếng Việt): chạy bằng Docker, chạy trực tiếp, cấu hình, phát triển, API, xử lý lỗi, lưu ý bản quyền.
+- **Chưa kiểm chứng:** build/run Docker image (máy chưa có Docker).
+
+#### Definition of Done: 3 video thật (yt-dlp 2026.10.26 + deno 2.9.8, chạy `java -jar`)
+
+| Video | Loại | Kết quả API | Câu | Dòng lặp | Chồng giờ | Số từ so với VTT |
+|---|---|---|---|---|---|---|
+| `iG9CE55wbtY` Ken Robinson, TED (20 phút) | manual `en` | 201 trong 13,4s | 427 | 0 | 0 | 1,004 |
+| `9SGDpanrc8U` Spring Boot full course (1 giờ 37 phút) | chỉ auto `en-orig` | 201 trong 19,2s | 1152 | 0 | 0 | 1,000 |
+| `5Gk9gIpGvSE` Climate debate (4 giờ 11 phút) | chỉ auto `en-orig` | 201 trong 13,2s | 3238 | 0 | 0 | 1,000 |
+
+- Dán lại cùng video bằng link `youtu.be` → 200 trong 0,009s (cache, không gọi yt-dlp).
+- File `.srt`: index liên tục, CRLF, UTF-8 không BOM, AUTO không câu nào > 84 ký tự; `Content-Disposition` có `filename*=UTF-8''…`.
+- **Xác nhận giả định từ T07:** yt-dlp ghi đúng `{id}.{lang}.vtt`; `--sub-langs en-orig` hoạt động.
+- 13 câu AUTO dài hơn 7s (dài nhất 43s) là các đoạn ngắn như tiêu đề mục, hiện lâu khi người nói dừng, giống YouTube. Rule 7s chỉ áp dụng khi gộp, nên đây là hành vi đúng.
+- 2 trường hợp "câu sau lặp đuôi câu trước" đều là lời nói lặp thật (diễn giả nhắc lại câu trích; người nói ngập ngừng), không phải lỗi khử lặp.
+- **Còn lại cho bạn:** mở 1 file `.srt` bằng VLC cùng video để xem timing bằng mắt (máy dev chưa có VLC).
+
+#### Golden test (PLAN 4.5), chỉ lưu local
+- `GoldenSubtitleTest`: với mỗi `golden/<id>.<MANUAL|AUTO>.vtt`, chạy parser + normalizer + writer và so **từng byte** với `golden/<id>.srt` (đã kiểm chứng ở trên).
+- **Không commit** vì đó là phụ đề của người khác (repo public, PLAN mục 10): `src/test/resources/golden/` nằm trong `.gitignore`; thiếu thư mục thì test tự bỏ qua (CI, Docker, máy khác).
+- Đã kiểm tra: thiếu golden → skip; có golden → 3/3 pass; sửa đúng 1 byte trong `.srt` → fail.
+- Tạo lại: chạy app, `POST /api/videos` cho video cần dùng, copy `data/subs/<id>.<lang>.vtt` thành `golden/<id>.<MANUAL|AUTO>.vtt` và file tải từ `/subtitle.srt` thành `golden/<id>.srt` (sau khi đã kiểm tra bằng mắt).
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
 - **Shell của Claude Code chưa nhận PATH của Node vừa cài**: dùng `export PATH="/c/Program Files/nodejs:$PATH"` trong Git Bash (mở terminal mới thì tự có).
 
-- **Máy dev chưa cài yt-dlp** (smoke test T09 trả 502 đúng như thiết kế). Cần cài trước khi test với video thật (T11), ví dụ `winget install yt-dlp.yt-dlp` hoặc `pip install yt-dlp`.
+- **yt-dlp + deno đã cài** trên máy dev (winget). Trong shell của Claude Code cần thêm PATH bằng `cygpath -u "$LOCALAPPDATA"/…/WinGet/Packages/...`; ghép đường dẫn Windows `C:\…` thẳng vào PATH của Git Bash sẽ làm hỏng PATH truyền sang Java (dấu `:`).
 - **Lỗi của Spring MVC (JSON hỏng, 405…)** dùng ProblemDetail mặc định, không có field `code`. Frontend cần fallback khi thiếu `code`.
 
 - **Frontend React thay vì vanilla/Thymeleaf:** Phase 2–3 (player YouTube, overlay Vietsub, sửa câu trực tiếp) có nhiều state, nên React hợp hơn. Backend giữ thuần REST API, nên **T09 không đổi**.
