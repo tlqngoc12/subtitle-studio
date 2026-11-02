@@ -9,3 +9,4 @@ frontend/dist/
 
 # Golden files are real YouTube subtitles (copyright): keep them local only
 src/test/resources/golden/
+*.log

@@ -151,9 +151,9 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 | T08 | Entity + Repository + `SubtitleService` | ✅ Xong | 21 test; app khởi động thật OK |
 | T09 | Controller + `@RestControllerAdvice` | ✅ Xong | 23 test + smoke test curl trên app thật |
 | T10 | Frontend React + Vite + TS (gộp vào jar) | ✅ Xong | 32 test Vitest; jar chứa frontend |
-| T11 | Dockerfile + docker-compose + README | 🟡 Gần xong | DoD 3 video thật ✅, golden test ✅; **còn: build Docker image** (máy chưa có Docker), mở `.srt` bằng VLC (máy chưa có VLC) |
+| T11 | Dockerfile + docker-compose + README | ✅ Xong | DoD 3 video thật ✅, golden test ✅, người dùng chạy thử `java -jar` OK; **Docker image chưa build thử** (máy chưa có Docker) |
 
-**Tổng: 10/11 task (T11 gần xong). Backend `mvn test`: 192/192 pass (3 golden test chỉ chạy khi có golden local). Frontend `npm test`: 32/32 pass.**
+**Tổng: 11/11 task, Phase 1 hoàn thành (tag `v0.1.0`). Backend `mvn test`: 192/192 pass (3 golden test chỉ chạy khi có golden local). Frontend `npm test`: 32/32 pass.**
 
 **Definition of Done:** dán link 3 video thật (1 có manual sub, 1 chỉ có auto sub, 1 dài trên 1 giờ). File `.srt` phải mở đúng trong VLC, không có dòng lặp, timing khớp với lời nói.
 
@@ -250,7 +250,7 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 - [ ] Dùng hoàn toàn bằng bàn phím (Tab qua ô nhập, nút, danh sách)
 - [ ] Dark mode, màn hình hẹp
 
-### 2026-11-02: T11 Docker + README 🟡 (đang làm)
+### 2026-11-02: T11 Docker + README ✅
 - `Dockerfile` multi-stage: `maven:3.9-eclipse-temurin-21` build cả backend lẫn frontend (chạy luôn JUnit + Vitest) → `eclipse-temurin:21-jre-noble` + python3 venv + **yt-dlp `2026.10.26`** (`[default]`, có `yt-dlp-ejs`) + **deno `2.9.8`**; chạy bằng user không phải root (uid 10001); `VOLUME /data`; healthcheck `GET /api/videos`.
 - `docker-compose.yml`: cổng 8080, named volume `subtitle-studio-data` (tránh lỗi quyền của bind mount trên Linux).
 - `.dockerignore`; `.gitattributes` thêm `* text=auto eol=lf` để file không bị CRLF khi build trên Linux.
@@ -271,13 +271,17 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 - **Xác nhận giả định từ T07:** yt-dlp ghi đúng `{id}.{lang}.vtt`; `--sub-langs en-orig` hoạt động.
 - 13 câu AUTO dài hơn 7s (dài nhất 43s) là các đoạn ngắn như tiêu đề mục, hiện lâu khi người nói dừng, giống YouTube. Rule 7s chỉ áp dụng khi gộp, nên đây là hành vi đúng.
 - 2 trường hợp "câu sau lặp đuôi câu trước" đều là lời nói lặp thật (diễn giả nhắc lại câu trích; người nói ngập ngừng), không phải lỗi khử lặp.
-- **Còn lại cho bạn:** mở 1 file `.srt` bằng VLC cùng video để xem timing bằng mắt (máy dev chưa có VLC).
+- **Người dùng chạy thử** bằng `java -jar` (cổng 8080): lấy video `Vk_DcKbZ0KA` (manual, 171 câu), tải `.srt` thành công, log không có ERROR/WARN; đồng ý chốt Phase 1.
 
 #### Golden test (PLAN 4.5), chỉ lưu local
 - `GoldenSubtitleTest`: với mỗi `golden/<id>.<MANUAL|AUTO>.vtt`, chạy parser + normalizer + writer và so **từng byte** với `golden/<id>.srt` (đã kiểm chứng ở trên).
 - **Không commit** vì đó là phụ đề của người khác (repo public, PLAN mục 10): `src/test/resources/golden/` nằm trong `.gitignore`; thiếu thư mục thì test tự bỏ qua (CI, Docker, máy khác).
 - Đã kiểm tra: thiếu golden → skip; có golden → 3/3 pass; sửa đúng 1 byte trong `.srt` → fail.
 - Tạo lại: chạy app, `POST /api/videos` cho video cần dùng, copy `data/subs/<id>.<lang>.vtt` thành `golden/<id>.<MANUAL|AUTO>.vtt` và file tải từ `/subtitle.srt` thành `golden/<id>.srt` (sau khi đã kiểm tra bằng mắt).
+
+### 2026-11-02: Chốt Phase 1 🏁
+- Gắn tag `v0.1.0`. Việc còn treo: build và chạy Docker image (cần Docker Desktop).
+- Bước tiếp theo: brainstorm và viết plan Phase 2 (Vietsub thủ công).
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
@@ -333,3 +337,4 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 | `UrlParser` hỗ trợ `music.youtube.com/watch?v=ID` | T02 | thêm host vào whitelist + test |
 | `UrlParser` hỗ trợ `youtube.com/live/ID` (livestream) | T02 | thêm nhánh path `live` giống `shorts`/`embed` + test |
 | Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |
+| Build và chạy thử Docker image | T11 | cần Docker Desktop; Dockerfile đã viết nhưng chưa từng build |
