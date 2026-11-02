@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { srtUrl, type VideoDto } from '../api/client';
+import { DownloadIcon, PlayIcon, RefreshIcon, TrashIcon } from './icons';
 import { formatDuration } from '../lib/format';
 
 interface Props {
@@ -37,30 +38,32 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete }: Props
                 </button>
                 <span className="history__actions">
                   {v.viCueCount > 0 && (
-                    <Link className="button button--small" to={`/vietsub/${v.id}`} aria-label={`Xem Vietsub của ${v.title}`}>
-                      Xem Vietsub
+                    <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Xem Vietsub của ${v.title}`} title="Xem Vietsub">
+                      <PlayIcon />
                     </Link>
                   )}
-                  <a className="button button--small" href={srtUrl(v.id)} download aria-label={`Tải .srt của ${v.title}`}>
-                    Tải .srt
+                  <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Tải .srt của ${v.title}`} title="Tải .srt">
+                    <DownloadIcon />
                   </a>
                   <button
-                    className="button button--small"
+                    className={busy ? 'button button--icon button--spinning' : 'button button--icon'}
                     type="button"
                     disabled={busy}
                     onClick={() => onRefresh(v)}
                     aria-label={`Làm mới ${v.title}`}
+                    title={busy ? 'Đang làm mới…' : 'Làm mới'}
                   >
-                    {busy ? 'Đang làm mới…' : 'Làm mới'}
+                    <RefreshIcon />
                   </button>
                   <button
-                    className="button button--small button--danger"
+                    className="button button--icon button--danger"
                     type="button"
                     disabled={busy}
                     onClick={() => onDelete(v)}
                     aria-label={`Xoá ${v.title}`}
+                    title="Xoá"
                   >
-                    Xoá
+                    <TrashIcon />
                   </button>
                 </span>
               </li>

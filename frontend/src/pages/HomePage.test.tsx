@@ -186,6 +186,26 @@ describe('HomePage', () => {
   });
 
   describe('history', () => {
+    it('shows the row actions as icons with tooltips', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [{ ...autoVideo, viCueCount: 3 }] }]);
+
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const item = within(history).getByRole('listitem');
+      const actions = [
+        { el: within(item).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }), tip: 'Xem Vietsub' },
+        { el: within(item).getByRole('link', { name: 'Tải .srt của Học Spring Boot' }), tip: 'Tải .srt' },
+        { el: within(item).getByRole('button', { name: 'Làm mới Học Spring Boot' }), tip: 'Làm mới' },
+        { el: within(item).getByRole('button', { name: 'Xoá Học Spring Boot' }), tip: 'Xoá' },
+      ];
+      for (const { el, tip } of actions) {
+        expect(el).toHaveAttribute('title', tip);
+        expect(el.textContent?.trim()).toBe('');
+        expect(el.querySelector('svg')).not.toBeNull();
+      }
+    });
+
     it('lists previously fetched videos with download links', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, manualVideo] }]);
 
