@@ -13,11 +13,14 @@ public record VideoDto(
         SourceType subSource,
         int cueCount,
         Instant fetchedAt,
-        String thumbnailUrl) {
+        String thumbnailUrl,
+        int viCueCount,
+        Instant viUpdatedAt) {
 
     static VideoDto from(Video v) {
         return new VideoDto(v.getId(), v.getTitle(), v.getChannel(), v.getDurationSec(), v.getSubLang(),
                 v.getSubSource(), v.getCueCount(), v.getFetchedAt(),
-                "https://i.ytimg.com/vi/" + v.getId() + "/mqdefault.jpg");
+                "https://i.ytimg.com/vi/" + v.getId() + "/mqdefault.jpg",
+                v.getViCueCount(), v.getViUpdatedAt());
     }
 }

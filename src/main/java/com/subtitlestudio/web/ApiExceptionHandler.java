@@ -1,5 +1,6 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.VttParseException;
 import com.subtitlestudio.url.InvalidUrlException;
@@ -8,10 +9,15 @@ import com.subtitlestudio.ytdlp.YtDlpFailedException;
 import com.subtitlestudio.ytdlp.YtDlpTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
@@ -45,6 +51,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail ytDlpTimeout(YtDlpTimeoutException e) {
         log.warn("yt-dlp timed out: {}", e.getMessage());
         return problem(HttpStatus.GATEWAY_TIMEOUT, "YTDLP_TIMEOUT", e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSrtException.class)
+    ProblemDetail invalidSrt(InvalidSrtException e) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_SRT", e.getMessage());
+    }
+
+    /** Overrides Spring's default 413 to add the machine-readable code. */
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(problem(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "Upload exceeds 5 MB"));
     }
 
     @ExceptionHandler(VideoNotFoundException.class)
