@@ -1,4 +1,4 @@
-import type { VideoDto } from '../api/client';
+import { viSrtUrl, type VideoDto } from '../api/client';
 
 interface Props {
   videos: VideoDto[] | null;
@@ -29,14 +29,17 @@ export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
                   </span>
                 </span>
                 <span className="history__actions">
+                  <a className="button button--small" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
+                    Download Vietsub
+                  </a>
                   <label className="button button--small">
-                    {busy ? 'Đang thay…' : 'Thay Vietsub'}
+                    {busy ? 'Replacing…' : 'Replace Vietsub'}
                     <input
                       className="visually-hidden"
                       type="file"
                       accept=".srt"
                       disabled={busy}
-                      aria-label={`Thay Vietsub của ${v.title}`}
+                      aria-label={`Replace Vietsub: ${v.title}`}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         e.target.value = '';
@@ -49,9 +52,9 @@ export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
                     type="button"
                     disabled={busy}
                     onClick={() => onDelete(v)}
-                    aria-label={`Xoá Vietsub của ${v.title}`}
+                    aria-label={`Delete Vietsub: ${v.title}`}
                   >
-                    Xoá Vietsub
+                    Delete Vietsub
                   </button>
                 </span>
               </li>

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -107,6 +108,34 @@ class VietsubControllerTest {
         when(service.getCues(ID)).thenThrow(new VideoNotFoundException(ID));
 
         expectProblem(mvc.perform(get("/api/videos/" + ID + "/vietsub")), 404, "VIDEO_NOT_FOUND");
+    }
+
+    @Test
+    void downloadsVietsubAsSrt() throws Exception {
+        when(service.exportSrt(ID, false)).thenReturn(new SrtExport("Học_" + ID + ".vi.srt", SRT));
+
+        mvc.perform(get("/api/videos/" + ID + "/subtitle.vi.srt"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/x-subrip"))
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("filename*=UTF-8''H%E1%BB%8Dc_" + ID + ".vi.srt")))
+                .andExpect(content().bytes(SRT));
+    }
+
+    @Test
+    void downloadPassesBomFlag() throws Exception {
+        when(service.exportSrt(ID, true)).thenReturn(new SrtExport("a.vi.srt", SRT));
+
+        mvc.perform(get("/api/videos/" + ID + "/subtitle.vi.srt").param("bom", "true")).andExpect(status().isOk());
+
+        verify(service).exportSrt(ID, true);
+    }
+
+    @Test
+    void downloadWithoutVietsubReturns404() throws Exception {
+        when(service.exportSrt(ID, false)).thenThrow(new NoVietsubException(ID));
+
+        expectProblem(mvc.perform(get("/api/videos/" + ID + "/subtitle.vi.srt")), 404, "NO_VIETSUB");
     }
 
     @Test

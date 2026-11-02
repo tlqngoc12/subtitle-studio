@@ -1,7 +1,10 @@
 package com.subtitlestudio.video;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,6 +35,18 @@ public class VietsubController {
     @GetMapping("/api/videos/{id}/vietsub")
     public List<ViCue> cues(@PathVariable String id) {
         return service.getCues(id);
+    }
+
+    @GetMapping("/api/videos/{id}/subtitle.vi.srt")
+    public ResponseEntity<byte[]> download(@PathVariable String id, @RequestParam(defaultValue = "false") boolean bom) {
+        SrtExport export = service.exportSrt(id, bom);
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(export.fileName(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(VideoController.SUBRIP)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(export.body());
     }
 
     @DeleteMapping("/api/videos/{id}/vietsub")

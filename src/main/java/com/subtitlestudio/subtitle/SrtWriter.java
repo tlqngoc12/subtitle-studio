@@ -59,10 +59,14 @@ public class SrtWriter {
         return out;
     }
 
-    /** Builds {@code {sanitized-title}_{videoId}.en.srt}, or {@code {videoId}.en.srt} when the title is unusable. */
-    public String fileName(String title, String videoId) {
+    /** Builds {@code {sanitized-title}_{videoId}.{lang}.srt}, or {@code {videoId}.{lang}.srt} when the title is unusable. */
+    public String fileName(String title, String videoId, String lang) {
         String safeTitle = sanitizeTitle(title);
-        return (safeTitle.isEmpty() ? "" : safeTitle + "_") + videoId + ".en.srt";
+        return (safeTitle.isEmpty() ? "" : safeTitle + "_") + videoId + "." + lang + ".srt";
+    }
+
+    public String fileName(String title, String videoId) {
+        return fileName(title, videoId, "en");
     }
 
     private static String sanitizeTitle(String title) {

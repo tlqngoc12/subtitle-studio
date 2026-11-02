@@ -1,8 +1,10 @@
 package com.subtitlestudio.video;
 
+import com.subtitlestudio.subtitle.Cue;
 import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.SrtEntry;
 import com.subtitlestudio.subtitle.SrtParser;
+import com.subtitlestudio.subtitle.SrtWriter;
 import com.subtitlestudio.url.UrlParser;
 import java.text.Normalizer;
 import java.time.Clock;
@@ -26,16 +28,18 @@ public class VietsubService {
 
     private final UrlParser urlParser;
     private final SrtParser srtParser;
+    private final SrtWriter srtWriter;
     private final SubtitleService subtitleService;
     private final VideoRepository videos;
     private final ViCueRepository viCues;
     private final TransactionTemplate tx;
     private final Clock clock;
 
-    public VietsubService(UrlParser urlParser, SrtParser srtParser, SubtitleService subtitleService,
+    public VietsubService(UrlParser urlParser, SrtParser srtParser, SrtWriter srtWriter, SubtitleService subtitleService,
                           VideoRepository videos, ViCueRepository viCues, TransactionTemplate tx, Clock clock) {
         this.urlParser = urlParser;
         this.srtParser = srtParser;
+        this.srtWriter = srtWriter;
         this.subtitleService = subtitleService;
         this.videos = videos;
         this.viCues = viCues;
@@ -63,6 +67,20 @@ public class VietsubService {
             video.updateVietsub(cues.size(), clock.instant());
             return video;
         });
+    }
+
+    /** The stored Vietsub as a downloadable {@code {title}_{id}.vi.srt}. */
+    @Transactional(readOnly = true)
+    public SrtExport exportSrt(String id, boolean bom) {
+        Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
+        if (video.getViCueCount() == 0) {
+            throw new NoVietsubException(id);
+        }
+        List<Cue> cues = viCues.findByVideo_IdOrderByIdxAsc(id).stream()
+                .map(c -> c.toViCue())
+                .map(c -> new Cue(c.startMs(), c.endMs(), c.text()))
+                .toList();
+        return new SrtExport(srtWriter.fileName(video.getTitle(), id, "vi"), srtWriter.toBytes(cues, bom));
     }
 
     public void clear(String id) {

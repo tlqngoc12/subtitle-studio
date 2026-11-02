@@ -79,8 +79,8 @@ describe('VietsubPage', () => {
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
     expect(within(items[0]).getByText('7 câu')).toBeInTheDocument();
-    // Management list only: watching happens from /vietsub/list.
-    expect(within(list).queryByRole('link')).not.toBeInTheDocument();
+    // Management list only: watching happens from /vietsub/list (the only link is the download).
+    expect(within(list).queryByRole('link', { name: /^Xem/ })).not.toBeInTheDocument();
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
   });
 
@@ -143,6 +143,20 @@ describe('VietsubPage', () => {
     expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
   });
 
+  it('offers Replace, Delete and Download for each video', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
+    renderPage();
+    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+    const item = within(list).getByRole('listitem');
+
+    expect(within(item).getByText('Replace Vietsub')).toBeInTheDocument();
+    expect(within(item).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' })).toHaveTextContent('Delete Vietsub');
+    const download = within(item).getByRole('link', { name: 'Download Vietsub: Học Spring Boot' });
+    expect(download).toHaveTextContent('Download Vietsub');
+    expect(download).toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
+    expect(download).toHaveAttribute('download');
+  });
+
   it('replaces Vietsub from the list', async () => {
     const replaced = { ...newer, viCueCount: 9, viUpdatedAt: '2026-11-02T12:00:00Z' };
     const calls = fakeFetch([
@@ -152,7 +166,7 @@ describe('VietsubPage', () => {
     renderPage();
     const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
 
-    await userEvent.setup().upload(within(list).getByLabelText('Thay Vietsub của Học Spring Boot'), srtFile());
+    await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
 
     expect(await within(list).findByText('9 câu')).toBeInTheDocument();
     expect((calls.find((c) => c.method === 'POST')!.body as FormData).get('url')).toBe(ID);
@@ -166,7 +180,7 @@ describe('VietsubPage', () => {
     renderPage();
     const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
 
-    await userEvent.setup().click(within(list).getByRole('button', { name: 'Xoá Vietsub của Học Spring Boot' }));
+    await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
 
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(1));
     expect(window.confirm).toHaveBeenCalled();
@@ -179,7 +193,7 @@ describe('VietsubPage', () => {
     renderPage();
     const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
 
-    await userEvent.setup().click(within(list).getByRole('button', { name: 'Xoá Vietsub của Học Spring Boot' }));
+    await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
 
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
     expect(within(list).getAllByRole('listitem')).toHaveLength(1);

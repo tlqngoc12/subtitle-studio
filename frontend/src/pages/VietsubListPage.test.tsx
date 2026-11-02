@@ -56,7 +56,7 @@ describe('VietsubListPage', () => {
 
     const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
     expect(within(list).queryByRole('button')).not.toBeInTheDocument();
-    expect(within(list).queryByLabelText(/Thay Vietsub/)).not.toBeInTheDocument();
+    expect(within(list).queryByLabelText(/Replace Vietsub/)).not.toBeInTheDocument();
   });
 
   it('points to the Vietsub page when nothing has Vietsub yet', async () => {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.SourceType;
 import com.subtitlestudio.subtitle.SrtParser;
+import com.subtitlestudio.subtitle.SrtWriter;
 import com.subtitlestudio.test.MutableClock;
 import com.subtitlestudio.url.InvalidUrlException;
 import com.subtitlestudio.url.UrlParser;
@@ -30,7 +31,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({VietsubService.class, SrtParser.class, UrlParser.class, VietsubServiceTest.Config.class})
+@Import({VietsubService.class, SrtParser.class, SrtWriter.class, UrlParser.class, VietsubServiceTest.Config.class})
 class VietsubServiceTest {
 
     private static final String ID = "dQw4w9WgXcQ";
@@ -216,6 +217,39 @@ class VietsubServiceTest {
     void unknownVideoThrowsNotFound() {
         assertThatThrownBy(() -> service.clear(ID)).isInstanceOf(VideoNotFoundException.class);
         assertThatThrownBy(() -> service.getCues(ID)).isInstanceOf(VideoNotFoundException.class);
+    }
+
+    @Test
+    void exportsStoredVietsubAsSrt() {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nXin chào", "00:00:03,000 --> 00:00:04,000\nTạm biệt"));
+        reload();
+
+        SrtExport export = service.exportSrt(ID, false);
+
+        assertThat(export.fileName()).isEqualTo("Title " + ID + "_" + ID + ".vi.srt");
+        assertThat(new String(export.body(), StandardCharsets.UTF_8)).isEqualTo(
+                "1\r\n00:00:01,000 --> 00:00:02,000\r\nXin chào\r\n\r\n"
+                        + "2\r\n00:00:03,000 --> 00:00:04,000\r\nTạm biệt\r\n\r\n");
+    }
+
+    @Test
+    void exportAddsBomWhenRequested() {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nXin chào"));
+        reload();
+
+        byte[] body = service.exportSrt(ID, true).body();
+
+        assertThat(body[0]).isEqualTo((byte) 0xEF);
+    }
+
+    @Test
+    void exportWithoutVietsubThrows() {
+        saveVideo(ID);
+
+        assertThatThrownBy(() -> service.exportSrt(ID, false)).isInstanceOf(NoVietsubException.class);
+        assertThatThrownBy(() -> service.exportSrt("UNKNOWN0001", false)).isInstanceOf(VideoNotFoundException.class);
     }
 
     @Test

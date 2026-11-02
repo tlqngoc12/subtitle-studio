@@ -112,3 +112,8 @@ export async function getVietsub(id: string): Promise<ViCue[]> {
 export async function deleteVietsub(id: string): Promise<void> {
   await send(`/api/videos/${encodeURIComponent(id)}/vietsub`, { method: 'DELETE' });
 }
+
+/** Download URL of the stored Vietsub as `{title}_{id}.vi.srt`. */
+export function viSrtUrl(id: string): string {
+  return `/api/videos/${encodeURIComponent(id)}/subtitle.vi.srt`;
+}

@@ -4,6 +4,7 @@ import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.VttParseException;
 import com.subtitlestudio.url.InvalidUrlException;
+import com.subtitlestudio.video.NoVietsubException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.ytdlp.YtDlpFailedException;
 import com.subtitlestudio.ytdlp.YtDlpTimeoutException;
@@ -64,6 +65,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             MaxUploadSizeExceededException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(problem(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "Upload exceeds 5 MB"));
+    }
+
+    @ExceptionHandler(NoVietsubException.class)
+    ProblemDetail noVietsub(NoVietsubException e) {
+        return problem(HttpStatus.NOT_FOUND, "NO_VIETSUB", e.getMessage());
     }
 
     @ExceptionHandler(VideoNotFoundException.class)

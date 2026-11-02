@@ -114,6 +114,11 @@ class SrtWriterTest {
     class FileName {
 
         @Test
+        void usesGivenLanguageInFileName() {
+            assertThat(writer.fileName("Spring Boot Tutorial", ID, "vi")).isEqualTo("Spring Boot Tutorial_dQw4w9WgXcQ.vi.srt");
+        }
+
+        @Test
         void combinesTitleAndVideoId() {
             assertThat(writer.fileName("Spring Boot Tutorial", ID)).isEqualTo("Spring Boot Tutorial_dQw4w9WgXcQ.en.srt");
         }
