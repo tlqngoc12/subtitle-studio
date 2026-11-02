@@ -158,7 +158,9 @@ describe('VietsubPage', () => {
       expect(el.querySelector('svg')).not.toBeNull();
     }
     const download = within(item).getByRole('link', { name: 'Download Vietsub: Học Spring Boot' });
-    expect(download).toHaveTextContent('Download Vietsub');
+    expect(download).toHaveAttribute('title', 'Download Vietsub');
+    expect(download.textContent?.trim()).toBe('');
+    expect(download.querySelector('svg')).not.toBeNull();
     expect(download).toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
     expect(download).toHaveAttribute('download');
   });
