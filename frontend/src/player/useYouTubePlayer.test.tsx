@@ -6,7 +6,12 @@ import { useYouTubePlayer } from './useYouTubePlayer';
 /** A fake window.YT whose player time the test controls. */
 const fake = { time: 0, options: null as YTPlayerOptions | null, destroyed: false };
 
-const target = { getCurrentTime: () => fake.time, destroy: () => {} };
+const unloaded: string[] = [];
+const target = {
+  getCurrentTime: () => fake.time,
+  destroy: () => {},
+  unloadModule: (name: string) => unloaded.push(name),
+};
 const event = (data: number): YTPlayerEvent => ({ data, target });
 
 function setup() {
@@ -29,6 +34,7 @@ describe('useYouTubePlayer', () => {
     fake.time = 0;
     fake.options = null;
     fake.destroyed = false;
+    unloaded.length = 0;
     window.YT = {
       Player: class {
         constructor(_el: HTMLElement, options: YTPlayerOptions) {
@@ -55,6 +61,24 @@ describe('useYouTubePlayer', () => {
 
     expect(fake.options!.host).toBe('https://www.youtube-nocookie.com');
     expect(fake.options!.playerVars!.fs).toBe(0);
+  });
+
+  it('turns off YouTube built-in captions so only the Vietsub overlay shows', async () => {
+    setup();
+    await ready();
+
+    expect(fake.options!.playerVars!.cc_load_policy).toBe(0);
+    expect(unloaded).toContain('captions');
+  });
+
+  it('turns captions off again when playback starts', async () => {
+    setup();
+    await ready();
+    unloaded.length = 0;
+
+    act(() => fake.options!.events!.onStateChange!(event(1)));
+
+    expect(unloaded).toContain('captions');
   });
 
   it('updates the time when the user seeks while paused', async () => {

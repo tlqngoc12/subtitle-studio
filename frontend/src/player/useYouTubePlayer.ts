@@ -33,12 +33,20 @@ export function useYouTubePlayer(container: RefObject<HTMLDivElement | null>, vi
         playerRef.current = new YT.Player(mount, {
           videoId,
           host: 'https://www.youtube-nocookie.com',
-          playerVars: { fs: 0, playsinline: 1, rel: 0, iv_load_policy: 3 },
+          // cc_load_policy 0 + unloading the captions module: YouTube's own subtitles would sit
+          // where the Vietsub overlay is (it auto-enables them e.g. for foreign-language videos).
+          playerVars: { fs: 0, playsinline: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
           events: {
-            onReady: () => setState('ready'),
+            onReady: (e) => {
+              e.target.unloadModule?.('captions');
+              setState('ready');
+            },
             onStateChange: (e) => {
               setCurrentMs(e.target.getCurrentTime() * 1000);
-              if (e.data === YT_STATE.PLAYING) setState('playing');
+              if (e.data === YT_STATE.PLAYING) {
+                e.target.unloadModule?.('captions'); // YouTube reloads captions when playback starts
+                setState('playing');
+              }
               else if (e.data === YT_STATE.PAUSED) setState('paused');
               else if (e.data === YT_STATE.ENDED) setState('ended');
               else if (e.data === YT_STATE.CUED) setState('ready');
