@@ -1,199 +1,161 @@
-# Phase 2: Vietsub thủ công (design spec)
+# Phase 2: Xem video với Vietsub (design spec)
 
-> Ngày: 2026-11-02. Trạng thái: chờ review.
+> Ngày: 2026-11-02. Trạng thái: chờ review (bản rút gọn, thay bản đầu cùng ngày).
 > Nền tảng: Phase 1 (`v0.1.0`), xem [PLAN.md](../../../PLAN.md) và [PROGRESS.md](../../../PROGRESS.md).
 
 ## 1. Mục tiêu
 
-Sau khi tải `.srt` tiếng Anh (Phase 1) và dịch tay, người dùng đưa bản tiếng Việt trở lại app để:
+Người dùng dán URL YouTube và upload file `.srt` tiếng Việt đã dịch, rồi **xem video đó trên YouTube kèm Vietsub** ngay trong app.
 
-1. **Kiểm tra bản dịch** khi xem video: song ngữ, thấy câu gốc, nhảy tới câu cụ thể.
-2. **Xem sạch** video chỉ với Vietsub.
-3. **Xuất `.vi.srt`** để dùng ở nơi khác.
+**Luồng:**
+1. Màn hình **Vietsub**: nhập URL + chọn file `.srt` → "Thêm Vietsub".
+2. Cùng màn hình đó: **danh sách video đã có Vietsub** → bấm "Xem".
+3. Màn hình **xem** (màn hình kết quả cuối cùng): phát video YouTube, Vietsub hiện đúng thời điểm, có nút toàn màn hình.
 
-**Tiêu chí thành công:** dịch xong (hoặc dịch dở) → upload → xem video thấy Vietsub khớp lời nói, biết rõ đã dịch bao nhiêu câu và dòng nào không khớp.
+**Tiêu chí thành công:** thêm Vietsub cho một video, mở màn hình xem, Vietsub hiện khớp lời nói, kể cả khi toàn màn hình.
 
-**Ngoài phạm vi** (Phase 3+): sửa câu trực tiếp trên web, lọc "chỉ câu chưa dịch", nhảy tới câu chưa dịch kế tiếp, engine dịch, lịch sử các bản upload.
+**Ngoài phạm vi** (để Phase 3+): chế độ kiểm tra song ngữ, danh sách câu và tua theo câu, tiến độ dịch, khớp bản dịch với câu tiếng Anh, xuất `.vi.srt`, sửa câu trực tiếp, engine dịch.
 
-## 2. Bối cảnh và giả định đã xác nhận
+## 2. Giả định đã xác nhận
 
 | Điều | Nguồn |
 |---|---|
-| Khi dịch, người dùng **giữ nguyên cấu trúc**: không đổi số thứ tự, không đổi timecode, chỉ thay text | Người dùng xác nhận |
-| Người dùng **dịch thẳng trên file `.srt` tiếng Anh**, nên file dịch dở vẫn đủ số dòng: phần đã dịch là tiếng Việt, phần còn lại vẫn là tiếng Anh gốc | Suy ra từ cách dịch; đã duyệt trong phần 2 |
-| Người dùng **upload dần** (bản dịch dở), rồi upload lại bản đầy đủ hơn | Người dùng xác nhận |
-| Cần cả chế độ **Kiểm tra** và chế độ **Xem** | Người dùng xác nhận |
-| App local, một người dùng; backend REST (Spring Boot), frontend React; cột `cue.text_vi` đã có từ Phase 1 | Phase 1 |
+| File `.srt` tiếng Việt do người dùng cung cấp, **dịch từ file Engsub gốc và giữ nguyên timing** | Người dùng xác nhận |
+| Màn hình xem chỉ cần **video + Vietsub** (+ toàn màn hình), đây là màn hình kết quả cuối | Người dùng xác nhận |
+| Có màn hình riêng liệt kê video có Vietsub; trang Phase 1 giữ nguyên | Người dùng xác nhận |
+| App local, một người dùng; backend REST (Spring Boot), frontend React | Phase 1 |
+
+Vì timing đã có sẵn trong file, Vietsub được **lưu và phát theo timing của chính file**, không cần khớp với câu tiếng Anh.
 
 ## 3. Dữ liệu
 
-### 3.1 Schema
-
-- `cue.text_vi VARCHAR(1000) NULL`: đã có. `NULL` nghĩa là câu chưa dịch.
-- `video` thêm:
+### 3.1 Bảng mới `vi_cue`
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
-| `translated_count` | `INT NOT NULL DEFAULT 0` | Số câu có `text_vi`. Lưu sẵn để danh sách hiện tiến độ mà không phải đếm |
-| `translated_at` | `TIMESTAMP NULL` | Lần upload gần nhất; `NULL` khi chưa có hoặc đã xoá bản dịch |
+| `id` | `BIGINT` identity | PK |
+| `video_id` | `VARCHAR(11)` | FK → `video.id`, có index |
+| `idx` | `INT` | thứ tự sau khi sắp theo `start_ms`; unique `(video_id, idx)` |
+| `start_ms` | `BIGINT` | |
+| `end_ms` | `BIGINT` | |
+| `text` | `VARCHAR(1000) NOT NULL` | nhiều dòng nối bằng `\n`, dạng Unicode NFC |
 
-**Nâng cấp DB của Phase 1:** schema vẫn do Hibernate `ddl-auto: update` quản lý. DB thật của người dùng đã có dữ liệu, nên cột mới **bắt buộc có `DEFAULT 0`** (khai báo qua `columnDefinition`); nếu không, H2 từ chối thêm cột `NOT NULL` vào bảng đã có dòng và app không khởi động được. Phải có test khởi động trên một DB tạo bởi schema Phase 1.
+### 3.2 Bảng `video` thêm cột
 
-### 3.2 Quy ước upload
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `vi_cue_count` | `INT NOT NULL DEFAULT 0` | số câu Vietsub; `> 0` nghĩa là video có Vietsub |
+| `vi_updated_at` | `TIMESTAMP NULL` | lần thêm/thay Vietsub gần nhất |
 
-Mỗi lần upload là **toàn bộ bản dịch tại thời điểm đó** và **thay thế hoàn toàn** bản trước: mọi `text_vi` của video bị xoá rồi ghi lại theo file mới. Không có chế độ "upload thêm phần mới".
+**Nâng cấp DB của Phase 1:** schema do Hibernate `ddl-auto: update` quản lý. DB thật của người dùng đã có dữ liệu, nên `vi_cue_count` **bắt buộc có `DEFAULT 0`** (khai báo qua `columnDefinition`); nếu không, H2 từ chối thêm cột `NOT NULL` và app không khởi động được. Phải có test khởi động trên DB tạo theo schema Phase 1.
 
-## 4. API
+Cột `cue.text_vi` của Phase 1 **không dùng** ở Phase 2 (để dành cho Phase 3).
 
-### 4.1 Endpoint mới / thay đổi
+### 3.3 Quy tắc
+
+- Thêm Vietsub cho video đã có Vietsub → **thay toàn bộ** Vietsub cũ.
+- Xoá video ở trang Phase 1 → xoá luôn Vietsub của nó (trước khi xoá `video`, vì có FK).
+- Làm mới Engsub (Phase 1) **không ảnh hưởng** Vietsub, vì hai bộ phụ đề độc lập.
+
+## 4. Đọc file `.srt`: `SrtParser` (package `subtitle`)
+
+Đọc `.srt` thành `SrtParseResult(List<SrtEntry(int index, long startMs, long endMs, String text)> entries, int skippedBlocks)`.
+
+- Chấp nhận: BOM UTF-8; CRLF, LF hoặc CR; nhiều dòng trống liên tiếp; thiếu dòng trống cuối file; mili giây phân cách bằng `,` hoặc `.`; giờ nhiều hơn 2 chữ số; thiếu dòng số thứ tự (khi đó lấy thứ tự xuất hiện).
+- Text nhiều dòng nối bằng `\n`; mỗi dòng được `strip`; dòng rỗng bị bỏ. Giữ nguyên tag như `<i>`.
+- Block không có dòng timing hợp lệ bị bỏ qua và được đếm vào `skippedBlocks`.
+- Không đọc được block nào, hoặc file không phải UTF-8 hợp lệ (kể cả UTF-16), thì ném `InvalidSrtException` (→ `INVALID_SRT`).
+
+## 5. Lưu Vietsub: `VietsubService` (package `video`)
+
+`VideoDto add(String url, byte[] srt)`:
+
+1. `UrlParser.parse(url)` → `videoId` (`INVALID_URL` nếu sai).
+2. Parse `.srt` **trước** mọi lời gọi mạng, để file hỏng báo lỗi ngay mà không gọi YouTube.
+3. Chuẩn hoá từng câu: text sang NFC; bỏ câu có text rỗng; câu dài hơn 1000 ký tự → `InvalidSrtException("Block <index> is longer than 1000 characters")`; sắp theo `startMs` (giữ thứ tự file khi trùng); `endMs <= startMs` → bỏ câu đó.
+4. Không còn câu nào → `InvalidSrtException("No subtitle text found")`.
+5. Video chưa có trong DB → `SubtitleService.fetch(url)` (pipeline Phase 1, lấy thông tin video và Engsub). Lỗi của bước này (`YTDLP_FAILED`, `NO_ENGLISH_SUBTITLE`…) được trả nguyên.
+6. Trong một transaction: xoá `vi_cue` cũ của video, ghi các câu mới (`idx` từ 0), cập nhật `vi_cue_count` và `vi_updated_at` (từ `Clock`).
+7. Trả video.
+
+`void clear(String id)`: xoá mọi `vi_cue`, `vi_cue_count = 0`, `vi_updated_at = NULL`. Video không tồn tại → `VideoNotFoundException`.
+
+`List<ViCue> getCues(String id)`: các câu theo `idx`. Video không tồn tại → `VideoNotFoundException`; chưa có Vietsub → danh sách rỗng.
+
+`SubtitleService.delete(id)`: xoá `vi_cue` của video trước khi xoá `cue` và `video`.
+
+## 6. API
 
 | Method | Path | Mô tả |
 |---|---|---|
-| PUT | `/api/videos/{id}/translation` | Upload `.srt` tiếng Việt, `multipart/form-data`, field `file`. Trả 200 kèm `TranslationReport` |
-| DELETE | `/api/videos/{id}/translation` | Xoá toàn bộ bản dịch. Trả 204 |
-| GET | `/api/videos/{id}/subtitle.vi.srt` | Tải `.vi.srt` (`?bom=true` như bản tiếng Anh) |
-| GET | `/api/videos/{id}/cues` | Mỗi cue thêm `textVi` (`null` nếu chưa dịch) |
-| GET | `/api/videos`, `/api/videos/{id}` | `VideoDto` thêm `translatedCount` |
-| POST | `/api/videos/{id}/refresh` | Thay đổi: bị chặn khi video đã có bản dịch (xem 4.2) |
+| POST | `/api/vietsub` | `multipart/form-data`: field `url` (text) và `file` (.srt). Trả 200 `VideoDto` |
+| GET | `/api/videos/{id}/vietsub` | Danh sách `{ "startMs", "endMs", "text" }` theo thứ tự thời gian |
+| DELETE | `/api/videos/{id}/vietsub` | Xoá Vietsub. Trả 204 |
+| GET | `/api/videos`, `/api/videos/{id}` | `VideoDto` thêm `viCueCount` (number) và `viUpdatedAt` (ISO string hoặc `null`) |
 
-`TranslationReport`:
+"Thay Vietsub" từ danh sách dùng lại `POST /api/vietsub` với `url` là videoId (UrlParser chấp nhận ID trần).
 
-```json
-{
-  "totalCues": 1152,
-  "translated": 200,
-  "untranslated": 951,
-  "unmatched": [
-    { "index": 57, "startMs": 213400, "text": "…", "reason": "NO_MATCHING_TIME" }
-  ],
-  "skippedBlocks": 0
-}
-```
+Giới hạn upload: **5 MB** (`spring.servlet.multipart.max-file-size`, `max-request-size`).
 
-- `translated`: số dòng đã khớp và đã được dịch (được lưu vào `text_vi`). Sau upload, `video.translated_count = translated`.
-- `untranslated`: số dòng khớp được nhưng text vẫn giống câu tiếng Anh gốc (xem 5.2).
-- `unmatched`: các dòng không ghép được với câu gốc nào, kèm lý do.
-- `skippedBlocks`: số block `.srt` không đọc được.
+**Lỗi mới:**
 
-Giới hạn dung lượng upload: **5 MB** (`spring.servlet.multipart.max-file-size`, `max-request-size`). File `.vi.srt` của video 4 giờ chỉ khoảng 0,5 MB.
-
-### 4.2 Lỗi mới
-
-| Code | HTTP | Khi nào | Ghi chú |
-|---|---|---|---|
-| `INVALID_SRT` | 400 | Không đọc được block `.srt` nào, hoặc file không phải UTF-8 hợp lệ | |
-| `TRANSLATION_NOT_MATCHED` | 422 | Không có dòng nào vừa khớp timecode vừa đã được dịch | **Giữ nguyên bản dịch cũ**. Thường do chọn nhầm file của video khác, hoặc upload file tiếng Anh chưa dịch |
-| `NO_TRANSLATION` | 404 | Tải `.vi.srt` khi `translated_count = 0` | |
-| `TRANSLATION_EXISTS` | 409 | Làm mới video có `translated_count > 0` | Thông báo hướng dẫn: tải `.vi.srt` về hoặc xoá bản dịch trước |
-| `FILE_TOO_LARGE` | 413 | Upload vượt 5 MB | Map từ `MaxUploadSizeExceededException` |
-
-Lý do chặn Làm mới thay vì tự khớp lại bản dịch: Làm mới tạo lại toàn bộ cue; nếu YouTube đổi timing, phần dịch sẽ âm thầm mất. Làm mới hiếm khi cần sau khi đã dịch.
-
-## 5. Đọc file và khớp bản dịch (backend)
-
-### 5.1 `SrtParser` (package `subtitle`)
-
-Đọc `.srt` thành `List<SrtEntry(int index, long startMs, long endMs, String text)>`.
-
-- Chấp nhận: BOM UTF-8; CRLF, LF hoặc CR; nhiều dòng trống liên tiếp; thiếu dòng trống cuối file; mili giây phân cách bằng `,` hoặc `.`; giờ nhiều hơn 2 chữ số; dòng số thứ tự không phải số hoặc bị thiếu (khi đó lấy thứ tự xuất hiện).
-- Text nhiều dòng được nối bằng `\n`; mỗi dòng được `strip`; dòng rỗng bị bỏ.
-- Giữ nguyên tag như `<i>` trong text. Frontend luôn render dạng văn bản thuần (không dùng `dangerouslySetInnerHTML`), nên không có rủi ro chèn HTML.
-- Block không có dòng timing hợp lệ bị bỏ qua và được đếm vào `skippedBlocks`.
-- Không đọc được block nào thì ném `InvalidSrtException` (→ `INVALID_SRT`).
-- Byte không phải UTF-8 hợp lệ thì ném `InvalidSrtException` (đọc bằng decoder ở chế độ `REPORT`, không âm thầm thay bằng `?`).
-
-### 5.2 `TranslationMatcher` (package `subtitle`)
-
-Đầu vào: danh sách cue gốc của video (đã sắp theo `startMs`, kèm `text_en`) và danh sách `SrtEntry`. Đầu ra: `MatchResult` gồm map `cueIdx → textVi`, số `untranslated`, danh sách `unmatched`.
-
-Với mỗi entry, theo thứ tự trong file:
-
-1. Tìm cue gốc có `startMs` **gần nhất** với `entry.startMs` bằng binary search.
-2. Nếu `|chênh lệch| > 100 ms` → `unmatched` với lý do `NO_MATCHING_TIME`.
-3. Nếu cue đó đã được một entry trước khớp → `unmatched` với lý do `DUPLICATE_TIME` (giữ entry đầu tiên).
-4. Nếu text của entry, sau khi chuẩn hoá, **bằng** text tiếng Anh gốc của cue → tính là `untranslated`, không lưu. Chuẩn hoá: gộp mọi khoảng trắng (kể cả `\n`) thành một dấu cách, `strip`, chuyển thường bằng `Locale.ROOT`.
-5. Nếu text dài hơn 1000 ký tự → `unmatched` với lý do `TOO_LONG`.
-6. Ngược lại → khớp, lưu text (giữ `\n` giữa các dòng).
-
-Ngưỡng ±100 ms: export của Phase 1 có độ chính xác mili giây và các công cụ chỉnh sửa giữ nguyên timecode, nên khớp thường là chênh 0 ms. Chọn cue **gần nhất** giải quyết trường hợp hai cue gốc cách nhau dưới 200 ms.
-
-Vì khớp theo timecode, file thiếu một block ở giữa chỉ làm đúng câu đó thiếu, các câu sau không bị lệch (khác với khớp theo số thứ tự).
-
-### 5.3 `TranslationService` (package `video`)
-
-- `upload(id, bytes)`:
-  1. Video không tồn tại → `VideoNotFoundException`.
-  2. Parse và khớp, **chưa ghi DB**.
-  3. `translated == 0` → `TranslationNotMatchedException`, không thay đổi gì.
-  4. Trong một transaction: đặt `text_vi = NULL` cho mọi cue của video, ghi `text_vi` cho các cue đã khớp, cập nhật `translated_count` và `translated_at` (từ `Clock`).
-  5. Trả `TranslationReport`.
-- `clear(id)`: xoá mọi `text_vi`, `translated_count = 0`, `translated_at = NULL`.
-- `exportVi(id, bom)`: `translated_count == 0` → `NoTranslationException`; ngược lại dùng `SrtWriter` ghi các cue có `text_vi` theo thứ tự `idx`, với timing gốc, đánh số lại từ 1. Tên file `{title}_{id}.vi.srt` (thêm tham số ngôn ngữ cho `SrtWriter.fileName`).
-- `SubtitleService.refresh(id)`: nếu `translated_count > 0` → `TranslationExistsException`, kiểm tra **trước** khi gọi yt-dlp.
-
-## 6. Frontend
-
-### 6.1 Điều hướng
-
-- Thêm `react-router`. Hai route:
-  - `/`: trang chủ (khung dán link + danh sách đã lấy).
-  - `/videos/:id`: trang video, thay cho panel kết quả của Phase 1. Lấy phụ đề xong hoặc mở video từ danh sách đều điều hướng tới đây.
-- Backend: một controller **chỉ** forward `/videos/{id}` (và `/videos/{id}/`) về `/index.html`. Không bắt mọi đường dẫn, để `/api/...` sai vẫn trả 404 ProblemDetail.
-
-### 6.2 Trang video
-
-```
-← Danh sách
-<Tiêu đề>                                  [Kiểm tra | Xem]  [Toàn màn hình]
-<kênh>, <thời lượng>, <Manual|Auto-generated>, đã dịch 200/1152 câu ▓▓░░░░
-┌──────────── player 16:9 + overlay ───┐ ┌ danh sách câu (chỉ ở Kiểm tra) ┐
-└──────────────────────────────────────┘ └─────────────────────────────────┘
-Phụ đề: [Tải .srt tiếng Anh] [Upload bản dịch…] [Tải .vi.srt] [Xoá bản dịch]
-<báo cáo upload, nếu vừa upload>
-```
-
-- Màn hình hẹp (< 760 px): danh sách câu nằm dưới player.
-- **Upload:** nút chọn file (`accept=".srt"`). Thành công → hiện báo cáo ngay dưới thanh nút: *"Đã nhận X câu đã dịch, Y câu còn tiếng Anh, Z dòng không khớp"*, kèm danh sách có thể mở rộng của các dòng không khớp (số thứ tự, timecode, text, lý do bằng tiếng Việt). Player, danh sách câu và tiến độ cập nhật ngay.
-- **Tải `.vi.srt`:** vô hiệu khi `translatedCount == 0`.
-- **Xoá bản dịch:** hỏi xác nhận; chỉ hiện khi `translatedCount > 0`.
-- Giữ token màu và font của Phase 1 (Be Vietnam Pro); khung video tối của trang chủ trở thành player thật.
-
-### 6.3 Trang chủ
-
-- Mỗi video trong danh sách hiện thêm *"đã dịch X/Y"* khi `translatedCount > 0`.
-- Lỗi `TRANSLATION_EXISTS` khi Làm mới có thông báo tiếng Việt kèm hướng dẫn.
-
-### 6.4 Player và overlay
-
-- **`useYouTubePlayer(videoId)`**: hook bọc YouTube IFrame Player API.
-  - Nạp `https://www.youtube.com/iframe_api` một lần; dùng host `https://www.youtube-nocookie.com`.
-  - Tham số: `fs: 0` (tắt nút fullscreen của YouTube vì nó che overlay), `playsinline: 1`, `rel: 0`, `iv_load_policy: 3`.
-  - Cung cấp: `currentMs`, `seekTo(ms)`, `state`, `error`.
-  - Khi đang phát, đọc `getCurrentTime()` theo `requestAnimationFrame`; dừng đọc khi pause hoặc kết thúc.
-  - Lỗi 101/150 (video không cho nhúng) → `error = 'EMBED_BLOCKED'`; trang hiện: *"Video này không cho phép phát nhúng. Bạn vẫn tải được .srt và .vi.srt."*
-- **`findActiveCue(cues, ms)`**: hàm thuần, binary search, trả cue có `startMs ≤ ms < endMs` hoặc `null`.
-- **`SubtitleOverlay`**: lớp phủ trên player (`pointer-events: none`), cỡ chữ theo bề rộng player (container query units).
-
-| | Kiểm tra | Xem |
+| Code | HTTP | Khi nào |
 |---|---|---|
-| Câu đã dịch | Dòng tiếng Việt, bên dưới là dòng tiếng Anh nhỏ hơn | Chỉ tiếng Việt |
-| Câu chưa dịch | Tiếng Anh mờ, có dấu hiệu "chưa dịch" | Không hiện gì |
+| `INVALID_SRT` | 400 | File không đọc được, không phải UTF-8, không có câu nào, hoặc có câu dài hơn 1000 ký tự |
+| `FILE_TOO_LARGE` | 413 | Upload vượt 5 MB (`MaxUploadSizeExceededException`) |
 
-- **`CueList`** (chỉ ở chế độ Kiểm tra): mỗi dòng gồm thời gian, EN, VI (hoặc "chưa dịch"); câu đang phát được tô sáng và tự cuộn vào khung nhìn; click một dòng → `seekTo(startMs)`.
-- **Toàn màn hình:** nút của app gọi `requestFullscreen()` trên phần tử bao player + overlay, nên overlay vẫn hiện khi fullscreen.
-- Chế độ mặc định: **Kiểm tra** khi bản dịch chưa đủ, **Xem** khi `translatedCount == cueCount`. Người dùng chuyển bằng nút gạt.
+Các lỗi của Phase 1 (`INVALID_URL`, `NO_ENGLISH_SUBTITLE`, `YTDLP_FAILED`, `YTDLP_TIMEOUT`, `VIDEO_NOT_FOUND`) giữ nguyên.
 
-## 7. Lỗi hiển thị (tiếng Việt)
+**Forward route SPA:** một controller **chỉ** forward `/vietsub` và `/vietsub/{id}` (kèm dạng có `/` ở cuối) về `/index.html`; `/api/...` sai vẫn trả 404 ProblemDetail.
+
+## 7. Frontend
+
+### 7.1 Điều hướng
+
+`react-router`, ba route:
+
+| Route | Trang |
+|---|---|
+| `/` | Trang Phase 1 (giữ nguyên hành vi) |
+| `/vietsub` | Trang Vietsub: form thêm + danh sách |
+| `/vietsub/:id` | Màn hình xem |
+
+Thanh điều hướng trên cùng có hai mục: **Lấy Engsub** (`/`) và **Vietsub** (`/vietsub`); mục hiện tại có `aria-current="page"`.
+
+Trang Phase 1: video có `viCueCount > 0` hiện thêm link **"Xem Vietsub"** tới `/vietsub/:id`.
+
+### 7.2 Trang Vietsub (`/vietsub`)
+
+- Form: ô **"Link YouTube"**, ô chọn file **"File Vietsub (.srt)"** (`accept=".srt"`), nút **"Thêm Vietsub"**. Thiếu URL hoặc file thì không gửi. Trong lúc gửi: nút đổi thành "Đang thêm…" và bị vô hiệu (video mới cần lấy thông tin từ YouTube, có thể mất 10–20 giây).
+- Thành công → chuyển tới `/vietsub/:id`.
+- Danh sách: các video có `viCueCount > 0`, mới cập nhật trước (`viUpdatedAt` giảm dần). Mỗi dòng: thumbnail, tiêu đề, "N câu", nút **Xem** (link), **Thay Vietsub** (chọn file → gửi với `url = id`), **Xoá Vietsub** (hỏi xác nhận).
+- Chưa có video nào: *"Chưa có video nào có Vietsub. Dán link YouTube và chọn file .srt ở trên để bắt đầu."*
+- Lỗi hiển thị theo `code` (mục 7.4).
+
+### 7.3 Màn hình xem (`/vietsub/:id`)
+
+- Link **"← Danh sách Vietsub"**, tiêu đề video, kênh.
+- Khung player 16:9 với overlay Vietsub và nút **"Toàn màn hình"**.
+- **`useYouTubePlayer(container, videoId)`**: hook bọc YouTube IFrame Player API.
+  - Nạp `https://www.youtube.com/iframe_api` một lần; host `https://www.youtube-nocookie.com`.
+  - Tham số: `fs: 0` (tắt nút fullscreen của YouTube vì nó che overlay), `playsinline: 1`, `rel: 0`, `iv_load_policy: 3`.
+  - Cung cấp `currentMs`, `state`, `error`. Khi đang phát, đọc `getCurrentTime()` theo `requestAnimationFrame`; dừng đọc khi pause/kết thúc; `destroy()` khi unmount.
+  - Lỗi 101/150 → `EMBED_BLOCKED`; script không tải được → `LOAD_FAILED`.
+- **`findActiveCue(cues, ms)`**: hàm thuần; trả câu có `startMs ≤ ms < endMs`; nếu nhiều câu chồng nhau, trả câu bắt đầu muộn nhất; không có thì `null`.
+- **`SubtitleOverlay`**: lớp phủ đáy player (`pointer-events: none`), chữ trắng trên nền tối bán trong suốt, cỡ chữ theo bề rộng player (container query units); render dạng văn bản thuần (không `dangerouslySetInnerHTML`), giữ xuống dòng.
+- **Toàn màn hình:** nút của app gọi `requestFullscreen()` trên khung bao player + overlay.
+- Video chưa có Vietsub (`viCueCount == 0`): *"Video này chưa có Vietsub."* kèm link về trang Vietsub.
+
+### 7.4 Thông báo lỗi (tiếng Việt)
 
 | Code | Thông báo |
 |---|---|
-| `INVALID_SRT` | Không đọc được file .srt. Kiểm tra file có đúng định dạng SubRip và lưu bằng UTF-8. |
-| `TRANSLATION_NOT_MATCHED` | Không có dòng nào khớp với phụ đề của video này. Bản dịch cũ được giữ nguyên. Có thể bạn chọn nhầm file, hoặc file chưa được dịch. |
-| `NO_TRANSLATION` | Video này chưa có câu nào được dịch. |
-| `TRANSLATION_EXISTS` | Video đã có bản dịch nên không làm mới được. Tải .vi.srt về hoặc xoá bản dịch trước. |
+| `INVALID_SRT` | Không đọc được file .srt. Kiểm tra file đúng định dạng SubRip và lưu bằng UTF-8. (kèm chi tiết từ server) |
 | `FILE_TOO_LARGE` | File quá lớn (tối đa 5 MB). |
+| `EMBED_BLOCKED` (frontend) | Video này không cho phép phát nhúng trong app. |
+| `LOAD_FAILED` (frontend) | Không tải được trình phát YouTube. Kiểm tra kết nối mạng. |
 
-Lý do trong danh sách dòng không khớp: `NO_MATCHING_TIME` → "Không có câu gốc trùng thời điểm", `DUPLICATE_TIME` → "Trùng thời điểm với dòng trước", `TOO_LONG` → "Dài quá 1000 ký tự".
+Các code của Phase 1 dùng thông báo đã có.
 
 ## 8. Test
 
@@ -201,47 +163,41 @@ Vẫn TDD: viết test trước, chạy thấy fail đúng lý do, rồi mới v
 
 | Phần | Loại | Trường hợp chính |
 |---|---|---|
-| `SrtParser` | Unit | CRLF/LF/CR, BOM, `,` và `.`, giờ > 99, thiếu dòng số thứ tự, block hỏng (`skippedBlocks`), text nhiều dòng, file rỗng, byte không phải UTF-8 |
-| `TranslationMatcher` | Unit | Chênh 0/100/101 ms; chọn cue gần nhất khi hai cue gần nhau; text giống tiếng Anh (khác hoa/thường, khoảng trắng) → `untranslated`; thiếu block ở giữa không làm lệch câu sau; trùng timecode; dài > 1000 |
-| `TranslationService` | `@DataJpaTest` | Upload thay thế toàn bộ; 0 câu dịch → giữ bản cũ; `translated_count`, `translated_at`; xoá; xuất `.vi.srt` đánh số lại; chưa dịch → `NoTranslation` |
-| `SubtitleService.refresh` | `@DataJpaTest` | Có bản dịch → `TranslationExists` và **không gọi yt-dlp** |
-| Nâng cấp schema | Test khởi động | DB tạo theo schema Phase 1 (không có cột mới, đã có dòng) → app khởi động, `translated_count = 0` |
-| Controller | `@WebMvcTest` | Multipart upload, các code lỗi mới (kể cả 413), header `.vi.srt`, `textVi` trong cues, `translatedCount` |
-| SPA forward | `@WebMvcTest` | `/videos/{id}` → forward `index.html`; `/api/khong-co` vẫn 404 |
-| Frontend | Vitest + RTL | Router; trang video; upload + báo cáo; tiến độ; vô hiệu/ẩn nút theo `translatedCount`; `findActiveCue` (biên đầu/cuối, khoảng trống, rỗng); overlay theo chế độ với player giả; click câu → `seekTo` |
-| Golden (local) | Unit | Thêm cặp `.srt` gốc + `.srt` dịch dở của video thật vào `golden/` (gitignore) để kiểm tra báo cáo khớp |
+| `SrtParser` | Unit | CRLF/LF/CR, BOM, `,`/`.`, giờ > 99, thiếu dòng số thứ tự, block hỏng, text nhiều dòng, file rỗng, UTF-16, byte không phải UTF-8 |
+| `VietsubService` | `@DataJpaTest` | Thêm cho video đã có; video chưa có → gọi `fetch`; thay toàn bộ; file hỏng → không gọi YouTube, không đổi dữ liệu; NFC; câu > 1000 ký tự; sắp theo thời gian; bỏ câu rỗng/timing sai; xoá; `getCues` |
+| `SubtitleService.delete` | `@DataJpaTest` | Video có Vietsub → xoá được, không lỗi FK |
+| Nâng cấp schema | Test khởi động | DB theo schema Phase 1 (đã có dòng) → app khởi động, `vi_cue_count = 0` |
+| Controller | `@WebMvcTest` | Multipart `url` + `file`, `INVALID_SRT`, `FILE_TOO_LARGE`, GET/DELETE vietsub, `viCueCount` trong `VideoDto` |
+| SPA forward | `@WebMvcTest` | `/vietsub`, `/vietsub/{id}` → forward `index.html`; `/api/khong-co` vẫn 404 |
+| Frontend | Vitest + RTL | Điều hướng; form thêm (gửi đúng, khoá nút khi đang gửi, chuyển trang); danh sách (lọc, sắp xếp, thay, xoá); link "Xem Vietsub" ở trang Phase 1; `findActiveCue`; overlay theo thời gian (player giả); toàn màn hình; lỗi cấm nhúng; markup hiện dạng văn bản |
 
-YouTube IFrame API không unit test được: kiểm tra trong checklist test tay (phát, pause, tua, fullscreen, video cấm nhúng).
+YouTube IFrame API không unit test được: kiểm tra trong checklist test tay (phát, pause, tua, toàn màn hình, video cấm nhúng).
 
 ## 9. Các bước triển khai
 
 | # | Việc |
 |---|---|
 | P2-T01 | `SrtParser` + `InvalidSrtException` |
-| P2-T02 | `TranslationMatcher` |
-| P2-T03 | Schema (`translated_count DEFAULT 0`, `translated_at`) + test nâng cấp từ DB Phase 1; `TranslationService` (upload, clear, exportVi); chặn refresh |
-| P2-T04 | Endpoint + DTO + lỗi mới + giới hạn upload 5 MB + forward `/videos/{id}` |
-| P2-T05 | Frontend: router, trang video (thông tin, tải file, upload + báo cáo, xoá bản dịch), tiến độ ở trang chủ, thông báo lỗi mới |
-| P2-T06 | Player: `useYouTubePlayer`, `findActiveCue`, `SubtitleOverlay`, `CueList`, hai chế độ, fullscreen, lỗi cấm nhúng |
-| P2-T07 | Kiểm chứng với video thật (Definition of Done), cập nhật README, PROGRESS, PLAN; tag `v0.2.0` |
-
-Mỗi bước có test riêng và commit riêng.
+| P2-T02 | Schema (`vi_cue`, `vi_cue_count DEFAULT 0`, `vi_updated_at`) + test nâng cấp DB Phase 1; `VietsubService`; `SubtitleService.delete` xoá cả Vietsub |
+| P2-T03 | `VietsubController`, `VideoDto` thêm field, lỗi mới, giới hạn upload, forward `/vietsub/**` |
+| P2-T04 | Frontend: router, thanh điều hướng, trang Vietsub (form + danh sách), link "Xem Vietsub" ở trang Phase 1 |
+| P2-T05 | Frontend: màn hình xem (player, overlay, toàn màn hình, lỗi) |
+| P2-T06 | Kiểm chứng với video thật, cập nhật README/PROGRESS/PLAN; tag `v0.2.0` khi người dùng đồng ý |
 
 ## 10. Definition of Done
 
-Với một video thật (ví dụ `9SGDpanrc8U`, 1152 câu):
+Với một video thật đã có Engsub từ Phase 1:
 
-1. Dịch 20 dòng đầu ngay trong file `.srt` đã tải, upload → báo cáo "20 đã dịch, 1132 còn tiếng Anh, 0 không khớp".
-2. Chế độ Kiểm tra: song ngữ đồng bộ với lời nói; câu đang phát được tô sáng; click một câu → tua đúng chỗ.
-3. Chế độ Xem: chỉ có Vietsub; bật fullscreen bằng nút của app vẫn thấy overlay.
-4. Tải `.vi.srt` → đúng 20 câu, timing gốc, đánh số 1–20.
-5. Upload file đã xoá 1 block ở giữa phần đã dịch → chỉ đúng câu đó thiếu, các câu khác giữ nguyên.
-6. Làm mới video đã có bản dịch → bị chặn với thông báo hướng dẫn.
+1. Dịch file `.srt` (giữ timing), vào trang Vietsub, dán URL + chọn file → chuyển sang màn hình xem.
+2. Phát video: Vietsub hiện khớp lời nói; pause/tua vẫn đúng.
+3. Bấm "Toàn màn hình" của app: Vietsub vẫn hiện.
+4. Thêm Vietsub bằng URL của một video **chưa có** trong app → app tự lấy thông tin video rồi lưu Vietsub.
+5. "Thay Vietsub" bằng file khác → màn hình xem dùng bản mới.
+6. Xoá video ở trang Phase 1 → không lỗi; video biến mất khỏi danh sách Vietsub.
 7. App khởi động bình thường trên DB thật đã dùng ở Phase 1.
 
 ## 11. Rủi ro
 
-- **YouTube IFrame API thay đổi hoặc chặn nhúng:** cô lập trong `useYouTubePlayer`; lỗi cấm nhúng được xử lý rõ ràng.
+- **YouTube IFrame API thay đổi hoặc video chặn nhúng:** cô lập trong `useYouTubePlayer`; lỗi cấm nhúng có thông báo rõ.
 - **Độ chính xác đồng bộ:** `getCurrentTime()` theo `requestAnimationFrame` cho sai lệch vài chục ms, đủ cho phụ đề.
-- **Người dùng lỡ chỉnh timecode khi dịch:** những dòng đó hiện trong `unmatched` với lý do rõ ràng, không bị lưu sai chỗ.
-- **Bản dịch trùng nguyên văn tiếng Anh** (tên riêng, câu như "OK"): bị tính là chưa dịch. Chấp nhận ở Phase 2; Phase 3 (sửa trực tiếp) có thể cho đánh dấu thủ công.
+- **File dịch dở còn dòng tiếng Anh:** hiện nguyên văn như trong file; chấp nhận vì Phase 2 phát đúng nội dung người dùng cung cấp.
