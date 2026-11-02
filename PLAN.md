@@ -261,10 +261,11 @@ Mỗi task đều kèm unit test chạy trên dummy data, không gọi mạng.
 
 ## 9. Các phase sau (chỉ ghi lại hướng, chưa làm)
 
-- **Phase 2 — Vietsub thủ công:**
-  - Upload file `.srt` tiếng Việt đã dịch → parse → map vào `cue.text_vi` theo index (fallback theo thời gian nếu số dòng lệch).
-  - Player dùng YouTube IFrame API, hiện overlay Vietsub hoặc song ngữ.
-  - Xuất `.vi.srt`.
+- **Phase 2 — Xem video với Vietsub: ✅ xong** (bản rút gọn sau khi người dùng làm rõ yêu cầu).
+  - Màn hình Vietsub: dán URL + upload `.srt` tiếng Việt (giữ timing gốc) → lưu thành bộ phụ đề riêng (bảng `vi_cue`).
+  - Danh sách video có Vietsub → màn hình xem: YouTube IFrame player + overlay Vietsub + toàn màn hình của app.
+  - Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md); plan: [docs/superpowers/plans/2026-11-02-phase2-vietsub.md](docs/superpowers/plans/2026-11-02-phase2-vietsub.md).
+  - Chuyển sang Phase 3: chế độ kiểm tra song ngữ, khớp bản dịch với câu tiếng Anh, xuất `.vi.srt`.
 - **Phase 3 — Sửa trực tiếp:** sửa từng câu ngay trên web khi đang xem, lưu vào DB, đánh dấu `edited`.
 - **Phase 4 — Engine dịch:** dịch nháp theo batch có ngữ cảnh và glossary; không ghi đè câu đã `edited`.
 - **Phase sau (chưa xếp phase):** `UrlParser` hỗ trợ thêm `music.youtube.com/watch?v=ID` và `youtube.com/live/ID`.

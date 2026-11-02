@@ -442,6 +442,11 @@ img {
   white-space: nowrap;
 }
 
+/* .history__open is a <button> on the Phase 1 page and a <Link> on the Vietsub page. */
+a.history__open {
+  text-decoration: none;
+}
+
 .history__open:hover .history__title {
   text-decoration: underline;
 }

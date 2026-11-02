@@ -157,6 +157,21 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 
 **Definition of Done:** dán link 3 video thật (1 có manual sub, 1 chỉ có auto sub, 1 dài trên 1 giờ). File `.srt` phải mở đúng trong VLC, không có dòng lặp, timing khớp với lời nói.
 
+## 6b. Tiến độ Phase 2: Xem video với Vietsub
+
+Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md). Plan: [docs/superpowers/plans/2026-11-02-phase2-vietsub.md](docs/superpowers/plans/2026-11-02-phase2-vietsub.md). Branch `phase2-vietsub` (worktree `../subtitle-studio-phase2`).
+
+| Task | Nội dung | Trạng thái |
+|---|---|---|
+| P2-T01 | `SrtParser` | ✅ 14 test |
+| P2-T02 | Bảng `vi_cue`, `VietsubService`, nâng cấp DB Phase 1, xoá video xoá cả Vietsub | ✅ 15 test |
+| P2-T03 | `POST /api/vietsub`, GET/DELETE vietsub, `INVALID_SRT`, `FILE_TOO_LARGE`, forward `/vietsub/**` | ✅ 13 test |
+| P2-T04 | Router, thanh điều hướng, trang Vietsub (thêm/thay/xoá), link "Xem Vietsub" ở trang Phase 1 | ✅ 13 test |
+| P2-T05 | Màn hình xem: YouTube player, overlay, toàn màn hình | ✅ 17 test |
+| P2-T06 | Kiểm chứng app thật + tài liệu | ✅ (trừ bước xem bằng mắt) |
+
+**Backend `mvn test`: 231/231. Frontend: 62/62.**
+
 ## 7. Nhật ký
 
 ### 2026-11-02: T01 Scaffold ✅
@@ -282,6 +297,15 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 ### 2026-11-02: Chốt Phase 1 🏁
 - Gắn tag `v0.1.0`. Việc còn treo: build và chạy Docker image (cần Docker Desktop).
 - Bước tiếp theo: brainstorm và viết plan Phase 2 (Vietsub thủ công).
+
+### 2026-11-02: Phase 2 (Vietsub) ✅
+- Spec ban đầu (khớp bản dịch vào câu tiếng Anh theo timecode, chế độ kiểm tra song ngữ, tiến độ, xuất `.vi.srt`) được **rút gọn** sau khi người dùng làm rõ: chỉ cần URL + `.srt` (giữ timing) → danh sách → màn hình xem. Phần bỏ chuyển sang Phase 3.
+- Vietsub lưu ở bảng `vi_cue` theo timing của file; `video` thêm `vi_cue_count` (`INT DEFAULT 0 NOT NULL`) và `vi_updated_at`. Test khởi động trên schema thật của Phase 1.
+- File `.srt` được parse **trước** khi gọi YouTube; video chưa có thì app tự lấy bằng pipeline Phase 1.
+- Player: YouTube IFrame API trên `youtube-nocookie.com`, `fs: 0` (nút toàn màn hình của YouTube che overlay) và nút toàn màn hình riêng; thời gian đọc theo `requestAnimationFrame` khi đang phát.
+- **Bug tìm được nhờ test:** xoá video có Vietsub ở trang Phase 1 gây lỗi khoá ngoại (`vi_cue` → `video`); đã sửa trong `SubtitleService.delete`.
+- **Kiểm chứng trên bản sao DB thật** (H2 Script/RunScript): khởi động OK; thêm Vietsub cho video có sẵn (171 câu, 0,19s) và video chưa có (tự lấy, 13s); thay Vietsub; file hỏng/UTF-16 → 400 `INVALID_SRT`; file 6 MB → 413 `FILE_TOO_LARGE` (giới hạn thật của Tomcat); xoá video có Vietsub → 204; route `/vietsub/**` trả HTML, `/api/khong-co` vẫn 404.
+- **Chưa kiểm chứng bằng mắt:** phát video có Vietsub đồng bộ, pause/tua, toàn màn hình (Edge headless không phát được video YouTube).
 
 ## 8. Quyết định và lưu ý kỹ thuật
 

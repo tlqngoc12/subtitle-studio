@@ -8,7 +8,8 @@ Hướng dẫn khi làm việc trong repo này.
 
 - **Spec:** [PLAN.md](PLAN.md). Đây là nguồn sự thật cho thuật toán, API, DB schema và task breakdown T01–T11.
 - **Tiến độ:** [PROGRESS.md](PROGRESS.md). Đọc file này trước để biết task nào xong và task nào tiếp theo.
-- **Phase hiện tại:** Phase 1 (lấy Engsub và xuất `.srt`). **Không** làm các phần thuộc Phase 2+ (upload Vietsub, player overlay, sửa trên web, engine dịch), trừ khi được yêu cầu. Cột `cue.text_vi` để sẵn nhưng Phase 1 không dùng.
+- **Đã xong:** Phase 1 (lấy Engsub, xuất `.srt`) và Phase 2 (thêm Vietsub bằng URL + `.srt` đã dịch, xem video kèm Vietsub; spec [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md), plan [docs/superpowers/plans/2026-11-02-phase2-vietsub.md](docs/superpowers/plans/2026-11-02-phase2-vietsub.md)).
+- **Chưa làm** (chỉ làm khi được yêu cầu): Phase 3 (sửa trực tiếp, chế độ kiểm tra song ngữ), Phase 4 (engine dịch). Vietsub lưu ở bảng `vi_cue` với timing riêng; cột `cue.text_vi` vẫn để dành cho Phase 3.
 
 ## Lệnh
 

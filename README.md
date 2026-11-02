@@ -7,7 +7,12 @@ Dán link YouTube, nhận về phụ đề tiếng Anh đã làm sạch dưới 
 - Lưu lại các video đã lấy; lấy lại cùng video thì trả về ngay, không gọi YouTube lần nữa.
 - File `.srt` dùng UTF-8, CRLF, có tuỳ chọn BOM cho player cũ.
 
-Đây là Phase 1. Kế hoạch các phase sau (upload Vietsub, player có overlay, sửa trực tiếp) nằm trong [PLAN.md](PLAN.md).
+Và xem video với Vietsub:
+
+- Trang **Vietsub** (`/vietsub`): dán link YouTube và chọn file `.srt` tiếng Việt bạn đã dịch (giữ nguyên timing) → app lưu Vietsub.
+- Danh sách video có Vietsub → bấm **Xem** để phát video YouTube kèm Vietsub, có nút **Toàn màn hình** (dùng nút này thay cho nút toàn màn hình của YouTube để Vietsub vẫn hiện).
+
+Kế hoạch các phase sau (sửa trực tiếp, chế độ kiểm tra song ngữ, engine dịch) nằm trong [PLAN.md](PLAN.md).
 
 ## Chạy bằng Docker (khuyến nghị)
 
@@ -79,9 +84,12 @@ Quy ước làm việc trong repo: [CLAUDE.md](CLAUDE.md). Tiến độ: [PROGRE
 | GET | `/api/videos/{id}/cues` | Danh sách câu phụ đề |
 | GET | `/api/videos/{id}/subtitle.srt` | Tải file `.srt` (`?bom=true` để thêm BOM) |
 | POST | `/api/videos/{id}/refresh` | Lấy lại phụ đề từ YouTube |
-| DELETE | `/api/videos/{id}` | Xoá video, phụ đề và file `.vtt` |
+| DELETE | `/api/videos/{id}` | Xoá video, phụ đề (cả Vietsub) và file `.vtt` |
+| POST | `/api/vietsub` | `multipart/form-data`: `url` (link hoặc mã video) + `file` (.srt tiếng Việt, tối đa 5 MB). Thêm hoặc thay Vietsub |
+| GET | `/api/videos/{id}/vietsub` | Danh sách câu Vietsub `{startMs, endMs, text}` |
+| DELETE | `/api/videos/{id}/vietsub` | Xoá Vietsub |
 
-Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INTERNAL_ERROR` (500).
+Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `INTERNAL_ERROR` (500).
 
 ## Khi gặp lỗi
 
