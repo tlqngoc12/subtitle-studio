@@ -19,9 +19,10 @@ Phase 1 làm đúng một việc: **dán link YouTube → lấy phụ đề ti�
 | Ngôn ngữ / framework | Java 21, Spring Boot 3.x, Maven |
 | Persistence | Spring Data JPA + H2 (file mode, `./data/subtitle-studio`) |
 | Lấy phụ đề | `yt-dlp` gọi qua `ProcessBuilder` |
-| Frontend | `src/main/resources/static`: 1 trang HTML + vanilla JS |
-| Test | JUnit 5, AssertJ, Mockito, `@WebMvcTest` |
-| Chạy | Docker (JRE 21 + python3 + yt-dlp), volume `/data` |
+| Frontend | **React + Vite + TypeScript** (SPA trong thư mục `frontend/`), chỉ gọi REST API `/api/*` |
+| Đóng gói | `frontend-maven-plugin` tự cài Node và build React vào `target/classes/static` khi `mvn package` → **1 jar** chứa cả backend và frontend |
+| Test | Backend: JUnit 5, AssertJ, Mockito, `@WebMvcTest`, `@DataJpaTest`. Frontend: Vitest + React Testing Library |
+| Chạy | Docker (JRE 21 + python3 + yt-dlp), volume `/data`; dev frontend dùng Vite dev server proxy `/api` → `:8080` |
 
 ## 3. Luồng xử lý
 
@@ -216,7 +217,18 @@ File `.vtt` gốc được giữ ở `data/subs/` để debug hoặc re-parse kh
 | YtDlpTimeoutException | 504 | `YTDLP_TIMEOUT` |
 | VideoNotFoundException | 404 | `VIDEO_NOT_FOUND` |
 
-## 7. Frontend (1 trang)
+## 7. Frontend (React SPA, 1 trang ở Phase 1)
+
+> Chọn React + Vite + TS thay cho vanilla JS (quyết định 2026-11-02) vì Phase 2–3 cần player YouTube, overlay Vietsub đồng bộ theo thời gian và sửa câu trực tiếp, tức giao diện có nhiều state. Backend chỉ cung cấp REST API, không render HTML.
+
+**Cấu trúc và tích hợp:**
+- `frontend/` ở gốc repo: `package.json`, `vite.config.ts`, `src/` (components, `api/` client có type cho DTO).
+- Vite `build.outDir` = `../target/classes/static` để Spring Boot serve trực tiếp; không commit file build.
+- `frontend-maven-plugin`: `install-node-and-npm` → `npm ci` → `npm run test` → `npm run build` trong `mvn package`. Có thể bỏ qua bằng `-Dskip.npm` khi chỉ làm backend.
+- Dev: `npm run dev` (Vite :5173) proxy `/api` → `http://localhost:8080`; backend chạy `mvn spring-boot:run`.
+- Không dùng router ở Phase 1 (1 trang). Gọi API bằng `fetch` qua một module client có type.
+
+**Màn hình:**
 
 - Ô dán URL và nút **Lấy Engsub**. Trong lúc chờ: hiện trạng thái loading và disable nút để tránh bấm 2 lần.
 - Card kết quả gồm:
@@ -242,8 +254,8 @@ Mỗi task đều kèm unit test chạy trên dummy data, không gọi mạng.
 | T07 | `YtDlpClientImpl` (ProcessBuilder, timeout, stderr) | test với chương trình Java giả `FakeYtDlp` (in ra JSON / exit 1 / sleep vượt timeout); thay cho `fake-yt-dlp.sh` vì dev trên Windows |
 | T08 | Entity + Repository + `SubtitleService` (orchestrate, cache theo videoId, refresh, delete) | Mockito fake `YtDlpClient`; `@DataJpaTest` cho repository |
 | T09 | Controller + `@RestControllerAdvice` + endpoint tải .srt | `@WebMvcTest`: status code, ProblemDetail, header Content-Disposition |
-| T10 | Frontend `index.html` + `app.js` | test tay theo checklist |
-| T11 | Dockerfile + `docker-compose.yml`, volume `/data`, README | build và chạy thử 3 video thật |
+| T10 | Frontend React + Vite + TS trong `frontend/`, tích hợp `frontend-maven-plugin` (gộp vào jar) | Vitest + React Testing Library (fetch giả): loading/disable nút, render card + badge, lỗi theo `code`, danh sách video; cộng thêm test tay theo checklist |
+| T11 | Dockerfile (multi-stage: Maven build cả frontend → JRE 21 + python3 + yt-dlp) + `docker-compose.yml`, volume `/data`, README | build và chạy thử 3 video thật |
 
 **Definition of Done Phase 1:** dán link 3 video thật (1 có manual sub, 1 chỉ có auto sub, 1 dài trên 1 giờ) → file .srt tải về mở đúng trong VLC, không có dòng lặp, timing khớp với tiếng nói.
 

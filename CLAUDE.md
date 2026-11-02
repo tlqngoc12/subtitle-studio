@@ -17,13 +17,20 @@ mvn test                                   # toàn bộ test (H2 in-memory, prof
 mvn test -Dtest=UrlParserTest              # một class
 mvn test -Dtest=UrlParserTest#parsesShorts # một method
 mvn spring-boot:run                        # chạy app, DB ở ./data/subtitle-studio
+
+# frontend (từ T10)
+cd frontend && npm run dev                 # Vite :5173, proxy /api → :8080
+cd frontend && npm test                    # Vitest
+mvn package                                # build cả frontend (Node tự cài qua frontend-maven-plugin) + jar
+mvn test -Dskip.npm                        # chỉ test backend, bỏ qua frontend
 ```
 
 Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShell.
 
 ## Stack và cấu trúc
 
-- Java 21, Spring Boot 3.5.x, Maven, Spring Data JPA + H2 (file mode), vanilla JS frontend trong `src/main/resources/static`.
+- Backend: Java 21, Spring Boot 3.5.x, Maven, Spring Data JPA + H2 (file mode). Chỉ cung cấp REST API `/api/*`, không render HTML.
+- Frontend: **React + Vite + TypeScript** trong `frontend/` (từ T10). `frontend-maven-plugin` build vào `target/classes/static` khi `mvn package`, nên ra 1 jar duy nhất. Không commit file build.
 - Base package: `com.subtitlestudio`. Tổ chức package theo chức năng, chỉ tạo khi task cần:
   - `config`: `SubtitleStudioProperties` (bind `subtitle-studio.*`)
   - `url`: `UrlParser` (T02)
@@ -49,6 +56,13 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 
 ### Lỗi
 - Mỗi lỗi nghiệp vụ là một exception riêng, được map sang `ProblemDetail` có field `code` (bảng ở PLAN.md, mục 6): `INVALID_URL` 400, `NO_ENGLISH_SUBTITLE` 422, `YTDLP_FAILED` 502, `YTDLP_TIMEOUT` 504, `VIDEO_NOT_FOUND` 404.
+
+### Frontend
+- TDD giống backend: viết test Vitest + React Testing Library trước. Giả lập `fetch` bằng `vi.stubGlobal`, không gọi backend thật.
+- Truy vấn theo role/label (`getByRole`, `getByLabelText`), không dùng class CSS hay test id. Nút chỉ có icon/text ngắn phải có `aria-label` đủ nghĩa.
+- Chuỗi hiển thị bằng tiếng Việt; thông báo lỗi lấy theo `code` của ProblemDetail (`src/lib/errors.ts`), luôn có fallback khi thiếu `code`.
+- Font phải có subset `vietnamese` (hiện dùng Be Vietnam Pro).
+- Version package cố định (không dùng `^`); `package-lock.json` được commit; `frontend/node`, `node_modules` không commit.
 
 ### Locale
 - `String.format`, `toLowerCase`/`toUpperCase` và các hàm format khác phải truyền `Locale.ROOT`. Locale mặc định có thể sinh chữ số không phải ASCII và làm hỏng file `.srt`.

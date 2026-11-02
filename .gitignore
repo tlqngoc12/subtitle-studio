@@ -3,3 +3,6 @@ data/
 .idea/
 *.iml
 .vscode/
+frontend/node/
+frontend/node_modules/
+frontend/dist/

@@ -16,7 +16,7 @@ Phase 1 chỉ làm phần lấy Engsub và xuất `.srt`. Các phase sau gồm u
 | Ngôn ngữ / framework | Java 21, Spring Boot **3.5.16**, Maven |
 | Persistence | Spring Data JPA + H2 file mode (`./data/subtitle-studio`) |
 | Lấy phụ đề | `yt-dlp` qua `ProcessBuilder` |
-| Frontend | 1 trang HTML + vanilla JS (`src/main/resources/static`) |
+| Frontend | React + Vite + TypeScript (`frontend/`), build vào jar qua `frontend-maven-plugin` (từ T10) |
 | Test | JUnit 5, AssertJ, Mockito, `@WebMvcTest`, `@DataJpaTest` |
 | Chạy | Docker (JRE 21 + python3 + yt-dlp), volume `/data` |
 
@@ -32,6 +32,7 @@ subtitle-studio/
     │   ├── java/com/subtitlestudio/
     │   │   ├── SubtitleStudioApplication.java       # entry point, bật @ConfigurationPropertiesScan
     │   │   ├── config/
+    │   │   │   ├── ClockConfig.java        # bean Clock (UTC) để test kiểm soát thời gian
     │   │   │   └── SubtitleStudioProperties.java    # bind cấu hình subtitle-studio.* (có validate)
     │   │   ├── subtitle/
     │   │   │   ├── CaptionNormalizer.java  # List<RawCue> → List<Cue> (khử rolling, clamp, gộp câu)
@@ -47,6 +48,18 @@ subtitle-studio/
     │   │   ├── url/
     │   │   │   ├── UrlParser.java          # URL/ID → videoId 11 ký tự
     │   │   │   └── InvalidUrlException.java
+    │   │   ├── video/
+    │   │   │   ├── VideoController.java    # REST /api/videos (PLAN mục 6) + tải .srt
+    │   │   │   ├── VideoDto.java / CueDto.java / FetchRequest.java  # DTO JSON
+    │   │   │   ├── Video.java              # entity bảng video (PK = videoId)
+    │   │   │   ├── CueEntity.java          # entity bảng cue (unique video_id+idx, text_vi để Phase 2)
+    │   │   │   ├── VideoRepository.java
+    │   │   │   ├── CueRepository.java      # bulk delete theo videoId
+    │   │   │   ├── SubtitleService.java    # fetch (cache) / get / list / getCues / refresh / delete
+    │   │   │   ├── FetchResult.java        # record(video, created)
+    │   │   │   └── VideoNotFoundException.java
+    │   │   ├── web/
+    │   │   │   └── ApiExceptionHandler.java # exception → ProblemDetail có field code
     │   │   └── ytdlp/
     │   │       ├── VideoInfo.java          # record(id, title, channel, durationSec, subtitleLangs, autoCaptionLangs)
     │   │       ├── VideoInfoParser.java    # JSON yt-dlp -J → VideoInfo
@@ -66,7 +79,10 @@ subtitle-studio/
         │   ├── ytdlp/VideoInfoParserTest.java
         │   ├── ytdlp/YtDlpClientImplTest.java
         │   ├── subtitle/VttParserTest.java
-        │   └── url/UrlParserTest.java
+        │   ├── url/UrlParserTest.java
+        │   ├── video/SubtitleServiceTest.java   # @DataJpaTest + pipeline thật, chỉ mock YtDlpClient
+        │   ├── video/VideoControllerTest.java   # @WebMvcTest: status, ProblemDetail, header tải .srt
+        │   └── video/VideoRepositoryTest.java   # @DataJpaTest: schema, ràng buộc, query
         └── resources/
             ├── application-test.yml        # profile test: H2 in-memory
             ├── vtt/
@@ -79,12 +95,23 @@ subtitle-studio/
                 └── info-no-english.json
 ```
 
-Package con sẽ được tạo khi task tương ứng cần đến:
+Frontend:
 
-| Package | Task | Nội dung |
-|---|---|---|
-| `com.subtitlestudio.video` | T08–T09 | Entity, Repository, `SubtitleService`, Controller |
-| `com.subtitlestudio.web` | T09 | `@RestControllerAdvice` |
+```
+frontend/
+├── package.json / package-lock.json   # React 19, Vite 8, TS 7, Vitest 5 (version cố định)
+├── vite.config.ts                     # build → ../target/classes/static, proxy /api → :8080, test jsdom
+├── index.html
+└── src/
+    ├── main.tsx                       # font Be Vietnam Pro + styles
+    ├── App.tsx                        # state: danh sách, video đang xem, pending, lỗi
+    ├── App.test.tsx                   # luồng chính với fetch giả
+    ├── styles.css                     # token màu/type, khung video, responsive, dark mode
+    ├── api/client.ts                  # client có type + ApiError(status, code, detail)
+    ├── lib/format.ts (+test)          # timecode SRT, thời lượng
+    ├── lib/errors.ts (+test)          # code → thông báo tiếng Việt
+    └── components/                    # UrlForm, ResultPanel, CueTable, VideoList
+```
 
 ## 4. Cấu hình (`application.yml`)
 
@@ -121,12 +148,12 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 | T05 | `SrtWriter` | ✅ Xong | 23 test |
 | T06 | `SubtitleTrackSelector` + parse JSON `yt-dlp -J` | ✅ Xong | 21 test |
 | T07 | `YtDlpClientImpl` | ✅ Xong | 11 test, fake bằng Java thay cho `.sh` |
-| T08 | Entity + Repository + `SubtitleService` | ⏭️ Tiếp theo | |
-| T09 | Controller + `@RestControllerAdvice` | ⬜ Chưa làm | |
-| T10 | Frontend `index.html` + `app.js` | ⬜ Chưa làm | |
-| T11 | Dockerfile + docker-compose + README | ⬜ Chưa làm | |
+| T08 | Entity + Repository + `SubtitleService` | ✅ Xong | 21 test; app khởi động thật OK |
+| T09 | Controller + `@RestControllerAdvice` | ✅ Xong | 23 test + smoke test curl trên app thật |
+| T10 | Frontend React + Vite + TS (gộp vào jar) | ✅ Xong | 32 test Vitest; jar chứa frontend |
+| T11 | Dockerfile + docker-compose + README | ⏭️ Tiếp theo | cần cài yt-dlp để test video thật |
 
-**Tổng: 7/11 task. `mvn test`: 145/145 pass.**
+**Tổng: 10/11 task. Backend `mvn test`: 189/189 pass. Frontend `npm test`: 32/32 pass.**
 
 **Definition of Done:** dán link 3 video thật (1 có manual sub, 1 chỉ có auto sub, 1 dài trên 1 giờ). File `.srt` phải mở đúng trong VLC, không có dòng lặp, timing khớp với lời nói.
 
@@ -181,7 +208,61 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 - **Thay `fake-yt-dlp.sh` bằng `FakeYtDlp.java`** (chạy được trên Windows); PLAN và CLAUDE.md đã cập nhật theo.
 - **Mutation test:** tạm đổi sang đọc stream tuần tự thì test `drainsLargeStdoutAndStderrWithoutDeadlock` fail (treo đến timeout 20s), chứng minh test bắt được deadlock thật. Code đã được khôi phục.
 
+### 2026-11-02: Đổi tên project và tạo repo
+- `translate-video` → `subtitle-studio`: package `com.subtitlestudio`, prefix cấu hình `subtitle-studio.*`, DB `./data/subtitle-studio`.
+- Repo public: https://github.com/tlqngoc12/subtitle-studio (branch `main`, commit đầu `ce6fbe0` gồm T01–T07).
+
+### 2026-11-02: T08 Entity + Repository + SubtitleService ✅
+- `Video` (PK videoId) và `CueEntity` (`unique(video_id, idx)`, index `video_id`, `text_vi` nullable) đúng schema PLAN mục 5.
+- `SubtitleService`: `fetch(url)` (đã có trong DB thì trả về luôn, không gọi yt-dlp lại; `FetchResult.created` cho T09 chọn 201/200), `get`, `list` (mới nhất trước), `getCues`, `refresh`, `delete` (xoá cả file `.vtt`). `refresh` khi đổi ngôn ngữ track thì xoá file `.vtt` cũ.
+- **yt-dlp chạy ngoài transaction**; chỉ bước ghi DB nằm trong `TransactionTemplate`. yt-dlp lỗi hoặc không có tiếng Anh thì không lưu gì; `refresh` lỗi thì dữ liệu cũ còn nguyên.
+- Test: `@DataJpaTest` + parser/normalizer thật, chỉ `@MockitoBean YtDlpClient` (mock copy fixture `.vtt` vào thư mục tạm).
+- **Bug tìm được nhờ test:**
+  1. `videos.save()` với id gán tay sẽ `merge` và trả về bản sao; cue tham chiếu object gốc (transient) nên flush lỗi `TransientObjectException`. Đã sửa: dùng object do `save()` trả về. **Nếu không có test, lỗi này xảy ra ngay lần lưu video đầu tiên.**
+  2. Bulk delete JPQL để lại `CueEntity` cũ trong persistence context. Đã sửa: `@Modifying(flushAutomatically, clearAutomatically)` và load lại entity sau khi xoá.
+  3. (Lỗi test) bean `MutableClock` bị dùng chung giữa các test vì Spring cache context; đã reset trong `@BeforeEach`.
+- Test `deleteRemovesVideoCuesAndVttFile` ban đầu pass luôn với stub (vì không có gì để xoá); đã thêm kiểm tra điều kiện ban đầu.
+
+### 2026-11-02: Chốt frontend
+- Đổi frontend từ vanilla JS sang **React + Vite + TypeScript**, **gộp vào 1 jar** (`frontend-maven-plugin`). PLAN mục 2, 7, 8 (T10, T11) và CLAUDE.md đã cập nhật.
+
+### 2026-11-02: T09 Controller + ApiExceptionHandler ✅
+- 7 endpoint đúng PLAN mục 6. `POST /api/videos` trả 201 + `Location` khi mới, 200 khi đã có. `DELETE` trả 204.
+- `GET /{id}/subtitle.srt`: `Content-Type: application/x-subrip;charset=UTF-8`, `Content-Disposition: attachment; filename*=UTF-8''...` (giữ tiếng Việt), `?bom=true` thêm BOM.
+- DTO riêng (`VideoDto` có thêm `thumbnailUrl`, `CueDto` có `idx` bắt đầu từ 0), không trả entity ra JSON.
+- `ApiExceptionHandler` kế thừa `ResponseEntityExceptionHandler`: 5 mã của PLAN, cộng thêm `VttParseException` → 502 `YTDLP_FAILED` và lỗi không lường trước → 500 `INTERNAL_ERROR` (không lộ message nội bộ). JSON hỏng → 400 ProblemDetail (từ class cha).
+- **Smoke test bằng curl trên jar thật:** `GET /api/videos` → `[]` 200; URL sai → 400 `INVALID_URL` (`application/problem+json`); id lạ → 404 `VIDEO_NOT_FOUND`; URL hợp lệ khi máy chưa có yt-dlp → 502 `YTDLP_FAILED` với message rõ ràng.
+
+### 2026-11-02: T10 Frontend React ✅
+- App React 1 trang: khung video tối với ô nhập như dòng phụ đề vàng (điểm nhấn duy nhất), thanh scrubber chạy khi đang lấy; panel kết quả (thumbnail, tiêu đề, kênh, thời lượng, badge Manual/Auto-generated, ghi chú cho Auto, số câu, nút Tải .srt, bảng preview cuộn được); danh sách "Đã lấy trước đó" (mở, Tải .srt, Làm mới, Xoá có hỏi xác nhận); lỗi hiển thị theo `code` (`role="alert"`).
+- Chất lượng: focus hiển thị rõ khi dùng bàn phím, `prefers-reduced-motion`, dark mode (khung video luôn tối), responsive (một cột dưới 760px).
+- `frontend-maven-plugin` 2.0.2: Node v26.13.0 cài vào `frontend/node`; `npm ci` (generate-resources), `npm test` (test), `npm run build` (prepare-package). `-Dskip.npm` bỏ qua toàn bộ. `mvn package` → jar có `BOOT-INF/classes/static/index.html`.
+- **Bug tìm được khi kiểm tra:** font ban đầu (Atkinson Hyperlegible Next) **không có subset tiếng Việt** (thiếu U+1EA0–1EF1, vd "ọ", "ầ"), nên chữ có dấu sẽ bị lấy font khác thay vào giữa từ. Đã đổi sang **Be Vietnam Pro** (có subset `vietnamese`).
+- TS 7 kiểm tra import side-effect: cần `vite/client` trong `types` để import `.css`.
+- **Kiểm tra trực quan:** chụp màn hình (Edge headless) bản desktop 1280px và bản hẹp 560px với dữ liệu mẫu: đúng thiết kế. Ảnh 390px bị cắt do giới hạn độ rộng tối thiểu của Edge headless, không phải lỗi layout. **Chưa xem bằng mắt panel kết quả** (cần click) và chưa thử trên điện thoại thật; panel kết quả đã có test Vitest.
+
+**Checklist test tay (khi đã có yt-dlp):**
+- [ ] Dán link video có manual sub → badge Manual, không có ghi chú auto, tải .srt mở được trong VLC
+- [ ] Dán link video chỉ có auto sub → badge Auto-generated + ghi chú, không có dòng lặp
+- [ ] Dán lại cùng video bằng link dạng khác → trả về ngay, không gọi yt-dlp lại
+- [ ] Link sai / video không có tiếng Anh → thông báo lỗi tiếng Việt rõ ràng
+- [ ] Làm mới, Xoá (hỏi xác nhận) trong danh sách
+- [ ] Dùng hoàn toàn bằng bàn phím (Tab qua ô nhập, nút, danh sách)
+- [ ] Dark mode, màn hình hẹp
+
 ## 8. Quyết định và lưu ý kỹ thuật
+
+- **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
+- **Shell của Claude Code chưa nhận PATH của Node vừa cài**: dùng `export PATH="/c/Program Files/nodejs:$PATH"` trong Git Bash (mở terminal mới thì tự có).
+
+- **Máy dev chưa cài yt-dlp** (smoke test T09 trả 502 đúng như thiết kế). Cần cài trước khi test với video thật (T11), ví dụ `winget install yt-dlp.yt-dlp` hoặc `pip install yt-dlp`.
+- **Lỗi của Spring MVC (JSON hỏng, 405…)** dùng ProblemDetail mặc định, không có field `code`. Frontend cần fallback khi thiếu `code`.
+
+- **Frontend React thay vì vanilla/Thymeleaf:** Phase 2–3 (player YouTube, overlay Vietsub, sửa câu trực tiếp) có nhiều state, nên React hợp hơn. Backend giữ thuần REST API, nên **T09 không đổi**.
+- **Máy dev chưa cài Node:** `frontend-maven-plugin` tự tải Node khi `mvn package`, nên build jar và Docker không cần Node sẵn. Để dev frontend có hot reload (`npm run dev`) thì nên cài Node LTS.
+
+- **Hai request `fetch` cùng videoId chạy đồng thời** có thể cùng import, request thứ hai lỗi PK khi lưu. Phase 1 chạy local một người dùng nên chấp nhận; ghi vào Backlog.
+- **Sau `cues.deleteByVideoId()` persistence context bị clear**: mọi entity load trước đó thành detached, phải load lại.
 
 - **Chưa chạy với yt-dlp thật.** Định dạng tên file output (`{id}.{lang}.vtt`) và việc `--sub-langs` hiểu lang là regex là theo hiểu biết về yt-dlp; cần xác nhận ở T11.
 - **Constructor package-private `YtDlpClientImpl(List<String> baseCommand, …)`** chỉ dùng cho test. Spring dùng constructor `@Autowired` nhận `SubtitleStudioProperties`.
@@ -208,7 +289,7 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 - **Test dùng profile `test` với H2 in-memory** để `mvn test` không tạo file DB trong `./data`.
 - **Spring chuẩn hoá `Path`** khi bind: `./data` thành `data`. Khi test cần so sánh path thì so theo `toAbsolutePath().normalize()`.
 - **Làm theo TDD:** mỗi task viết test trước, chạy cho fail rồi mới viết code. Test chạy trên dummy data, không gọi mạng.
-- **Chưa kiểm tra:** khởi động app thật bằng `mvn spring-boot:run` với H2 file mode (hiện mới chạy test).
+- **Đã kiểm tra (T08):** app khởi động thật (`java -jar`) với H2 file mode, tạo được `subtitle-studio.mv.db`, wiring bean OK.
 
 ## 9. Rủi ro đang theo dõi
 
@@ -222,3 +303,4 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 |---|---|---|
 | `UrlParser` hỗ trợ `music.youtube.com/watch?v=ID` | T02 | thêm host vào whitelist + test |
 | `UrlParser` hỗ trợ `youtube.com/live/ID` (livestream) | T02 | thêm nhánh path `live` giống `shorts`/`embed` + test |
+| Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |

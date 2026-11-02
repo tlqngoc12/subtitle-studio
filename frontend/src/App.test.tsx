@@ -1,0 +1,256 @@
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import App from './App';
+import type { CueDto, VideoDto } from './api/client';
+
+const ID = 'dQw4w9WgXcQ';
+
+const autoVideo: VideoDto = {
+  id: ID,
+  title: 'Học Spring Boot',
+  channel: 'Dev Channel',
+  durationSec: 754,
+  subLang: 'en-orig',
+  subSource: 'AUTO',
+  cueCount: 2,
+  fetchedAt: '2026-11-02T10:00:00Z',
+  thumbnailUrl: `https://i.ytimg.com/vi/${ID}/mqdefault.jpg`,
+};
+
+const manualVideo: VideoDto = {
+  ...autoVideo,
+  id: 'MANUAL00001',
+  title: 'Manual talk',
+  subLang: 'en',
+  subSource: 'MANUAL',
+  cueCount: 3,
+  thumbnailUrl: 'https://i.ytimg.com/vi/MANUAL00001/mqdefault.jpg',
+};
+
+const cues: CueDto[] = [
+  { idx: 0, startMs: 1_000, endMs: 6_010, text: "so today we're going to talk" },
+  { idx: 1, startMs: 6_010, endMs: 8_500, text: 'and why it matters' },
+];
+
+type Route = { method: string; path: string; status: number; body?: unknown; delay?: Promise<void> };
+
+/** Minimal fetch fake: first matching route wins; records every call. */
+function fakeFetch(routes: Route[]) {
+  const calls: { method: string; path: string; body?: string }[] = [];
+  const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const method = (init?.method ?? 'GET').toUpperCase();
+    const path = String(input);
+    calls.push({ method, path, body: init?.body as string | undefined });
+    const route = routes.find((r) => r.method === method && r.path === path);
+    if (!route) throw new TypeError('Failed to fetch');
+    if (route.delay) await route.delay;
+    const isProblem = route.status >= 400;
+    return new Response(route.body === undefined ? null : JSON.stringify(route.body), {
+      status: route.status,
+      headers: { 'Content-Type': isProblem ? 'application/problem+json' : 'application/json' },
+    });
+  });
+  vi.stubGlobal('fetch', fn);
+  return calls;
+}
+
+function problem(status: number, code: string, detail: string) {
+  return { type: 'about:blank', title: 'Error', status, detail, code };
+}
+
+async function submit(url: string) {
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('Link YouTube'), url);
+  await user.click(screen.getByRole('button', { name: 'Lấy Engsub' }));
+  return user;
+}
+
+describe('App', () => {
+  beforeEach(() => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  it('invites the user to paste a link when nothing was fetched yet', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
+
+    render(<App />);
+
+    expect(await screen.findByText(/Chưa có video nào/)).toBeInTheDocument();
+  });
+
+  it('disables the button and shows progress while fetching', async () => {
+    let release!: () => void;
+    const delay = new Promise<void>((r) => (release = r));
+    const calls = fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 201, body: autoVideo, delay },
+      { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+    ]);
+    render(<App />);
+
+    await submit(`https://youtu.be/${ID}`);
+
+    expect(screen.getByRole('button', { name: /Đang lấy/ })).toBeDisabled();
+    expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: `https://youtu.be/${ID}` }));
+    release();
+    expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lấy Engsub' })).toBeEnabled();
+  });
+
+  it('shows the fetched video with badge, note, count, download link and cue preview', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
+      { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+    ]);
+    render(<App />);
+
+    await submit(ID);
+
+    const result = await screen.findByRole('region', { name: 'Kết quả' });
+    expect(within(result).getByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
+    expect(within(result).getByText('Dev Channel')).toBeInTheDocument();
+    expect(within(result).getByText('12:34')).toBeInTheDocument();
+    expect(within(result).getByText('Auto-generated')).toBeInTheDocument();
+    expect(within(result).getByText(/không có dấu câu/)).toBeInTheDocument();
+    expect(within(result).getByText('2 câu')).toBeInTheDocument();
+    expect(within(result).getByRole('link', { name: 'Tải .srt' }))
+      .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
+    expect(within(result).getByRole('img')).toHaveAttribute('src', autoVideo.thumbnailUrl);
+
+    const table = await within(result).findByRole('table');
+    expect(within(table).getByText('00:00:01,000')).toBeInTheDocument();
+    expect(within(table).getByText("so today we're going to talk")).toBeInTheDocument();
+    expect(within(table).getByText('and why it matters')).toBeInTheDocument();
+  });
+
+  it('shows the Manual badge without the auto-caption note', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 200, body: manualVideo },
+      { method: 'GET', path: '/api/videos/MANUAL00001/cues', status: 200, body: cues },
+    ]);
+    render(<App />);
+
+    await submit('MANUAL00001');
+
+    const result = await screen.findByRole('region', { name: 'Kết quả' });
+    expect(within(result).getByText('Manual')).toBeInTheDocument();
+    expect(within(result).queryByText(/không có dấu câu/)).not.toBeInTheDocument();
+  });
+
+  it('explains an invalid link using the error code', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 400, body: problem(400, 'INVALID_URL', 'Not a valid YouTube URL') },
+    ]);
+    render(<App />);
+
+    await submit('https://evil.com/x');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Link không hợp lệ');
+  });
+
+  it('explains a video without English subtitles', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 422, body: problem(422, 'NO_ENGLISH_SUBTITLE', 'No English') },
+    ]);
+    render(<App />);
+
+    await submit(ID);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Video này không có phụ đề tiếng Anh');
+  });
+
+  it('explains when the server cannot be reached', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
+    render(<App />);
+
+    await submit(ID);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không kết nối được máy chủ');
+  });
+
+  it('does not submit an empty link', async () => {
+    const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
+    render(<App />);
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Lấy Engsub' }));
+
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+  });
+
+  describe('history', () => {
+    it('lists previously fetched videos with download links', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, manualVideo] }]);
+
+      render(<App />);
+
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const items = within(history).getAllByRole('listitem');
+      expect(items).toHaveLength(2);
+      expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
+      expect(within(items[0]).getByRole('link', { name: /Tải .srt/ }))
+        .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
+    });
+
+    it('opens a video from the list', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
+        { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+      ]);
+      render(<App />);
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
+
+      const result = await screen.findByRole('region', { name: 'Kết quả' });
+      expect(await within(result).findByText('and why it matters')).toBeInTheDocument();
+    });
+
+    it('deletes a video after confirmation', async () => {
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, manualVideo] },
+        { method: 'DELETE', path: `/api/videos/${ID}`, status: 204 },
+      ]);
+      render(<App />);
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
+
+      await waitFor(() => expect(within(history).getAllByRole('listitem')).toHaveLength(1));
+      expect(window.confirm).toHaveBeenCalled();
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
+    });
+
+    it('keeps the video when deletion is not confirmed', async () => {
+      vi.mocked(window.confirm).mockReturnValue(false);
+      const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }]);
+      render(<App />);
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+      expect(within(history).getAllByRole('listitem')).toHaveLength(1);
+    });
+
+    it('refreshes a video from YouTube', async () => {
+      const refreshed = { ...autoVideo, title: 'Học Spring Boot (v2)', cueCount: 5 };
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
+        { method: 'POST', path: `/api/videos/${ID}/refresh`, status: 200, body: refreshed },
+        { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+      ]);
+      render(<App />);
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Làm mới Học Spring Boot/ }));
+
+      expect(await within(history).findByText('Học Spring Boot (v2)')).toBeInTheDocument();
+      expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/refresh'))).toBe(true);
+    });
+  });
+});
