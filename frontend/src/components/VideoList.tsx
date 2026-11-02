@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { srtUrl, type VideoDto } from '../api/client';
 import { formatDuration } from '../lib/format';
 
@@ -35,6 +36,11 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete }: Props
                   </span>
                 </button>
                 <span className="history__actions">
+                  {v.viCueCount > 0 && (
+                    <Link className="button button--small" to={`/vietsub/${v.id}`} aria-label={`Xem Vietsub của ${v.title}`}>
+                      Xem Vietsub
+                    </Link>
+                  )}
                   <a className="button button--small" href={srtUrl(v.id)} download aria-label={`Tải .srt của ${v.title}`}>
                     Tải .srt
                   </a>

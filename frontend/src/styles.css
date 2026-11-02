@@ -486,3 +486,76 @@ img {
     opacity: 0.6;
   }
 }
+
+/* ---------- Navigation (Phase 2) ---------- */
+
+.nav {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px var(--gutter) 0;
+  display: flex;
+  gap: 6px;
+}
+
+.nav__link {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nav__link:hover {
+  color: var(--ink);
+}
+
+.nav__link[aria-current='page'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- Vietsub form ---------- */
+
+.vsform {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+}
+
+.vsform__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.vsform__field label {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.vsform__field input[type='text'] {
+  padding: 9px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.vsform__field input[type='file'] {
+  font: inherit;
+  font-size: var(--step--1);
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  .vsform {
+    grid-template-columns: 1fr;
+  }
+}

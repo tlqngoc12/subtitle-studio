@@ -32,6 +32,13 @@ export function errorMessage(error: unknown): ErrorMessage {
       };
     case 'INTERNAL_ERROR':
       return { title: 'Máy chủ gặp lỗi.', hint: 'Xem log của ứng dụng để biết chi tiết.' };
+    case 'INVALID_SRT':
+      return {
+        title: 'Không đọc được file .srt. Kiểm tra file đúng định dạng SubRip và lưu bằng UTF-8.',
+        hint: error.detail,
+      };
+    case 'FILE_TOO_LARGE':
+      return { title: 'File quá lớn (tối đa 5 MB).' };
     case 'NETWORK':
       return { title: 'Không kết nối được máy chủ.', hint: 'Kiểm tra Subtitle Studio có đang chạy không.' };
     default:

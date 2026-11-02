@@ -12,6 +12,15 @@ export interface VideoDto {
   cueCount: number;
   fetchedAt: string;
   thumbnailUrl: string;
+  viCueCount: number;
+  viUpdatedAt: string | null;
+}
+
+/** One Vietsub line, timed by the uploaded .srt file. */
+export interface ViCue {
+  startMs: number;
+  endMs: number;
+  text: string;
 }
 
 export interface CueDto {
@@ -82,4 +91,24 @@ export async function deleteVideo(id: string): Promise<void> {
 
 export function srtUrl(id: string): string {
   return `/api/videos/${encodeURIComponent(id)}/subtitle.srt`;
+}
+
+export async function getVideo(id: string): Promise<VideoDto> {
+  return (await send(`/api/videos/${encodeURIComponent(id)}`)).json();
+}
+
+/** Adds or replaces the Vietsub of a video; `url` may be a YouTube link or a bare video id. */
+export async function addVietsub(url: string, file: File): Promise<VideoDto> {
+  const form = new FormData();
+  form.append('url', url);
+  form.append('file', file);
+  return (await send('/api/vietsub', { method: 'POST', body: form })).json();
+}
+
+export async function getVietsub(id: string): Promise<ViCue[]> {
+  return (await send(`/api/videos/${encodeURIComponent(id)}/vietsub`)).json();
+}
+
+export async function deleteVietsub(id: string): Promise<void> {
+  await send(`/api/videos/${encodeURIComponent(id)}/vietsub`, { method: 'DELETE' });
 }

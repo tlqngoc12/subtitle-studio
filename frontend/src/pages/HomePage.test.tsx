@@ -1,8 +1,9 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import App from './App';
-import type { CueDto, VideoDto } from './api/client';
+import { MemoryRouter } from 'react-router';
+import HomePage from './HomePage';
+import type { CueDto, VideoDto } from '../api/client';
 
 const ID = 'dQw4w9WgXcQ';
 
@@ -16,6 +17,8 @@ const autoVideo: VideoDto = {
   cueCount: 2,
   fetchedAt: '2026-11-02T10:00:00Z',
   thumbnailUrl: `https://i.ytimg.com/vi/${ID}/mqdefault.jpg`,
+  viCueCount: 0,
+  viUpdatedAt: null,
 };
 
 const manualVideo: VideoDto = {
@@ -66,7 +69,7 @@ async function submit(url: string) {
   return user;
 }
 
-describe('App', () => {
+describe('HomePage', () => {
   beforeEach(() => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
@@ -74,7 +77,7 @@ describe('App', () => {
   it('invites the user to paste a link when nothing was fetched yet', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
 
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     expect(await screen.findByText(/Chưa có video nào/)).toBeInTheDocument();
   });
@@ -87,7 +90,7 @@ describe('App', () => {
       { method: 'POST', path: '/api/videos', status: 201, body: autoVideo, delay },
       { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
     ]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await submit(`https://youtu.be/${ID}`);
 
@@ -104,7 +107,7 @@ describe('App', () => {
       { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
       { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
     ]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await submit(ID);
 
@@ -131,7 +134,7 @@ describe('App', () => {
       { method: 'POST', path: '/api/videos', status: 200, body: manualVideo },
       { method: 'GET', path: '/api/videos/MANUAL00001/cues', status: 200, body: cues },
     ]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await submit('MANUAL00001');
 
@@ -145,7 +148,7 @@ describe('App', () => {
       { method: 'GET', path: '/api/videos', status: 200, body: [] },
       { method: 'POST', path: '/api/videos', status: 400, body: problem(400, 'INVALID_URL', 'Not a valid YouTube URL') },
     ]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await submit('https://evil.com/x');
 
@@ -157,7 +160,7 @@ describe('App', () => {
       { method: 'GET', path: '/api/videos', status: 200, body: [] },
       { method: 'POST', path: '/api/videos', status: 422, body: problem(422, 'NO_ENGLISH_SUBTITLE', 'No English') },
     ]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await submit(ID);
 
@@ -166,7 +169,7 @@ describe('App', () => {
 
   it('explains when the server cannot be reached', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await submit(ID);
 
@@ -175,7 +178,7 @@ describe('App', () => {
 
   it('does not submit an empty link', async () => {
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
-    render(<App />);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lấy Engsub' }));
 
@@ -186,7 +189,7 @@ describe('App', () => {
     it('lists previously fetched videos with download links', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, manualVideo] }]);
 
-      render(<App />);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
 
       const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
       const items = within(history).getAllByRole('listitem');
@@ -196,12 +199,24 @@ describe('App', () => {
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     });
 
+    it('links to the Vietsub player for videos that have Vietsub', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [{ ...autoVideo, viCueCount: 3 }, manualVideo] }]);
+
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const items = within(history).getAllByRole('listitem');
+      expect(within(items[0]).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }))
+        .toHaveAttribute('href', `/vietsub/${ID}`);
+      expect(within(items[1]).queryByRole('link', { name: /Xem Vietsub/ })).not.toBeInTheDocument();
+    });
+
     it('opens a video from the list', async () => {
       fakeFetch([
         { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
-      render(<App />);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
       const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
@@ -215,7 +230,7 @@ describe('App', () => {
         { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, manualVideo] },
         { method: 'DELETE', path: `/api/videos/${ID}`, status: 204 },
       ]);
-      render(<App />);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
       const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
@@ -228,7 +243,7 @@ describe('App', () => {
     it('keeps the video when deletion is not confirmed', async () => {
       vi.mocked(window.confirm).mockReturnValue(false);
       const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }]);
-      render(<App />);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
       const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
@@ -244,7 +259,7 @@ describe('App', () => {
         { method: 'POST', path: `/api/videos/${ID}/refresh`, status: 200, body: refreshed },
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
-      render(<App />);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
       const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Làm mới Học Spring Boot/ }));

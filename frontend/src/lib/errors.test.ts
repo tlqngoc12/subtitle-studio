@@ -14,6 +14,16 @@ describe('errorMessage', () => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
   });
 
+  it('explains an unreadable .srt and keeps the server detail', () => {
+    const msg = errorMessage(new ApiError(400, 'INVALID_SRT', 'No subtitle blocks found'));
+    expect(msg.title).toContain('Không đọc được file .srt');
+    expect(msg.hint).toBe('No subtitle blocks found');
+  });
+
+  it('explains a file that is too large', () => {
+    expect(errorMessage(new ApiError(413, 'FILE_TOO_LARGE', 'Upload exceeds 5 MB')).title).toContain('tối đa 5 MB');
+  });
+
   it('keeps the server detail as a hint for yt-dlp failures', () => {
     const msg = errorMessage(new ApiError(502, 'YTDLP_FAILED', 'ERROR: Video unavailable'));
     expect(msg.hint).toBe('ERROR: Video unavailable');
