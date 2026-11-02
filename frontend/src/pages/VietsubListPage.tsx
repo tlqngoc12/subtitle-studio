@@ -53,7 +53,6 @@ export default function VietsubListPage() {
                       <span className="history__sub">
                         {[v.channel, duration].filter(Boolean).join(', ')}
                       </span>
-                      <span className="history__sub">{v.viCueCount} câu</span>
                     </span>
                   </Link>
                 </li>

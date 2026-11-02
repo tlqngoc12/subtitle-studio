@@ -46,7 +46,7 @@ describe('VietsubListPage', () => {
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByRole('link', { name: /Học Spring Boot/ })).toHaveAttribute('href', `/vietsub/${ID}`);
-    expect(within(items[0]).getByText('7 câu')).toBeInTheDocument();
+    expect(within(list).queryByText(/câu/)).not.toBeInTheDocument();
     expect(within(items[1]).getByRole('link', { name: /Video cũ hơn/ })).toHaveAttribute('href', '/vietsub/OLDER000001');
   });
 
