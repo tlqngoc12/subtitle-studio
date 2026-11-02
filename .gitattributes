@@ -1,0 +1,3 @@
+# Keep subtitle fixtures byte-exact (whitespace-only lines and line endings matter)
+*.vtt -text -whitespace
+*.srt -text -whitespace

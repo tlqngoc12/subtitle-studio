@@ -1,0 +1,18 @@
+{
+  "id": "a-b_c-d_e-f",
+  "title": "Talk without manual captions",
+  "channel": "Conference",
+  "duration": 4321.0,
+  "subtitles": {},
+  "automatic_captions": {
+    "en-orig": [
+      {"ext": "vtt", "url": "https://example.invalid/en-orig.vtt", "name": "English (Original)"}
+    ],
+    "en": [
+      {"ext": "vtt", "url": "https://example.invalid/en.vtt", "name": "English"}
+    ],
+    "vi": [
+      {"ext": "vtt", "url": "https://example.invalid/vi.vtt", "name": "Vietnamese"}
+    ]
+  }
+}

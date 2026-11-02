@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: subtitle-studio
+  datasource:
+    url: jdbc:h2:file:./data/subtitle-studio;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: false
+  mvc:
+    problemdetails:
+      enabled: true
+
+subtitle-studio:
+  ytdlp:
+    path: yt-dlp
+    timeout: 60s
+  data-dir: ./data

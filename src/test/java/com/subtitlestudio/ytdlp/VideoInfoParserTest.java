@@ -1,0 +1,87 @@
+package com.subtitlestudio.ytdlp;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.Test;
+
+class VideoInfoParserTest {
+
+    private final VideoInfoParser parser = new VideoInfoParser();
+
+    @Test
+    void parsesMetadataAndManualSubtitleLanguages() {
+        VideoInfo info = parser.parse(fixture("ytdlp/info-manual-only.json"));
+
+        assertThat(info.id()).isEqualTo("dQw4w9WgXcQ");
+        assertThat(info.title()).isEqualTo("Spring Boot Tutorial: Dependency Injection");
+        assertThat(info.channel()).isEqualTo("Dev Channel");
+        assertThat(info.durationSec()).isEqualTo(754);
+        assertThat(info.subtitleLangs()).containsExactlyInAnyOrder("en", "fr");
+        assertThat(info.autoCaptionLangs()).isEmpty();
+    }
+
+    @Test
+    void ignoresLiveChatPseudoSubtitle() {
+        VideoInfo info = parser.parse(fixture("ytdlp/info-manual-only.json"));
+
+        assertThat(info.subtitleLangs()).doesNotContain("live_chat");
+    }
+
+    @Test
+    void parsesAutoCaptionLanguagesAndFractionalDuration() {
+        VideoInfo info = parser.parse(fixture("ytdlp/info-auto-only.json"));
+
+        assertThat(info.subtitleLangs()).isEmpty();
+        assertThat(info.autoCaptionLangs()).containsExactlyInAnyOrder("en-orig", "en", "vi");
+        assertThat(info.durationSec()).isEqualTo(4321);
+    }
+
+    @Test
+    void fallsBackToUploaderWhenChannelMissingAndAllowsNullDuration() {
+        VideoInfo info = parser.parse(fixture("ytdlp/info-no-english.json"));
+
+        assertThat(info.channel()).isEqualTo("Kênh Việt");
+        assertThat(info.durationSec()).isNull();
+    }
+
+    @Test
+    void excludesLanguagesWithNoTracks() {
+        VideoInfo info = parser.parse(fixture("ytdlp/info-no-english.json"));
+
+        assertThat(info.autoCaptionLangs()).containsExactly("vi-orig");
+    }
+
+    @Test
+    void treatsMissingSubtitleObjectsAsEmpty() {
+        VideoInfo info = parser.parse("{\"id\":\"dQw4w9WgXcQ\",\"title\":\"t\"}");
+
+        assertThat(info.subtitleLangs()).isEmpty();
+        assertThat(info.autoCaptionLangs()).isEmpty();
+        assertThat(info.channel()).isNull();
+        assertThat(info.durationSec()).isNull();
+    }
+
+    @Test
+    void rejectsMalformedJson() {
+        assertThatThrownBy(() -> parser.parse("WARNING: something {not json"))
+                .isInstanceOf(YtDlpFailedException.class);
+    }
+
+    @Test
+    void rejectsJsonWithoutId() {
+        assertThatThrownBy(() -> parser.parse("{\"title\":\"no id\"}"))
+                .isInstanceOf(YtDlpFailedException.class);
+    }
+
+    private static String fixture(String path) {
+        try (InputStream in = VideoInfoParserTest.class.getClassLoader().getResourceAsStream(path)) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+}

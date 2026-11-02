@@ -1,0 +1,17 @@
+{
+  "id": "NOEN0000001",
+  "title": "Video tiếng Việt",
+  "uploader": "Kênh Việt",
+  "duration": null,
+  "subtitles": {
+    "vi": [
+      {"ext": "vtt", "url": "https://example.invalid/vi.vtt", "name": "Vietnamese"}
+    ]
+  },
+  "automatic_captions": {
+    "vi-orig": [
+      {"ext": "vtt", "url": "https://example.invalid/vi-orig.vtt", "name": "Vietnamese (Original)"}
+    ],
+    "en": []
+  }
+}

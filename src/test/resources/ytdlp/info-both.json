@@ -1,0 +1,19 @@
+{
+  "id": "BOTH0000001",
+  "title": "Video with manual and auto captions",
+  "channel": "Both Channel",
+  "duration": 300,
+  "subtitles": {
+    "en-GB": [
+      {"ext": "vtt", "url": "https://example.invalid/en-GB.vtt", "name": "English (United Kingdom)"}
+    ]
+  },
+  "automatic_captions": {
+    "en-orig": [
+      {"ext": "vtt", "url": "https://example.invalid/en-orig.vtt", "name": "English (Original)"}
+    ],
+    "en": [
+      {"ext": "vtt", "url": "https://example.invalid/en.vtt", "name": "English"}
+    ]
+  }
+}

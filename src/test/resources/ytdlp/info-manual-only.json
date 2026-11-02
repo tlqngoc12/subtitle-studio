@@ -1,0 +1,20 @@
+{
+  "id": "dQw4w9WgXcQ",
+  "title": "Spring Boot Tutorial: Dependency Injection",
+  "channel": "Dev Channel",
+  "uploader": "Dev Uploader",
+  "duration": 754,
+  "subtitles": {
+    "en": [
+      {"ext": "json3", "url": "https://example.invalid/en.json3", "name": "English"},
+      {"ext": "vtt", "url": "https://example.invalid/en.vtt", "name": "English"}
+    ],
+    "fr": [
+      {"ext": "vtt", "url": "https://example.invalid/fr.vtt", "name": "French"}
+    ],
+    "live_chat": [
+      {"ext": "json", "url": "https://example.invalid/live_chat.json"}
+    ]
+  },
+  "automatic_captions": {}
+}
