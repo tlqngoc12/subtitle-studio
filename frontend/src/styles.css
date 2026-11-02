@@ -621,8 +621,9 @@ a.history__open {
   text-align: center;
 }
 
-/* Fullscreen button where YouTube puts its own (bottom-right), shown while the pointer is over
-   the video, like YouTube's controls. Always visible when focused with the keyboard. */
+/* Fullscreen button where YouTube puts its own (bottom-right). Always visible but faint: the
+   frame never gets :hover while the pointer is over the cross-origin YouTube iframe, so a
+   hover-only button would stay hidden during playback. */
 .player__fs {
   position: absolute;
   right: 10px;
@@ -638,11 +639,11 @@ a.history__open {
   background: rgb(0 0 0 / 0.45);
   color: #fff;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.2s;
 }
 
-.player:hover .player__fs,
+.player__fs:hover,
 .player__fs:focus-visible {
   opacity: 1;
 }
@@ -657,17 +658,12 @@ a.history__open {
   stroke-linejoin: round;
 }
 
-@media (hover: none) {
-  .player__fs {
-    opacity: 1;
-  }
-}
-
 .overlay {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 9%;
+  /* Above YouTube's control bar and progress bar, which appear on hover/pause. */
+  bottom: 14%;
   display: flex;
   justify-content: center;
   padding: 0 5%;
