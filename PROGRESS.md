@@ -170,7 +170,9 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 | P2-T05 | Màn hình xem: YouTube player, overlay, toàn màn hình | ✅ 17 test |
 | P2-T06 | Kiểm chứng app thật + tài liệu | ✅ (trừ bước xem bằng mắt) |
 
-**Backend `mvn test`: 231/231. Frontend: 62/62.**
+| Sau review | Tắt CC YouTube, cỡ chữ như YouTube, tách menu, nút toàn màn hình kiểu YouTube, Download Vietsub, icon lucide-react | ✅ |
+
+**Backend `mvn test`: 241/241. Frontend: 82/82.** Merge vào `main` 2026-11-02.
 
 ## 7. Nhật ký
 
@@ -307,6 +309,15 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 - **Kiểm chứng trên bản sao DB thật** (H2 Script/RunScript): khởi động OK; thêm Vietsub cho video có sẵn (171 câu, 0,19s) và video chưa có (tự lấy, 13s); thay Vietsub; file hỏng/UTF-16 → 400 `INVALID_SRT`; file 6 MB → 413 `FILE_TOO_LARGE` (giới hạn thật của Tomcat); xoá video có Vietsub → 204; route `/vietsub/**` trả HTML, `/api/khong-co` vẫn 404.
 - **Chưa kiểm chứng bằng mắt:** phát video có Vietsub đồng bộ, pause/tua, toàn màn hình (Edge headless không phát được video YouTube).
 
+### 2026-11-02: Phase 2, chỉnh sửa sau review và theo phản hồi của người dùng
+- Review độc lập (0 Critical): sửa "tua khi pause thì Vietsub đứng yên" (poll 250 ms khi không phát) và "`.srt` thiếu dòng trống giữa block" (tách theo từng dòng timing). 11 Minor còn lại ghi trong Backlog.
+- **CC của YouTube tự bật** cho video tiếng nước ngoài, đè vị trí Vietsub: tắt bằng `cc_load_policy: 0` + `unloadModule('captions')` khi ready và khi bắt đầu phát.
+- **Cỡ chữ Vietsub** như phụ đề YouTube: 1,9cqw (≈20px ở khung 1040px), chữ thường, nền đen 75%; overlay đặt ở 14% từ đáy để không đè thanh tua.
+- **Menu tách 3 mục:** Lấy Engsub (`/`), Vietsub (`/vietsub`: form + quản lý Download/Replace/Delete), Danh sách Vietsub (`/vietsub/list`: chỉ để xem; màn xem tô sáng mục này).
+- **Toàn màn hình kiểu YouTube:** nút icon ở góc dưới phải trong khung, bật/tắt, phím `F`. Nút luôn hiện mờ vì khung không nhận `:hover` khi chuột ở trên iframe (đã kiểm chứng bằng CDP).
+- **Download Vietsub:** `GET /api/videos/{id}/subtitle.vi.srt` → `{title}_{id}.vi.srt`; 404 `NO_VIETSUB` khi chưa có.
+- **Icon:** chuyển từ SVG tự vẽ sang `lucide-react` 1.66.0 (bundle +≈4 KB nhờ tree-shaking).
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -361,4 +372,5 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 | `UrlParser` hỗ trợ `music.youtube.com/watch?v=ID` | T02 | thêm host vào whitelist + test |
 | `UrlParser` hỗ trợ `youtube.com/live/ID` (livestream) | T02 | thêm nhánh path `live` giống `shorts`/`embed` + test |
 | Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |
+| Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
 | Build và chạy thử Docker image | T11 | cần Docker Desktop; Dockerfile đã viết nhưng chưa từng build |

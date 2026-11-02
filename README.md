@@ -9,8 +9,8 @@ Dán link YouTube, nhận về phụ đề tiếng Anh đã làm sạch dưới 
 
 Và xem video với Vietsub:
 
-- Trang **Vietsub** (`/vietsub`): dán link YouTube và chọn file `.srt` tiếng Việt bạn đã dịch (giữ nguyên timing) → app lưu Vietsub.
-- Danh sách video có Vietsub → bấm **Xem** để phát video YouTube kèm Vietsub, có nút **Toàn màn hình** (dùng nút này thay cho nút toàn màn hình của YouTube để Vietsub vẫn hiện).
+- Menu **Vietsub** (`/vietsub`): dán link YouTube và chọn file `.srt` tiếng Việt bạn đã dịch (giữ nguyên timing) → app lưu Vietsub. Bên dưới là danh sách quản lý với các nút Download / Replace / Delete Vietsub.
+- Menu **Danh sách Vietsub** (`/vietsub/list`): chọn video để xem trên YouTube kèm Vietsub. Nút ⛶ ở góc dưới bên phải (hoặc phím `F`) bật/tắt toàn màn hình mà Vietsub vẫn hiện; phụ đề có sẵn của YouTube được tắt.
 
 Kế hoạch các phase sau (sửa trực tiếp, chế độ kiểm tra song ngữ, engine dịch) nằm trong [PLAN.md](PLAN.md).
 

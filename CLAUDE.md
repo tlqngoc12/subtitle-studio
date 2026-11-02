@@ -64,6 +64,8 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Truy vấn theo role/label (`getByRole`, `getByLabelText`), không dùng class CSS hay test id. Nút chỉ có icon/text ngắn phải có `aria-label` đủ nghĩa.
 - Chuỗi hiển thị bằng tiếng Việt; thông báo lỗi lấy theo `code` của ProblemDetail (`src/lib/errors.ts`), luôn có fallback khi thiếu `code`.
 - Font phải có subset `vietnamese` (hiện dùng Be Vietnam Pro).
+- Icon dùng `lucide-react` (không tự vẽ SVG). Nút chỉ có icon phải có `aria-label` và `title` (tooltip).
+- Màn hình xem: không phụ thuộc `:hover` của khung player (khi chuột ở trên iframe YouTube, trang không nhận hover); phụ đề YouTube phải tắt (`cc_load_policy: 0` + `unloadModule('captions')`).
 - Version package cố định (không dùng `^`); `package-lock.json` được commit; `frontend/node`, `node_modules` không commit.
 
 ### Locale
