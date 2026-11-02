@@ -17,6 +17,7 @@ import com.subtitlestudio.subtitle.SourceType;
 import com.subtitlestudio.subtitle.SubtitleTrack;
 import com.subtitlestudio.subtitle.SubtitleTrackSelector;
 import com.subtitlestudio.subtitle.VttParser;
+import com.subtitlestudio.test.MutableClock;
 import com.subtitlestudio.url.InvalidUrlException;
 import com.subtitlestudio.url.UrlParser;
 import com.subtitlestudio.ytdlp.VideoInfo;
@@ -26,11 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,6 +87,9 @@ class SubtitleServiceTest {
 
     @Autowired
     private CueRepository cues;
+
+    @Autowired
+    private ViCueRepository viCues;
 
     @Autowired
     private MutableClock clock;
@@ -293,6 +294,20 @@ class SubtitleServiceTest {
     }
 
     @Test
+    void deleteVideoAlsoDeletesVietsub() {
+        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
+        Video video = service.fetch(ID).video();
+        viCues.save(new ViCueEntity(video, 0, 1_000, 2_000, "Xin chào"));
+        em.flush();
+
+        service.delete(ID);
+        em.flush();
+
+        assertThat(videos.existsById(ID)).isFalse();
+        assertThat(viCues.findByVideo_IdOrderByIdxAsc(ID)).isEmpty();
+    }
+
+    @Test
     void deleteUnknownVideoThrowsNotFound() {
         assertThatThrownBy(() -> service.delete(ID)).isInstanceOf(VideoNotFoundException.class);
     }
@@ -309,40 +324,6 @@ class SubtitleServiceTest {
             return Files.createTempDirectory("subtitle-studio-test");
         } catch (IOException e) {
             throw new IllegalStateException(e);
-        }
-    }
-
-    /** A clock tests can move forward. */
-    static final class MutableClock extends Clock {
-        private final Instant start;
-        private Instant now;
-
-        MutableClock(Instant start) {
-            this.start = start;
-            this.now = start;
-        }
-
-        void reset() {
-            now = start;
-        }
-
-        void advance(Duration d) {
-            now = now.plus(d);
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
         }
     }
 }

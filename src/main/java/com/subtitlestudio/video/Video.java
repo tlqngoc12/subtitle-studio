@@ -40,6 +40,13 @@ public class Video {
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
 
+    /** DEFAULT 0 is required: Phase 1 databases already have rows when this column is added. */
+    @Column(name = "vi_cue_count", nullable = false, columnDefinition = "INT DEFAULT 0 NOT NULL")
+    private int viCueCount;
+
+    @Column(name = "vi_updated_at")
+    private Instant viUpdatedAt;
+
     protected Video() {
         // for JPA
     }
@@ -89,5 +96,19 @@ public class Video {
 
     public Instant getFetchedAt() {
         return fetchedAt;
+    }
+
+    public int getViCueCount() {
+        return viCueCount;
+    }
+
+    public Instant getViUpdatedAt() {
+        return viUpdatedAt;
+    }
+
+    /** Records the current Vietsub size; {@code at} is null when the Vietsub was removed. */
+    public void updateVietsub(int count, Instant at) {
+        this.viCueCount = count;
+        this.viUpdatedAt = at;
     }
 }

@@ -41,13 +41,15 @@ public class SubtitleService {
     private final CaptionNormalizer normalizer;
     private final VideoRepository videos;
     private final CueRepository cues;
+    private final ViCueRepository viCues;
     private final Path subsDir;
     private final TransactionTemplate tx;
     private final Clock clock;
 
     public SubtitleService(UrlParser urlParser, YtDlpClient ytDlp, SubtitleTrackSelector trackSelector,
                            VttParser vttParser, CaptionNormalizer normalizer, VideoRepository videos,
-                           CueRepository cues, SubtitleStudioProperties properties, TransactionTemplate tx,
+                           CueRepository cues, ViCueRepository viCues, SubtitleStudioProperties properties,
+                           TransactionTemplate tx,
                            Clock clock) {
         this.urlParser = urlParser;
         this.ytDlp = ytDlp;
@@ -56,6 +58,7 @@ public class SubtitleService {
         this.normalizer = normalizer;
         this.videos = videos;
         this.cues = cues;
+        this.viCues = viCues;
         this.subsDir = properties.subsDir();
         this.tx = tx;
         this.clock = clock;
@@ -122,6 +125,7 @@ public class SubtitleService {
     public void delete(String id) {
         String lang = tx.execute(status -> {
             String subLang = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).getSubLang();
+            viCues.deleteByVideoId(id); // Vietsub rows reference the video too (FK)
             cues.deleteByVideoId(id); // clears the persistence context
             videos.deleteById(id);
             return subLang;
