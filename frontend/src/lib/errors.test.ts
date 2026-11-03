@@ -34,6 +34,27 @@ describe('errorMessage', () => {
     expect(msg.hint).toBe('ERROR: Video unavailable');
   });
 
+  it.each([
+    ['PROFILE_NOT_FOUND', 'Không tìm thấy profile.'],
+    ['BLOCK_NOT_FOUND', 'Khối này không còn nữa.'],
+    ['INVALID_BLOCK', 'Nội dung khối chưa hợp lệ.'],
+    ['INVALID_MEDIA', 'File không phải ảnh JPEG, PNG, WebP hoặc GIF.'],
+    ['MEDIA_TOO_LARGE', 'Ảnh quá lớn (tối đa 10 MB).'],
+    ['MEDIA_NOT_FOUND', 'Không tìm thấy ảnh.'],
+  ])('maps profile code %s', (code, expected) => {
+    expect(errorMessage(new ApiError(400, code, 'detail')).title).toBe(expected);
+  });
+
+  it('asks to reload when a block is gone', () => {
+    expect(errorMessage(new ApiError(404, 'BLOCK_NOT_FOUND', 'x')).hint).toBe('Tải lại trang.');
+  });
+
+  it('keeps field errors from an INVALID_BLOCK problem', () => {
+    const e = new ApiError(400, 'INVALID_BLOCK', 'x', [{ field: 'items[0].value', message: 'Sai link' }]);
+    expect(e.fieldErrors).toEqual([{ field: 'items[0].value', message: 'Sai link' }]);
+    expect(new ApiError(400, 'X', 'y').fieldErrors).toEqual([]);
+  });
+
   it('explains network failures', () => {
     expect(errorMessage(new ApiError(0, 'NETWORK', 'Failed to fetch')).title)
       .toContain('Không kết nối được máy chủ');

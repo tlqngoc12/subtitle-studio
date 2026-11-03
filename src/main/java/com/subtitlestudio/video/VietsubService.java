@@ -25,6 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class VietsubService {
 
     static final int MAX_TEXT_LENGTH = 1000;
+    /** Checked here: the multipart limit is 10 MB for profile images. */
+    static final int MAX_SRT_BYTES = 5 * 1024 * 1024;
 
     private final UrlParser urlParser;
     private final SrtParser srtParser;
@@ -52,6 +54,9 @@ public class VietsubService {
 
     /** Adds (or replaces) the Vietsub of the video at {@code url}, importing the video first if needed. */
     public Video add(String url, byte[] srt) {
+        if (srt.length > MAX_SRT_BYTES) {
+            throw new FileTooLargeException();
+        }
         String id = urlParser.parse(url);
         List<ViCue> cues = toCues(srtParser.parse(srt).entries());
 

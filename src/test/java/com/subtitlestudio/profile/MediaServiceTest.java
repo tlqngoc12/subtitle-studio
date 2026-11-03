@@ -1,0 +1,239 @@
+package com.subtitlestudio.profile;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.test.MutableClock;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
+@Import({MediaService.class, ImageSniffer.class, MediaServiceTest.Config.class})
+// Real commits: file deletion waits for the transaction to commit.
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+class MediaServiceTest {
+
+    private static final Instant NOW = Instant.parse("2026-11-03T10:00:00Z");
+
+    @TempDir
+    static Path dataDir;
+
+    @TestConfiguration
+    static class Config {
+        @Bean
+        MutableClock clock() {
+            return new MutableClock(NOW);
+        }
+
+        @Bean
+        SubtitleStudioProperties properties() {
+            return new SubtitleStudioProperties(
+                    new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
+                    new SubtitleStudioProperties.Gemini("", "gemini-3.8-flash", Duration.ofMinutes(3),
+                            Duration.ofMinutes(60), 0.3));
+        }
+    }
+
+    @Autowired
+    private MediaService service;
+
+    @Autowired
+    private MediaRepository media;
+
+    @Autowired
+    private ProfileRepository profiles;
+
+    @Autowired
+    private ProfileBlockRepository blocks;
+
+    @Autowired
+    private MutableClock clock;
+
+    @Autowired
+    private PlatformTransactionManager txManager;
+
+    @BeforeEach
+    void setUp() {
+        clock.reset();
+    }
+
+    @AfterEach
+    void cleanUp() throws IOException {
+        blocks.deleteAll();
+        media.deleteAll();
+        Path dir = dataDir.resolve("media");
+        if (Files.isDirectory(dir)) {
+            try (Stream<Path> files = Files.list(dir)) {
+                for (Path f : files.toList()) {
+                    Files.delete(f);
+                }
+            }
+        }
+    }
+
+    private Path fileOf(Media m, String ext) {
+        return dataDir.resolve("media").resolve(m.getStorageKey() + "." + ext);
+    }
+
+    private Media storeAt(Instant at) {
+        clock.reset();
+        clock.advance(Duration.between(NOW, at));
+        Media m = service.store("x.png", ImageSnifferTest.PNG);
+        clock.reset();
+        return m;
+    }
+
+    private void useInImageBlock(Media m) {
+        Profile emi = profiles.findBySlug("emi").orElseThrow();
+        ProfileBlock block = new ProfileBlock(emi, 1, BlockType.IMAGE, NOW);
+        block.setContent(null, null, m, null, null, List.of(), NOW);
+        blocks.saveAndFlush(block);
+    }
+
+    @Test
+    void storesFileNamedById() throws IOException {
+        Media m = service.store("a b.png", ImageSnifferTest.PNG);
+
+        assertThat(Files.readAllBytes(fileOf(m, "png"))).isEqualTo(ImageSnifferTest.PNG);
+        Media saved = media.findById(m.getId()).orElseThrow();
+        assertThat(saved.getContentType()).isEqualTo("image/png");
+        assertThat(saved.getSizeBytes()).isEqualTo(ImageSnifferTest.PNG.length);
+        assertThat(saved.getOriginalName()).isEqualTo("a b.png");
+        assertThat(saved.getCreatedAt()).isEqualTo(NOW);
+    }
+
+    /** The H2 dev database and Oracle share ./data/media and both sequences start at 1. */
+    @Test
+    void neverOverwritesFilesOfAnotherDatabase() throws IOException {
+        Path dir = dataDir.resolve("media");
+        Files.createDirectories(dir);
+        byte[] other = ImageSnifferTest.ascii("other database's image");
+        for (int id = 1; id <= 200; id++) {
+            Files.write(dir.resolve(id + ".png"), other);
+        }
+
+        Media m = service.store("a.png", ImageSnifferTest.PNG);
+
+        for (int id = 1; id <= 200; id++) {
+            assertThat(Files.readAllBytes(dir.resolve(id + ".png"))).as("file %d.png", id).isEqualTo(other);
+        }
+        assertThat(Files.readAllBytes(service.load(m.getId()).path())).isEqualTo(ImageSnifferTest.PNG);
+    }
+
+    @Test
+    void originalNameNeverBecomesPath() throws IOException {
+        Media m = service.store("../../evil.png", ImageSnifferTest.JPEG);
+
+        assertThat(fileOf(m, "jpg")).exists();
+        try (Stream<Path> all = Files.walk(dataDir)) {
+            assertThat(all.filter(Files::isRegularFile).toList()).containsExactly(fileOf(m, "jpg"));
+        }
+    }
+
+    @Test
+    void rejectsNonImage() {
+        assertThatThrownBy(() -> service.store("a.jpg", ImageSnifferTest.ascii("<html>")))
+                .isInstanceOf(InvalidMediaException.class);
+        assertThat(media.count()).isZero();
+    }
+
+    @Test
+    void rejectsEmpty() {
+        assertThatThrownBy(() -> service.store("a.png", new byte[0])).isInstanceOf(InvalidMediaException.class);
+    }
+
+    @Test
+    void rejectsOver10Mb() {
+        byte[] big = new byte[(int) MediaService.MAX_BYTES + 1];
+        System.arraycopy(ImageSnifferTest.PNG, 0, big, 0, ImageSnifferTest.PNG.length);
+
+        assertThatThrownBy(() -> service.store("big.png", big)).isInstanceOf(MediaTooLargeException.class);
+    }
+
+    @Test
+    void loadReturnsFileAndType() {
+        Media m = service.store("a.webp", ImageSnifferTest.WEBP);
+
+        StoredMedia stored = service.load(m.getId());
+
+        assertThat(stored.path()).isEqualTo(fileOf(m, "webp"));
+        assertThat(stored.contentType()).isEqualTo("image/webp");
+    }
+
+    @Test
+    void loadUnknownIdThrows() {
+        assertThatThrownBy(() -> service.load(424242)).isInstanceOf(MediaNotFoundException.class);
+    }
+
+    @Test
+    void loadMissingFileThrows() throws IOException {
+        Media m = service.store("a.png", ImageSnifferTest.PNG);
+        Files.delete(fileOf(m, "png"));
+
+        assertThatThrownBy(() -> service.load(m.getId())).isInstanceOf(MediaNotFoundException.class);
+    }
+
+    @Test
+    void deletesUnreferencedOlderThan24h() {
+        Media used = storeAt(NOW.minus(Duration.ofHours(25)));
+        Media abandoned = storeAt(NOW.minus(Duration.ofHours(25)));
+        Media recent = storeAt(NOW.minus(Duration.ofHours(1)));
+        useInImageBlock(used);
+
+        assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isEqualTo(1);
+
+        assertThat(media.findAll()).extracting(Media::getId).containsExactlyInAnyOrder(used.getId(), recent.getId());
+        assertThat(fileOf(abandoned, "png")).doesNotExist();
+        assertThat(fileOf(used, "png")).exists();
+        assertThat(fileOf(recent, "png")).exists();
+    }
+
+    @Test
+    void deleteIfUnreferencedKeepsUsedMedia() {
+        Media used = service.store("a.png", ImageSnifferTest.PNG);
+        Media free = service.store("b.png", ImageSnifferTest.PNG);
+        useInImageBlock(used);
+
+        service.deleteIfUnreferenced(List.of(used.getId(), free.getId()));
+
+        assertThat(media.findAll()).extracting(Media::getId).containsExactly(used.getId());
+        assertThat(fileOf(free, "png")).doesNotExist();
+        assertThat(fileOf(used, "png")).exists();
+    }
+
+    @Test
+    void fileDeletionWaitsForCommit() {
+        Media free = service.store("b.png", ImageSnifferTest.PNG);
+
+        new TransactionTemplate(txManager).executeWithoutResult(status -> {
+            service.deleteIfUnreferenced(List.of(free.getId()));
+            status.setRollbackOnly();
+        });
+
+        assertThat(media.existsById(free.getId())).isTrue();
+        assertThat(fileOf(free, "png")).exists();
+    }
+}

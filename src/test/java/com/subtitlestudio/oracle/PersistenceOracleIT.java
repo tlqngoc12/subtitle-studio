@@ -3,6 +3,13 @@ package com.subtitlestudio.oracle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.subtitlestudio.profile.BlockDto;
+import com.subtitlestudio.profile.BlockRequest;
+import com.subtitlestudio.profile.BlockType;
+import com.subtitlestudio.profile.ItemRequest;
+import com.subtitlestudio.profile.MediaRepository;
+import com.subtitlestudio.profile.ProfileBlockRepository;
+import com.subtitlestudio.profile.ProfileService;
 import com.subtitlestudio.subtitle.SourceType;
 import com.subtitlestudio.video.CueEntity;
 import com.subtitlestudio.video.CueRepository;
@@ -66,8 +73,19 @@ class PersistenceOracleIT {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private ProfileService profileService;
+
+    @Autowired
+    private ProfileBlockRepository blocks;
+
+    @Autowired
+    private MediaRepository media;
+
     @AfterEach
     void cleanUp() {
+        blocks.deleteAll();
+        media.deleteAll();
         viCues.deleteAll();
         cues.deleteAll();
         videos.deleteAll();
@@ -84,7 +102,40 @@ class PersistenceOracleIT {
     void onlyFlywayCreatesTables() {
         // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
-                .containsExactly("CUE", "VIDEO", "VI_CUE", "flyway_schema_history");
+                .containsExactly("CUE", "T_MEDIA", "T_PROFILE", "T_PROFILE_BLOCK", "T_PROFILE_BLOCK_ITEM", "VIDEO",
+                        "VI_CUE", "flyway_schema_history");
+    }
+
+    @Test
+    void seedsThreeProfilesOnOracle() {
+        assertThat(jdbc.queryForList("select slug from t_profile order by id", String.class))
+                .containsExactly("emibonnie", "emi", "bonnie");
+    }
+
+    @Test
+    void storesThaiEmojiMarkdownClob() {
+        String line = "เอมี่-บอนนี่ 💕 Tiếng Việt có dấu ữ ầ ọ\n";
+        String body = line.repeat(50_000 / line.length() + 1).substring(0, 50_000);
+        String label = "เ".repeat(200);
+
+        profileService.addBlock("emi", new BlockRequest(BlockType.TEXT, null, body, null, null, null, null));
+        profileService.addBlock("emi", new BlockRequest(BlockType.FACTS, null, null, null, null, null,
+                List.of(new ItemRequest(label, "13/05/1999", null))));
+
+        List<BlockDto> loaded = profileService.get("emi").blocks();
+        assertThat(loaded.get(0).body()).isEqualTo(body);
+        assertThat(loaded.get(1).items().get(0).label()).isEqualTo(label);
+    }
+
+    @Test
+    void cascadesBlockItemsOnOracle() {
+        BlockDto links = profileService.addBlock("emi", new BlockRequest(BlockType.LINKS, null, null, null, null, null,
+                List.of(new ItemRequest("A", "https://a.example", null), new ItemRequest("B", "https://b.example", null),
+                        new ItemRequest("C", "https://c.example", null))));
+
+        profileService.deleteBlock("emi", links.id());
+
+        assertThat(jdbc.queryForObject("select count(*) from t_profile_block_item", Integer.class)).isZero();
     }
 
     @Test

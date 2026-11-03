@@ -55,6 +55,18 @@ export function errorMessage(error: unknown): ErrorMessage {
       };
     case 'TRANSLATION_IN_PROGRESS':
       return { title: 'Video đang được dịch.' };
+    case 'PROFILE_NOT_FOUND':
+      return { title: 'Không tìm thấy profile.' };
+    case 'BLOCK_NOT_FOUND':
+      return { title: 'Khối này không còn nữa.', hint: 'Tải lại trang.' };
+    case 'INVALID_BLOCK':
+      return { title: 'Nội dung khối chưa hợp lệ.' };
+    case 'INVALID_MEDIA':
+      return { title: 'File không phải ảnh JPEG, PNG, WebP hoặc GIF.' };
+    case 'MEDIA_TOO_LARGE':
+      return { title: 'Ảnh quá lớn (tối đa 10 MB).' };
+    case 'MEDIA_NOT_FOUND':
+      return { title: 'Không tìm thấy ảnh.' };
     case 'NETWORK':
       return { title: 'Không kết nối được máy chủ.', hint: 'Kiểm tra Subtitle Studio có đang chạy không.' };
     default:
