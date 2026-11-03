@@ -1,0 +1,126 @@
+package com.subtitlestudio.translate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.subtitlestudio.config.SubtitleStudioProperties;
+import java.time.Duration;
+import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class GeminiTranslatorImplTest {
+
+    private static final String KEY = "test-key-123";
+    private static final VideoContext VIDEO = new VideoContext("VLOG OF US", "EMIBONNIE");
+    private static final String PROFILE = "## Xưng hô\nEmi gọi Bonnie là \"em\".";
+    private static final List<SourceLine> LINES = List.of(
+            new SourceLine(0, "Hello"),
+            new SourceLine(1, "- Hungry?\n- A little."));
+    private static final String GOOD = "[{\"id\":0,\"text\":\"Xin chào\"},{\"id\":1,\"text\":\"- Đói chưa?\\n- Hơi hơi.\"}]";
+
+    private final FakeGeminiServer server = new FakeGeminiServer();
+
+    @AfterEach
+    void stop() {
+        server.close();
+    }
+
+    private GeminiTranslatorImpl translator(Duration timeout) {
+        var gemini = new SubtitleStudioProperties.Gemini(KEY, "gemini-test-flash", timeout, Duration.ofMinutes(60), 0.3);
+        return new GeminiTranslatorImpl(gemini, new ObjectMapper(), server.baseUrl());
+    }
+
+    private GeminiTranslatorImpl translator() {
+        return translator(Duration.ofSeconds(10));
+    }
+
+    private static String userMessage(Throwable e) {
+        return ((TranslationFailedException) e).userMessage();
+    }
+
+    @Test
+    void sendsRulesProfileSchemaAndLines() {
+        server.replyText(GOOD, "STOP");
+
+        translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.lastPath()).endsWith("/models/gemini-test-flash:generateContent");
+        String body = server.lastBody();
+        assertThat(body).contains("systemInstruction").contains("mỗi id");
+        assertThat(body).contains("Emi gọi Bonnie là");
+        assertThat(body).contains("application/json").contains("responseSchema");
+        assertThat(body).contains("\"temperature\":0.3");
+        assertThat(body).contains("VLOG OF US").contains("EMIBONNIE");
+        assertThat(body.indexOf("Hello")).isLessThan(body.indexOf("Hungry"));
+        assertThat(body).doesNotContain(KEY);
+    }
+
+    @Test
+    void parsesStructuredOutput() {
+        server.replyText(GOOD, "STOP");
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(out).containsExactly(new TranslatedLine(0, "Xin chào"), new TranslatedLine(1, "- Đói chưa?\n- Hơi hơi."));
+        assertThat(server.requests()).isEqualTo(1);
+    }
+
+    @Test
+    void quota429Fails() {
+        server.reply(429, "{\"error\":{\"code\":429,\"message\":\"Resource exhausted\",\"status\":\"RESOURCE_EXHAUSTED\"}}");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Hết lượt miễn phí của Gemini, thử lại sau."));
+        assertThat(server.requests()).isEqualTo(1); // no automatic retries burning the free quota
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {401, 403})
+    void badKeyFails(int status) {
+        server.reply(status, "{\"error\":{\"code\":" + status + ",\"message\":\"API key not valid\",\"status\":\"PERMISSION_DENIED\"}}");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("GEMINI_API_KEY không hợp lệ."));
+    }
+
+    @Test
+    void timeoutFails() {
+        server.delay(Duration.ofSeconds(3));
+        server.replyText(GOOD, "STOP");
+
+        assertThatThrownBy(() -> translator(Duration.ofSeconds(1)).translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini không phản hồi kịp."));
+    }
+
+    @Test
+    void safetyBlockFails() {
+        server.reply(200, "{\"candidates\":[{\"finishReason\":\"SAFETY\"}]}");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini từ chối dịch nội dung này."));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"```json\n[{\"id\":0,\"text\":\"a\"},{\"id\":1,\"text\":\"b\"}]\n```", "xin lỗi"})
+    void fencedOrInvalidJsonFails(String text) {
+        server.replyText(text, "STOP");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini trả về thiếu/lệch câu (0/2 câu hợp lệ), thử dịch lại."));
+    }
+
+    @Test
+    void otherErrorsNeverLeakKey() {
+        server.reply(500, "{\"error\":{\"code\":500,\"message\":\"boom " + KEY + "\",\"status\":\"INTERNAL\"}}");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> {
+                    assertThat(userMessage(e)).startsWith("Không dịch được: ").doesNotContain(KEY);
+                    assertThat(e.getMessage()).doesNotContain(KEY);
+                });
+    }
+}
