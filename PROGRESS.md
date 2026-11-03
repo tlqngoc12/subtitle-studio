@@ -151,7 +151,7 @@ Yêu cầu: JDK 21, Maven 3.9+, và `yt-dlp` trong PATH (cần từ T07 trở đ
 | T08 | Entity + Repository + `SubtitleService` | ✅ Xong | 21 test; app khởi động thật OK |
 | T09 | Controller + `@RestControllerAdvice` | ✅ Xong | 23 test + smoke test curl trên app thật |
 | T10 | Frontend React + Vite + TS (gộp vào jar) | ✅ Xong | 32 test Vitest; jar chứa frontend |
-| T11 | Dockerfile + docker-compose + README | ✅ Xong | DoD 3 video thật ✅, golden test ✅, người dùng chạy thử `java -jar` OK; **Docker image chưa build thử** (máy chưa có Docker) |
+| T11 | Dockerfile + docker-compose + README | ✅ Xong | DoD 3 video thật ✅, golden test ✅, người dùng chạy thử `java -jar` OK; Docker image build + chạy thử OK (2026-11-03) |
 
 **Tổng: 11/11 task, Phase 1 hoàn thành (tag `v0.1.0`). Backend `mvn test`: 192/192 pass (3 golden test chỉ chạy khi có golden local). Frontend `npm test`: 32/32 pass.**
 
@@ -318,6 +318,14 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 - **Download Vietsub:** `GET /api/videos/{id}/subtitle.vi.srt` → `{title}_{id}.vi.srt`; 404 `NO_VIETSUB` khi chưa có.
 - **Icon:** chuyển từ SVG tự vẽ sang `lucide-react` 1.66.0 (bundle +≈4 KB nhờ tree-shaking).
 
+### 2026-11-03: Kiểm chứng Docker image ✅
+- Docker Desktop 29.9.2. Lần build đầu **lỗi**: Node do `frontend-maven-plugin` tải về cần `libatomic.so.1`, image `maven:3.9-eclipse-temurin-21` không có (exit 127 ở `npm ci`). Đã sửa: cài `libatomic1` ở build stage.
+- Build lại OK trong khoảng 2,5 phút: JUnit 244/244, Vitest 82/82; image `subtitle-studio:local` nặng 787 MB.
+- Chạy thử ở cổng 18080 với volume riêng: container healthy, chạy bằng uid 10001, yt-dlp 2026.10.26, deno 2.9.8, Java 21.0.13; `/` và `/vietsub/list` trả 200, URL sai → 400 `INVALID_URL`.
+- Video thật `iG9CE55wbtY`: 201 trong 7,6s (manual, 427 câu), tải `.srt` OK, upload Vietsub OK, tải `.vi.srt` OK; restart container xong dữ liệu vẫn còn trong volume; log không có ERROR/WARN.
+- `docker compose up -d`: container healthy ở cổng 8080, dữ liệu trong named volume `subtitle-studio_subtitle-studio-data` (tách khỏi `./data` của bản `java -jar`).
+- Dữ liệu Docker Desktop (image, volume, cache) chuyển sang `D:\docker\DockerDesktopWSL`.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -373,4 +381,3 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 | `UrlParser` hỗ trợ `youtube.com/live/ID` (livestream) | T02 | thêm nhánh path `live` giống `shorts`/`embed` + test |
 | Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
-| Build và chạy thử Docker image | T11 | cần Docker Desktop; Dockerfile đã viết nhưng chưa từng build |

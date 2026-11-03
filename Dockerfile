@@ -3,6 +3,10 @@
 # ---------- Build: backend + frontend in one Maven run ----------
 # frontend-maven-plugin downloads its own Node, so the image needs no Node install.
 FROM maven:3.9-eclipse-temurin-21 AS build
+# The Node binary that frontend-maven-plugin downloads links against libatomic, which this image lacks.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 
 # Resolve Maven dependencies first so they are cached across source changes.
