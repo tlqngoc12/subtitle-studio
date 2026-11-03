@@ -11,6 +11,7 @@ Và xem video với Vietsub:
 
 - Menu **Vietsub** (`/vietsub`): dán link YouTube và chọn file `.srt` tiếng Việt bạn đã dịch (giữ nguyên timing) → app lưu Vietsub. Bên dưới là danh sách quản lý với các nút Download / Replace / Delete Vietsub.
 - Menu **Danh sách Vietsub** (`/vietsub/list`): chọn video để xem trên YouTube kèm Vietsub. Nút ⛶ ở góc dưới bên phải (hoặc phím `F`) bật/tắt toàn màn hình mà Vietsub vẫn hiện; phụ đề có sẵn của YouTube được tắt.
+- Menu **Profile** (`/profiles`): trang giới thiệu EmiBonnie, Emi và Bonnie. Bấm **Chỉnh sửa** để thêm, sửa, xoá, sắp xếp các khối: Văn bản (Markdown), Ảnh, Thư viện ảnh, Nhạc / Video (link YouTube hoặc Spotify), Link, Thông tin nhanh. Ảnh upload (JPEG/PNG/WebP/GIF, tối đa 10 MB) lưu ở `./data/media/`.
 
 Kế hoạch các phase sau (sửa trực tiếp, chế độ kiểm tra song ngữ, engine dịch) nằm trong [PLAN.md](PLAN.md).
 
@@ -56,6 +57,8 @@ docker compose down
 docker run --rm -v subtitle-studio_oracle-data:/src -v D:/backup:/backup alpine tar czf /backup/oracle-data-2026-11-03.tgz -C /src .
 docker compose up -d
 ```
+
+Ảnh của trang Profile nằm ở `./data/media/` (tên file là id trong bảng `t_media`), không nằm trong volume Oracle: sao lưu thư mục này cùng lúc với volume.
 
 Khôi phục vào volume rỗng: `docker compose down`, `docker volume rm subtitle-studio_oracle-data`, rồi
 `docker run --rm -v subtitle-studio_oracle-data:/dst -v D:/backup:/backup alpine tar xzf /backup/oracle-data-2026-11-03.tgz -C /dst`, rồi `docker compose up -d`.
@@ -133,8 +136,16 @@ Quy ước làm việc trong repo: [CLAUDE.md](CLAUDE.md). Tiến độ: [PROGRE
 | GET | `/api/videos/{id}/vietsub` | Danh sách câu Vietsub `{startMs, endMs, text}` |
 | GET | `/api/videos/{id}/subtitle.vi.srt` | Tải Vietsub đang lưu thành file `.vi.srt` (`?bom=true` để thêm BOM) |
 | DELETE | `/api/videos/{id}/vietsub` | Xoá Vietsub |
+| GET | `/api/profiles` | 3 profile `{slug, displayName}` (EmiBonnie, Emi, Bonnie) |
+| GET | `/api/profiles/{slug}` | Profile kèm các khối theo thứ tự |
+| POST | `/api/profiles/{slug}/blocks` | Thêm khối vào cuối (201) |
+| PUT | `/api/profiles/{slug}/blocks/{id}` | Thay nội dung khối (không đổi loại) |
+| DELETE | `/api/profiles/{slug}/blocks/{id}` | Xoá khối (và ảnh không còn dùng) |
+| POST | `/api/profiles/{slug}/blocks/{id}/move` | Body `{"direction":"UP"\|"DOWN"}`, trả về danh sách khối mới |
+| POST | `/api/media` | `multipart/form-data` field `file`: upload ảnh, trả `{id, url}` (201) |
+| GET | `/api/media/{id}` | File ảnh |
 
-Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `INTERNAL_ERROR` (500).
+Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `PROFILE_NOT_FOUND` (404), `BLOCK_NOT_FOUND` (404), `INVALID_BLOCK` (400, kèm `errors: [{field, message}]`), `INVALID_MEDIA` (400), `MEDIA_TOO_LARGE` (413), `MEDIA_NOT_FOUND` (404), `INTERNAL_ERROR` (500).
 
 ## Khi gặp lỗi
 

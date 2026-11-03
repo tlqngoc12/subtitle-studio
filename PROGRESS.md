@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-02
+> Cập nhật lần cuối: 2026-11-03
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -351,6 +351,15 @@ Spec: [docs/superpowers/specs/2026-11-03-oracle-design.md](docs/superpowers/spec
 - **Chuyển dữ liệu thật:** tải 4 file `.vi.srt` (backup ở `../subtitle-studio-vietsub-backup-20261103`), `docker compose up` bản Oracle, thêm lại 4 video: số câu Engsub/Vietsub khớp 100% (WI5Mcuvwf34 310/306, iuZ8Ebi9Plg 403/398, UFWHj80bFDs 239/236, Vk_DcKbZ0KA 171/171). `fetched_at`/`vi_updated_at` là thời điểm thêm lại. File H2 cũ `./data/subtitle-studio.mv.db` vẫn giữ nguyên.
 - Backend `mvn test`: 247/247 (golden test chỉ chạy khi có dữ liệu golden local). Frontend: 110/110.
 
+### 2026-11-03: Menu Profile (EmiBonnie, Emi, Bonnie) ✅
+Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/specs/2026-11-03-profiles-design.md). Plan: [docs/superpowers/plans/2026-11-03-profiles.md](docs/superpowers/plans/2026-11-03-profiles.md). Làm trên worktree `../subtitle-studio-profiles` (nhánh `profiles`).
+- **Flyway `V2__profiles.sql`**: `t_profile` (seed 3 profile, `id` từ sequence, `slug` làm URL), `t_profile_block` (mỗi khối 1 dòng, cột theo loại khối, CHECK `block_type`), `t_profile_block_item` (`ON DELETE CASCADE`), `t_media`. **Điều chỉnh so với spec:** cột `value` → `item_value` (`VALUE` là từ khoá H2); timestamp `TIMESTAMP(6) WITH TIME ZONE` như V1.
+- **Ảnh**: nhận diện bằng magic bytes (không tin `Content-Type`), tối đa 10 MB, file `./data/media/{id}.{ext}`. Lưu dòng `t_media` trước (id đặt tên file) rồi ghi file trong cùng transaction. Ảnh không còn khối nào dùng bị xoá **sau khi commit** (sửa lỗi/rollback thì ảnh cũ còn); ảnh upload bỏ ngang > 24h dọn lúc khởi động.
+- **Giới hạn upload**: multipart nâng lên 10 MB cho ảnh; `VietsubService` tự chặn `.srt` > 5 MB (`FILE_TOO_LARGE`). 413 trên `/api/media` trả `MEDIA_TOO_LARGE`.
+- **Link nhúng**: chỉ YouTube (qua `UrlParser`, nhúng `youtube-nocookie.com`) và Spotify `track/album/playlist/artist`; backend lưu URL nhúng đã chuẩn hoá. Link khối LINKS chỉ `http/https`. Markdown không render HTML thô.
+- **Frontend**: menu Profile, tab EmiBonnie · Emi · Bonnie, chế độ sửa tại chỗ (Lên/Xuống thay kéo thả), `react-markdown`, `yet-another-react-lightbox`, font dự phòng `Noto Sans Thai`.
+- Backend `mvn test`: 346/346. `mvn verify -Poracle`: 11/11 (gồm `onlyFlywayCreatesTables` lần đầu được chạy, và CLOB 50.000 ký tự Thái + emoji + tiếng Việt). Frontend: 150/150.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -402,6 +411,9 @@ Spec: [docs/superpowers/specs/2026-11-03-oracle-design.md](docs/superpowers/spec
 
 | Mục | Nguồn | Ghi chú |
 |---|---|---|
+| **Thêm / xoá profile** (hiện cố định 3 profile seed trong V2) | Profile | người dùng yêu cầu để phase sau; cần trang quản lý danh sách profile |
+| Phân quyền sửa profile (hiện ai mở được app cũng sửa được) | Profile | đi cùng dự án con 2 (tài khoản) |
+| Kéo thả sắp xếp khối, ảnh thumbnail, upload file nhạc | Profile | ngoài phạm vi spec Profile |
 | `UrlParser` hỗ trợ `music.youtube.com/watch?v=ID` | T02 | thêm host vào whitelist + test |
 | `UrlParser` hỗ trợ `youtube.com/live/ID` (livestream) | T02 | thêm nhánh path `live` giống `shorts`/`embed` + test |
 | Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |
