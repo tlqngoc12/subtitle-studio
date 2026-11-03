@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadedRegion } from '../test/loadedRegion';
 import type { VideoDto } from '../api/client';
 import { NavBar } from '../components/NavBar';
 import { fakeFetch, problem } from '../test/fakeFetch';
@@ -92,7 +93,7 @@ describe('VietsubPage', () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none, older, newer] }]);
     renderPage();
 
-    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+    const list = await loadedRegion('Quản lý Vietsub');
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
@@ -164,7 +165,7 @@ describe('VietsubPage', () => {
   it('offers Replace, Delete and Download for each video', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+    const list = await loadedRegion('Quản lý Vietsub');
     const item = within(list).getByRole('listitem');
 
     // Replace and Delete are icon buttons with tooltips.
@@ -190,7 +191,7 @@ describe('VietsubPage', () => {
       { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
     ]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+    const list = await loadedRegion('Quản lý Vietsub');
 
     await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
 
@@ -204,7 +205,7 @@ describe('VietsubPage', () => {
       { method: 'DELETE', path: `/api/videos/${ID}/vietsub`, status: 204 },
     ]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+    const list = await loadedRegion('Quản lý Vietsub');
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
 
@@ -217,7 +218,7 @@ describe('VietsubPage', () => {
     it('shows 10 videos per page and moves between pages', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
       renderPage();
-      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      const list = await loadedRegion('Quản lý Vietsub');
       expect(titles(list)).toEqual(many(10).map((v) => v.title));
 
       await userEvent.setup().click(within(list).getByRole('button', { name: 'Trang 3' }));
@@ -230,7 +231,7 @@ describe('VietsubPage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
       renderPage();
 
-      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      const list = await loadedRegion('Quản lý Vietsub');
       expect(within(list).queryByRole('navigation')).not.toBeInTheDocument();
     });
 
@@ -240,7 +241,7 @@ describe('VietsubPage', () => {
         { method: 'DELETE', path: '/api/videos/VIDEO000011/vietsub', status: 204 },
       ]);
       renderPage('/vietsub?page=2');
-      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      const list = await loadedRegion('Quản lý Vietsub');
       expect(titles(list)).toEqual(['Video 11']);
 
       await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Video 11' }));
@@ -259,7 +260,7 @@ describe('VietsubPage', () => {
         { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
       ]);
       renderPage('/vietsub?page=2');
-      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      const list = await loadedRegion('Quản lý Vietsub');
 
       await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Video 12'), srtFile());
 
@@ -273,7 +274,7 @@ describe('VietsubPage', () => {
     vi.mocked(window.confirm).mockReturnValue(false);
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
-    const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+    const list = await loadedRegion('Quản lý Vietsub');
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
 

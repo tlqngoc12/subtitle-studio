@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadedRegion } from '../test/loadedRegion';
 import { MemoryRouter, useLocation } from 'react-router';
 import HomePage from './HomePage';
 import type { CueDto, VideoDto } from '../api/client';
@@ -123,7 +124,8 @@ describe('HomePage', () => {
     expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: `https://youtu.be/${ID}` }));
     release();
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Lấy Engsub' })).toBeEnabled();
+    // Re-enabled only after the cue preview has loaded too.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lấy Engsub' })).toBeEnabled());
   });
 
   it('shows the fetched video with note, count, download link and cue preview', async () => {
@@ -217,7 +219,7 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
       const item = within(history).getByRole('listitem');
       const actions = [
         { el: within(item).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }), tip: 'Xem Vietsub' },
@@ -237,7 +239,7 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
       const items = within(history).getAllByRole('listitem');
       expect(items).toHaveLength(2);
       expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
@@ -250,7 +252,7 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
       const items = within(history).getAllByRole('listitem');
       expect(within(items[0]).getByText('2 câu, 12:34')).toBeInTheDocument();
       expect(within(items[1]).getByText('3 câu, 12:34')).toBeInTheDocument();
@@ -262,7 +264,7 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
       const items = within(history).getAllByRole('listitem');
       expect(within(items[0]).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }))
         .toHaveAttribute('href', `/vietsub/${ID}`);
@@ -275,7 +277,7 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
 
@@ -289,7 +291,7 @@ describe('HomePage', () => {
         { method: 'DELETE', path: `/api/videos/${ID}`, status: 204 },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
 
@@ -302,7 +304,7 @@ describe('HomePage', () => {
       vi.mocked(window.confirm).mockReturnValue(false);
       const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
 
@@ -314,7 +316,7 @@ describe('HomePage', () => {
       it('shows 10 videos per page and keeps the page in the URL', async () => {
         fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
         renderAt('/');
-        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        const history = await loadedRegion('Đã lấy trước đó');
         expect(titles(history)).toEqual(many(10).map((v) => v.title));
         expect(within(history).getByRole('button', { name: 'Trang 1' })).toHaveAttribute('aria-current', 'page');
 
@@ -328,7 +330,7 @@ describe('HomePage', () => {
         fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
         renderAt('/');
 
-        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        const history = await loadedRegion('Đã lấy trước đó');
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
       });
 
@@ -339,7 +341,7 @@ describe('HomePage', () => {
           { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
         ]);
         renderAt('/?page=2');
-        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        const history = await loadedRegion('Đã lấy trước đó');
         expect(titles(history)[0]).toBe('Video 11');
 
         await submit(ID);
@@ -354,7 +356,7 @@ describe('HomePage', () => {
           { method: 'DELETE', path: '/api/videos/VIDEO000011', status: 204 },
         ]);
         renderAt('/?page=2');
-        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        const history = await loadedRegion('Đã lấy trước đó');
 
         await userEvent.setup().click(within(history).getByRole('button', { name: 'Xoá Video 11' }));
 
@@ -372,7 +374,7 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const history = await loadedRegion('Đã lấy trước đó');
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Làm mới Học Spring Boot/ }));
 

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { loadedRegion } from '../test/loadedRegion';
 import type { VideoDto } from '../api/client';
 import { fakeFetch } from '../test/fakeFetch';
 import VietsubListPage from './VietsubListPage';
@@ -59,7 +60,7 @@ describe('VietsubListPage', () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none, older, newer] }]);
     renderPage();
 
-    const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+    const list = await loadedRegion('Danh sách Vietsub');
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByRole('link', { name: /Học Spring Boot/ })).toHaveAttribute('href', `/vietsub/${ID}`);
@@ -71,7 +72,7 @@ describe('VietsubListPage', () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
 
-    const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+    const list = await loadedRegion('Danh sách Vietsub');
     expect(within(list).queryByRole('button')).not.toBeInTheDocument();
     expect(within(list).queryByLabelText(/Replace Vietsub/)).not.toBeInTheDocument();
   });
@@ -89,7 +90,7 @@ describe('VietsubListPage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
       renderPage();
 
-      const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+      const list = await loadedRegion('Danh sách Vietsub');
       expect(titles(list)).toEqual(many(10).map((v) => v.title));
       const pager = within(list).getByRole('navigation', { name: 'Pagination' });
       expect(within(pager).getByRole('button', { name: 'Trang 1' })).toHaveAttribute('aria-current', 'page');
@@ -100,7 +101,7 @@ describe('VietsubListPage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
       renderPage();
 
-      const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+      const list = await loadedRegion('Danh sách Vietsub');
       expect(within(list).getAllByRole('listitem')).toHaveLength(10);
       expect(within(list).queryByRole('navigation')).not.toBeInTheDocument();
     });
@@ -108,7 +109,7 @@ describe('VietsubListPage', () => {
     it('moves to another page and keeps it in the URL', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
       renderPage();
-      const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+      const list = await loadedRegion('Danh sách Vietsub');
       const user = userEvent.setup();
 
       await user.click(within(list).getByRole('button', { name: 'Trang 2' }));
@@ -126,7 +127,7 @@ describe('VietsubListPage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
       renderPage('/vietsub/list?page=3');
 
-      const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+      const list = await loadedRegion('Danh sách Vietsub');
       expect(titles(list)).toEqual(['Video 21', 'Video 22', 'Video 23']);
       expect(within(list).getByRole('button', { name: 'Trang 3' })).toHaveAttribute('aria-current', 'page');
     });
@@ -135,7 +136,7 @@ describe('VietsubListPage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(12) }]);
       renderPage('/vietsub/list?page=9');
 
-      const list = await screen.findByRole('region', { name: 'Danh sách Vietsub' });
+      const list = await loadedRegion('Danh sách Vietsub');
       expect(titles(list)).toEqual(['Video 11', 'Video 12']);
     });
   });
