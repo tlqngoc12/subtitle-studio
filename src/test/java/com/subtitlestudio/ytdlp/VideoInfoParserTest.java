@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class VideoInfoParserTest {
 
@@ -53,6 +55,15 @@ class VideoInfoParserTest {
         VideoInfo info = parser.parse(fixture("ytdlp/info-no-english.json"));
 
         assertThat(info.autoCaptionLangs()).containsExactly("vi-orig");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"id\":\"dQw4w9WgXcQ\"}",
+            "{\"id\":\"dQw4w9WgXcQ\",\"title\":\"\"}",
+            "{\"id\":\"dQw4w9WgXcQ\",\"title\":\"   \"}"})
+    void usesVideoIdWhenTitleIsMissingOrBlank(String json) {
+        assertThat(parser.parse(json).title()).isEqualTo("dQw4w9WgXcQ");
     }
 
     @Test

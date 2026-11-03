@@ -33,9 +33,11 @@ public class VideoInfoParser {
                 : hasText(root, "uploader") ? root.get("uploader").asText()
                 : null;
 
+        String id = root.get("id").asText();
         return new VideoInfo(
-                root.get("id").asText(),
-                hasText(root, "title") ? root.get("title").asText() : "",
+                id,
+                // Never blank: Oracle stores '' as NULL and video.title is NOT NULL.
+                hasText(root, "title") ? root.get("title").asText() : id,
                 channel,
                 durationSec(root.get("duration")),
                 languagesWithTracks(root.get("subtitles")),
