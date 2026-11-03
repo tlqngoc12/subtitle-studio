@@ -9,6 +9,7 @@ Hướng dẫn khi làm việc trong repo này.
 - **Spec:** [PLAN.md](PLAN.md). Đây là nguồn sự thật cho thuật toán, API, DB schema và task breakdown T01–T11.
 - **Tiến độ:** [PROGRESS.md](PROGRESS.md). Đọc file này trước để biết task nào xong và task nào tiếp theo.
 - **Đã xong:** Phase 1 (lấy Engsub, xuất `.srt`) và Phase 2 (thêm Vietsub bằng URL + `.srt` đã dịch, xem video kèm Vietsub; spec [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md), plan [docs/superpowers/plans/2026-11-02-phase2-vietsub.md](docs/superpowers/plans/2026-11-02-phase2-vietsub.md)).
+- **Menu Profile** (EmiBonnie, Emi, Bonnie; khối tự do, ảnh ở `./data/media/`): spec [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/specs/2026-11-03-profiles-design.md), plan [docs/superpowers/plans/2026-11-03-profiles.md](docs/superpowers/plans/2026-11-03-profiles.md).
 - **Chưa làm** (chỉ làm khi được yêu cầu): Phase 3 (sửa trực tiếp, chế độ kiểm tra song ngữ), Phase 4 (engine dịch). Vietsub lưu ở bảng `vi_cue` với timing riêng; cột `cue.text_vi` vẫn để dành cho Phase 3.
 
 ## Lệnh
@@ -40,6 +41,8 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
   - `ytdlp`: `YtDlpClient` interface + impl (T06–T07)
   - `video`: entity, repository, `SubtitleService`, controller (T08–T09)
   - `web`: `@RestControllerAdvice` (T09)
+  - `profile`: trang Profile: entity `T_*`, `ProfileBlockValidator`, `EmbedUrlResolver`, `MediaService` (ảnh), `ProfileService`, 2 controller
+- Bảng mới đặt tiền tố `T_` (bảng cũ `video`, `cue`, `vi_cue` giữ nguyên tên). Không đặt tên cột trùng từ khoá H2 (vd `value` → `item_value`).
 - Cấu hình đọc qua `SubtitleStudioProperties` (record, `@Validated`). Không dùng `@Value` rải rác.
 
 ## Quy ước bắt buộc

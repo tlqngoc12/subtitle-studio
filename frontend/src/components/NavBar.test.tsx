@@ -17,7 +17,7 @@ function currentAt(path: string) {
 }
 
 describe('NavBar', () => {
-  it('links to the three sections', () => {
+  it('links to the four sections', () => {
     render(
       <MemoryRouter>
         <NavBar />
@@ -27,6 +27,7 @@ describe('NavBar', () => {
     expect(within(nav).getByRole('link', { name: 'Lấy Engsub' })).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
     expect(within(nav).getByRole('link', { name: 'Danh sách Vietsub' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(nav).getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profiles');
   });
 
   it.each([
@@ -34,6 +35,8 @@ describe('NavBar', () => {
     ['/vietsub', 'Vietsub'],
     ['/vietsub/list', 'Danh sách Vietsub'],
     ['/vietsub/dQw4w9WgXcQ', 'Danh sách Vietsub'],
+    ['/profiles', 'Profile'],
+    ['/profiles/emi', 'Profile'],
   ])('marks exactly one current section at %s', (path, expected) => {
     expect(currentAt(path)).toEqual([expected]);
   });

@@ -18,5 +18,10 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
         return dataDir.resolve("subs");
     }
 
+    /** Directory holding uploaded profile images: {@code {dataDir}/media}. */
+    public Path mediaDir() {
+        return dataDir.resolve("media");
+    }
+
     public record Ytdlp(@NotBlank String path, @NotNull Duration timeout) {}
 }

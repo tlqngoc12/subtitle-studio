@@ -89,6 +89,16 @@ class VietsubServiceTest {
     }
 
     @Test
+    void rejectsSrtOver5Mb() {
+        saveVideo(ID);
+        byte[] big = new byte[5 * 1024 * 1024 + 1];
+        java.util.Arrays.fill(big, (byte) 'a');
+
+        assertThatThrownBy(() -> service.add(URL, big)).isInstanceOf(FileTooLargeException.class);
+        verify(subtitleService, never()).fetch(any());
+    }
+
+    @Test
     void addStoresCuesForExistingVideo() {
         saveVideo(ID);
 

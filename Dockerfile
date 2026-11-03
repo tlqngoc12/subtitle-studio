@@ -9,15 +9,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 
-# Resolve Maven dependencies first so they are cached across source changes.
 COPY pom.xml .
-RUN mvn -B -q dependency:go-offline -Dskip.npm
-
-COPY frontend/package.json frontend/package-lock.json frontend/
 COPY frontend frontend
 COPY src src
-# Runs backend tests (JUnit) and frontend tests (Vitest), then builds the jar with the SPA inside.
-RUN mvn -B package
+# Tests do not run here (-DskipTests skips both JUnit and Vitest): run `mvn test` and `npm test` before committing.
+# BuildKit cache mounts keep the Maven repository (which also holds the Node download of frontend-maven-plugin)
+# and the npm cache between builds, so a source change does not download dependencies again.
+RUN --mount=type=cache,target=/root/.m2 \
+    --mount=type=cache,target=/root/.npm \
+    mvn -B package -DskipTests
 
 # ---------- Runtime: JRE + yt-dlp + deno ----------
 FROM eclipse-temurin:21-jre-noble
