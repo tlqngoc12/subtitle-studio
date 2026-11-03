@@ -105,6 +105,30 @@ class VietsubServiceTest {
     }
 
     @Test
+    void uploadMarksSourceManual() {
+        saveVideo(ID);
+
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nXin chào"));
+        reload();
+
+        assertThat(videos.findById(ID).orElseThrow().getViSource()).isEqualTo(ViSource.MANUAL);
+    }
+
+    @Test
+    void clearResetsSource() {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nXin chào"));
+        reload();
+
+        service.clear(ID);
+        reload();
+
+        Video video = videos.findById(ID).orElseThrow();
+        assertThat(video.getViSource()).isNull();
+        assertThat(video.getViCueCount()).isZero();
+    }
+
+    @Test
     void addFetchesVideoWhenMissing() {
         when(subtitleService.fetch(URL)).thenAnswer(inv -> new FetchResult(saveVideo(ID), true));
 

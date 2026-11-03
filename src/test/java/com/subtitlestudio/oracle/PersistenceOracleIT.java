@@ -88,6 +88,14 @@ class PersistenceOracleIT {
     }
 
     @Test
+    void rejectsUnknownViSource() {
+        videos.save(video(ID, "t"));
+
+        assertThatThrownBy(() -> jdbc.update("update video set vi_source = 'X' where id = ?", ID))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     void storesEmojiAndLongThaiTitle() {
         String title = "ก".repeat(480) + "😀🎬🍓";
         videos.save(video(ID, title));

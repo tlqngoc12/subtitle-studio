@@ -53,7 +53,7 @@ class VietsubControllerTest {
     private static Video video() {
         Video v = new Video(ID);
         v.update("Học Spring Boot", "Dev", 754, "en", SourceType.MANUAL, 10, Instant.parse("2026-11-02T10:00:00Z"));
-        v.updateVietsub(2, Instant.parse("2026-11-02T11:00:00Z"));
+        v.updateVietsub(2, Instant.parse("2026-11-02T11:00:00Z"), ViSource.MANUAL);
         return v;
     }
 

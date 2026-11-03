@@ -46,6 +46,20 @@ public class Video {
     @Column(name = "vi_updated_at")
     private Instant viUpdatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vi_source", length = 10)
+    private ViSource viSource;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "translation_status", length = 12)
+    private TranslationStatus translationStatus;
+
+    @Column(name = "translation_error", length = 500)
+    private String translationError;
+
+    @Column(name = "translation_profile", length = 40)
+    private String translationProfile;
+
     protected Video() {
         // for JPA
     }
@@ -105,9 +119,33 @@ public class Video {
         return viUpdatedAt;
     }
 
-    /** Records the current Vietsub size; {@code at} is null when the Vietsub was removed. */
-    public void updateVietsub(int count, Instant at) {
+    public ViSource getViSource() {
+        return viSource;
+    }
+
+    public TranslationStatus getTranslationStatus() {
+        return translationStatus;
+    }
+
+    public String getTranslationError() {
+        return translationError;
+    }
+
+    public String getTranslationProfile() {
+        return translationProfile;
+    }
+
+    /** Records the Vietsub that is now stored and where it came from. */
+    public void updateVietsub(int count, Instant at, ViSource source) {
         this.viCueCount = count;
         this.viUpdatedAt = at;
+        this.viSource = source;
+    }
+
+    /** The Vietsub was removed; translation state is kept. */
+    public void clearVietsub() {
+        this.viCueCount = 0;
+        this.viUpdatedAt = null;
+        this.viSource = null;
     }
 }

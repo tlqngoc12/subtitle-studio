@@ -15,12 +15,17 @@ public record VideoDto(
         Instant fetchedAt,
         String thumbnailUrl,
         int viCueCount,
-        Instant viUpdatedAt) {
+        Instant viUpdatedAt,
+        ViSource viSource,
+        TranslationStatus translationStatus,
+        String translationError,
+        String translationProfile) {
 
     static VideoDto from(Video v) {
         return new VideoDto(v.getId(), v.getTitle(), v.getChannel(), v.getDurationSec(), v.getSubLang(),
                 v.getSubSource(), v.getCueCount(), v.getFetchedAt(),
                 "https://i.ytimg.com/vi/" + v.getId() + "/mqdefault.jpg",
-                v.getViCueCount(), v.getViUpdatedAt());
+                v.getViCueCount(), v.getViUpdatedAt(),
+                v.getViSource(), v.getTranslationStatus(), v.getTranslationError(), v.getTranslationProfile());
     }
 }

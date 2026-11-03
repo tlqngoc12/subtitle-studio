@@ -306,7 +306,7 @@ class VideoControllerTest {
         Video v = new Video(ID);
         v.update("Học Spring Boot", "Dev Channel", 754, "en-orig", SourceType.AUTO, 2,
                 Instant.parse("2026-11-02T10:00:00Z"));
-        v.updateVietsub(3, Instant.parse("2026-11-02T11:00:00Z"));
+        v.updateVietsub(3, Instant.parse("2026-11-02T11:00:00Z"), ViSource.MANUAL);
         return v;
     }
 }

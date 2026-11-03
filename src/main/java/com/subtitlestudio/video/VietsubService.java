@@ -64,7 +64,7 @@ public class VietsubService {
                 entities.add(new ViCueEntity(video, i, c.startMs(), c.endMs(), c.text()));
             }
             viCues.saveAll(entities);
-            video.updateVietsub(cues.size(), clock.instant());
+            video.updateVietsub(cues.size(), clock.instant(), ViSource.MANUAL);
             return video;
         });
     }
@@ -89,7 +89,7 @@ public class VietsubService {
                 throw new VideoNotFoundException(id);
             }
             viCues.deleteByVideoId(id);
-            videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).updateVietsub(0, null);
+            videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).clearVietsub();
         });
     }
 
