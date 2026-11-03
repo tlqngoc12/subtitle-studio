@@ -30,6 +30,10 @@ const video: VideoDto = {
   thumbnailUrl: `https://i.ytimg.com/vi/${ID}/mqdefault.jpg`,
   viCueCount: 3,
   viUpdatedAt: '2026-11-02T11:00:00Z',
+  viSource: 'MANUAL',
+  translationStatus: null,
+  translationError: null,
+  translationProfile: null,
 };
 
 const cues: ViCue[] = [

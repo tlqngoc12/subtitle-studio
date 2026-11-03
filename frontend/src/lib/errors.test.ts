@@ -10,6 +10,11 @@ describe('errorMessage', () => {
     ['YTDLP_TIMEOUT', 'YouTube phản hồi quá lâu'],
     ['VIDEO_NOT_FOUND', 'Video này không còn trong danh sách'],
     ['INTERNAL_ERROR', 'Máy chủ gặp lỗi'],
+    ['GEMINI_NOT_CONFIGURED', 'Chưa cấu hình Gemini'],
+    ['UNKNOWN_PROFILE', 'Hồ sơ dịch không tồn tại'],
+    ['VIDEO_TOO_LONG', 'Video dài hơn 60 phút'],
+    ['VIETSUB_MANUAL', 'Video đã có Vietsub tự upload'],
+    ['TRANSLATION_IN_PROGRESS', 'Video đang được dịch'],
   ])('maps %s to a Vietnamese message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
   });

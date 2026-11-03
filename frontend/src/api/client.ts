@@ -2,6 +2,24 @@
 
 export type SourceType = 'MANUAL' | 'AUTO';
 
+/** Where the current Vietsub came from: uploaded by hand, or translated by Gemini. */
+export type ViSource = 'MANUAL' | 'AUTO';
+
+export type TranslationStatus = 'TRANSLATING' | 'FAILED';
+
+/** Why Lấy Engsub with a profile did not start a translation. */
+export type SkipReason =
+  | 'GEMINI_NOT_CONFIGURED'
+  | 'VIDEO_TOO_LONG'
+  | 'VIETSUB_MANUAL'
+  | 'VIETSUB_EXISTS'
+  | 'TRANSLATION_IN_PROGRESS';
+
+export interface PromptProfiles {
+  configured: boolean;
+  profiles: string[];
+}
+
 export interface VideoDto {
   id: string;
   title: string;
@@ -14,6 +32,10 @@ export interface VideoDto {
   thumbnailUrl: string;
   viCueCount: number;
   viUpdatedAt: string | null;
+  viSource: ViSource | null;
+  translationStatus: TranslationStatus | null;
+  translationError: string | null;
+  translationProfile: string | null;
 }
 
 /** One Vietsub line, timed by the uploaded .srt file. */
@@ -64,13 +86,33 @@ async function send(path: string, init?: RequestInit): Promise<Response> {
   return res;
 }
 
-export async function fetchVideo(url: string): Promise<{ video: VideoDto; created: boolean }> {
+/** Fetches the English subtitles; with a `profile`, the backend also starts a Gemini translation when allowed. */
+export async function fetchVideo(
+  url: string,
+  profile?: string,
+): Promise<{ video: VideoDto; created: boolean; skipReason: SkipReason | null }> {
   const res = await send('/api/videos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify(profile ? { url, profile } : { url }),
   });
-  return { video: await res.json(), created: res.status === 201 };
+  const { skipReason, ...video } = await res.json();
+  return { video: video as VideoDto, created: res.status === 201, skipReason: skipReason ?? null };
+}
+
+export async function getPromptProfiles(): Promise<PromptProfiles> {
+  return (await send('/api/prompt-profiles')).json();
+}
+
+/** "Dịch lại bằng Gemini": returns the video, now TRANSLATING. */
+export async function translateVideo(id: string, profile: string): Promise<VideoDto> {
+  return (
+    await send(`/api/videos/${encodeURIComponent(id)}/translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile }),
+    })
+  ).json();
 }
 
 export async function listVideos(): Promise<VideoDto[]> {

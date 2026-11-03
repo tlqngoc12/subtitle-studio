@@ -22,6 +22,10 @@ function video(id: string, title: string, viCueCount: number, viUpdatedAt: strin
     thumbnailUrl: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
     viCueCount,
     viUpdatedAt,
+    viSource: viCueCount > 0 ? 'MANUAL' : null,
+    translationStatus: null,
+    translationError: null,
+    translationProfile: null,
   };
 }
 

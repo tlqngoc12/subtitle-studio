@@ -20,6 +20,10 @@ const autoVideo: VideoDto = {
   thumbnailUrl: `https://i.ytimg.com/vi/${ID}/mqdefault.jpg`,
   viCueCount: 0,
   viUpdatedAt: null,
+  viSource: null,
+  translationStatus: null,
+  translationError: null,
+  translationProfile: null,
 };
 
 const manualVideo: VideoDto = {
@@ -98,6 +102,89 @@ async function submit(url: string) {
 describe('HomePage', () => {
   beforeEach(() => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
+    localStorage.clear();
+  });
+
+  describe('translation profile', () => {
+    const profilesRoute = (configured: boolean, profiles: string[]): Route => ({
+      method: 'GET', path: '/api/prompt-profiles', status: 200, body: { configured, profiles },
+    });
+
+    it('lists profiles with "no translation" as the default', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie', 'Other'])]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const select = await screen.findByLabelText('Hồ sơ dịch');
+      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(3));
+      expect(within(select).getAllByRole('option').map((o) => o.textContent))
+        .toEqual(['— Không dịch —', 'EmiBonnie', 'Other']);
+      expect(select).toHaveValue('');
+      expect(select).toBeEnabled();
+    });
+
+    it('disables profiles when Gemini is not configured', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(false, ['EmiBonnie'])]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const select = await screen.findByLabelText('Hồ sơ dịch');
+      await waitFor(() => expect(select).toBeDisabled());
+      expect(select).toHaveAttribute('title', 'Chưa cấu hình GEMINI_API_KEY');
+    });
+
+    it('sends the chosen profile with Lấy Engsub', async () => {
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [] },
+        profilesRoute(true, ['EmiBonnie']),
+        { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
+        { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const select = await screen.findByLabelText('Hồ sơ dịch');
+      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
+
+      await userEvent.setup().selectOptions(select, 'EmiBonnie');
+      await submit(ID);
+
+      expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: ID, profile: 'EmiBonnie' }));
+    });
+
+    it('omits the profile when "no translation" is chosen', async () => {
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [] },
+        profilesRoute(true, ['EmiBonnie']),
+        { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
+        { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      await screen.findByLabelText('Hồ sơ dịch');
+
+      await submit(ID);
+
+      expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: ID }));
+    });
+
+    it('remembers the last profile', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie'])]);
+      const first = render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const select = await screen.findByLabelText('Hồ sơ dịch');
+      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
+      await userEvent.setup().selectOptions(select, 'EmiBonnie');
+      first.unmount();
+
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      await waitFor(() => expect(screen.getByLabelText('Hồ sơ dịch')).toHaveValue('EmiBonnie'));
+    });
+
+    it('forgets a remembered profile that no longer exists', async () => {
+      localStorage.setItem('subtitle-studio.profile', 'Gone');
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie'])]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const select = await screen.findByLabelText('Hồ sơ dịch');
+      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
+      expect(select).toHaveValue('');
+    });
   });
 
   it('invites the user to paste a link when nothing was fetched yet', async () => {

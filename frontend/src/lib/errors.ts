@@ -39,6 +39,22 @@ export function errorMessage(error: unknown): ErrorMessage {
       };
     case 'FILE_TOO_LARGE':
       return { title: 'File quá lớn (tối đa 5 MB).' };
+    case 'GEMINI_NOT_CONFIGURED':
+      return { title: 'Chưa cấu hình Gemini.', hint: 'Đặt GEMINI_API_KEY trong file .env rồi khởi động lại app.' };
+    case 'UNKNOWN_PROFILE':
+      return {
+        title: 'Hồ sơ dịch không tồn tại hoặc không dùng được.',
+        hint: 'Kiểm tra file trong ./data/prompts (UTF-8, tối đa 20 KB).',
+      };
+    case 'VIDEO_TOO_LONG':
+      return { title: 'Video dài hơn 60 phút, không dịch tự động được.' };
+    case 'VIETSUB_MANUAL':
+      return {
+        title: 'Video đã có Vietsub tự upload.',
+        hint: 'Xoá Vietsub tự upload ở trang Vietsub nếu muốn dịch bằng Gemini.',
+      };
+    case 'TRANSLATION_IN_PROGRESS':
+      return { title: 'Video đang được dịch.' };
     case 'NETWORK':
       return { title: 'Không kết nối được máy chủ.', hint: 'Kiểm tra Subtitle Studio có đang chạy không.' };
     default:

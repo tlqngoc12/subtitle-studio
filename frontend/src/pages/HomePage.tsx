@@ -3,9 +3,11 @@ import {
   deleteVideo,
   fetchVideo,
   getCues,
+  getPromptProfiles,
   listVideos,
   refreshVideo,
   type CueDto,
+  type PromptProfiles,
   type VideoDto,
 } from '../api/client';
 import { Pagination } from '../components/Pagination';
@@ -20,6 +22,17 @@ interface Current {
   cues: CueDto[] | null;
 }
 
+const PROFILE_KEY = 'subtitle-studio.profile';
+
+/** The last chosen translation profile ('' = no translation); storage may be unavailable. */
+function readStoredProfile(): string {
+  try {
+    return localStorage.getItem(PROFILE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 /** Puts `video` first, replacing any older entry with the same id. */
 function upsert(list: VideoDto[] | null, video: VideoDto): VideoDto[] {
   return [video, ...(list ?? []).filter((v) => v.id !== video.id)];
@@ -32,6 +45,28 @@ export default function HomePage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const pager = usePagination(videos);
+  const [profiles, setProfiles] = useState<PromptProfiles>({ configured: false, profiles: [] });
+  const [profile, setProfile] = useState(readStoredProfile);
+
+  useEffect(() => {
+    getPromptProfiles()
+      .then((p) => {
+        setProfiles(p);
+        setProfile((chosen) => (p.profiles.includes(chosen) ? chosen : ''));
+      })
+      .catch(() => {
+        // Without the list the dropdown stays disabled; Lấy Engsub still works.
+      });
+  }, []);
+
+  function chooseProfile(next: string) {
+    setProfile(next);
+    try {
+      localStorage.setItem(PROFILE_KEY, next);
+    } catch {
+      // not remembered; fine
+    }
+  }
 
   useEffect(() => {
     listVideos()
@@ -56,7 +91,7 @@ export default function HomePage() {
     setPending(true);
     setError(null);
     try {
-      const { video } = await fetchVideo(url);
+      const { video } = await fetchVideo(url, profiles.configured && profile ? profile : undefined);
       setVideos((list) => upsert(list, video));
       pager.setPage(1, { replace: true }); // the fetched video is now first in the list
       await show(video);
@@ -103,7 +138,14 @@ export default function HomePage() {
         <p className="masthead__lede">Dán link YouTube để lấy phụ đề tiếng Anh đã làm sạch, rồi tải về file .srt để dịch.</p>
       </header>
 
-      <UrlForm pending={pending} onSubmit={handleFetch} />
+      <UrlForm
+        pending={pending}
+        onSubmit={handleFetch}
+        profiles={profiles.profiles}
+        configured={profiles.configured}
+        profile={profile}
+        onProfileChange={chooseProfile}
+      />
 
       {error && (
         <div className="alert" role="alert">
