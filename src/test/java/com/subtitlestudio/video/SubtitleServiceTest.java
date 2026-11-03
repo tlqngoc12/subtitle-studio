@@ -201,6 +201,17 @@ class SubtitleServiceTest {
     }
 
     @Test
+    void machineTranslatedEnglishIsReportedAsNoEnglishWithoutDownloading() {
+        // YouTube lists "en" as a translation of the Thai original; downloading it ends in HTTP 429.
+        when(ytDlp.fetchInfo(ID)).thenReturn(
+                new VideoInfo(ID, "Thai vlog", "GMMTV", 512, Set.of("zh-Hant"), Set.of("th-orig", "th", "en", "vi")));
+
+        assertThatThrownBy(() -> service.fetch(ID)).isInstanceOf(NoEnglishSubtitleException.class);
+
+        verify(ytDlp, never()).downloadVtt(anyString(), any(), any());
+    }
+
+    @Test
     void ytDlpFailureSavesNothing() {
         when(ytDlp.fetchInfo(ID)).thenThrow(new YtDlpFailedException("boom"));
 

@@ -47,6 +47,16 @@ class SubtitleTrackSelectorTest {
                     .isInstanceOf(NoEnglishSubtitleException.class)
                     .hasMessageContaining("NOEN0000001");
         }
+
+        /** Real case (I-yJxYCP8B0): Thai original, YouTube offers "en" only as a machine translation (tlang=en). */
+        @Test
+        void machineTranslatedEnglishIsNotEnglish() {
+            VideoInfo info = parser.parse(fixture("ytdlp/info-machine-translated-en.json"));
+
+            assertThatThrownBy(() -> selector.select(info))
+                    .isInstanceOf(NoEnglishSubtitleException.class)
+                    .hasMessageContaining("I-yJxYCP8B0");
+        }
     }
 
     @Nested
@@ -104,6 +114,25 @@ class SubtitleTrackSelectorTest {
         @Test
         void usesAutoWhenManualHasNoEnglish() {
             assertThat(selector.select(info(Set.of("fr", "de"), Set.of("en-orig"))))
+                    .isEqualTo(new SubtitleTrack("en-orig", SourceType.AUTO));
+        }
+
+        @Test
+        void skipsAutoEnWhenAnotherLanguageIsTheOriginal() {
+            VideoInfo info = info(Set.of(), Set.of("th-orig", "th", "en", "vi"));
+
+            assertThatThrownBy(() -> selector.select(info)).isInstanceOf(NoEnglishSubtitleException.class);
+        }
+
+        @Test
+        void manualEnglishStillWinsOverAForeignOriginal() {
+            assertThat(selector.select(info(Set.of("en"), Set.of("th-orig", "en"))))
+                    .isEqualTo(new SubtitleTrack("en", SourceType.MANUAL));
+        }
+
+        @Test
+        void enOrigIsKeptEvenWhenOtherOriginalsAreListed() {
+            assertThat(selector.select(info(Set.of(), Set.of("th-orig", "en-orig", "en"))))
                     .isEqualTo(new SubtitleTrack("en-orig", SourceType.AUTO));
         }
 

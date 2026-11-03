@@ -386,6 +386,11 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Thử Gemini thật** (video TED 427 câu, model `gemini-3.8-flash`): lần 1 HTTP 503 (quá tải) sau ~10 s, lần 2 HTTP 504 sau ~175 s; video thử đã xoá. Người dùng chọn thử lại sau. Nếu còn lặp lại: tắt thinking của model (thinking budget 0) hoặc đổi sang Flash-Lite.
 - Chưa làm: review độc lập toàn nhánh (final review của quy trình).
 
+### 2026-11-03: Sửa lỗi video không có Engsub báo "Could not get subtitles from YouTube"
+- **Nguyên nhân:** video gốc tiếng Thái (`I-yJxYCP8B0`) chỉ có phụ đề tay `zh-Hant`; YouTube vẫn liệt kê auto `en` nhưng đó là bản **dịch máy** từ `th-orig` (URL có `tlang=en`). `SubtitleTrackSelector` lấy auto `en` làm phương án cuối, tải thì YouTube trả HTTP 429 → lỗi `YTDLP_FAILED` khó hiểu thay vì `NO_ENGLISH_SUBTITLE`.
+- **Sửa:** khi có track gốc của ngôn ngữ khác (`xx-orig` ≠ `en-orig`), bỏ auto `en` → `NO_ENGLISH_SUBTITLE`, không gọi tải phụ đề. Không có `-orig` nào thì giữ cách chọn cũ. Fixture `ytdlp/info-machine-translated-en.json` theo video thật; backend 432/432.
+- Ý tưởng để sau: video tiếng Thái lấy `th-orig` rồi Gemini dịch Thái → Việt.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.

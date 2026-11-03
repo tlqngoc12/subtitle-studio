@@ -1,0 +1,26 @@
+{
+  "id": "I-yJxYCP8B0",
+  "title": "บุกกองถ่าย MV ยิ่งชิดยิ่งคิด (Fall For You) - EMIBONNIE",
+  "channel": "GMMTV RECORDS",
+  "duration": 512,
+  "language": "th",
+  "subtitles": {
+    "zh-Hant": [
+      {"ext": "vtt", "url": "https://example.invalid/zh-Hant.vtt", "name": "Chinese (Traditional)"}
+    ]
+  },
+  "automatic_captions": {
+    "th-orig": [
+      {"ext": "vtt", "url": "https://example.invalid/api/timedtext?lang=th", "name": "Thai (Original)"}
+    ],
+    "th": [
+      {"ext": "vtt", "url": "https://example.invalid/api/timedtext?lang=th", "name": "Thai"}
+    ],
+    "en": [
+      {"ext": "vtt", "url": "https://example.invalid/api/timedtext?lang=th&tlang=en", "name": "English"}
+    ],
+    "vi": [
+      {"ext": "vtt", "url": "https://example.invalid/api/timedtext?lang=th&tlang=vi", "name": "Vietnamese"}
+    ]
+  }
+}
