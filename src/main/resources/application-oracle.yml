@@ -1,0 +1,13 @@
+# Profile "oracle": the daily database (docker compose). No default credentials: missing env vars fail at startup.
+spring:
+  datasource:
+    url: jdbc:oracle:thin:@//${SUBTITLESTUDIO_DB_HOST:localhost}:1521/FREEPDB1
+    username: ${SUBTITLESTUDIO_DB_USER}
+    password: ${SUBTITLESTUDIO_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000 # ms (Hikari binds a plain long)
+  flyway:
+    placeholders:
+      bigint: NUMBER(19)
+      int: NUMBER(10)

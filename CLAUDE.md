@@ -17,7 +17,8 @@ Hướng dẫn khi làm việc trong repo này.
 mvn test                                   # toàn bộ test (H2 in-memory, profile "test")
 mvn test -Dtest=UrlParserTest              # một class
 mvn test -Dtest=UrlParserTest#parsesShorts # một method
-mvn spring-boot:run                        # chạy app, DB ở ./data/subtitle-studio
+mvn spring-boot:run                        # chạy app, DB dev H2 ở ./data/dev (MODE=Oracle)
+mvn verify -Poracle -Dskip.npm             # thêm nhóm *OracleIT trên Oracle thật (Testcontainers, cần Docker)
 
 # frontend (từ T10)
 cd frontend && npm run dev                 # Vite :5173, proxy /api → :8080
@@ -30,7 +31,7 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 
 ## Stack và cấu trúc
 
-- Backend: Java 21, Spring Boot 3.5.x, Maven, Spring Data JPA + H2 (file mode). Chỉ cung cấp REST API `/api/*`, không render HTML.
+- Backend: Java 21, Spring Boot 3.5.x, Maven, Spring Data JPA. Database chạy hằng ngày là **Oracle Free** (profile `oracle`, `docker compose`); H2 `MODE=Oracle` cho dev và test. Schema do **Flyway** quản lý (`src/main/resources/db/migration`). Chỉ cung cấp REST API `/api/*`, không render HTML.
 - Frontend: **React + Vite + TypeScript** trong `frontend/` (từ T10). `frontend-maven-plugin` build vào `target/classes/static` khi `mvn package`, nên ra 1 jar duy nhất. Không commit file build.
 - Base package: `com.subtitlestudio`. Tổ chức package theo chức năng, chỉ tạo khi task cần:
   - `config`: `SubtitleStudioProperties` (bind `subtitle-studio.*`)
@@ -67,6 +68,13 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Icon dùng `lucide-react` (không tự vẽ SVG). Nút chỉ có icon phải có `aria-label` và `title` (tooltip).
 - Màn hình xem: không phụ thuộc `:hover` của khung player (khi chuột ở trên iframe YouTube, trang không nhận hover); phụ đề YouTube phải tắt (`cc_load_policy: 0` + `unloadModule('captions')`).
 - Version package cố định (không dùng `^`); `package-lock.json` được commit; `frontend/node`, `node_modules` không commit.
+
+### Database (Oracle + Flyway)
+- Không sửa migration đã push hoặc đã chạy trên DB thật; thay đổi schema = file mới `V{n}__mo_ta.sql` viết bằng SQL Oracle.
+- Cột chuỗi luôn `VARCHAR2(n CHAR)` (Oracle mặc định đếm byte; chữ Thái/Việt 2–3 byte/ký tự). Cột số nguyên dùng placeholder `${bigint}` / `${int}` (H2 báo `NUMBER` là `NUMERIC`, Hibernate validate không nhận).
+- Oracle lưu chuỗi rỗng `''` thành `NULL`: giá trị cho cột `NOT NULL` không bao giờ được rỗng (lọc hoặc thay trước khi lưu).
+- Hibernate chỉ `validate`; không bật `ddl-auto` khác. Id dùng `SEQUENCE` với `allocationSize` khớp `INCREMENT BY` của sequence.
+- Thay đổi liên quan DB: chạy cả `mvn test` và `mvn verify -Poracle -Dskip.npm` trước khi commit.
 
 ### Locale
 - `String.format`, `toLowerCase`/`toUpperCase` và các hàm format khác phải truyền `Locale.ROOT`. Locale mặc định có thể sinh chữ số không phải ASCII và làm hỏng file `.srt`.
