@@ -14,11 +14,11 @@ Phase 1 chỉ làm phần lấy Engsub và xuất `.srt`. Các phase sau gồm u
 | Thành phần | Lựa chọn |
 |---|---|
 | Ngôn ngữ / framework | Java 21, Spring Boot **3.5.16**, Maven |
-| Persistence | Spring Data JPA + H2 file mode (`./data/subtitle-studio`) |
+| Persistence | Spring Data JPA. **Oracle Database Free 23ai** (profile `oracle`, docker compose) là DB chạy hằng ngày; H2 `MODE=Oracle` cho dev (`./data/dev`) và test. Schema do **Flyway** quản lý (`db/migration`) |
 | Lấy phụ đề | `yt-dlp` qua `ProcessBuilder` |
 | Frontend | React + Vite + TypeScript (`frontend/`), build vào jar qua `frontend-maven-plugin` (từ T10) |
 | Test | JUnit 5, AssertJ, Mockito, `@WebMvcTest`, `@DataJpaTest` |
-| Chạy | Docker (JRE 21 + python3 + yt-dlp), volume `/data` |
+| Chạy | Docker Compose: Oracle Free (`gvenzl/oracle-free:23.26.3-slim-faststart`, volume `oracle-data`) + app (JRE 21 + python3 + yt-dlp + deno, bind mount `./data` cho `subs/`); mật khẩu trong `.env` |
 
 ## 3. Cấu trúc hiện tại
 
@@ -120,18 +120,24 @@ subtitle-studio:
   ytdlp:
     path: yt-dlp     # đường dẫn binary yt-dlp
     timeout: 60s     # quá thời gian thì kill process
-  data-dir: ./data   # chứa DB H2 và data/subs/*.vtt
+  data-dir: ./data   # chứa data/subs/*.vtt (và DB H2 dev ./data/dev)
 ```
 
-`SubtitleStudioProperties.subsDir()` trả về `{data-dir}/subs`.
+`SubtitleStudioProperties.subsDir()` trả về `{data-dir}/subs`. Profile `oracle` (`application-oracle.yml`): URL `jdbc:oracle:thin:@//${SUBTITLESTUDIO_DB_HOST:localhost}:1521/FREEPDB1`, user/mật khẩu từ `SUBTITLESTUDIO_DB_USER` / `SUBTITLESTUDIO_DB_PASSWORD` (bắt buộc), placeholder Flyway `NUMBER(19)` / `NUMBER(10)`, tắt bảng tạm `HTE_*` của Hibernate.
 
 ## 5. Cách chạy
 
 ```bash
-# chạy toàn bộ test (dùng H2 in-memory, không tạo ./data)
-mvn test
+# chạy hằng ngày: Oracle + app (cần .env, xem .env.example)
+docker compose up -d --build
 
-# chạy app (tạo ./data/subtitle-studio.mv.db)
+# test nhanh (H2 in-memory MODE=Oracle, schema từ Flyway)
+mvn test -Dskip.npm
+
+# thêm nhóm test trên Oracle thật (Testcontainers, cần Docker)
+mvn verify -Poracle -Dskip.npm
+
+# chạy app dev ngoài Docker (H2 ./data/dev.mv.db)
 mvn spring-boot:run
 ```
 
@@ -332,6 +338,18 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 - **Phân trang 10 video/trang** cho Đã lấy trước đó, Quản lý Vietsub, Danh sách Vietsub: phía frontend (API không đổi), `react-paginate` 8.3.0 + style riêng, số trang trên URL `?page=` (Back từ màn xem về đúng trang), ẩn khi ≤ 10 video, xoá hết trang cuối thì lùi trang, Lấy Engsub/Replace về trang 1.
 - **Bug tìm được khi chụp màn hình bản build:** `react-paginate` là UMD (component ở `module.exports.default`); Vitest tự gỡ, bản build Vite thì không → trang trắng (React #130), test vẫn pass. Đã xử lý interop trong `Pagination.tsx`. Khi nâng version thư viện này phải kiểm tra bản build.
 - Frontend `npm test`: 110/110. Backend: 244/244.
+
+### 2026-11-03: Oracle + Flyway (dự án con 1/2 của hướng nhiều người dùng) ✅
+Spec: [docs/superpowers/specs/2026-11-03-oracle-design.md](docs/superpowers/specs/2026-11-03-oracle-design.md). Plan: [docs/superpowers/plans/2026-11-03-oracle.md](docs/superpowers/plans/2026-11-03-oracle.md). Làm trên worktree `../subtitle-studio-oracle` (nhánh `oracle`), merge fast-forward vào `main`.
+- **Flyway** `V1__init.sql` (SQL Oracle) tạo `video`, `cue`, `vi_cue`, sequence `cue_seq`/`vi_cue_seq` (`INCREMENT BY 50`, khớp `allocationSize = 50`, batch insert 100). Hibernate chỉ `validate`. `SchemaUpgradeTest` bỏ (không còn đường nâng cấp schema bằng Hibernate).
+- **Điều chỉnh so với spec:** H2 báo `NUMBER(19)`/`NUMBER(10)` là `NUMERIC`, Hibernate validate (H2Dialect) đòi `BIGINT`/`INTEGER` → cột số nguyên dùng placeholder Flyway `${bigint}`/`${int}` (H2: `BIGINT`/`INTEGER`; Oracle: `NUMBER(19)`/`NUMBER(10)`). Vẫn một file migration.
+- **Tiêu đề rỗng → videoId** trong `VideoInfoParser` (Oracle lưu `''` thành NULL, `title` NOT NULL).
+- **Profile `oracle` + `PersistenceOracleIT`** (Testcontainers, cùng image với compose): Flyway + validate, tiêu đề Thái 480 ký tự + emoji, câu tiếng Việt 1000 ký tự, 3.200 câu batch, xoá theo khoá ngoại, `Instant` micro giây, `''` → ORA-01400. 7/7 pass. **Bug tìm được:** `hikari.connection-timeout: 30s` không bind được (Hikari nhận số ms) → app Oracle sẽ không khởi động; sửa thành `30000`.
+- **Hibernate tự tạo bảng tạm `HTE_CUE`/`HTE_VI_CUE`** trên Oracle lúc khởi động (kể cả khi `validate`) → tắt bằng `hibernate.query.mutation_strategy.global_temporary.create_tables: false`. Test `onlyFlywayCreatesTables` đã thêm nhưng **chưa chạy** (container test Oracle khởi động quá chậm lúc đó; người dùng chọn bỏ qua phần test). Đã kiểm tay trên Oracle thật: chỉ còn `CUE`, `VIDEO`, `VI_CUE`, `flyway_schema_history`; xoá Vietsub và xoá video chạy được.
+- **Test frontend flaky** (từ commit phân trang): truy vấn item ngay khi khung danh sách vừa hiện, trước khi fetch xong → fail trong Docker build. Thêm `loadedRegion()`; chứng minh bằng độ trễ fetch 50 ms tạm thời: 25 fail trước, 0 sau.
+- **Smoke test compose** (project tạm, cổng 18080): fetch video thật 201 (427 câu), Vietsub 427, restart toàn bộ (Flyway "up to date", dữ liệu còn), restart riêng Oracle (API 200 ngay), sqlplus bằng `subtitle_studio`, charset AL32UTF8, cổng chỉ `127.0.0.1:1521`.
+- **Chuyển dữ liệu thật:** tải 4 file `.vi.srt` (backup ở `../subtitle-studio-vietsub-backup-20261103`), `docker compose up` bản Oracle, thêm lại 4 video: số câu Engsub/Vietsub khớp 100% (WI5Mcuvwf34 310/306, iuZ8Ebi9Plg 403/398, UFWHj80bFDs 239/236, Vk_DcKbZ0KA 171/171). `fetched_at`/`vi_updated_at` là thời điểm thêm lại. File H2 cũ `./data/subtitle-studio.mv.db` vẫn giữ nguyên.
+- Backend `mvn test`: 247/247 (golden test chỉ chạy khi có dữ liệu golden local). Frontend: 110/110.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
