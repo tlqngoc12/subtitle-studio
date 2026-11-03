@@ -34,9 +34,12 @@ public class VietsubService {
     private final ViCueRepository viCues;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final SubtitleFileStore files;
 
     public VietsubService(UrlParser urlParser, SrtParser srtParser, SrtWriter srtWriter, SubtitleService subtitleService,
-                          VideoRepository videos, ViCueRepository viCues, TransactionTemplate tx, Clock clock) {
+                          VideoRepository videos, ViCueRepository viCues, TransactionTemplate tx, Clock clock,
+                          SubtitleFileStore files) {
+        this.files = files;
         this.urlParser = urlParser;
         this.srtParser = srtParser;
         this.srtWriter = srtWriter;
@@ -55,7 +58,7 @@ public class VietsubService {
         if (!videos.existsById(id)) {
             subtitleService.fetch(url);
         }
-        return tx.execute(status -> {
+        Video saved = tx.execute(status -> {
             viCues.deleteByVideoId(id); // clears the persistence context, so load the video afterwards
             Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
             List<ViCueEntity> entities = new ArrayList<>(cues.size());
@@ -67,6 +70,8 @@ public class VietsubService {
             video.updateVietsub(cues.size(), clock.instant(), ViSource.MANUAL);
             return video;
         });
+        files.writeViManual(id, srt); // the upload exactly as received
+        return saved;
     }
 
     /** The stored Vietsub as a downloadable {@code {title}_{id}.vi.srt}. */
@@ -83,14 +88,17 @@ public class VietsubService {
         return new SrtExport(srtWriter.fileName(video.getTitle(), id, "vi"), srtWriter.toBytes(cues, bom));
     }
 
+    /** Removes the Vietsub and the file of its source; the other source's file is kept. */
     public void clear(String id) {
-        tx.executeWithoutResult(status -> {
-            if (!videos.existsById(id)) {
-                throw new VideoNotFoundException(id);
-            }
-            viCues.deleteByVideoId(id);
+        ViSource source = tx.execute(status -> {
+            ViSource current = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).getViSource();
+            viCues.deleteByVideoId(id); // clears the persistence context, so load the video afterwards
             videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).clearVietsub();
+            return current;
         });
+        if (source != null) {
+            files.deleteVi(id, source);
+        }
     }
 
     @Transactional(readOnly = true)

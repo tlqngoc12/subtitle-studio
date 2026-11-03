@@ -14,6 +14,7 @@ import com.subtitlestudio.subtitle.CaptionNormalizer;
 import com.subtitlestudio.subtitle.Cue;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.SourceType;
+import com.subtitlestudio.subtitle.SrtWriter;
 import com.subtitlestudio.subtitle.SubtitleTrack;
 import com.subtitlestudio.subtitle.SubtitleTrackSelector;
 import com.subtitlestudio.subtitle.VttParser;
@@ -51,7 +52,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @Import({SubtitleService.class, UrlParser.class, SubtitleTrackSelector.class, VttParser.class,
-        CaptionNormalizer.class, SubtitleServiceTest.Config.class})
+        CaptionNormalizer.class, SrtWriter.class, SubtitleFileStore.class, SubtitleServiceTest.Config.class})
 class SubtitleServiceTest {
 
     private static final String ID = "dQw4w9WgXcQ";
@@ -99,6 +100,9 @@ class SubtitleServiceTest {
 
     @Autowired
     private TestEntityManager em;
+
+    @Autowired
+    private SrtWriter srtWriter;
 
     @BeforeEach
     void fakeDownloads() {
@@ -275,6 +279,44 @@ class SubtitleServiceTest {
         assertThatThrownBy(() -> service.refresh(ID)).isInstanceOf(VideoNotFoundException.class);
 
         verify(ytDlp, never()).fetchInfo(anyString());
+    }
+
+    // --- .srt files ---
+
+    @Test
+    void fetchWritesEnglishSrt() throws IOException {
+        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
+
+        service.fetch("https://youtu.be/" + ID);
+
+        assertThat(Files.readAllBytes(SUBS_DIR.resolve(ID + ".en.srt")))
+                .isEqualTo(srtWriter.toBytes(service.getCues(ID), false));
+    }
+
+    @Test
+    void refreshRewritesEnglishSrt() throws IOException {
+        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
+        service.fetch("https://youtu.be/" + ID);
+        when(ytDlp.fetchInfo(ID)).thenReturn(MANUAL_INFO);
+
+        service.refresh(ID);
+
+        assertThat(Files.readAllBytes(SUBS_DIR.resolve(ID + ".en.srt")))
+                .isEqualTo(srtWriter.toBytes(service.getCues(ID), false));
+    }
+
+    @Test
+    void deleteRemovesAllSubtitleFiles() throws IOException {
+        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
+        service.fetch("https://youtu.be/" + ID);
+        Files.writeString(SUBS_DIR.resolve(ID + ".vi_auto.srt"), "auto");
+        Files.writeString(SUBS_DIR.resolve(ID + ".vi_manual.srt"), "manual");
+
+        service.delete(ID);
+
+        try (var files = Files.list(SUBS_DIR)) {
+            assertThat(files.map(f -> f.getFileName().toString())).noneMatch(n -> n.startsWith(ID));
+        }
     }
 
     // --- delete ---

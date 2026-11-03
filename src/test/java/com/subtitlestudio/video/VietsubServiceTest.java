@@ -1,5 +1,13 @@
 package com.subtitlestudio.video;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import com.subtitlestudio.config.SubtitleStudioProperties;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.io.UncheckedIOException;
+import java.io.IOException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,14 +42,31 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 // Keep the configured H2 URL (MODE=Oracle) instead of Spring's plain embedded H2.
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({VietsubService.class, SrtParser.class, SrtWriter.class, UrlParser.class, VietsubServiceTest.Config.class})
+@Import({VietsubService.class, SrtParser.class, SrtWriter.class, UrlParser.class, SubtitleFileStore.class,
+        VietsubServiceTest.Config.class})
 class VietsubServiceTest {
 
     private static final String ID = "dQw4w9WgXcQ";
     private static final String URL = "https://youtu.be/" + ID;
     private static final Instant NOW = Instant.parse("2026-11-02T10:00:00Z");
+    private static final Path DATA_DIR = createTempDir();
+    private static final Path SUBS_DIR = DATA_DIR.resolve("subs");
+
+    @DynamicPropertySource
+    static void dataDir(DynamicPropertyRegistry registry) {
+        registry.add("subtitle-studio.data-dir", DATA_DIR::toString);
+    }
+
+    private static Path createTempDir() {
+        try {
+            return Files.createTempDirectory("vietsub-service-test");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
     @TestConfiguration
+    @EnableConfigurationProperties(SubtitleStudioProperties.class)
     static class Config {
         @Bean
         MutableClock clock() {
@@ -126,6 +151,29 @@ class VietsubServiceTest {
         Video video = videos.findById(ID).orElseThrow();
         assertThat(video.getViSource()).isNull();
         assertThat(video.getViCueCount()).isZero();
+    }
+
+    @Test
+    void uploadStoresOriginalBytes() throws IOException {
+        saveVideo(ID);
+        byte[] original = ("\uFEFF1\r\n00:00:01,000 --> 00:00:02,000\r\nXin chào\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+
+        service.add(URL, original);
+
+        assertThat(Files.readAllBytes(SUBS_DIR.resolve(ID + ".vi_manual.srt"))).isEqualTo(original);
+    }
+
+    @Test
+    void clearDeletesCurrentSourceFileOnly() throws IOException {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nXin chào"));
+        Files.writeString(SUBS_DIR.resolve(ID + ".vi_auto.srt"), "older auto");
+        reload();
+
+        service.clear(ID);
+
+        assertThat(SUBS_DIR.resolve(ID + ".vi_manual.srt")).doesNotExist();
+        assertThat(SUBS_DIR.resolve(ID + ".vi_auto.srt")).exists();
     }
 
     @Test

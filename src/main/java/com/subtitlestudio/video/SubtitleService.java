@@ -4,6 +4,7 @@ import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.subtitle.CaptionNormalizer;
 import com.subtitlestudio.subtitle.Cue;
 import com.subtitlestudio.subtitle.SubtitleTrack;
+import com.subtitlestudio.subtitle.SrtWriter;
 import com.subtitlestudio.subtitle.SubtitleTrackSelector;
 import com.subtitlestudio.subtitle.VttParser;
 import com.subtitlestudio.url.UrlParser;
@@ -45,12 +46,16 @@ public class SubtitleService {
     private final Path subsDir;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final SrtWriter srtWriter;
+    private final SubtitleFileStore files;
 
     public SubtitleService(UrlParser urlParser, YtDlpClient ytDlp, SubtitleTrackSelector trackSelector,
                            VttParser vttParser, CaptionNormalizer normalizer, VideoRepository videos,
                            CueRepository cues, ViCueRepository viCues, SubtitleStudioProperties properties,
                            TransactionTemplate tx,
-                           Clock clock) {
+                           Clock clock, SrtWriter srtWriter, SubtitleFileStore files) {
+        this.srtWriter = srtWriter;
+        this.files = files;
         this.urlParser = urlParser;
         this.ytDlp = ytDlp;
         this.trackSelector = trackSelector;
@@ -80,6 +85,7 @@ public class SubtitleService {
             saveCues(managed, imported.cues());
             return managed;
         });
+        files.writeEnglish(id, srtWriter.toBytes(imported.cues(), false));
         return new FetchResult(saved, true);
     }
 
@@ -118,19 +124,21 @@ public class SubtitleService {
         if (!oldLang.equals(imported.track().lang())) {
             deleteVttQuietly(id, oldLang);
         }
+        files.writeEnglish(id, srtWriter.toBytes(imported.cues(), false));
         return refreshed;
     }
 
-    /** Removes the video, its cues and its downloaded .vtt file. */
+    /** Removes the video, its cues and all its subtitle files (.vtt and .srt). */
     public void delete(String id) {
-        String lang = tx.execute(status -> {
-            String subLang = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).getSubLang();
+        tx.executeWithoutResult(status -> {
+            if (!videos.existsById(id)) {
+                throw new VideoNotFoundException(id);
+            }
             viCues.deleteByVideoId(id); // Vietsub rows reference the video too (FK)
             cues.deleteByVideoId(id); // clears the persistence context
             videos.deleteById(id);
-            return subLang;
         });
-        deleteVttQuietly(id, lang);
+        files.deleteAll(id);
     }
 
     private Imported download(String id) {
