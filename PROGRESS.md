@@ -381,6 +381,10 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Bug tìm được nhờ test:** SDK ném exception khi gọi `text()` trên phản hồi bị chặn (SAFETY) → xử lý theo `finishReason`.
 - Merge `main` (Profile menu) vào nhánh giữa chừng: 5 xung đột kiểu cùng thêm, giữ cả hai.
 - Merge `main` lần hai (UI polish, giao diện tiếng Anh): toàn bộ chuỗi giao diện và thông báo lỗi của tính năng dịch chuyển sang tiếng Anh; tooltip dùng `<Tip>`.
+- Test cuối: backend `mvn test` 427/427, frontend 187/187, `tsc` sạch; `mvn verify -Poracle` 12/12 (trước lần merge thứ hai, lần đó không đổi DB).
+- **Deploy** (`docker compose up -d --build`): Flyway V3 chạy trên Oracle thật, 4 video cũ có Vietsub được gán `MANUAL`; `GET /api/prompt-profiles` → `configured: true`, hồ sơ `EmiBonnie` (file người dùng, không commit).
+- **Thử Gemini thật** (video TED 427 câu, model `gemini-3.8-flash`): lần 1 HTTP 503 (quá tải) sau ~10 s, lần 2 HTTP 504 sau ~175 s; video thử đã xoá. Người dùng chọn thử lại sau. Nếu còn lặp lại: tắt thinking của model (thinking budget 0) hoặc đổi sang Flash-Lite.
+- Chưa làm: review độc lập toàn nhánh (final review của quy trình).
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
@@ -443,3 +447,4 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
 | Hồ sơ dịch lưu trong Oracle + sửa trên web | P4 | phase cải tiến (hiện là file `./data/prompts/*.md`) |
 | Video > 60 phút: chia đợt dịch Gemini | P4 | hiện bỏ qua với `VIDEO_TOO_LONG` |
+| Gemini 503/504 với video ~400 câu (lần thử đầu) | P4 | thử lại; nếu lặp lại: thinking budget 0 hoặc Flash-Lite |
