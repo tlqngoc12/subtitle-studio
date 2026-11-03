@@ -1,7 +1,4 @@
-# Tests use in-memory H2 so they never write ./data/subtitle-studio
+# Tests use in-memory H2 (Oracle mode, schema from Flyway) so they never write ./data
 spring:
   datasource:
-    url: jdbc:h2:mem:subtitle-studio-test;DB_CLOSE_DELAY=-1
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
+    url: jdbc:h2:mem:subtitle-studio-test;MODE=Oracle;DB_CLOSE_DELAY=-1

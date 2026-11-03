@@ -40,8 +40,7 @@ public class Video {
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
 
-    /** DEFAULT 0 is required: Phase 1 databases already have rows when this column is added. */
-    @Column(name = "vi_cue_count", nullable = false, columnDefinition = "INT DEFAULT 0 NOT NULL")
+    @Column(name = "vi_cue_count", nullable = false)
     private int viCueCount;
 
     @Column(name = "vi_updated_at")

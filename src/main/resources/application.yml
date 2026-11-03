@@ -2,14 +2,26 @@ spring:
   application:
     name: subtitle-studio
   datasource:
-    # Derived from data-dir so one setting (env SUBTITLESTUDIO_DATADIR) moves both the DB and the .vtt files.
-    url: jdbc:h2:file:${subtitle-studio.data-dir}/subtitle-studio;AUTO_SERVER=TRUE
+    # Default: H2 dev database next to the .vtt files (env SUBTITLESTUDIO_DATADIR moves both).
+    # MODE=Oracle lets H2 run the same Oracle SQL migrations as the real database (profile "oracle").
+    url: jdbc:h2:file:${subtitle-studio.data-dir}/dev;MODE=Oracle;AUTO_SERVER=TRUE
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway owns the schema (db/migration); Hibernate only checks that the entities match it.
+      ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+  flyway:
+    # Integer column types for db/migration; profile "oracle" overrides them with NUMBER(19) / NUMBER(10).
+    placeholders:
+      bigint: BIGINT
+      int: INTEGER
   h2:
     console:
       enabled: false

@@ -7,21 +7,21 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 /** One stored subtitle cue. Named CueEntity to avoid clashing with the {@link Cue} domain record. */
 @Entity
 @Table(name = "cue",
-        uniqueConstraints = @UniqueConstraint(name = "uk_cue_video_idx", columnNames = {"video_id", "idx"}),
-        indexes = @Index(name = "ix_cue_video", columnList = "video_id"))
+        uniqueConstraints = @UniqueConstraint(name = "uk_cue_video_idx", columnNames = {"video_id", "idx"}))
 public class CueEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cue_seq")
+    @SequenceGenerator(name = "cue_seq", sequenceName = "cue_seq", allocationSize = 50)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

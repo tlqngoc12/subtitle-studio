@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -46,6 +47,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /** Real parser/normalizer/JPA; only yt-dlp is faked (it copies fixture .vtt files into the subs dir). */
 @DataJpaTest
+// Keep the configured H2 URL (MODE=Oracle) instead of Spring's plain embedded H2.
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @Import({SubtitleService.class, UrlParser.class, SubtitleTrackSelector.class, VttParser.class,
         CaptionNormalizer.class, SubtitleServiceTest.Config.class})

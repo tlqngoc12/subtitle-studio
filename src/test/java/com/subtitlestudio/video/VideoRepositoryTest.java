@@ -7,12 +7,15 @@ import com.subtitlestudio.subtitle.SourceType;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
+// Keep the configured H2 URL (MODE=Oracle) instead of Spring's plain embedded H2.
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 class VideoRepositoryTest {
 
@@ -40,6 +43,17 @@ class VideoRepositoryTest {
         assertThat(loaded.getSubSource()).isEqualTo(SourceType.AUTO);
         assertThat(loaded.getCueCount()).isEqualTo(2);
         assertThat(loaded.getFetchedAt()).isEqualTo(Instant.parse("2026-11-02T10:00:00Z"));
+    }
+
+    @Test
+    void storesFiveHundredCharThaiTitle() {
+        String title = "ก".repeat(500);
+        Video v = new Video("THAI0000001");
+        v.update(title, null, 60, "en", SourceType.MANUAL, 0, Instant.parse("2026-11-03T00:00:00Z"));
+        videos.saveAndFlush(v);
+        em.clear();
+
+        assertThat(videos.findById("THAI0000001").orElseThrow().getTitle()).hasSize(500).isEqualTo(title);
     }
 
     @Test
