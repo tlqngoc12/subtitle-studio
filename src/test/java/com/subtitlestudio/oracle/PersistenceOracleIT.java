@@ -81,6 +81,13 @@ class PersistenceOracleIT {
     }
 
     @Test
+    void onlyFlywayCreatesTables() {
+        // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
+        assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
+                .containsExactly("CUE", "VIDEO", "VI_CUE", "flyway_schema_history");
+    }
+
+    @Test
     void storesEmojiAndLongThaiTitle() {
         String title = "ก".repeat(480) + "😀🎬🍓";
         videos.save(video(ID, title));

@@ -1,5 +1,6 @@
 package com.subtitlestudio.oracle;
 
+import java.time.Duration;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,8 @@ public final class OracleTestContainer {
         @Bean
         @ServiceConnection
         OracleContainer oracle() {
-            return new OracleContainer(DockerImageName.parse(IMAGE));
+            // Usually ready in ~15 s, but opening the PDB can take minutes when Docker's disk is busy.
+            return new OracleContainer(DockerImageName.parse(IMAGE)).withStartupTimeout(Duration.ofMinutes(5));
         }
     }
 }

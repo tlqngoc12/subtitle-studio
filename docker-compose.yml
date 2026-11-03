@@ -1,12 +1,43 @@
 services:
+  oracle:
+    # Same image as the Testcontainers suite (OracleTestContainer.IMAGE).
+    image: gvenzl/oracle-free:23.26.3-slim-faststart
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?Set ORACLE_PASSWORD in .env (see .env.example)}
+      APP_USER: subtitle_studio
+      APP_USER_PASSWORD: ${SUBTITLESTUDIO_DB_PASSWORD:?Set SUBTITLESTUDIO_DB_PASSWORD in .env (see .env.example)}
+    ports:
+      # Localhost only: for SQL Developer / DBeaver on this machine.
+      - "127.0.0.1:1521:1521"
+    volumes:
+      # Named volume: Oracle runs as uid 54321 and bind mounts on Windows hit permission errors.
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
   subtitle-studio:
     build: .
     image: subtitle-studio:local
+    environment:
+      SPRING_PROFILES_ACTIVE: oracle
+      SUBTITLESTUDIO_DB_HOST: oracle
+      SUBTITLESTUDIO_DB_USER: subtitle_studio
+      SUBTITLESTUDIO_DB_PASSWORD: ${SUBTITLESTUDIO_DB_PASSWORD:?Set SUBTITLESTUDIO_DB_PASSWORD in .env (see .env.example)}
     ports:
       - "8080:8080"
     volumes:
-      # Same ./data folder as `java -jar`, so both ways of running share one DB and subs/.
-      # Do not run both at once. On Linux the folder must be writable by uid 10001
-      # (e.g. `sudo chown -R 10001 data`).
+      # Only the downloaded .vtt files (subs/) live here now; the database is in Oracle.
+      # (./data/dev.mv.db is the H2 dev database used when running outside Docker.)
       - ./data:/data
+    depends_on:
+      oracle:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  oracle-data:

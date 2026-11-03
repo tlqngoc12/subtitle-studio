@@ -10,3 +10,6 @@ frontend/dist/
 # Golden files are real YouTube subtitles (copyright): keep them local only
 src/test/resources/golden/
 *.log
+
+# Local secrets for docker compose (copy from .env.example)
+.env

@@ -7,6 +7,11 @@ spring:
     hikari:
       maximum-pool-size: 10
       connection-timeout: 30000 # ms (Hikari binds a plain long)
+  jpa:
+    properties:
+      # Hibernate would create HTE_* global temporary tables at startup; Flyway owns the schema, and the
+      # app's bulk deletes touch one table each, so they are not needed.
+      hibernate.query.mutation_strategy.global_temporary.create_tables: false
   flyway:
     placeholders:
       bigint: NUMBER(19)

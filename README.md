@@ -16,15 +16,48 @@ Kế hoạch các phase sau (sửa trực tiếp, chế độ kiểm tra song ng
 
 ## Chạy bằng Docker (khuyến nghị)
 
-Cần Docker (Docker Desktop trên Windows/macOS).
+Cần Docker (Docker Desktop trên Windows/macOS). Compose chạy 2 container: **Oracle Database Free** và app.
 
 ```bash
-docker compose up -d --build
+cp .env.example .env          # rồi đặt mật khẩu của bạn trong .env (file này không được commit)
+docker compose up -d --build  # lần đầu tải image Oracle (vài GB)
+docker compose ps             # chờ cả hai báo (healthy)
 ```
 
-Mở http://localhost:8080. Dữ liệu (DB và file `.vtt` gốc) nằm ở `./data`, dùng chung với cách chạy trực tiếp bên dưới (đừng chạy hai cách cùng lúc). Trên Linux, thư mục `data` phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
+Mở http://localhost:8080. Thiếu `.env` thì compose dừng và báo biến nào còn thiếu.
 
-Image đã có sẵn JRE 21, yt-dlp và deno (JS runtime mà yt-dlp cần để xử lý YouTube).
+- **Database:** Oracle, dữ liệu trong volume Docker `subtitle-studio_oracle-data`. Schema do Flyway tạo (`src/main/resources/db/migration`).
+- **`./data`:** chỉ còn chứa file `.vtt` gốc (`subs/`). Trên Linux, thư mục này phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
+- Image app có sẵn JRE 21, yt-dlp và deno (JS runtime mà yt-dlp cần để xử lý YouTube).
+
+### Xem dữ liệu bằng SQL Developer / DBeaver
+
+| | |
+|---|---|
+| Host / cổng | `localhost` / `1521` (chỉ mở cho máy này) |
+| Service name | `FREEPDB1` |
+| User / mật khẩu | `subtitle_studio` / giá trị `SUBTITLESTUDIO_DB_PASSWORD` trong `.env` |
+
+### Sao lưu và khôi phục
+
+Sao lưu nguội (dừng hẳn để file dữ liệu nhất quán):
+
+```bash
+docker compose down
+docker run --rm -v subtitle-studio_oracle-data:/src -v D:/backup:/backup alpine tar czf /backup/oracle-data-2026-11-03.tgz -C /src .
+docker compose up -d
+```
+
+Khôi phục vào volume rỗng: `docker compose down`, `docker volume rm subtitle-studio_oracle-data`, rồi
+`docker run --rm -v subtitle-studio_oracle-data:/dst -v D:/backup:/backup alpine tar xzf /backup/oracle-data-2026-11-03.tgz -C /dst`, rồi `docker compose up -d`.
+
+Tham khảo (xuất logic bằng Data Pump, công cụ DBA Oracle hay dùng):
+
+```bash
+docker compose exec oracle expdp subtitle_studio/<mật khẩu>@FREEPDB1 schemas=subtitle_studio directory=DATA_PUMP_DIR dumpfile=ss.dmp
+```
+
+Quên mật khẩu SYS: `docker compose exec oracle resetPassword <mật khẩu mới>`.
 
 ## Chạy trực tiếp trên máy
 
@@ -41,13 +74,15 @@ mvn package
 java -jar target/subtitle-studio-0.1.0-SNAPSHOT.jar
 ```
 
-Mở http://localhost:8080. Dữ liệu lưu ở `./data`.
+Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db`, chạy cùng migration Oracle ở `MODE=Oracle`). Muốn chạy với Oracle (ví dụ Oracle trong compose): đặt `SPRING_PROFILES_ACTIVE=oracle`, `SUBTITLESTUDIO_DB_USER=subtitle_studio`, `SUBTITLESTUDIO_DB_PASSWORD=...` (và `SUBTITLESTUDIO_DB_HOST` nếu không phải `localhost`).
 
 ## Cấu hình
 
 | Thuộc tính | Biến môi trường | Mặc định | Ý nghĩa |
 |---|---|---|---|
-| `subtitle-studio.data-dir` | `SUBTITLESTUDIO_DATADIR` | `./data` | Thư mục chứa DB H2 và `subs/*.vtt` |
+| `subtitle-studio.data-dir` | `SUBTITLESTUDIO_DATADIR` | `./data` | Thư mục chứa `subs/*.vtt` (và DB H2 dev) |
+| `spring.profiles.active` | `SPRING_PROFILES_ACTIVE` | (trống = H2) | `oracle` để dùng Oracle |
+| | `SUBTITLESTUDIO_DB_HOST` / `_USER` / `_PASSWORD` | `localhost` / bắt buộc / bắt buộc | Kết nối Oracle (profile `oracle`) |
 | `subtitle-studio.ytdlp.path` | `SUBTITLESTUDIO_YTDLP_PATH` | `yt-dlp` | Đường dẫn tới yt-dlp |
 | `subtitle-studio.ytdlp.timeout` | `SUBTITLESTUDIO_YTDLP_TIMEOUT` | `60s` | Quá thời gian thì dừng yt-dlp |
 | `server.port` | `SERVER_PORT` | `8080` | Cổng HTTP |
