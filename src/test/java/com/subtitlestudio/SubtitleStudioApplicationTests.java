@@ -30,6 +30,15 @@ class SubtitleStudioApplicationTests {
     }
 
     @Test
+    void bindsGeminiDefaults() {
+        assertThat(properties.gemini().timeout()).isEqualTo(Duration.ofMinutes(3));
+        assertThat(properties.gemini().maxDuration()).isEqualTo(Duration.ofMinutes(60));
+        assertThat(properties.gemini().temperature()).isEqualTo(0.3);
+        assertThat(properties.gemini().configured()).isTrue(); // test profile sets a dummy key
+        assertThat(normalized(properties.promptsDir())).isEqualTo(normalized(Path.of("./data/prompts")));
+    }
+
+    @Test
     void derivesSubsDirUnderDataDir() {
         assertThat(normalized(properties.subsDir())).isEqualTo(normalized(Path.of("./data/subs")));
     }

@@ -4,6 +4,7 @@ import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.VttParseException;
 import com.subtitlestudio.url.InvalidUrlException;
+import com.subtitlestudio.translate.UnknownProfileException;
 import com.subtitlestudio.video.NoVietsubException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.ytdlp.YtDlpFailedException;
@@ -70,6 +71,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(NoVietsubException.class)
     ProblemDetail noVietsub(NoVietsubException e) {
         return problem(HttpStatus.NOT_FOUND, "NO_VIETSUB", e.getMessage());
+    }
+
+    @ExceptionHandler(UnknownProfileException.class)
+    ProblemDetail unknownProfile(UnknownProfileException e) {
+        return problem(HttpStatus.BAD_REQUEST, "UNKNOWN_PROFILE", e.getMessage());
     }
 
     @ExceptionHandler(VideoNotFoundException.class)

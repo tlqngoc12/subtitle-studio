@@ -38,3 +38,10 @@ subtitle-studio:
     path: yt-dlp
     timeout: 60s
   data-dir: ./data
+  gemini:
+    # Empty = translation off. Set GEMINI_API_KEY in .env; never commit or log it.
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-3.8-flash
+    timeout: 3m
+    max-duration: 60m
+    temperature: 0.3

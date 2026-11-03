@@ -2,3 +2,6 @@
 spring:
   datasource:
     url: jdbc:h2:mem:subtitle-studio-test;MODE=Oracle;DB_CLOSE_DELAY=-1
+subtitle-studio:
+  gemini:
+    api-key: test-key # dummy, tests never call Gemini
