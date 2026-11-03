@@ -78,6 +78,13 @@ class VietsubControllerTest {
     }
 
     @Test
+    void srtOver5MbReturns413() throws Exception {
+        when(service.add(URL, SRT)).thenThrow(new FileTooLargeException());
+
+        expectProblem(postVietsub(), 413, "FILE_TOO_LARGE");
+    }
+
+    @Test
     void tooLargeReturns413() throws Exception {
         when(service.add(URL, SRT)).thenThrow(new MaxUploadSizeExceededException(5 * 1024 * 1024));
 
