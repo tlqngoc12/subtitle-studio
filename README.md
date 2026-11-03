@@ -58,7 +58,7 @@ docker run --rm -v subtitle-studio_oracle-data:/src -v D:/backup:/backup alpine 
 docker compose up -d
 ```
 
-Ảnh của trang Profile nằm ở `./data/media/` (tên file là id trong bảng `t_media`), không nằm trong volume Oracle: sao lưu thư mục này cùng lúc với volume.
+Ảnh của trang Profile nằm ở `./data/media/` (tên file là cột `storage_key` trong bảng `t_media`), không nằm trong volume Oracle: sao lưu thư mục này cùng lúc với volume.
 
 Khôi phục vào volume rỗng: `docker compose down`, `docker volume rm subtitle-studio_oracle-data`, rồi
 `docker run --rm -v subtitle-studio_oracle-data:/dst -v D:/backup:/backup alpine tar xzf /backup/oracle-data-2026-11-03.tgz -C /dst`, rồi `docker compose up -d`.

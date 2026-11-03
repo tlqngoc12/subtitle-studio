@@ -8,8 +8,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.UUID;
 
-/** An uploaded image. The file lives at {@code {data-dir}/media/{id}.{ext}}; {@code originalName} is display only. */
+/**
+ * An uploaded image. The file lives at {@code {data-dir}/media/{storageKey}.{ext}}; {@code originalName} is display
+ * only. The key is random so databases sharing the data directory (H2 dev, Oracle) never pick the same file name.
+ */
 @Entity
 @Table(name = "t_media")
 public class Media {
@@ -18,6 +22,9 @@ public class Media {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "t_media_seq")
     @SequenceGenerator(name = "t_media_seq", sequenceName = "t_media_seq", allocationSize = 50)
     private Long id;
+
+    @Column(name = "storage_key", length = 36, nullable = false, unique = true)
+    private String storageKey;
 
     @Column(name = "content_type", length = 50, nullable = false)
     private String contentType;
@@ -36,6 +43,7 @@ public class Media {
     }
 
     public Media(String contentType, long sizeBytes, String originalName, Instant createdAt) {
+        this.storageKey = UUID.randomUUID().toString();
         this.contentType = contentType;
         this.sizeBytes = sizeBytes;
         this.originalName = originalName;
@@ -44,6 +52,10 @@ public class Media {
 
     public Long getId() {
         return id;
+    }
+
+    public String getStorageKey() {
+        return storageKey;
     }
 
     public String getContentType() {

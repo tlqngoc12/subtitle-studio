@@ -109,6 +109,44 @@ describe('BlockEditor', () => {
     expect(onSave.mock.calls[0][0].items).toEqual([{ label: 'Ảnh 1', value: null, mediaId: 8 }]);
   });
 
+  it('keeps every gallery change made while uploads are running', async () => {
+    let finishFirst!: () => void;
+    let finishSecond!: () => void;
+    const first = new Promise<void>((r) => (finishFirst = r));
+    const second = new Promise<void>((r) => (finishSecond = r));
+    let n = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        n += 1;
+        const id = n;
+        await (id === 1 ? first : second);
+        return new Response(JSON.stringify({ id, url: `/api/media/${id}` }), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+    const { onSave } = setup({ type: 'GALLERY' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }));
+    const pickers = screen.getAllByLabelText('Chọn ảnh');
+    await userEvent.upload(pickers[0], PNG);
+    await userEvent.upload(pickers[1], PNG);
+    await userEvent.type(screen.getAllByLabelText('Chú thích ảnh')[0], 'Một');
+    finishFirst();
+    await within(screen.getByRole('group', { name: 'Ảnh 1' })).findByRole('img', { name: 'Ảnh đã chọn' });
+    finishSecond();
+    await within(screen.getByRole('group', { name: 'Ảnh 2' })).findByRole('img', { name: 'Ảnh đã chọn' });
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+
+    expect(onSave.mock.calls[0][0].items).toEqual([
+      { label: 'Một', value: null, mediaId: 1 },
+      { label: null, value: null, mediaId: 2 },
+    ]);
+  });
+
   it('marks the inputs the server rejected', async () => {
     const { onSave } = setup({
       type: 'LINKS',

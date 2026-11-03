@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
 /** Editable list of GALLERY / LINKS / FACTS entries: add, remove, move up and down. */
 export function ItemListEditor<T extends { key: number }>({
@@ -11,17 +11,23 @@ export function ItemListEditor<T extends { key: number }>({
   renderRow,
 }: {
   rows: T[];
-  onChange: (rows: T[]) => void;
+  /** A state setter: every change is applied to the latest rows, so uploads finishing later lose nothing. */
+  onChange: Dispatch<SetStateAction<T[]>>;
   newRow: () => T;
   /** Lower-case noun used in the button labels, e.g. "link" → "Thêm link", "Xóa link". */
   noun: string;
   legend: (index: number) => string;
   renderRow: (row: T, index: number, update: (patch: Partial<T>) => void) => ReactNode;
 }) {
-  function swap(i: number, j: number) {
-    const next = [...rows];
-    [next[i], next[j]] = [next[j], next[i]];
-    onChange(next);
+  function swap(key: number, offset: number) {
+    onChange((prev) => {
+      const i = prev.findIndex((r) => r.key === key);
+      const j = i + offset;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
   }
 
   return (
@@ -30,7 +36,9 @@ export function ItemListEditor<T extends { key: number }>({
         <fieldset key={row.key} className="items__row">
           <legend>{legend(i)}</legend>
           <div className="items__fields">
-            {renderRow(row, i, (patch) => onChange(rows.map((r, k) => (k === i ? { ...r, ...patch } : r))))}
+            {renderRow(row, i, (patch) =>
+              onChange((prev) => prev.map((r) => (r.key === row.key ? { ...r, ...patch } : r))),
+            )}
           </div>
           <div className="items__tools">
             <button
@@ -39,7 +47,7 @@ export function ItemListEditor<T extends { key: number }>({
               aria-label={`Di chuyển ${noun} lên`}
               title={`Di chuyển ${noun} lên`}
               disabled={i === 0}
-              onClick={() => swap(i, i - 1)}
+              onClick={() => swap(row.key, -1)}
             >
               <ArrowUp className="icon" aria-hidden="true" />
             </button>
@@ -49,7 +57,7 @@ export function ItemListEditor<T extends { key: number }>({
               aria-label={`Di chuyển ${noun} xuống`}
               title={`Di chuyển ${noun} xuống`}
               disabled={i === rows.length - 1}
-              onClick={() => swap(i, i + 1)}
+              onClick={() => swap(row.key, 1)}
             >
               <ArrowDown className="icon" aria-hidden="true" />
             </button>
@@ -58,14 +66,14 @@ export function ItemListEditor<T extends { key: number }>({
               className="button button--icon"
               aria-label={`Xóa ${noun}`}
               title={`Xóa ${noun}`}
-              onClick={() => onChange(rows.filter((_, k) => k !== i))}
+              onClick={() => onChange((prev) => prev.filter((r) => r.key !== row.key))}
             >
               <X className="icon" aria-hidden="true" />
             </button>
           </div>
         </fieldset>
       ))}
-      <button type="button" className="button button--small" onClick={() => onChange([...rows, newRow()])}>
+      <button type="button" className="button button--small" onClick={() => onChange((prev) => [...prev, newRow()])}>
         <Plus className="icon" aria-hidden="true" />
         {`Thêm ${noun}`}
       </button>

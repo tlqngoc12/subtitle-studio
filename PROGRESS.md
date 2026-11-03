@@ -354,11 +354,11 @@ Spec: [docs/superpowers/specs/2026-11-03-oracle-design.md](docs/superpowers/spec
 ### 2026-11-03: Menu Profile (EmiBonnie, Emi, Bonnie) ✅
 Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/specs/2026-11-03-profiles-design.md). Plan: [docs/superpowers/plans/2026-11-03-profiles.md](docs/superpowers/plans/2026-11-03-profiles.md). Làm trên worktree `../subtitle-studio-profiles` (nhánh `profiles`).
 - **Flyway `V2__profiles.sql`**: `t_profile` (seed 3 profile, `id` từ sequence, `slug` làm URL), `t_profile_block` (mỗi khối 1 dòng, cột theo loại khối, CHECK `block_type`), `t_profile_block_item` (`ON DELETE CASCADE`), `t_media`. **Điều chỉnh so với spec:** cột `value` → `item_value` (`VALUE` là từ khoá H2); timestamp `TIMESTAMP(6) WITH TIME ZONE` như V1.
-- **Ảnh**: nhận diện bằng magic bytes (không tin `Content-Type`), tối đa 10 MB, file `./data/media/{id}.{ext}`. Lưu dòng `t_media` trước (id đặt tên file) rồi ghi file trong cùng transaction. Ảnh không còn khối nào dùng bị xoá **sau khi commit** (sửa lỗi/rollback thì ảnh cũ còn); ảnh upload bỏ ngang > 24h dọn lúc khởi động.
+- **Ảnh**: nhận diện bằng magic bytes (không tin `Content-Type`), tối đa 10 MB, file `./data/media/{storage_key}.{ext}` (UUID, ghi bằng `CREATE_NEW`: H2 dev và Oracle dùng chung `./data` và sequence đều bắt đầu từ 1, nên tên theo id sẽ ghi đè ảnh của nhau, lỗi do final review tìm ra). Lưu dòng `t_media` rồi ghi file trong cùng transaction. Ảnh không còn khối nào dùng bị xoá **sau khi commit** (sửa lỗi/rollback thì ảnh cũ còn); ảnh upload bỏ ngang > 24h dọn lúc khởi động.
 - **Giới hạn upload**: multipart nâng lên 10 MB cho ảnh; `VietsubService` tự chặn `.srt` > 5 MB (`FILE_TOO_LARGE`). 413 trên `/api/media` trả `MEDIA_TOO_LARGE`.
 - **Link nhúng**: chỉ YouTube (qua `UrlParser`, nhúng `youtube-nocookie.com`) và Spotify `track/album/playlist/artist`; backend lưu URL nhúng đã chuẩn hoá. Link khối LINKS chỉ `http/https`. Markdown không render HTML thô.
 - **Frontend**: menu Profile, tab EmiBonnie · Emi · Bonnie, chế độ sửa tại chỗ (Lên/Xuống thay kéo thả), `react-markdown`, `yet-another-react-lightbox`, font dự phòng `Noto Sans Thai`.
-- Backend `mvn test`: 346/346. `mvn verify -Poracle`: 11/11 (gồm `onlyFlywayCreatesTables` lần đầu được chạy, và CLOB 50.000 ký tự Thái + emoji + tiếng Việt). Frontend: 150/150.
+- Backend `mvn test`: 347/347. `mvn verify -Poracle`: 11/11 (gồm `onlyFlywayCreatesTables` lần đầu được chạy, và CLOB 50.000 ký tự Thái + emoji + tiếng Việt). Frontend: 151/151.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 

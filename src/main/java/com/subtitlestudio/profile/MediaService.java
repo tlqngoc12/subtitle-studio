@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
@@ -20,7 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * Uploaded images: one {@code t_media} row plus the file {@code {data-dir}/media/{id}.{ext}}.
+ * Uploaded images: one {@code t_media} row plus the file {@code {data-dir}/media/{storageKey}.{ext}}.
  * Files are removed only after the deleting transaction commits, so a rolled-back edit never loses an image.
  */
 @Service
@@ -43,7 +44,7 @@ public class MediaService {
         this.clock = clock;
     }
 
-    /** Saves the row first (the id names the file), then writes the file; a failed write rolls the row back. */
+    /** Saves the row, then writes a new file (never replacing one); a failed write rolls the row back. */
     @Transactional
     public Media store(String originalName, byte[] bytes) {
         if (bytes.length == 0) {
@@ -56,10 +57,10 @@ public class MediaService {
                 .orElseThrow(() -> new InvalidMediaException("Not a JPEG, PNG, WebP or GIF image"));
         Media saved = media.saveAndFlush(new Media(type.contentType(), bytes.length, displayName(originalName),
                 clock.instant()));
-        Path file = fileOf(saved.getId(), type);
+        Path file = fileOf(saved, type);
         try {
             Files.createDirectories(file.getParent());
-            Files.write(file, bytes);
+            Files.write(file, bytes, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not write " + file, e);
         }
@@ -70,7 +71,7 @@ public class MediaService {
     public StoredMedia load(long id) {
         Media m = media.findById(id).orElseThrow(() -> new MediaNotFoundException(id));
         ImageType type = typeOf(m);
-        Path file = fileOf(id, type);
+        Path file = fileOf(m, type);
         if (!Files.isRegularFile(file)) {
             throw new MediaNotFoundException(id);
         }
@@ -107,7 +108,7 @@ public class MediaService {
     }
 
     private void delete(Media m) {
-        Path file = fileOf(m.getId(), typeOf(m));
+        Path file = fileOf(m, typeOf(m));
         media.delete(m);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -129,8 +130,8 @@ public class MediaService {
         }
     }
 
-    private Path fileOf(long id, ImageType type) {
-        return properties.mediaDir().resolve(id + "." + type.extension());
+    private Path fileOf(Media m, ImageType type) {
+        return properties.mediaDir().resolve(m.getStorageKey() + "." + type.extension());
     }
 
     private static ImageType typeOf(Media m) {

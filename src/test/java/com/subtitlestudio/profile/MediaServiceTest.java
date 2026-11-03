@@ -93,7 +93,7 @@ class MediaServiceTest {
     }
 
     private Path fileOf(Media m, String ext) {
-        return dataDir.resolve("media").resolve(m.getId() + "." + ext);
+        return dataDir.resolve("media").resolve(m.getStorageKey() + "." + ext);
     }
 
     private Media storeAt(Instant at) {
@@ -121,6 +121,24 @@ class MediaServiceTest {
         assertThat(saved.getSizeBytes()).isEqualTo(ImageSnifferTest.PNG.length);
         assertThat(saved.getOriginalName()).isEqualTo("a b.png");
         assertThat(saved.getCreatedAt()).isEqualTo(NOW);
+    }
+
+    /** The H2 dev database and Oracle share ./data/media and both sequences start at 1. */
+    @Test
+    void neverOverwritesFilesOfAnotherDatabase() throws IOException {
+        Path dir = dataDir.resolve("media");
+        Files.createDirectories(dir);
+        byte[] other = ImageSnifferTest.ascii("other database's image");
+        for (int id = 1; id <= 200; id++) {
+            Files.write(dir.resolve(id + ".png"), other);
+        }
+
+        Media m = service.store("a.png", ImageSnifferTest.PNG);
+
+        for (int id = 1; id <= 200; id++) {
+            assertThat(Files.readAllBytes(dir.resolve(id + ".png"))).as("file %d.png", id).isEqualTo(other);
+        }
+        assertThat(Files.readAllBytes(service.load(m.getId()).path())).isEqualTo(ImageSnifferTest.PNG);
     }
 
     @Test

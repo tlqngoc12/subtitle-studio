@@ -17,14 +17,17 @@ CREATE TABLE t_profile (
   CONSTRAINT t_profile_slug_uk UNIQUE (slug)
 );
 
--- One uploaded image; the file is {data-dir}/media/{id}.{ext}. The user's file name is only kept here.
+-- One uploaded image; the file is {data-dir}/media/{storage_key}.{ext}. A random key, not the id, names the file:
+-- the H2 dev database and Oracle share ./data and each sequence starts at 1. The user's file name is only kept here.
 CREATE TABLE t_media (
   id             ${bigint}                    NOT NULL,
+  storage_key    VARCHAR2(36 CHAR)            NOT NULL,
   content_type   VARCHAR2(50 CHAR)            NOT NULL,
   size_bytes     ${bigint}                    NOT NULL,
   original_name  VARCHAR2(255 CHAR),
   created_at     TIMESTAMP(6) WITH TIME ZONE  NOT NULL,
-  CONSTRAINT t_media_pk PRIMARY KEY (id)
+  CONSTRAINT t_media_pk PRIMARY KEY (id),
+  CONSTRAINT t_media_storage_key_uk UNIQUE (storage_key)
 );
 
 -- One block per row; which columns a block uses depends on block_type (checked in Java).

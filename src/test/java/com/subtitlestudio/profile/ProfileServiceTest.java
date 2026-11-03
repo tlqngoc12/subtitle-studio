@@ -79,12 +79,17 @@ class ProfileServiceTest {
         media.deleteAll();
     }
 
+    /** Storage key of each image this test uploaded, so files can be checked after their row is gone. */
+    private final java.util.Map<Long, String> keys = new java.util.HashMap<>();
+
     private long image() {
-        return mediaService.store("a.png", ImageSnifferTest.PNG).getId();
+        Media m = mediaService.store("a.png", ImageSnifferTest.PNG);
+        keys.put(m.getId(), m.getStorageKey());
+        return m.getId();
     }
 
-    private static Path fileOf(long id) {
-        return DATA_DIR.resolve("media").resolve(id + ".png");
+    private Path fileOf(long id) {
+        return DATA_DIR.resolve("media").resolve(keys.get(id) + ".png");
     }
 
     private static BlockRequest text(String body) {
