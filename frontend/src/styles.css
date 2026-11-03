@@ -7,7 +7,12 @@
   --ink: #1b2430;
   --muted: #5b6675;
   --rule: #d3d9e0;
-  --caption: #ffd23f;
+  /* Brand: orange for primary actions and the subtitle-style accent, orchid for "you are here". Both are
+     light, so text on them is always the dark --on-brand (white on orange would be about 2:1). */
+  --brand: #f39a42;
+  --brand-2: #d9a1d9;
+  --on-brand: #1b2430;
+  --caption: var(--brand);
   --danger: #b42318;
   --danger-bg: #fdecea;
   --focus: #2f6fd6;
@@ -156,7 +161,7 @@ img {
 }
 
 .frame__input::placeholder {
-  color: rgb(255 210 63 / 0.55);
+  color: rgb(243 154 66 / 0.6);
   font-weight: 400;
   text-shadow: none;
 }
@@ -216,14 +221,14 @@ img {
 }
 
 .button--caption {
-  background: var(--caption);
-  color: #1b2430;
+  background: var(--brand);
+  color: var(--on-brand);
   font-size: var(--step-0);
 }
 
 .button--primary {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--brand);
+  color: var(--on-brand);
   justify-self: start;
 }
 
@@ -236,7 +241,7 @@ img {
 }
 
 .button--small:hover:not(:disabled) {
-  border-color: var(--ink);
+  border-color: var(--brand-2);
 }
 
 .button--icon {
@@ -249,7 +254,7 @@ img {
 }
 
 .button--icon:hover:not(:disabled) {
-  border-color: var(--ink);
+  border-color: var(--brand-2);
 }
 
 /* lucide-react icons: stroke and fill come from the component; only the size is set here. */
@@ -522,13 +527,13 @@ a.history__open {
 }
 
 .pager__link:hover {
-  border-color: var(--ink);
+  border-color: var(--brand-2);
 }
 
 .pager__link--active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+  background: var(--brand-2);
+  border-color: var(--brand-2);
+  color: var(--on-brand);
 }
 
 .pager__item--disabled .pager__link {
@@ -591,8 +596,8 @@ a.history__open {
 }
 
 .nav__link[aria-current='page'] {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--brand-2);
+  color: var(--on-brand);
 }
 
 /* ---------- Vietsub form ---------- */
@@ -777,9 +782,9 @@ a.history__open {
 }
 
 .ptabs__link[aria-current='page'] {
-  background: var(--caption);
-  border-color: var(--caption);
-  color: #1b2430;
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
 }
 
 .pblocks {
@@ -947,7 +952,7 @@ a.history__open {
   min-width: 0;
   padding: 20px;
   background: var(--surface);
-  border: 2px solid var(--caption);
+  border: 2px solid var(--brand);
   border-radius: var(--radius-frame);
 }
 
