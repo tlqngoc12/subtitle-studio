@@ -142,6 +142,18 @@ public class Video {
         this.viSource = source;
     }
 
+    /** A Gemini translation was stored: no translation is pending any more. */
+    public void translationSucceeded(String profile) {
+        this.translationStatus = null;
+        this.translationError = null;
+        this.translationProfile = profile;
+    }
+
+    /** A finished translation was thrown away (the user's own Vietsub arrived meanwhile). */
+    public void translationDiscarded() {
+        this.translationStatus = null;
+    }
+
     /** The Vietsub was removed; translation state is kept. */
     public void clearVietsub() {
         this.viCueCount = 0;

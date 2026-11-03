@@ -88,6 +88,41 @@ public class VietsubService {
         return new SrtExport(srtWriter.fileName(video.getTitle(), id, "vi"), srtWriter.toBytes(cues, bom));
     }
 
+    /**
+     * Stores a Gemini translation as the AUTO Vietsub. Under a row lock, re-checks that the video still
+     * exists and that the user has not uploaded their own Vietsub meanwhile (MANUAL always wins).
+     *
+     * @return whether the translation was stored
+     */
+    public boolean saveAuto(String id, List<ViCue> cues, String profile) {
+        Boolean saved = tx.execute(status -> {
+            var locked = videos.findForUpdate(id);
+            if (locked.isEmpty()) {
+                return false;
+            }
+            if (locked.get().getViSource() == ViSource.MANUAL) {
+                locked.get().translationDiscarded();
+                return false;
+            }
+            viCues.deleteByVideoId(id); // clears the persistence context; the row lock is kept
+            Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
+            List<ViCueEntity> entities = new ArrayList<>(cues.size());
+            for (int i = 0; i < cues.size(); i++) {
+                ViCue c = cues.get(i);
+                entities.add(new ViCueEntity(video, i, c.startMs(), c.endMs(), c.text()));
+            }
+            viCues.saveAll(entities);
+            video.updateVietsub(cues.size(), clock.instant(), ViSource.AUTO);
+            video.translationSucceeded(profile);
+            return true;
+        });
+        if (Boolean.TRUE.equals(saved)) {
+            List<Cue> asCues = cues.stream().map(c -> new Cue(c.startMs(), c.endMs(), c.text())).toList();
+            files.writeViAuto(id, srtWriter.toBytes(asCues, false));
+        }
+        return Boolean.TRUE.equals(saved);
+    }
+
     /** Removes the Vietsub and the file of its source; the other source's file is kept. */
     public void clear(String id) {
         ViSource source = tx.execute(status -> {

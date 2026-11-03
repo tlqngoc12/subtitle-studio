@@ -4,7 +4,11 @@ import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.VttParseException;
 import com.subtitlestudio.url.InvalidUrlException;
+import com.subtitlestudio.translate.GeminiNotConfiguredException;
+import com.subtitlestudio.translate.TranslationInProgressException;
 import com.subtitlestudio.translate.UnknownProfileException;
+import com.subtitlestudio.translate.VideoTooLongException;
+import com.subtitlestudio.translate.VietsubManualException;
 import com.subtitlestudio.video.NoVietsubException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.ytdlp.YtDlpFailedException;
@@ -76,6 +80,26 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UnknownProfileException.class)
     ProblemDetail unknownProfile(UnknownProfileException e) {
         return problem(HttpStatus.BAD_REQUEST, "UNKNOWN_PROFILE", e.getMessage());
+    }
+
+    @ExceptionHandler(GeminiNotConfiguredException.class)
+    ProblemDetail geminiNotConfigured(GeminiNotConfiguredException e) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "GEMINI_NOT_CONFIGURED", e.getMessage());
+    }
+
+    @ExceptionHandler(VideoTooLongException.class)
+    ProblemDetail videoTooLong(VideoTooLongException e) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "VIDEO_TOO_LONG", e.getMessage());
+    }
+
+    @ExceptionHandler(VietsubManualException.class)
+    ProblemDetail vietsubManual(VietsubManualException e) {
+        return problem(HttpStatus.CONFLICT, "VIETSUB_MANUAL", e.getMessage());
+    }
+
+    @ExceptionHandler(TranslationInProgressException.class)
+    ProblemDetail translationInProgress(TranslationInProgressException e) {
+        return problem(HttpStatus.CONFLICT, "TRANSLATION_IN_PROGRESS", e.getMessage());
     }
 
     @ExceptionHandler(VideoNotFoundException.class)
