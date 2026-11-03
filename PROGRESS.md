@@ -323,7 +323,8 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 - Build lại OK trong khoảng 2,5 phút: JUnit 244/244, Vitest 82/82; image `subtitle-studio:local` nặng 787 MB.
 - Chạy thử ở cổng 18080 với volume riêng: container healthy, chạy bằng uid 10001, yt-dlp 2026.10.26, deno 2.9.8, Java 21.0.13; `/` và `/vietsub/list` trả 200, URL sai → 400 `INVALID_URL`.
 - Video thật `iG9CE55wbtY`: 201 trong 7,6s (manual, 427 câu), tải `.srt` OK, upload Vietsub OK, tải `.vi.srt` OK; restart container xong dữ liệu vẫn còn trong volume; log không có ERROR/WARN.
-- `docker compose up -d`: container healthy ở cổng 8080, dữ liệu trong named volume `subtitle-studio_subtitle-studio-data` (tách khỏi `./data` của bản `java -jar`).
+- `docker compose up -d`: container healthy ở cổng 8080.
+- **Compose đổi từ named volume sang bind mount `./data:/data`**: bản Docker và bản `java -jar` dùng chung một DB (trước đó bản Docker mở với DB rỗng, không thấy dữ liệu Phase 2 đã chép sang `main`). Không chạy hai bản cùng lúc.
 - Dữ liệu Docker Desktop (image, volume, cache) chuyển sang `D:\docker\DockerDesktopWSL`.
 
 ## 8. Quyết định và lưu ý kỹ thuật

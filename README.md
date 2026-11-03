@@ -22,7 +22,7 @@ Cần Docker (Docker Desktop trên Windows/macOS).
 docker compose up -d --build
 ```
 
-Mở http://localhost:8080. Dữ liệu (DB và file `.vtt` gốc) nằm trong volume `subtitle-studio-data`.
+Mở http://localhost:8080. Dữ liệu (DB và file `.vtt` gốc) nằm ở `./data`, dùng chung với cách chạy trực tiếp bên dưới (đừng chạy hai cách cùng lúc). Trên Linux, thư mục `data` phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
 
 Image đã có sẵn JRE 21, yt-dlp và deno (JS runtime mà yt-dlp cần để xử lý YouTube).
 

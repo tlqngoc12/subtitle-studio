@@ -5,11 +5,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Named volume: works on every OS without host permission issues.
-      # To browse the downloaded .vtt files on the host, use a bind mount instead,
-      # e.g. "./data:/data" (on Linux the folder must be writable by uid 10001).
-      - subtitle-studio-data:/data
+      # Same ./data folder as `java -jar`, so both ways of running share one DB and subs/.
+      # Do not run both at once. On Linux the folder must be writable by uid 10001
+      # (e.g. `sudo chown -R 10001 data`).
+      - ./data:/data
     restart: unless-stopped
-
-volumes:
-  subtitle-studio-data:
