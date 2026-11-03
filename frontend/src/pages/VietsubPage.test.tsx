@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useParams } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VideoDto } from '../api/client';
 import { NavBar } from '../components/NavBar';
@@ -34,17 +34,33 @@ function WatchStub() {
   return <p>watch {id}</p>;
 }
 
-function renderPage() {
+function Location() {
+  const { search } = useLocation();
+  return <output aria-label="search">{search}</output>;
+}
+
+function renderPage(entry = '/vietsub') {
   return render(
-    <MemoryRouter initialEntries={['/vietsub']}>
+    <MemoryRouter initialEntries={[entry]}>
       <NavBar />
       <Routes>
-        <Route path="/vietsub" element={<VietsubPage />} />
+        <Route path="/vietsub" element={<><VietsubPage /><Location /></>} />
         <Route path="/vietsub/:id" element={<WatchStub />} />
       </Routes>
     </MemoryRouter>,
   );
 }
+
+/** `n` videos with Vietsub, "Video 01" updated most recently so it comes first. */
+function many(n: number): VideoDto[] {
+  return Array.from({ length: n }, (_, i) => {
+    const num = String(i + 1).padStart(2, '0');
+    return video(`VIDEO0000${num}`, `Video ${num}`, 5, `2026-11-02T10:${String(59 - i).padStart(2, '0')}:00Z`);
+  });
+}
+
+const titles = (list: HTMLElement) =>
+  within(within(list).getByRole('list')).getAllByRole('listitem').map((li) => within(li).getByText(/^Video \d+$/).textContent);
 
 const srtFile = () => new File(['1\n00:00:01,000 --> 00:00:02,000\nXin chào\n'], 'vi.srt', { type: 'application/x-subrip' });
 
@@ -68,6 +84,8 @@ describe('VietsubPage', () => {
     const nav = screen.getByRole('navigation');
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('aria-current', 'page');
     expect(within(nav).getByRole('link', { name: 'Lấy Engsub' })).toHaveAttribute('href', '/');
+    // Let the list load finish inside the test (otherwise a slow machine logs an act() warning).
+    expect(await screen.findByText(/Chưa có video nào có Vietsub/)).toBeInTheDocument();
   });
 
   it('manages only videos with Vietsub, newest update first', async () => {
@@ -193,6 +211,62 @@ describe('VietsubPage', () => {
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(1));
     expect(window.confirm).toHaveBeenCalled();
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
+  });
+
+  describe('pagination', () => {
+    it('shows 10 videos per page and moves between pages', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
+      renderPage();
+      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      expect(titles(list)).toEqual(many(10).map((v) => v.title));
+
+      await userEvent.setup().click(within(list).getByRole('button', { name: 'Trang 3' }));
+
+      expect(titles(list)).toEqual(['Video 21', 'Video 22', 'Video 23']);
+      expect(screen.getByLabelText('search')).toHaveTextContent('?page=3');
+    });
+
+    it('has no pager for 10 videos or fewer', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
+      renderPage();
+
+      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      expect(within(list).queryByRole('navigation')).not.toBeInTheDocument();
+    });
+
+    it('steps back a page after deleting the only video on the last page', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: many(11) },
+        { method: 'DELETE', path: '/api/videos/VIDEO000011/vietsub', status: 204 },
+      ]);
+      renderPage('/vietsub?page=2');
+      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+      expect(titles(list)).toEqual(['Video 11']);
+
+      await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Video 11' }));
+
+      await waitFor(() => expect(titles(list)).toHaveLength(10));
+      expect(titles(list)[0]).toBe('Video 01');
+      expect(within(list).queryByRole('navigation')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
+    });
+
+    it('goes back to page 1 after replacing, where the replaced video now comes first', async () => {
+      const videos = many(12);
+      const replaced = { ...videos[11], viCueCount: 9, viUpdatedAt: '2026-11-02T12:00:00Z' };
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: videos },
+        { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
+      ]);
+      renderPage('/vietsub?page=2');
+      const list = await screen.findByRole('region', { name: 'Quản lý Vietsub' });
+
+      await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Video 12'), srtFile());
+
+      await waitFor(() => expect(titles(list)[0]).toBe('Video 12'));
+      expect(within(list).getByText('9 câu')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
+    });
   });
 
   it('keeps Vietsub when deletion is not confirmed', async () => {

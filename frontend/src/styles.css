@@ -121,19 +121,17 @@ img {
 
 .frame {
   /* The frame stays dark in both themes: it represents the video, not the page. */
+  /* Hugs the input row; the 4px scrubber runs along the bottom edge while fetching. */
   position: relative;
-  min-height: clamp(200px, 30vw, 300px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 28px var(--gutter) 40px;
+  width: min(100%, 760px);
+  box-sizing: border-box;
+  padding: 20px 20px 24px;
   background: #1b2430;
   border-radius: var(--radius-frame);
   overflow: hidden;
 }
 
 .frame__caption {
-  width: min(100%, 760px);
   display: flex;
   gap: 12px;
   align-items: center;
@@ -353,18 +351,6 @@ img {
   max-width: 40ch;
 }
 
-.badge {
-  padding: 2px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--ink);
-  font-size: var(--step--1);
-  font-weight: 700;
-}
-
-.badge--auto {
-  border-style: dashed;
-}
-
 /* ---------- Cue preview ---------- */
 
 .cues {
@@ -499,6 +485,56 @@ a.history__open {
   display: flex;
   flex: none;
   gap: 8px;
+}
+
+/* ---------- Pager (react-paginate markup: ul.pager > li > a) ---------- */
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pager__link,
+.pager__break {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pager__break {
+  border-color: transparent;
+}
+
+.pager__link:hover {
+  border-color: var(--ink);
+}
+
+.pager__link--active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.pager__item--disabled .pager__link {
+  opacity: 0.35;
+  cursor: default;
+  border-color: var(--rule);
 }
 
 /* ---------- Small screens ---------- */

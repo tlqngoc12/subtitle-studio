@@ -26,10 +26,7 @@ export function ResultPanel({ video, cues }: Props) {
           {video.channel && <span>{video.channel}</span>}
           {duration && <span>{duration}</span>}
         </p>
-        <p className="result__source">
-          <span className={isAuto ? 'badge badge--auto' : 'badge'}>{isAuto ? 'Auto-generated' : 'Manual'}</span>
-          <span>{video.cueCount} câu</span>
-        </p>
+        <p className="result__source">{video.cueCount} câu</p>
         {isAuto && (
           <p className="result__note">
             Phụ đề tự động của YouTube: không có dấu câu, bạn sẽ cần tự ngắt câu khi dịch.

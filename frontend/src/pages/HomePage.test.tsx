@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import HomePage from './HomePage';
 import type { CueDto, VideoDto } from '../api/client';
 
@@ -62,6 +62,31 @@ function problem(status: number, code: string, detail: string) {
   return { type: 'about:blank', title: 'Error', status, detail, code };
 }
 
+/** `n` fetched videos titled "Video 01"…, in the order the API returns them. */
+function many(n: number): VideoDto[] {
+  return Array.from({ length: n }, (_, i) => {
+    const num = String(i + 1).padStart(2, '0');
+    return { ...autoVideo, id: `VIDEO0000${num}`, title: `Video ${num}` };
+  });
+}
+
+function Location() {
+  const { search } = useLocation();
+  return <output aria-label="search">{search}</output>;
+}
+
+function renderAt(entry: string) {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <HomePage />
+      <Location />
+    </MemoryRouter>,
+  );
+}
+
+const titles = (list: HTMLElement) =>
+  within(within(list).getByRole('list')).getAllByRole('listitem').map((li) => within(li).getByText(/^Video \d+$|^Học Spring Boot$/).textContent);
+
 async function submit(url: string) {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText('Link YouTube'), url);
@@ -101,7 +126,7 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: 'Lấy Engsub' })).toBeEnabled();
   });
 
-  it('shows the fetched video with badge, note, count, download link and cue preview', async () => {
+  it('shows the fetched video with note, count, download link and cue preview', async () => {
     fakeFetch([
       { method: 'GET', path: '/api/videos', status: 200, body: [] },
       { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
@@ -115,7 +140,7 @@ describe('HomePage', () => {
     expect(within(result).getByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
     expect(within(result).getByText('Dev Channel')).toBeInTheDocument();
     expect(within(result).getByText('12:34')).toBeInTheDocument();
-    expect(within(result).getByText('Auto-generated')).toBeInTheDocument();
+    expect(within(result).queryByText(/Auto-generated/)).not.toBeInTheDocument();
     expect(within(result).getByText(/không có dấu câu/)).toBeInTheDocument();
     expect(within(result).getByText('2 câu')).toBeInTheDocument();
     expect(within(result).getByRole('link', { name: 'Tải .srt' }))
@@ -128,7 +153,7 @@ describe('HomePage', () => {
     expect(within(table).getByText('and why it matters')).toBeInTheDocument();
   });
 
-  it('shows the Manual badge without the auto-caption note', async () => {
+  it('shows neither a Manual label nor the auto-caption note for manual subtitles', async () => {
     fakeFetch([
       { method: 'GET', path: '/api/videos', status: 200, body: [] },
       { method: 'POST', path: '/api/videos', status: 200, body: manualVideo },
@@ -139,7 +164,8 @@ describe('HomePage', () => {
     await submit('MANUAL00001');
 
     const result = await screen.findByRole('region', { name: 'Kết quả' });
-    expect(within(result).getByText('Manual')).toBeInTheDocument();
+    expect(within(result).queryByText('Manual')).not.toBeInTheDocument();
+    expect(within(result).getByText('3 câu')).toBeInTheDocument();
     expect(within(result).queryByText(/không có dấu câu/)).not.toBeInTheDocument();
   });
 
@@ -219,6 +245,18 @@ describe('HomePage', () => {
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     });
 
+    it('shows cue count and duration without a Manual/Auto-generated label', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, { ...manualVideo, title: 'Talk' }] }]);
+
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+      const items = within(history).getAllByRole('listitem');
+      expect(within(items[0]).getByText('2 câu, 12:34')).toBeInTheDocument();
+      expect(within(items[1]).getByText('3 câu, 12:34')).toBeInTheDocument();
+      expect(within(history).queryByText(/Auto-generated|Manual/)).not.toBeInTheDocument();
+    });
+
     it('links to the Vietsub player for videos that have Vietsub', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [{ ...autoVideo, viCueCount: 3 }, manualVideo] }]);
 
@@ -270,6 +308,60 @@ describe('HomePage', () => {
 
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
       expect(within(history).getAllByRole('listitem')).toHaveLength(1);
+    });
+
+    describe('pagination', () => {
+      it('shows 10 videos per page and keeps the page in the URL', async () => {
+        fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
+        renderAt('/');
+        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        expect(titles(history)).toEqual(many(10).map((v) => v.title));
+        expect(within(history).getByRole('button', { name: 'Trang 1' })).toHaveAttribute('aria-current', 'page');
+
+        await userEvent.setup().click(within(history).getByRole('button', { name: 'Trang 2' }));
+
+        expect(titles(history)[0]).toBe('Video 11');
+        expect(screen.getByLabelText('search')).toHaveTextContent('?page=2');
+      });
+
+      it('has no pager for 10 videos or fewer', async () => {
+        fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
+        renderAt('/');
+
+        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
+      });
+
+      it('goes back to page 1 after fetching, where the new video comes first', async () => {
+        fakeFetch([
+          { method: 'GET', path: '/api/videos', status: 200, body: many(15) },
+          { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
+          { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+        ]);
+        renderAt('/?page=2');
+        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+        expect(titles(history)[0]).toBe('Video 11');
+
+        await submit(ID);
+
+        await waitFor(() => expect(titles(history)[0]).toBe('Học Spring Boot'));
+        await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
+      });
+
+      it('steps back a page after deleting the only video on the last page', async () => {
+        fakeFetch([
+          { method: 'GET', path: '/api/videos', status: 200, body: many(11) },
+          { method: 'DELETE', path: '/api/videos/VIDEO000011', status: 204 },
+        ]);
+        renderAt('/?page=2');
+        const history = await screen.findByRole('region', { name: 'Đã lấy trước đó' });
+
+        await userEvent.setup().click(within(history).getByRole('button', { name: 'Xoá Video 11' }));
+
+        await waitFor(() => expect(titles(history)).toHaveLength(10));
+        expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
+        await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
+      });
     });
 
     it('refreshes a video from YouTube', async () => {

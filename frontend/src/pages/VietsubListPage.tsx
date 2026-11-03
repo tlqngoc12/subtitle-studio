@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { listVideos, type VideoDto } from '../api/client';
+import { Pagination } from '../components/Pagination';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { formatDuration } from '../lib/format';
+import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
 
 /** Watch-only list of videos that have Vietsub; managing them happens on /vietsub. */
 export default function VietsubListPage() {
   const [videos, setVideos] = useState<VideoDto[] | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const pager = usePagination(videos);
 
   useEffect(() => {
     listVideos()
@@ -34,15 +37,15 @@ export default function VietsubListPage() {
       )}
 
       <section className="history" aria-label="Danh sách Vietsub">
-        {videos === null ? (
+        {pager.items === null ? (
           <p className="muted">Đang tải danh sách…</p>
-        ) : videos.length === 0 ? (
+        ) : pager.items.length === 0 ? (
           <p className="muted">
             Chưa có video nào có Vietsub. <Link to="/vietsub">Thêm Vietsub</Link>
           </p>
         ) : (
           <ul className="history__list">
-            {videos.map((v) => {
+            {pager.items.map((v) => {
               const duration = formatDuration(v.durationSec);
               return (
                 <li key={v.id} className="history__item">
@@ -60,6 +63,7 @@ export default function VietsubListPage() {
             })}
           </ul>
         )}
+        <Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />
       </section>
     </main>
   );

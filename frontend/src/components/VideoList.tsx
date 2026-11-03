@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { srtUrl, type VideoDto } from '../api/client';
 import { Download, Play, RotateCw, Trash2 } from 'lucide-react';
@@ -9,9 +10,11 @@ interface Props {
   onOpen: (video: VideoDto) => void;
   onRefresh: (video: VideoDto) => void;
   onDelete: (video: VideoDto) => void;
+  /** Shown under the list, e.g. the pager. */
+  footer?: ReactNode;
 }
 
-export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete }: Props) {
+export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, footer }: Props) {
   return (
     <section className="history" aria-label="Đã lấy trước đó">
       <h2 className="history__heading">Đã lấy trước đó</h2>
@@ -31,8 +34,7 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete }: Props
                   <span className="history__text">
                     <span className="history__title">{v.title}</span>
                     <span className="history__sub">
-                      {v.subSource === 'AUTO' ? 'Auto-generated' : 'Manual'}, {v.cueCount} câu
-                      {duration ? `, ${duration}` : ''}
+                      {v.cueCount} câu{duration ? `, ${duration}` : ''}
                     </span>
                   </span>
                 </button>
@@ -71,6 +73,7 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete }: Props
           })}
         </ul>
       )}
+      {footer}
     </section>
   );
 }

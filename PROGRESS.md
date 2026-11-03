@@ -327,6 +327,12 @@ Spec: [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpow
 - **Compose đổi từ named volume sang bind mount `./data:/data`**: bản Docker và bản `java -jar` dùng chung một DB (trước đó bản Docker mở với DB rỗng, không thấy dữ liệu Phase 2 đã chép sang `main`). Không chạy hai bản cùng lúc.
 - Dữ liệu Docker Desktop (image, volume, cache) chuyển sang `D:\docker\DockerDesktopWSL`.
 
+### 2026-11-03: Chỉnh giao diện, phân trang ✅
+- **Lấy Engsub:** bỏ badge Manual/Auto-generated (panel kết quả và danh sách); vẫn giữ ghi chú "không có dấu câu" cho phụ đề tự động. Khung dán link ôm sát nội dung (bỏ chiều cao 300px, rộng tối đa 760px).
+- **Phân trang 10 video/trang** cho Đã lấy trước đó, Quản lý Vietsub, Danh sách Vietsub: phía frontend (API không đổi), `react-paginate` 8.3.0 + style riêng, số trang trên URL `?page=` (Back từ màn xem về đúng trang), ẩn khi ≤ 10 video, xoá hết trang cuối thì lùi trang, Lấy Engsub/Replace về trang 1.
+- **Bug tìm được khi chụp màn hình bản build:** `react-paginate` là UMD (component ở `module.exports.default`); Vitest tự gỡ, bản build Vite thì không → trang trắng (React #130), test vẫn pass. Đã xử lý interop trong `Pagination.tsx`. Khi nâng version thư viện này phải kiểm tra bản build.
+- Frontend `npm test`: 110/110. Backend: 244/244.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.

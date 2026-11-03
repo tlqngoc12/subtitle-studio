@@ -1,4 +1,5 @@
 import { Download, FileUp, Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { viSrtUrl, type VideoDto } from '../api/client';
 
 interface Props {
@@ -6,9 +7,11 @@ interface Props {
   busyId: string | null;
   onReplace: (video: VideoDto, file: File) => void;
   onDelete: (video: VideoDto) => void;
+  /** Shown under the list, e.g. the pager. */
+  footer?: ReactNode;
 }
 
-export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
+export function VietsubList({ videos, busyId, onReplace, onDelete, footer }: Props) {
   return (
     <section className="history" aria-label="Quản lý Vietsub">
       <h2 className="history__heading">Quản lý Vietsub</h2>
@@ -70,6 +73,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete }: Props) {
           })}
         </ul>
       )}
+      {footer}
     </section>
   );
 }

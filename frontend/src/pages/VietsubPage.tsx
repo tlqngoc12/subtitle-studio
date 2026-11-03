@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { addVietsub, deleteVietsub, listVideos, type VideoDto } from '../api/client';
+import { Pagination } from '../components/Pagination';
 import { VietsubForm } from '../components/VietsubForm';
 import { VietsubList } from '../components/VietsubList';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
 
 export default function VietsubPage() {
@@ -12,6 +14,7 @@ export default function VietsubPage() {
   const [pending, setPending] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const pager = usePagination(videos);
 
   useEffect(() => {
     listVideos()
@@ -40,6 +43,7 @@ export default function VietsubPage() {
     try {
       const updated = await addVietsub(video.id, file);
       setVideos((list) => withVietsub([updated, ...(list ?? []).filter((v) => v.id !== updated.id)]));
+      pager.setPage(1, { replace: true }); // the replaced video is now the most recent one
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -79,7 +83,13 @@ export default function VietsubPage() {
         </div>
       )}
 
-      <VietsubList videos={videos} busyId={busyId} onReplace={handleReplace} onDelete={handleDelete} />
+      <VietsubList
+        videos={pager.items}
+        busyId={busyId}
+        onReplace={handleReplace}
+        onDelete={handleDelete}
+        footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
+      />
     </main>
   );
 }

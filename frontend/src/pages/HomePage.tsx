@@ -8,10 +8,12 @@ import {
   type CueDto,
   type VideoDto,
 } from '../api/client';
+import { Pagination } from '../components/Pagination';
 import { ResultPanel } from '../components/ResultPanel';
 import { UrlForm } from '../components/UrlForm';
 import { VideoList } from '../components/VideoList';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { usePagination } from '../lib/usePagination';
 
 interface Current {
   video: VideoDto;
@@ -29,6 +31,7 @@ export default function HomePage() {
   const [pending, setPending] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const pager = usePagination(videos);
 
   useEffect(() => {
     listVideos()
@@ -55,6 +58,7 @@ export default function HomePage() {
     try {
       const { video } = await fetchVideo(url);
       setVideos((list) => upsert(list, video));
+      pager.setPage(1, { replace: true }); // the fetched video is now first in the list
       await show(video);
     } catch (e) {
       setError(errorMessage(e));
@@ -111,7 +115,8 @@ export default function HomePage() {
       {current && <ResultPanel video={current.video} cues={current.cues} />}
 
       <VideoList
-        videos={videos}
+        videos={pager.items}
+        footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
         busyId={busyId}
         onOpen={(v) => {
           setError(null);
