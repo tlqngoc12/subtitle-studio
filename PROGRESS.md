@@ -364,6 +364,13 @@ Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/sp
 - **Màu chủ đạo:** cam `--brand` #F39A42 (nút chính, khung link, tab profile, viền form sửa), tím `--brand-2` #D9A1D9 (menu/trang hiện tại, hover). Chữ trên hai màu này luôn là `--on-brand` #1B2430; focus ring vẫn xanh.
 - Merge `--no-ff` vào `main` (`3a2f3c6`, `main` đã có spec/plan Phase 4 Gemini), push. Sau merge: backend 269/269, frontend 151/151.
 
+### 2026-11-03: UI polish, giao diện tiếng Anh ✅
+Nhánh `ui-polish` (commit `80e20de`), merge vào `main`. Quy trình: review giao diện bằng ảnh chụp (Edge headless + CDP, khối mẫu tạm rồi xoá) → chốt bảng phạm vi với người dùng → code (người dùng yêu cầu chưa build/test trong lúc làm) → chạy test → commit → merge → push.
+- **Đầu trang:** thanh dính khi cuộn, có tên app; NavBar 1 hàng, cuộn ngang trên điện thoại. **Form Vietsub:** nút "Choose .srt file" hiện tên file. **Danh sách:** hover dòng; cả dòng là link ở Vietsub list.
+- **Tiếng Anh** cho toàn bộ chuỗi giao diện (giữ Engsub/Vietsub), cả lỗi `errors.ts` và `FieldError.message` của backend; `<html lang="en">`. Bộ lọc theo dấu bỏ sót chuỗi không dấu ("Link YouTube", "Xong", "Trang sau") → phải rà thêm bằng tay.
+- **Chuyển động** (`motion`), **tooltip** (`@radix-ui/react-tooltip`), **logo mạng xã hội** (`simple-icons`), icon thông tin video và loại khối, trang trống có icon. Test: jsdom cần stub `ResizeObserver` cho Radix; tooltip trong test đóng bằng Esc (jsdom không ra khỏi "grace area" của Radix).
+- Test: frontend 166/166, backend 269/269.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
