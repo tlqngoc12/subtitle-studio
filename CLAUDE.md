@@ -80,6 +80,13 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Oracle lưu chuỗi rỗng `''` thành `NULL`: giá trị cho cột `NOT NULL` không bao giờ được rỗng (lọc hoặc thay trước khi lưu).
 - Hibernate chỉ `validate`; không bật `ddl-auto` khác. Id dùng `SEQUENCE` với `allocationSize` khớp `INCREMENT BY` của sequence.
 - Thay đổi liên quan DB: chạy cả `mvn test` và `mvn verify -Poracle -Dskip.npm` trước khi commit.
+- Nhiều nhánh có thể cùng thêm migration: trước khi merge, kiểm tra số version không trùng (đã từng trùng `V2`), đổi số trên nhánh chưa merge.
+
+### Gemini (dịch Vietsub, package `translate`)
+- Test **không bao giờ gọi Gemini thật**: dùng `GeminiTranslator` giả, hoặc `FakeGeminiServer` (HTTP server trong test) cho `GeminiTranslatorImpl`.
+- `GEMINI_API_KEY` không bao giờ xuất hiện trong log, message exception hay commit. `SubtitleStudioProperties.Gemini.toString()` đã che key.
+- Vietsub `AUTO` (Gemini) không bao giờ ghi đè `MANUAL` (tự upload): kiểm tra lại dưới khoá dòng khi lưu (`VietsubService.saveAuto`).
+- Hồ sơ dịch trong `./data/prompts/*.md` là dữ liệu của người dùng: không commit (chỉ có mẫu `src/main/resources/prompts/_example.md`).
 
 ### Locale
 - `String.format`, `toLowerCase`/`toUpperCase` và các hàm format khác phải truyền `Locale.ROOT`. Locale mặc định có thể sinh chữ số không phải ASCII và làm hỏng file `.srt`.

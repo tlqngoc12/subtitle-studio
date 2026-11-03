@@ -28,7 +28,7 @@ docker compose ps             # chờ cả hai báo (healthy)
 Mở http://localhost:8080. Thiếu `.env` thì compose dừng và báo biến nào còn thiếu.
 
 - **Database:** Oracle, dữ liệu trong volume Docker `subtitle-studio_oracle-data`. Schema do Flyway tạo (`src/main/resources/db/migration`).
-- **`./data`:** chứa file `.vtt` gốc (`subs/`) và ảnh của trang Profile (`media/`). Trên Linux, thư mục này phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
+- **`./data`:** chứa phụ đề (`subs/`: `.vtt`, `en.srt`, `vi_auto.srt`, `vi_manual.srt`), hồ sơ dịch Gemini (`prompts/`) và ảnh của trang Profile (`media/`). Trên Linux, thư mục này phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
 - Image app có sẵn JRE 21, yt-dlp và deno (JS runtime mà yt-dlp cần để xử lý YouTube).
 - `docker build` **không chạy test** (`-DskipTests`, có cache Maven/npm nên build lại nhanh). Chạy `mvn test` và `cd frontend && npm test` trước khi commit.
 
@@ -99,6 +99,26 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.ytdlp.path` | `SUBTITLESTUDIO_YTDLP_PATH` | `yt-dlp` | Đường dẫn tới yt-dlp |
 | `subtitle-studio.ytdlp.timeout` | `SUBTITLESTUDIO_YTDLP_TIMEOUT` | `60s` | Quá thời gian thì dừng yt-dlp |
 | `server.port` | `SERVER_PORT` | `8080` | Cổng HTTP |
+| `subtitle-studio.gemini.api-key` | `GEMINI_API_KEY` | (trống = tắt) | Key Gemini để dịch Vietsub tự động |
+| `subtitle-studio.gemini.model` | `SUBTITLESTUDIO_GEMINI_MODEL` | `gemini-3.8-flash` | Model Gemini (nên dùng bản Flash có free tier) |
+| `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
+| `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `60m` | Video dài hơn không dịch tự động |
+
+## Dịch Vietsub tự động bằng Gemini
+
+Ở menu **Lấy Engsub**, chọn một **hồ sơ dịch** trong khung dán link rồi bấm **Lấy Engsub**: app lấy Engsub như cũ, sau đó gửi cho Gemini dịch sang tiếng Việt (giữ nguyên timecode). Vietsub dịch xong có nguồn **Gemini** và xem được như Vietsub tự upload.
+
+1. Lấy API key miễn phí ở [Google AI Studio](https://aistudio.google.com/apikey), đặt vào `.env`: `GEMINI_API_KEY=...` rồi `docker compose up -d`.
+2. Viết hồ sơ dịch trong `./data/prompts/<Tên>.md` (ví dụ `EmiBonnie.md`): bối cảnh, nhân vật, cách xưng hô, tên riêng, văn phong. Xem mẫu ở `./data/prompts/_example.md` (tự tạo lần đầu app chạy). Tên file chỉ dùng chữ, số, `-`, `_`; file UTF-8, tối đa 20 KB.
+
+Quy tắc:
+
+- Vietsub **tự upload không bao giờ bị Gemini ghi đè**. Muốn dịch bằng Gemini cho video đó thì xoá Vietsub tự upload ở trang Vietsub trước.
+- Dán lại link đã có Vietsub thì không gọi Gemini nữa (không tốn lượt); muốn dịch lại thì bấm **Dịch lại**.
+- Chỉ dịch video ≤ 60 phút. Mỗi video là một request.
+- File lưu ở `./data/subs/`: `<id>.en.srt`, `<id>.vi_auto.srt` (Gemini), `<id>.vi_manual.srt` (bản tự upload, giữ nguyên file gốc).
+
+Lưu ý free tier: nội dung gửi lên có thể được Google dùng để cải thiện sản phẩm; giới hạn số request xem trong AI Studio. Hết lượt thì app báo "Hết lượt miễn phí của Gemini, thử lại sau."
 
 ## Phát triển
 

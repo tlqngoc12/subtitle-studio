@@ -28,10 +28,13 @@ services:
       SUBTITLESTUDIO_DB_HOST: oracle
       SUBTITLESTUDIO_DB_USER: subtitle_studio
       SUBTITLESTUDIO_DB_PASSWORD: ${SUBTITLESTUDIO_DB_PASSWORD:?Set SUBTITLESTUDIO_DB_PASSWORD in .env (see .env.example)}
+      # Optional: empty turns Gemini translation off (the rest of the app works the same).
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "8080:8080"
     volumes:
-      # Only the downloaded .vtt files (subs/) live here now; the database is in Oracle.
+      # Subtitle files (subs/: .vtt, en.srt, vi_auto.srt, vi_manual.srt), translation profiles (prompts/)
+      # and profile images (media/); the database is in Oracle.
       # (./data/dev.mv.db is the H2 dev database used when running outside Docker.)
       - ./data:/data
     depends_on:

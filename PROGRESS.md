@@ -364,6 +364,17 @@ Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/sp
 - **Màu chủ đạo:** cam `--brand` #F39A42 (nút chính, khung link, tab profile, viền form sửa), tím `--brand-2` #D9A1D9 (menu/trang hiện tại, hover). Chữ trên hai màu này luôn là `--on-brand` #1B2430; focus ring vẫn xanh.
 - Merge `--no-ff` vào `main` (`3a2f3c6`, `main` đã có spec/plan Phase 4 Gemini), push. Sau merge: backend 269/269, frontend 151/151.
 
+### 2026-11-03: Phase 4, dịch Vietsub tự động bằng Gemini
+Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superpowers/specs/2026-11-03-gemini-translate-design.md). Plan: [docs/superpowers/plans/2026-11-03-gemini-translate.md](docs/superpowers/plans/2026-11-03-gemini-translate.md). Worktree `../subtitle-studio-gemini` (nhánh `gemini`).
+- **Hồ sơ dịch** = file Markdown `./data/prompts/<Tên>.md` (mẫu `_example.md` tự tạo lần đầu); `GET /api/prompt-profiles`; dropdown "Hồ sơ dịch" cạnh ô dán link, nhớ lựa chọn.
+- **Gemini** qua SDK `com.google.genai:google-genai` 1.78.0: một request mỗi video, structured output `[{id, text}]`, gửi block theo `id` (không gửi timecode), kiểm tra đủ/không thừa/không trùng `id` và text không rỗng; tắt retry của SDK (429 không đốt thêm quota). Test bằng HTTP server giả, không gọi Gemini thật.
+- **Nguồn Vietsub** `MANUAL`/`AUTO` (Flyway **V3**, vì nhánh Profile đã dùng V2): AUTO không ghi đè MANUAL (kiểm tra dưới khoá dòng khi lưu); dán trùng link không dịch lại; `POST /api/videos/{id}/translate` để dịch lại. Trạng thái `TRANSLATING`/`FAILED` + thông điệp lỗi tiếng Việt lưu trong `video`; app khởi động lại thì `TRANSLATING` → `FAILED`.
+- **File** `./data/subs/<id>.en.srt`, `vi_auto.srt`, `vi_manual.srt` (bản upload giữ nguyên byte); tạo bù cho video cũ lúc khởi động.
+- **Giao diện:** dòng Vietsub trong panel kết quả (đang dịch / Gemini · hồ sơ / tự upload / lỗi + Dịch lại / Dịch bằng Gemini), polling 3 giây, "· Đang dịch…/· Lỗi dịch" trong danh sách, nguồn ở Quản lý Vietsub.
+- **Bug tìm được nhờ test:** SDK ném exception khi gọi `text()` trên phản hồi bị chặn (SAFETY) → xử lý theo `finishReason`.
+- Merge `main` (Profile menu) vào nhánh giữa chừng: 5 xung đột kiểu cùng thêm, giữ cả hai.
+- Backend `mvn test`: 427/427. Frontend: 173/173.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -423,3 +434,5 @@ Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/sp
 | Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |
 | Review Profile (Minor): kết quả thêm/di chuyển/xoá về muộn sau khi đổi tab bị áp vào profile mới; toolbar không khoá khi đang di chuyển (bấm nhanh 2 lần có thể hiện sai thứ tự); dọn ảnh lúc khởi động nằm trong `@Transactional` nên lỗi DB có thể chặn khởi động; `BlockView` tin mọi `embedUrl` không phải Spotify; YouTube `?t=` bị bỏ, chưa nhận `live`/`music.youtube`/Spotify episode/`spotify:`; cắt `original_name` có thể tách đôi emoji; `max-request-size` = `max-file-size` nên file sát 10 MB bị 413; nút "Xong" đóng form đang sửa mà không hỏi | Profile | final review nhánh `profiles` |
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
+| Hồ sơ dịch lưu trong Oracle + sửa trên web | P4 | phase cải tiến (hiện là file `./data/prompts/*.md`) |
+| Video > 60 phút: chia đợt dịch Gemini | P4 | hiện bỏ qua với `VIDEO_TOO_LONG` |
