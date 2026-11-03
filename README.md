@@ -38,6 +38,15 @@ Mở http://localhost:8080. Thiếu `.env` thì compose dừng và báo biến n
 | Service name | `FREEPDB1` |
 | User / mật khẩu | `subtitle_studio` / giá trị `SUBTITLESTUDIO_DB_PASSWORD` trong `.env` |
 
+Lưu ý:
+
+- Oracle phải đang chạy (`docker compose ps` báo `healthy`) thì mới kết nối được.
+- Cổng 1521 chỉ mở trên máy này, máy khác trong mạng không vào được.
+- Bạn sẽ thấy 4 bảng: `VIDEO`, `CUE` (Engsub), `VI_CUE` (Vietsub) và `flyway_schema_history` (lịch sử migration).
+- **DBeaver:** New Connection → Oracle → chọn **Service Name** → điền như bảng trên. Lần đầu DBeaver sẽ hỏi tải driver, bấm Download.
+- **SQL Developer:** New Connection → Connection Type **Basic** → chọn **Service name** → điền như bảng trên → Test → Connect.
+- Nên tránh sửa hay xoá dữ liệu trực tiếp bằng công cụ SQL khi app đang chạy. Nếu muốn thay đổi schema thì thêm file migration `V2__...sql`.
+
 ### Sao lưu và khôi phục
 
 Sao lưu nguội (dừng hẳn để file dữ liệu nhất quán):
