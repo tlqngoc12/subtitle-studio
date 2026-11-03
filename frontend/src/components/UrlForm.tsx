@@ -18,7 +18,7 @@ export function UrlForm({ pending, onSubmit }: Props) {
   return (
     <form className="frame" onSubmit={handleSubmit} aria-busy={pending}>
       <label className="visually-hidden" htmlFor="url">
-        Link YouTube
+        YouTube link
       </label>
       <div className="frame__caption">
         <input
@@ -28,12 +28,12 @@ export function UrlForm({ pending, onSubmit }: Props) {
           inputMode="url"
           autoComplete="off"
           spellCheck={false}
-          placeholder="Dán link YouTube vào đây"
+          placeholder="Paste a YouTube link here"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
         <button className="button button--caption" type="submit" disabled={pending}>
-          {pending ? 'Đang lấy phụ đề…' : 'Lấy Engsub'}
+          {pending ? 'Fetching subtitles…' : 'Get Engsub'}
         </button>
       </div>
       <div className={pending ? 'frame__scrubber frame__scrubber--busy' : 'frame__scrubber'} aria-hidden="true" />

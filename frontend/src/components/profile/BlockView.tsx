@@ -1,18 +1,40 @@
-import { ExternalLink } from 'lucide-react';
+import { FileText, Image as ImageIcon, Images, Info, Link as LinkIcon, Music, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
-import type { ProfileBlock, ProfileItem } from '../../api/profiles';
+import type { BlockType, ProfileBlock, ProfileItem } from '../../api/profiles';
+import { Tip } from '../Tip';
+import { BrandIcon } from './BrandIcon';
+
+/** Shown before a block's title so each kind of content is recognisable at a glance. */
+const TYPE_ICONS: Record<BlockType, LucideIcon> = {
+  TEXT: FileText,
+  IMAGE: ImageIcon,
+  GALLERY: Images,
+  EMBED: Music,
+  LINKS: LinkIcon,
+  FACTS: Info,
+};
 
 /** One profile block in view mode. */
 export function BlockView({ block }: { block: ProfileBlock }) {
   return (
     <section className="pblock">
-      {block.title && <h2 className="pblock__title">{block.title}</h2>}
+      {block.title && (
+        <h2 className="pblock__title">
+          <TitleIcon type={block.type} />
+          {block.title}
+        </h2>
+      )}
       <BlockBody block={block} />
     </section>
   );
+}
+
+function TitleIcon({ type }: { type: BlockType }) {
+  const Icon = TYPE_ICONS[type];
+  return <Icon className="pblock__title-icon" aria-hidden="true" />;
 }
 
 function BlockBody({ block }: { block: ProfileBlock }) {
@@ -20,7 +42,7 @@ function BlockBody({ block }: { block: ProfileBlock }) {
     case 'TEXT':
       return <TextBody body={block.body ?? ''} />;
     case 'IMAGE': {
-      const alt = block.caption ?? block.title ?? 'Ảnh';
+      const alt = block.caption ?? block.title ?? 'Image';
       return (
         <ImageGrid
           images={[{ src: block.mediaUrl ?? '', alt }]}
@@ -32,7 +54,7 @@ function BlockBody({ block }: { block: ProfileBlock }) {
     case 'GALLERY':
       return (
         <ImageGrid
-          images={block.items.map((it, i) => ({ src: it.mediaUrl ?? '', alt: it.label ?? `Ảnh ${i + 1}` }))}
+          images={block.items.map((it, i) => ({ src: it.mediaUrl ?? '', alt: it.label ?? `Image ${i + 1}` }))}
           captions={[]}
         />
       );
@@ -75,15 +97,16 @@ function ImageGrid({
       <div className={single ? 'pblock__image' : 'pblock__gallery'}>
         {images.map((img, i) => (
           <figure key={i} className="pblock__figure">
-            <button
-              type="button"
-              className="pblock__zoom"
-              aria-label={`Xem ảnh lớn: ${img.alt}`}
-              title="Xem ảnh lớn"
-              onClick={() => setOpen(i)}
-            >
-              <img src={img.src} alt={img.alt} loading="lazy" />
-            </button>
+            <Tip label="View larger">
+              <button
+                type="button"
+                className="pblock__zoom"
+                aria-label={`View larger: ${img.alt}`}
+                onClick={() => setOpen(i)}
+              >
+                <img src={img.src} alt={img.alt} loading="lazy" />
+              </button>
+            </Tip>
             {captions[i] && <figcaption>{captions[i]}</figcaption>}
           </figure>
         ))}
@@ -115,7 +138,7 @@ function Embed({ url }: { url: string }) {
   return (
     <div className="pblock__video">
       <iframe
-        title="Video YouTube"
+        title="YouTube video"
         src={url}
         loading="lazy"
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
@@ -131,7 +154,7 @@ function Links({ items }: { items: ProfileItem[] }) {
       {items.map((it, i) => (
         <li key={i}>
           <a href={it.value ?? undefined} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="icon" aria-hidden="true" />
+            <BrandIcon url={it.value} />
             {it.label}
           </a>
         </li>

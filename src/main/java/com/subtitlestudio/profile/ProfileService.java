@@ -64,7 +64,7 @@ public class ProfileService {
         Profile profile = profile(slug);
         ProfileBlock block = block(profile, blockId);
         if (request.type() != null && request.type() != block.getType()) {
-            throw new InvalidBlockException(List.of(new FieldError("type", "Không đổi được loại khối")));
+            throw new InvalidBlockException(List.of(new FieldError("type", "The block type cannot be changed")));
         }
         ValidBlock valid = validator.validate(request, media::existsById);
         List<Long> before = mediaIds(block);

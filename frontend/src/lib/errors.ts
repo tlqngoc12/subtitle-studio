@@ -5,55 +5,55 @@ export interface ErrorMessage {
   hint?: string;
 }
 
-/** Turns an API error into user-facing Vietnamese copy, keyed by the backend's ProblemDetail `code`. */
+/** Turns an API error into user-facing English copy, keyed by the backend's ProblemDetail `code`. */
 export function errorMessage(error: unknown): ErrorMessage {
   if (!(error instanceof ApiError)) {
-    return { title: 'Có lỗi xảy ra.', hint: error instanceof Error ? error.message : undefined };
+    return { title: 'Something went wrong.', hint: error instanceof Error ? error.message : undefined };
   }
   switch (error.code) {
     case 'INVALID_URL':
       return {
-        title: 'Link không hợp lệ.',
-        hint: 'Dán link dạng youtube.com/watch?v=…, youtu.be/…, youtube.com/shorts/… hoặc mã video 11 ký tự.',
+        title: 'Invalid link.',
+        hint: 'Paste a link like youtube.com/watch?v=…, youtu.be/…, youtube.com/shorts/… or an 11-character video ID.',
       };
     case 'NO_ENGLISH_SUBTITLE':
       return {
-        title: 'Video này không có phụ đề tiếng Anh.',
-        hint: 'Không có cả phụ đề do người đăng tải lên lẫn phụ đề tự động tiếng Anh.',
+        title: 'This video has no English subtitles.',
+        hint: 'There are neither uploaded nor auto-generated English subtitles.',
       };
     case 'YTDLP_FAILED':
-      return { title: 'Không lấy được phụ đề từ YouTube.', hint: error.detail };
+      return { title: 'Could not get subtitles from YouTube.', hint: error.detail };
     case 'YTDLP_TIMEOUT':
-      return { title: 'YouTube phản hồi quá lâu.', hint: 'Thử lại sau ít phút.' };
+      return { title: 'YouTube took too long to respond.', hint: 'Try again in a few minutes.' };
     case 'VIDEO_NOT_FOUND':
       return {
-        title: 'Video này không còn trong danh sách.',
-        hint: 'Có thể nó đã bị xoá. Tải lại trang để cập nhật danh sách.',
+        title: 'This video is no longer in the list.',
+        hint: 'It may have been deleted. Reload the page to update the list.',
       };
     case 'INTERNAL_ERROR':
-      return { title: 'Máy chủ gặp lỗi.', hint: 'Xem log của ứng dụng để biết chi tiết.' };
+      return { title: 'The server ran into an error.', hint: 'See the application log for details.' };
     case 'INVALID_SRT':
       return {
-        title: 'Không đọc được file .srt. Kiểm tra file đúng định dạng SubRip và lưu bằng UTF-8.',
+        title: 'Could not read the .srt file. Check that it is a SubRip file saved as UTF-8.',
         hint: error.detail,
       };
     case 'FILE_TOO_LARGE':
-      return { title: 'File quá lớn (tối đa 5 MB).' };
+      return { title: 'File too large (5 MB max).' };
     case 'PROFILE_NOT_FOUND':
-      return { title: 'Không tìm thấy profile.' };
+      return { title: 'Profile not found.' };
     case 'BLOCK_NOT_FOUND':
-      return { title: 'Khối này không còn nữa.', hint: 'Tải lại trang.' };
+      return { title: 'This block no longer exists.', hint: 'Reload the page.' };
     case 'INVALID_BLOCK':
-      return { title: 'Nội dung khối chưa hợp lệ.' };
+      return { title: 'Some block fields are not valid.' };
     case 'INVALID_MEDIA':
-      return { title: 'File không phải ảnh JPEG, PNG, WebP hoặc GIF.' };
+      return { title: 'The file is not a JPEG, PNG, WebP or GIF image.' };
     case 'MEDIA_TOO_LARGE':
-      return { title: 'Ảnh quá lớn (tối đa 10 MB).' };
+      return { title: 'Image too large (10 MB max).' };
     case 'MEDIA_NOT_FOUND':
-      return { title: 'Không tìm thấy ảnh.' };
+      return { title: 'Image not found.' };
     case 'NETWORK':
-      return { title: 'Không kết nối được máy chủ.', hint: 'Kiểm tra Subtitle Studio có đang chạy không.' };
+      return { title: 'Cannot reach the server.', hint: 'Check that Subtitle Studio is running.' };
     default:
-      return { title: `Có lỗi xảy ra (HTTP ${error.status}).`, hint: error.detail };
+      return { title: `Something went wrong (HTTP ${error.status}).`, hint: error.detail };
   }
 }

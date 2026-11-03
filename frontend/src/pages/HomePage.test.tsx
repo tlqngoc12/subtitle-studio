@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadedRegion } from '../test/loadedRegion';
+import { expectTooltip } from '../test/tooltip';
 import { MemoryRouter, useLocation } from 'react-router';
 import HomePage from './HomePage';
 import type { CueDto, VideoDto } from '../api/client';
@@ -90,8 +91,8 @@ const titles = (list: HTMLElement) =>
 
 async function submit(url: string) {
   const user = userEvent.setup();
-  await user.type(screen.getByLabelText('Link YouTube'), url);
-  await user.click(screen.getByRole('button', { name: 'Lấy Engsub' }));
+  await user.type(screen.getByLabelText('YouTube link'), url);
+  await user.click(screen.getByRole('button', { name: 'Get Engsub' }));
   return user;
 }
 
@@ -105,7 +106,7 @@ describe('HomePage', () => {
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    expect(await screen.findByText(/Chưa có video nào/)).toBeInTheDocument();
+    expect(await screen.findByText(/No videos yet/)).toBeInTheDocument();
   });
 
   it('disables the button and shows progress while fetching', async () => {
@@ -120,12 +121,12 @@ describe('HomePage', () => {
 
     await submit(`https://youtu.be/${ID}`);
 
-    expect(screen.getByRole('button', { name: /Đang lấy/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Fetching/ })).toBeDisabled();
     expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: `https://youtu.be/${ID}` }));
     release();
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
     // Re-enabled only after the cue preview has loaded too.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Lấy Engsub' })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Get Engsub' })).toBeEnabled());
   });
 
   it('shows the fetched video with note, count, download link and cue preview', async () => {
@@ -138,14 +139,14 @@ describe('HomePage', () => {
 
     await submit(ID);
 
-    const result = await screen.findByRole('region', { name: 'Kết quả' });
+    const result = await screen.findByRole('region', { name: 'Result' });
     expect(within(result).getByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
     expect(within(result).getByText('Dev Channel')).toBeInTheDocument();
     expect(within(result).getByText('12:34')).toBeInTheDocument();
     expect(within(result).queryByText(/Auto-generated/)).not.toBeInTheDocument();
-    expect(within(result).getByText(/không có dấu câu/)).toBeInTheDocument();
-    expect(within(result).getByText('2 câu')).toBeInTheDocument();
-    expect(within(result).getByRole('link', { name: 'Tải .srt' }))
+    expect(within(result).getByText(/no punctuation/)).toBeInTheDocument();
+    expect(within(result).getByText('2 lines')).toBeInTheDocument();
+    expect(within(result).getByRole('link', { name: 'Download .srt' }))
       .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     expect(within(result).getByRole('img')).toHaveAttribute('src', autoVideo.thumbnailUrl);
 
@@ -165,10 +166,10 @@ describe('HomePage', () => {
 
     await submit('MANUAL00001');
 
-    const result = await screen.findByRole('region', { name: 'Kết quả' });
+    const result = await screen.findByRole('region', { name: 'Result' });
     expect(within(result).queryByText('Manual')).not.toBeInTheDocument();
-    expect(within(result).getByText('3 câu')).toBeInTheDocument();
-    expect(within(result).queryByText(/không có dấu câu/)).not.toBeInTheDocument();
+    expect(within(result).getByText('3 lines')).toBeInTheDocument();
+    expect(within(result).queryByText(/no punctuation/)).not.toBeInTheDocument();
   });
 
   it('explains an invalid link using the error code', async () => {
@@ -180,7 +181,7 @@ describe('HomePage', () => {
 
     await submit('https://evil.com/x');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Link không hợp lệ');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid link');
   });
 
   it('explains a video without English subtitles', async () => {
@@ -192,7 +193,7 @@ describe('HomePage', () => {
 
     await submit(ID);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Video này không có phụ đề tiếng Anh');
+    expect(await screen.findByRole('alert')).toHaveTextContent('This video has no English subtitles');
   });
 
   it('explains when the server cannot be reached', async () => {
@@ -201,14 +202,14 @@ describe('HomePage', () => {
 
     await submit(ID);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Không kết nối được máy chủ');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot reach the server');
   });
 
   it('does not submit an empty link', async () => {
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Lấy Engsub' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Get Engsub' }));
 
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
   });
@@ -219,16 +220,16 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const item = within(history).getByRole('listitem');
       const actions = [
-        { el: within(item).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }), tip: 'Xem Vietsub' },
-        { el: within(item).getByRole('link', { name: 'Tải .srt của Học Spring Boot' }), tip: 'Tải .srt' },
-        { el: within(item).getByRole('button', { name: 'Làm mới Học Spring Boot' }), tip: 'Làm mới' },
-        { el: within(item).getByRole('button', { name: 'Xoá Học Spring Boot' }), tip: 'Xoá' },
+        { el: within(item).getByRole('link', { name: 'Watch with Vietsub: Học Spring Boot' }), tip: 'Watch with Vietsub' },
+        { el: within(item).getByRole('link', { name: 'Download .srt: Học Spring Boot' }), tip: 'Download .srt' },
+        { el: within(item).getByRole('button', { name: 'Refresh Học Spring Boot' }), tip: 'Refresh' },
+        { el: within(item).getByRole('button', { name: 'Delete Học Spring Boot' }), tip: 'Delete' },
       ];
       for (const { el, tip } of actions) {
-        expect(el).toHaveAttribute('title', tip);
+        await expectTooltip(el, tip);
         expect(el.textContent?.trim()).toBe('');
         expect(el.querySelector('svg')).not.toBeNull();
       }
@@ -239,11 +240,11 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
       expect(items).toHaveLength(2);
       expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
-      expect(within(items[0]).getByRole('link', { name: /Tải .srt/ }))
+      expect(within(items[0]).getByRole('link', { name: /Download .srt/ }))
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     });
 
@@ -252,10 +253,11 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
-      expect(within(items[0]).getByText('2 câu, 12:34')).toBeInTheDocument();
-      expect(within(items[1]).getByText('3 câu, 12:34')).toBeInTheDocument();
+      expect(within(items[0]).getByText('2 lines')).toBeInTheDocument();
+      expect(within(items[0]).getByText('12:34')).toBeInTheDocument();
+      expect(within(items[1]).getByText('3 lines')).toBeInTheDocument();
       expect(within(history).queryByText(/Auto-generated|Manual/)).not.toBeInTheDocument();
     });
 
@@ -264,9 +266,9 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
-      expect(within(items[0]).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }))
+      expect(within(items[0]).getByRole('link', { name: 'Watch with Vietsub: Học Spring Boot' }))
         .toHaveAttribute('href', `/vietsub/${ID}`);
       expect(within(items[1]).queryByRole('link', { name: /Xem Vietsub/ })).not.toBeInTheDocument();
     });
@@ -277,11 +279,11 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Open Học Spring Boot/ }));
 
-      const result = await screen.findByRole('region', { name: 'Kết quả' });
+      const result = await screen.findByRole('region', { name: 'Result' });
       expect(await within(result).findByText('and why it matters')).toBeInTheDocument();
     });
 
@@ -291,9 +293,9 @@ describe('HomePage', () => {
         { method: 'DELETE', path: `/api/videos/${ID}`, status: 204 },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Delete Học Spring Boot/ }));
 
       await waitFor(() => expect(within(history).getAllByRole('listitem')).toHaveLength(1));
       expect(window.confirm).toHaveBeenCalled();
@@ -304,9 +306,9 @@ describe('HomePage', () => {
       vi.mocked(window.confirm).mockReturnValue(false);
       const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Delete Học Spring Boot/ }));
 
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
       expect(within(history).getAllByRole('listitem')).toHaveLength(1);
@@ -316,11 +318,11 @@ describe('HomePage', () => {
       it('shows 10 videos per page and keeps the page in the URL', async () => {
         fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
         renderAt('/');
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
         expect(titles(history)).toEqual(many(10).map((v) => v.title));
-        expect(within(history).getByRole('button', { name: 'Trang 1' })).toHaveAttribute('aria-current', 'page');
+        expect(within(history).getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
 
-        await userEvent.setup().click(within(history).getByRole('button', { name: 'Trang 2' }));
+        await userEvent.setup().click(within(history).getByRole('button', { name: 'Page 2' }));
 
         expect(titles(history)[0]).toBe('Video 11');
         expect(screen.getByLabelText('search')).toHaveTextContent('?page=2');
@@ -330,7 +332,7 @@ describe('HomePage', () => {
         fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
         renderAt('/');
 
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
       });
 
@@ -341,7 +343,7 @@ describe('HomePage', () => {
           { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
         ]);
         renderAt('/?page=2');
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
         expect(titles(history)[0]).toBe('Video 11');
 
         await submit(ID);
@@ -356,9 +358,9 @@ describe('HomePage', () => {
           { method: 'DELETE', path: '/api/videos/VIDEO000011', status: 204 },
         ]);
         renderAt('/?page=2');
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
 
-        await userEvent.setup().click(within(history).getByRole('button', { name: 'Xoá Video 11' }));
+        await userEvent.setup().click(within(history).getByRole('button', { name: 'Delete Video 11' }));
 
         await waitFor(() => expect(titles(history)).toHaveLength(10));
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
@@ -374,9 +376,9 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Làm mới Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Refresh Học Spring Boot/ }));
 
       expect(await within(history).findByText('Học Spring Boot (v2)')).toBeInTheDocument();
       expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/refresh'))).toBe(true);

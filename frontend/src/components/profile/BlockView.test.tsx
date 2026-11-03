@@ -42,7 +42,7 @@ describe('BlockView', () => {
 
     expect(screen.getByRole('img', { name: 'Fan meeting' })).toHaveAttribute('src', '/api/media/5');
     expect(screen.getByText('Fan meeting', { selector: 'figcaption' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Xem ảnh lớn: Fan meeting' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View larger: Fan meeting' })).toBeInTheDocument();
   });
 
   it('shows a gallery as image buttons', () => {
@@ -52,22 +52,22 @@ describe('BlockView', () => {
           id: 1,
           type: 'GALLERY',
           items: [
-            item({ label: 'Ảnh 1', mediaId: 5, mediaUrl: '/api/media/5' }),
+            item({ label: 'Image 1', mediaId: 5, mediaUrl: '/api/media/5' }),
             item({ mediaId: 6, mediaUrl: '/api/media/6' }),
           ],
         })}
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Xem ảnh lớn: Ảnh 1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Xem ảnh lớn: Ảnh 2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View larger: Image 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View larger: Image 2' })).toBeInTheDocument();
   });
 
   it('embeds YouTube in a titled iframe', () => {
     const url = 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ';
     render(<BlockView block={block({ id: 1, type: 'EMBED', embedUrl: url })} />);
 
-    expect(screen.getByTitle('Video YouTube')).toHaveAttribute('src', url);
+    expect(screen.getByTitle('YouTube video')).toHaveAttribute('src', url);
   });
 
   it.each([

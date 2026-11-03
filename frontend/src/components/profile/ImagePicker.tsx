@@ -43,8 +43,8 @@ export function ImagePicker({
 
   return (
     <div className="picker">
-      {value && <img className="picker__preview" src={value.mediaUrl} alt="Ảnh đã chọn" />}
-      <label htmlFor={id}>Chọn ảnh</label>
+      {value && <img className="picker__preview" src={value.mediaUrl} alt="Selected image" />}
+      <label htmlFor={id}>Choose image</label>
       <input
         id={id}
         type="file"
@@ -57,7 +57,7 @@ export function ImagePicker({
           e.target.value = '';
         }}
       />
-      {busy && <p className="muted">Đang tải ảnh lên…</p>}
+      {busy && <p className="muted">Uploading image…</p>}
       {error && (
         <p className="field__error" role="alert">
           {error}

@@ -27,9 +27,9 @@ export function Pagination({ page, pageCount, onChange }: Props) {
       breakLabel="…"
       previousLabel={<ChevronLeft className="icon" aria-hidden="true" />}
       nextLabel={<ChevronRight className="icon" aria-hidden="true" />}
-      previousAriaLabel="Trang trước"
-      nextAriaLabel="Trang sau"
-      ariaLabelBuilder={(n) => `Trang ${n}`}
+      previousAriaLabel="Previous page"
+      nextAriaLabel="Next page"
+      ariaLabelBuilder={(n) => `Page ${n}`}
       containerClassName="pager"
       pageLinkClassName="pager__link"
       previousLinkClassName="pager__link"

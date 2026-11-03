@@ -20,14 +20,14 @@ describe('BlockEditor', () => {
   it('saves a text block', async () => {
     const { onSave } = setup({ type: 'TEXT' });
 
-    await userEvent.type(screen.getByLabelText('Tiêu đề'), 'Tiêu đề');
-    await userEvent.type(screen.getByLabelText('Nội dung'), 'Nội dung');
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.type(screen.getByLabelText('Title'), 'Title');
+    await userEvent.type(screen.getByLabelText('Content'), 'Content');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSave).toHaveBeenCalledWith({
       type: 'TEXT',
-      title: 'Tiêu đề',
-      body: 'Nội dung',
+      title: 'Title',
+      body: 'Content',
       mediaId: null,
       caption: null,
       embedUrl: null,
@@ -38,18 +38,18 @@ describe('BlockEditor', () => {
   it('edits, reorders and removes links', async () => {
     const { onSave } = setup({ type: 'LINKS' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm link' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm link' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm link' }));
-    const names = screen.getAllByLabelText('Tên link');
-    const urls = screen.getAllByLabelText('Link');
+    await userEvent.click(screen.getByRole('button', { name: 'Add link' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add link' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add link' }));
+    const names = screen.getAllByLabelText('Link name');
+    const urls = screen.getAllByLabelText('URL');
     for (const [i, n] of ['A', 'B', 'C'].entries()) {
       await userEvent.type(names[i], n);
       await userEvent.type(urls[i], `https://${n.toLowerCase()}.example`);
     }
-    await userEvent.click(screen.getAllByRole('button', { name: 'Di chuyển link lên' })[1]);
-    await userEvent.click(screen.getAllByRole('button', { name: 'Xóa link' })[2]);
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Move link up' })[1]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Delete link' })[2]);
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSave.mock.calls[0][0].items).toEqual([
       { label: 'B', value: 'https://b.example', mediaId: null },
@@ -60,30 +60,30 @@ describe('BlockEditor', () => {
   it('saves facts', async () => {
     const { onSave } = setup({ type: 'FACTS' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm dòng' }));
-    await userEvent.type(screen.getByLabelText('Nhãn'), 'Ngày sinh');
-    await userEvent.type(screen.getByLabelText('Giá trị'), '13/05/1999');
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add row' }));
+    await userEvent.type(screen.getByLabelText('Label'), 'Ngày sinh');
+    await userEvent.type(screen.getByLabelText('Value'), '13/05/1999');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSave.mock.calls[0][0].items).toEqual([{ label: 'Ngày sinh', value: '13/05/1999', mediaId: null }]);
   });
 
-  it('uploads an image and disables Lưu while uploading', async () => {
+  it('uploads an image and disables Save while uploading', async () => {
     let finish!: () => void;
     const delay = new Promise<void>((r) => (finish = r));
     const calls = fakeFetch([{ method: 'POST', path: '/api/media', status: 201, body: { id: 7, url: '/api/media/7' }, delay }]);
     const { onSave } = setup({ type: 'IMAGE' });
 
-    await userEvent.upload(screen.getByLabelText('Chọn ảnh'), PNG);
+    await userEvent.upload(screen.getByLabelText('Choose image'), PNG);
 
     expect(calls[0]).toMatchObject({ method: 'POST', path: '/api/media' });
-    expect(screen.getByRole('button', { name: 'Lưu' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     finish();
-    expect(await screen.findByRole('img', { name: 'Ảnh đã chọn' })).toHaveAttribute('src', '/api/media/7');
-    expect(screen.getByRole('button', { name: 'Lưu' })).toBeEnabled();
+    expect(await screen.findByRole('img', { name: 'Selected image' })).toHaveAttribute('src', '/api/media/7');
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 
-    await userEvent.type(screen.getByLabelText('Chú thích'), 'Fan meeting');
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.type(screen.getByLabelText('Caption'), 'Fan meeting');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'IMAGE', mediaId: 7, caption: 'Fan meeting', items: [] });
   });
 
@@ -91,22 +91,22 @@ describe('BlockEditor', () => {
     fakeFetch([{ method: 'POST', path: '/api/media', status: 413, body: problem(413, 'MEDIA_TOO_LARGE', 'x') }]);
     setup({ type: 'IMAGE' });
 
-    await userEvent.upload(screen.getByLabelText('Chọn ảnh'), PNG);
+    await userEvent.upload(screen.getByLabelText('Choose image'), PNG);
 
-    expect(await screen.findByText('Ảnh quá lớn (tối đa 10 MB).')).toBeInTheDocument();
+    expect(await screen.findByText('Image too large (10 MB max).')).toBeInTheDocument();
   });
 
   it('adds gallery images with captions', async () => {
     fakeFetch([{ method: 'POST', path: '/api/media', status: 201, body: { id: 8, url: '/api/media/8' } }]);
     const { onSave } = setup({ type: 'GALLERY' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }));
-    await userEvent.upload(screen.getByLabelText('Chọn ảnh'), PNG);
-    await screen.findByRole('img', { name: 'Ảnh đã chọn' });
-    await userEvent.type(screen.getByLabelText('Chú thích ảnh'), 'Ảnh 1');
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add image' }));
+    await userEvent.upload(screen.getByLabelText('Choose image'), PNG);
+    await screen.findByRole('img', { name: 'Selected image' });
+    await userEvent.type(screen.getByLabelText('Image caption'), 'Image 1');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(onSave.mock.calls[0][0].items).toEqual([{ label: 'Ảnh 1', value: null, mediaId: 8 }]);
+    expect(onSave.mock.calls[0][0].items).toEqual([{ label: 'Image 1', value: null, mediaId: 8 }]);
   });
 
   it('keeps every gallery change made while uploads are running', async () => {
@@ -129,17 +129,17 @@ describe('BlockEditor', () => {
     );
     const { onSave } = setup({ type: 'GALLERY' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }));
-    const pickers = screen.getAllByLabelText('Chọn ảnh');
+    await userEvent.click(screen.getByRole('button', { name: 'Add image' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add image' }));
+    const pickers = screen.getAllByLabelText('Choose image');
     await userEvent.upload(pickers[0], PNG);
     await userEvent.upload(pickers[1], PNG);
-    await userEvent.type(screen.getAllByLabelText('Chú thích ảnh')[0], 'Một');
+    await userEvent.type(screen.getAllByLabelText('Image caption')[0], 'Một');
     finishFirst();
-    await within(screen.getByRole('group', { name: 'Ảnh 1' })).findByRole('img', { name: 'Ảnh đã chọn' });
+    await within(screen.getByRole('group', { name: 'Image 1' })).findByRole('img', { name: 'Selected image' });
     finishSecond();
-    await within(screen.getByRole('group', { name: 'Ảnh 2' })).findByRole('img', { name: 'Ảnh đã chọn' });
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await within(screen.getByRole('group', { name: 'Image 2' })).findByRole('img', { name: 'Selected image' });
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSave.mock.calls[0][0].items).toEqual([
       { label: 'Một', value: null, mediaId: 1 },
@@ -154,15 +154,15 @@ describe('BlockEditor', () => {
     });
     onSave.mockRejectedValue(
       new ApiError(400, 'INVALID_BLOCK', 'x', [
-        { field: 'items[0].value', message: 'Link phải bắt đầu bằng http:// hoặc https://' },
+        { field: 'items[0].value', message: 'Links must start with http:// or https://' },
       ]),
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(await screen.findByText('Link phải bắt đầu bằng http:// hoặc https://')).toBeInTheDocument();
-    expect(screen.getByLabelText('Link')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('alert')).toHaveTextContent('Nội dung khối chưa hợp lệ.');
+    expect(await screen.findByText('Links must start with http:// or https://')).toBeInTheDocument();
+    expect(screen.getByLabelText('URL')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('Some block fields are not valid.');
   });
 
   it('prefills an existing block and cancels', async () => {
@@ -171,11 +171,11 @@ describe('BlockEditor', () => {
       initial: block({ id: 3, type: 'EMBED', title: 'MV', embedUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' }),
     });
 
-    expect(screen.getByLabelText('Tiêu đề')).toHaveValue('MV');
-    expect(screen.getByLabelText('Link YouTube hoặc Spotify')).toHaveValue(
+    expect(screen.getByLabelText('Title')).toHaveValue('MV');
+    expect(screen.getByLabelText('YouTube or Spotify link')).toHaveValue(
       'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Hủy' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalled();
   });
 
@@ -185,9 +185,9 @@ describe('BlockEditor', () => {
       initial: block({ id: 3, type: 'GALLERY', items: [item({ label: 'A', mediaId: 5, mediaUrl: '/api/media/5' })] }),
     });
 
-    const row = screen.getByRole('group', { name: 'Ảnh 1' });
-    expect(within(row).getByRole('img', { name: 'Ảnh đã chọn' })).toHaveAttribute('src', '/api/media/5');
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    const row = screen.getByRole('group', { name: 'Image 1' });
+    expect(within(row).getByRole('img', { name: 'Selected image' })).toHaveAttribute('src', '/api/media/5');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0].items).toEqual([{ label: 'A', value: null, mediaId: 5 }]);
   });

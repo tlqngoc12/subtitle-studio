@@ -70,7 +70,7 @@ describe('WatchPage', () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Danh sách Vietsub/ })).toHaveAttribute('href', '/vietsub/list');
+    expect(screen.getByRole('link', { name: /Vietsub list/ })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('shows the subtitle for the current time', async () => {
@@ -94,7 +94,7 @@ describe('WatchPage', () => {
     (HTMLElement.prototype as { requestFullscreen?: unknown }).requestFullscreen = requestFullscreen;
     renderPage();
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Toàn màn hình' }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Full screen' }));
 
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     expect(requestFullscreen.mock.contexts[0]).toHaveClass('player');
@@ -103,7 +103,7 @@ describe('WatchPage', () => {
   it('puts the fullscreen button inside the player frame, like YouTube', async () => {
     renderPage();
 
-    const button = await screen.findByRole('button', { name: 'Toàn màn hình' });
+    const button = await screen.findByRole('button', { name: 'Full screen' });
     expect(button.closest('.player')).not.toBeNull();
   });
 
@@ -111,13 +111,13 @@ describe('WatchPage', () => {
     const exitFullscreen = vi.fn().mockResolvedValue(undefined);
     (document as { exitFullscreen?: unknown }).exitFullscreen = exitFullscreen;
     renderPage();
-    const frame = (await screen.findByRole('button', { name: 'Toàn màn hình' })).closest('.player')!;
+    const frame = (await screen.findByRole('button', { name: 'Full screen' })).closest('.player')!;
 
     act(() => {
       Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => frame });
       document.dispatchEvent(new Event('fullscreenchange'));
     });
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Thoát toàn màn hình' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Exit full screen' }));
 
     expect(exitFullscreen).toHaveBeenCalledTimes(1);
   });
@@ -126,7 +126,7 @@ describe('WatchPage', () => {
     const requestFullscreen = vi.fn().mockResolvedValue(undefined);
     (HTMLElement.prototype as { requestFullscreen?: unknown }).requestFullscreen = requestFullscreen;
     renderPage();
-    await screen.findByRole('button', { name: 'Toàn màn hình' });
+    await screen.findByRole('button', { name: 'Full screen' });
 
     const user = userEvent.setup();
     await user.keyboard('{Control>}f{/Control}');
@@ -140,21 +140,21 @@ describe('WatchPage', () => {
     player.error = 'EMBED_BLOCKED';
     renderPage();
 
-    expect(await screen.findByText('Video này không cho phép phát nhúng trong app.')).toBeInTheDocument();
+    expect(await screen.findByText('This video cannot be played in an embedded player.')).toBeInTheDocument();
   });
 
   it('explains when the player cannot load', async () => {
     player.error = 'LOAD_FAILED';
     renderPage();
 
-    expect(await screen.findByText(/Không tải được trình phát YouTube/)).toBeInTheDocument();
+    expect(await screen.findByText(/Could not load the YouTube player/)).toBeInTheDocument();
   });
 
   it('says when the video has no Vietsub', async () => {
     renderPage({ ...video, viCueCount: 0, viUpdatedAt: null }, []);
 
-    expect(await screen.findByText('Video này chưa có Vietsub.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Thêm Vietsub/ })).toHaveAttribute('href', '/vietsub');
+    expect(await screen.findByText('This video has no Vietsub yet.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Add Vietsub/ })).toHaveAttribute('href', '/vietsub');
   });
 
   it('shows not found for an unknown video', async () => {
@@ -170,6 +170,6 @@ describe('WatchPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Video này không còn trong danh sách');
+    expect(await screen.findByRole('alert')).toHaveTextContent('This video is no longer in the list');
   });
 });

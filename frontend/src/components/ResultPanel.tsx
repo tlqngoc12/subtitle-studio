@@ -12,12 +12,12 @@ export function ResultPanel({ video, cues }: Props) {
   const isAuto = video.subSource === 'AUTO';
 
   return (
-    <section className="result" aria-label="Kết quả">
+    <section className="result" aria-label="Result">
       <div className="result__meta">
         <img
           className="result__thumb"
           src={video.thumbnailUrl}
-          alt={`Ảnh thu nhỏ của ${video.title}`}
+          alt={`Thumbnail of ${video.title}`}
           width={320}
           height={180}
         />
@@ -26,18 +26,18 @@ export function ResultPanel({ video, cues }: Props) {
           {video.channel && <span>{video.channel}</span>}
           {duration && <span>{duration}</span>}
         </p>
-        <p className="result__source">{video.cueCount} câu</p>
+        <p className="result__source">{video.cueCount} lines</p>
         {isAuto && (
           <p className="result__note">
-            Phụ đề tự động của YouTube: không có dấu câu, bạn sẽ cần tự ngắt câu khi dịch.
+            YouTube auto-generated captions: there is no punctuation, so you will need to split sentences yourself when translating.
           </p>
         )}
         <a className="button button--primary" href={srtUrl(video.id)} download>
-          Tải .srt
+          Download .srt
         </a>
       </div>
       <div className="result__preview">
-        {cues === null ? <p className="muted">Đang tải bản xem trước…</p> : <CueTable cues={cues} />}
+        {cues === null ? <p className="muted">Loading preview…</p> : <CueTable cues={cues} />}
       </div>
     </section>
   );

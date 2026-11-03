@@ -263,6 +263,11 @@ img {
   height: 18px;
 }
 
+.icon--sm {
+  width: 14px;
+  height: 14px;
+}
+
 .button--spinning .icon {
   animation: spin 1s linear infinite;
 }
@@ -429,8 +434,24 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 0;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--rule);
+  transition: background-color 120ms ease-out;
+}
+
+.history__item:hover {
+  background: color-mix(in srgb, var(--brand-2) 14%, transparent);
+}
+
+/* On /vietsub/list the whole row is the link to the watch page. */
+.history__open--row {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history__item {
+    transition: none;
+  }
 }
 
 .history__open {
@@ -574,16 +595,49 @@ a.history__open {
 
 /* ---------- Navigation (Phase 2) ---------- */
 
-.nav {
+/* Sticky top bar: app name + sections. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.topbar__inner {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 14px var(--gutter) 0;
+  padding: 10px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar__brand {
+  flex: none;
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+/* One row; on narrow screens the sections scroll sideways instead of wrapping. */
+.nav {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav__link {
+  flex: none;
+  white-space: nowrap;
   padding: 6px 14px;
   border-radius: 999px;
   color: var(--muted);
@@ -595,9 +649,27 @@ a.history__open {
   color: var(--ink);
 }
 
+.nav__link,
+.ptabs__link {
+  position: relative;
+  isolation: isolate;
+}
+
 .nav__link[aria-current='page'] {
-  background: var(--brand-2);
   color: var(--on-brand);
+}
+
+/* The sliding "you are here" pill (motion layoutId), drawn behind the link text. */
+.nav__pill,
+.ptabs__pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+}
+
+.nav__pill {
+  background: var(--brand-2);
 }
 
 /* ---------- Vietsub form ---------- */
@@ -619,7 +691,7 @@ a.history__open {
   min-width: 0;
 }
 
-.vsform__field label {
+.vsform__field > label {
   font-size: var(--step--1);
   font-weight: 700;
   color: var(--muted);
@@ -634,10 +706,31 @@ a.history__open {
   font: inherit;
 }
 
-.vsform__field input[type='file'] {
-  font: inherit;
+.filepick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 42px;
+}
+
+.filepick__button {
+  flex: none;
+  cursor: pointer;
+}
+
+/* The hidden input keeps keyboard focus; show it on the visible button. */
+.filepick input:focus-visible + .filepick__button {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.filepick__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--step--1);
-  max-width: 100%;
 }
 
 @media (max-width: 760px) {
@@ -782,9 +875,13 @@ a.history__open {
 }
 
 .ptabs__link[aria-current='page'] {
-  background: var(--brand);
-  border-color: var(--brand);
+  border-color: transparent;
   color: var(--on-brand);
+}
+
+.ptabs__pill {
+  inset: -1px;
+  background: var(--brand);
 }
 
 .pblocks {
@@ -1070,5 +1167,101 @@ a.history__open {
 @media (max-width: 520px) {
   .items__row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Motion, icons, tooltips ---------- */
+
+/* Video metadata: icon + value pairs (lines, duration, channel). */
+.history__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The row just fetched or replaced flashes an orange ring once. */
+.history__item--new {
+  animation: row-flash 1.6s ease-out;
+}
+
+@keyframes row-flash {
+  from {
+    box-shadow: inset 0 0 0 2px var(--brand);
+    background: color-mix(in srgb, var(--brand) 14%, transparent);
+  }
+  to {
+    box-shadow: inset 0 0 0 2px transparent;
+    background: transparent;
+  }
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty__icon {
+  width: 40px;
+  height: 40px;
+  color: var(--brand-2);
+}
+
+.empty__text {
+  margin: 0;
+  max-width: 46ch;
+}
+
+.pblock__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pblock__title-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--brand);
+}
+
+.tip {
+  z-index: 50;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--step--1);
+  font-weight: 700;
+  line-height: 1.3;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+  animation: tip-in 120ms ease-out;
+}
+
+.tip__arrow {
+  fill: var(--ink);
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history__item--new,
+  .tip {
+    animation: none;
   }
 }

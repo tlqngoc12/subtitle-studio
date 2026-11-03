@@ -6,12 +6,12 @@ import { ImagePicker, type PickedImage } from './ImagePicker';
 import { ItemListEditor } from './ItemListEditor';
 
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
-  TEXT: 'Văn bản',
-  IMAGE: 'Ảnh',
-  GALLERY: 'Thư viện ảnh',
-  EMBED: 'Nhạc / Video',
-  LINKS: 'Link',
-  FACTS: 'Thông tin nhanh',
+  TEXT: 'Text',
+  IMAGE: 'Image',
+  GALLERY: 'Gallery',
+  EMBED: 'Music / Video',
+  LINKS: 'Links',
+  FACTS: 'Quick facts',
 };
 
 interface Row {
@@ -139,7 +139,7 @@ export function BlockEditor({
   );
 
   return (
-    <form className="peditor" aria-label={`Khối ${BLOCK_TYPE_LABELS[type]}`} onSubmit={submit} noValidate>
+    <form className="peditor" aria-label={`${BLOCK_TYPE_LABELS[type]} block`} onSubmit={submit} noValidate>
       <p className="peditor__kind">{BLOCK_TYPE_LABELS[type]}</p>
       {formError && (
         <div className="alert" role="alert">
@@ -148,14 +148,14 @@ export function BlockEditor({
         </div>
       )}
 
-      {field('title', 'Tiêu đề', text(title, setTitle), 'Không bắt buộc')}
+      {field('title', 'Title', text(title, setTitle), 'Optional')}
 
       {type === 'TEXT' &&
         field(
           'body',
-          'Nội dung',
+          'Content',
           (props) => <textarea {...props} rows={8} value={body} onChange={(e) => setBody(e.target.value)} />,
-          'Hỗ trợ Markdown: **đậm**, *nghiêng*, - danh sách, [tên](https://link)',
+          'Markdown supported: **bold**, *italic*, - list, [name](https://link)',
         )}
 
       {type === 'IMAGE' && (
@@ -174,20 +174,20 @@ export function BlockEditor({
               </p>
             )}
           </div>
-          {field('caption', 'Chú thích', text(caption, setCaption))}
+          {field('caption', 'Caption', text(caption, setCaption))}
         </>
       )}
 
       {type === 'EMBED' &&
-        field('embedUrl', 'Link YouTube hoặc Spotify', text(embedUrl, setEmbedUrl), 'Dán link bài hát, album, playlist hoặc video')}
+        field('embedUrl', 'YouTube or Spotify link', text(embedUrl, setEmbedUrl), 'Paste a link to a song, album, playlist or video')}
 
       {type === 'GALLERY' && (
         <ItemListEditor
           rows={rows}
           onChange={setRows}
           newRow={() => newRow()}
-          noun="ảnh"
-          legend={(i) => `Ảnh ${i + 1}`}
+          noun="image"
+          legend={(i) => `Image ${i + 1}`}
           renderRow={(row, i, update) => (
             <>
               <ImagePicker
@@ -197,7 +197,7 @@ export function BlockEditor({
                 invalid={!!errorOf(`items[${i}].mediaId`)}
               />
               {errorOf(`items[${i}].mediaId`) && <p className="field__error">{errorOf(`items[${i}].mediaId`)}</p>}
-              {field(`items[${i}].label`, 'Chú thích ảnh', text(row.label, (v) => update({ label: v })))}
+              {field(`items[${i}].label`, 'Image caption', text(row.label, (v) => update({ label: v })))}
             </>
           )}
         />
@@ -209,11 +209,11 @@ export function BlockEditor({
           onChange={setRows}
           newRow={() => newRow()}
           noun="link"
-          legend={(i) => `Mục ${i + 1}`}
+          legend={(i) => `Item ${i + 1}`}
           renderRow={(row, i, update) => (
             <>
-              {field(`items[${i}].label`, 'Tên link', text(row.label, (v) => update({ label: v })))}
-              {field(`items[${i}].value`, 'Link', text(row.value, (v) => update({ value: v })))}
+              {field(`items[${i}].label`, 'Link name', text(row.label, (v) => update({ label: v })))}
+              {field(`items[${i}].value`, 'URL', text(row.value, (v) => update({ value: v })))}
             </>
           )}
         />
@@ -224,12 +224,12 @@ export function BlockEditor({
           rows={rows}
           onChange={setRows}
           newRow={() => newRow()}
-          noun="dòng"
-          legend={(i) => `Dòng ${i + 1}`}
+          noun="row"
+          legend={(i) => `Row ${i + 1}`}
           renderRow={(row, i, update) => (
             <>
-              {field(`items[${i}].label`, 'Nhãn', text(row.label, (v) => update({ label: v })))}
-              {field(`items[${i}].value`, 'Giá trị', text(row.value, (v) => update({ value: v })))}
+              {field(`items[${i}].label`, 'Label', text(row.label, (v) => update({ label: v })))}
+              {field(`items[${i}].value`, 'Value', text(row.value, (v) => update({ value: v })))}
             </>
           )}
         />
@@ -239,10 +239,10 @@ export function BlockEditor({
 
       <div className="peditor__actions">
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
-          Lưu
+          Save
         </button>
         <button type="button" className="button button--small" onClick={onCancel}>
-          Hủy
+          Cancel
         </button>
       </div>
     </form>

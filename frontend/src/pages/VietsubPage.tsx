@@ -14,6 +14,7 @@ export default function VietsubPage() {
   const [pending, setPending] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const pager = usePagination(videos);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function VietsubPage() {
     try {
       const updated = await addVietsub(video.id, file);
       setVideos((list) => withVietsub([updated, ...(list ?? []).filter((v) => v.id !== updated.id)]));
+      setHighlightId(updated.id);
       pager.setPage(1, { replace: true }); // the replaced video is now the most recent one
     } catch (e) {
       setError(errorMessage(e));
@@ -52,7 +54,7 @@ export default function VietsubPage() {
   }
 
   async function handleDelete(video: VideoDto) {
-    if (!window.confirm(`Xoá Vietsub của "${video.title}"?`)) return;
+    if (!window.confirm(`Delete the Vietsub of "${video.title}"?`)) return;
     setBusyId(video.id);
     setError(null);
     try {
@@ -70,7 +72,7 @@ export default function VietsubPage() {
       <header className="masthead">
         <h1 className="masthead__name">Vietsub</h1>
         <p className="masthead__lede">
-          Dán link YouTube và chọn file .srt tiếng Việt (giữ nguyên timing) để xem video kèm Vietsub.
+          Paste a YouTube link and choose a Vietnamese .srt file (with the original timing) to watch the video with Vietsub.
         </p>
       </header>
 
@@ -86,6 +88,8 @@ export default function VietsubPage() {
       <VietsubList
         videos={pager.items}
         busyId={busyId}
+        highlightId={highlightId}
+        listKey={pager.page}
         onReplace={handleReplace}
         onDelete={handleDelete}
         footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}

@@ -31,6 +31,7 @@ export default function HomePage() {
   const [pending, setPending] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const pager = usePagination(videos);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function HomePage() {
     try {
       const { video } = await fetchVideo(url);
       setVideos((list) => upsert(list, video));
+      setHighlightId(video.id);
       pager.setPage(1, { replace: true }); // the fetched video is now first in the list
       await show(video);
     } catch (e) {
@@ -82,7 +84,7 @@ export default function HomePage() {
   }
 
   async function handleDelete(video: VideoDto) {
-    if (!window.confirm(`Xoá "${video.title}" cùng phụ đề đã lưu?`)) return;
+    if (!window.confirm(`Delete "${video.title}" and its saved subtitles?`)) return;
     setBusyId(video.id);
     setError(null);
     try {
@@ -100,7 +102,7 @@ export default function HomePage() {
     <main className="page">
       <header className="masthead">
         <h1 className="masthead__name">Subtitle Studio</h1>
-        <p className="masthead__lede">Dán link YouTube để lấy phụ đề tiếng Anh đã làm sạch, rồi tải về file .srt để dịch.</p>
+        <p className="masthead__lede">Paste a YouTube link to get cleaned-up English subtitles, then download the .srt file to translate.</p>
       </header>
 
       <UrlForm pending={pending} onSubmit={handleFetch} />
@@ -118,6 +120,8 @@ export default function HomePage() {
         videos={pager.items}
         footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
         busyId={busyId}
+        highlightId={highlightId}
+        listKey={pager.page}
         onOpen={(v) => {
           setError(null);
           void show(v);

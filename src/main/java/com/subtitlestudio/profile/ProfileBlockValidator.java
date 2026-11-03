@@ -33,7 +33,7 @@ public class ProfileBlockValidator {
         List<FieldError> errors = new ArrayList<>();
         BlockType type = request.type();
         if (type == null) {
-            throw new InvalidBlockException(List.of(new FieldError("type", "Thiếu loại khối")));
+            throw new InvalidBlockException(List.of(new FieldError("type", "Block type is required")));
         }
         String title = optional(request.title(), "title", MAX_TITLE, errors);
         String body = null;
@@ -45,9 +45,9 @@ public class ProfileBlockValidator {
         switch (type) {
             case TEXT -> {
                 if (request.body() == null || request.body().isBlank()) {
-                    errors.add(new FieldError("body", "Nội dung không được để trống"));
+                    errors.add(new FieldError("body", "Content is required"));
                 } else if (request.body().length() > MAX_BODY) {
-                    errors.add(new FieldError("body", "Nội dung dài quá " + MAX_BODY + " ký tự"));
+                    errors.add(new FieldError("body", "Content is longer than " + MAX_BODY + " characters"));
                 } else {
                     body = request.body();
                 }
@@ -59,7 +59,7 @@ public class ProfileBlockValidator {
             case EMBED -> {
                 embedUrl = embedUrls.resolve(request.embedUrl()).orElse(null);
                 if (embedUrl == null) {
-                    errors.add(new FieldError("embedUrl", "Chỉ nhận link YouTube hoặc Spotify"));
+                    errors.add(new FieldError("embedUrl", "Only YouTube or Spotify links are supported"));
                 }
             }
             case GALLERY, LINKS, FACTS -> items = items(type, request.items(), mediaExists, errors);
@@ -74,11 +74,11 @@ public class ProfileBlockValidator {
     private List<ValidItem> items(BlockType type, List<ItemRequest> requested, LongPredicate mediaExists,
                                   List<FieldError> errors) {
         if (requested == null || requested.isEmpty()) {
-            errors.add(new FieldError("items", "Cần ít nhất một mục"));
+            errors.add(new FieldError("items", "Add at least one item"));
             return List.of();
         }
         if (requested.size() > MAX_ITEMS) {
-            errors.add(new FieldError("items", "Tối đa " + MAX_ITEMS + " mục"));
+            errors.add(new FieldError("items", "At most " + MAX_ITEMS + " items"));
             return List.of();
         }
         List<ValidItem> items = new ArrayList<>(requested.size());
@@ -93,7 +93,7 @@ public class ProfileBlockValidator {
                     String label = required(r.label(), prefix + "label", MAX_LABEL, errors);
                     String url = required(r.value(), prefix + "value", MAX_VALUE, errors);
                     if (url != null && !isWebUrl(url)) {
-                        errors.add(new FieldError(prefix + "value", "Link phải bắt đầu bằng http:// hoặc https://"));
+                        errors.add(new FieldError(prefix + "value", "Links must start with http:// or https://"));
                     }
                     items.add(new ValidItem(label, url, null));
                 }
@@ -108,11 +108,11 @@ public class ProfileBlockValidator {
 
     private static Long media(Long id, String field, LongPredicate mediaExists, List<FieldError> errors) {
         if (id == null) {
-            errors.add(new FieldError(field, "Chưa chọn ảnh"));
+            errors.add(new FieldError(field, "No image chosen"));
             return null;
         }
         if (!mediaExists.test(id)) {
-            errors.add(new FieldError(field, "Ảnh không còn tồn tại"));
+            errors.add(new FieldError(field, "The image no longer exists"));
             return null;
         }
         return id;
@@ -124,7 +124,7 @@ public class ProfileBlockValidator {
         }
         String stripped = value.strip();
         if (stripped.length() > max) {
-            errors.add(new FieldError(field, "Dài quá " + max + " ký tự"));
+            errors.add(new FieldError(field, "Longer than " + max + " characters"));
         }
         return stripped;
     }
@@ -132,7 +132,7 @@ public class ProfileBlockValidator {
     private static String required(String value, String field, int max, List<FieldError> errors) {
         String stripped = optional(value, field, max, errors);
         if (stripped == null) {
-            errors.add(new FieldError(field, "Không được để trống"));
+            errors.add(new FieldError(field, "Required"));
         }
         return stripped;
     }

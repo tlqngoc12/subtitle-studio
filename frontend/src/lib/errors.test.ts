@@ -4,24 +4,24 @@ import { errorMessage } from './errors';
 
 describe('errorMessage', () => {
   it.each([
-    ['INVALID_URL', 'Link không hợp lệ'],
-    ['NO_ENGLISH_SUBTITLE', 'Video này không có phụ đề tiếng Anh'],
-    ['YTDLP_FAILED', 'Không lấy được phụ đề từ YouTube'],
-    ['YTDLP_TIMEOUT', 'YouTube phản hồi quá lâu'],
-    ['VIDEO_NOT_FOUND', 'Video này không còn trong danh sách'],
-    ['INTERNAL_ERROR', 'Máy chủ gặp lỗi'],
-  ])('maps %s to a Vietnamese message', (code, expected) => {
+    ['INVALID_URL', 'Invalid link'],
+    ['NO_ENGLISH_SUBTITLE', 'This video has no English subtitles'],
+    ['YTDLP_FAILED', 'Could not get subtitles from YouTube'],
+    ['YTDLP_TIMEOUT', 'YouTube took too long to respond'],
+    ['VIDEO_NOT_FOUND', 'This video is no longer in the list'],
+    ['INTERNAL_ERROR', 'The server ran into an error'],
+  ])('maps %s to an English message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
   });
 
   it('explains an unreadable .srt and keeps the server detail', () => {
     const msg = errorMessage(new ApiError(400, 'INVALID_SRT', 'No subtitle blocks found'));
-    expect(msg.title).toContain('Không đọc được file .srt');
+    expect(msg.title).toContain('Could not read the .srt file');
     expect(msg.hint).toBe('No subtitle blocks found');
   });
 
   it('explains a file that is too large', () => {
-    expect(errorMessage(new ApiError(413, 'FILE_TOO_LARGE', 'Upload exceeds 5 MB')).title).toContain('tối đa 5 MB');
+    expect(errorMessage(new ApiError(413, 'FILE_TOO_LARGE', 'Upload exceeds 5 MB')).title).toContain('5 MB max');
   });
 
   it('keeps the server detail as a hint for yt-dlp failures', () => {
@@ -30,18 +30,18 @@ describe('errorMessage', () => {
   });
 
   it.each([
-    ['PROFILE_NOT_FOUND', 'Không tìm thấy profile.'],
-    ['BLOCK_NOT_FOUND', 'Khối này không còn nữa.'],
-    ['INVALID_BLOCK', 'Nội dung khối chưa hợp lệ.'],
-    ['INVALID_MEDIA', 'File không phải ảnh JPEG, PNG, WebP hoặc GIF.'],
-    ['MEDIA_TOO_LARGE', 'Ảnh quá lớn (tối đa 10 MB).'],
-    ['MEDIA_NOT_FOUND', 'Không tìm thấy ảnh.'],
+    ['PROFILE_NOT_FOUND', 'Profile not found.'],
+    ['BLOCK_NOT_FOUND', 'This block no longer exists.'],
+    ['INVALID_BLOCK', 'Some block fields are not valid.'],
+    ['INVALID_MEDIA', 'The file is not a JPEG, PNG, WebP or GIF image.'],
+    ['MEDIA_TOO_LARGE', 'Image too large (10 MB max).'],
+    ['MEDIA_NOT_FOUND', 'Image not found.'],
   ])('maps profile code %s', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toBe(expected);
   });
 
   it('asks to reload when a block is gone', () => {
-    expect(errorMessage(new ApiError(404, 'BLOCK_NOT_FOUND', 'x')).hint).toBe('Tải lại trang.');
+    expect(errorMessage(new ApiError(404, 'BLOCK_NOT_FOUND', 'x')).hint).toBe('Reload the page.');
   });
 
   it('keeps field errors from an INVALID_BLOCK problem', () => {
@@ -52,7 +52,7 @@ describe('errorMessage', () => {
 
   it('explains network failures', () => {
     expect(errorMessage(new ApiError(0, 'NETWORK', 'Failed to fetch')).title)
-      .toContain('Không kết nối được máy chủ');
+      .toContain('Cannot reach the server');
   });
 
   it('falls back to the HTTP status when there is no known code', () => {
@@ -60,6 +60,6 @@ describe('errorMessage', () => {
   });
 
   it('handles non-API errors', () => {
-    expect(errorMessage(new Error('boom')).title).toContain('Có lỗi xảy ra');
+    expect(errorMessage(new Error('boom')).title).toContain('Something went wrong');
   });
 });

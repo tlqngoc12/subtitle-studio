@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Clock, ListVideo, Tv } from 'lucide-react';
 import { Link } from 'react-router';
 import { listVideos, type VideoDto } from '../api/client';
+import { EmptyState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { formatDuration } from '../lib/format';
@@ -25,8 +27,8 @@ export default function VietsubListPage() {
   return (
     <main className="page">
       <header className="masthead">
-        <h1 className="masthead__name">Danh sách Vietsub</h1>
-        <p className="masthead__lede">Chọn một video để xem kèm Vietsub.</p>
+        <h1 className="masthead__name">Vietsub list</h1>
+        <p className="masthead__lede">Choose a video to watch with Vietsub.</p>
       </header>
 
       {error && (
@@ -36,25 +38,36 @@ export default function VietsubListPage() {
         </div>
       )}
 
-      <section className="history" aria-label="Danh sách Vietsub">
+      <section className="history" aria-label="Vietsub list">
         {pager.items === null ? (
-          <p className="muted">Đang tải danh sách…</p>
+          <p className="muted">Loading list…</p>
         ) : pager.items.length === 0 ? (
-          <p className="muted">
-            Chưa có video nào có Vietsub. <Link to="/vietsub">Thêm Vietsub</Link>
-          </p>
+          <EmptyState icon={ListVideo}>
+            No videos with Vietsub yet. <Link to="/vietsub">Add Vietsub</Link>
+          </EmptyState>
         ) : (
           <ul className="history__list">
             {pager.items.map((v) => {
               const duration = formatDuration(v.durationSec);
               return (
                 <li key={v.id} className="history__item">
-                  <Link className="history__open" to={`/vietsub/${v.id}`}>
+                  <Link className="history__open history__open--row" to={`/vietsub/${v.id}`}>
                     <img src={v.thumbnailUrl} alt="" width={160} height={90} loading="lazy" />
                     <span className="history__text">
                       <span className="history__title">{v.title}</span>
                       <span className="history__sub">
-                        {[v.channel, duration].filter(Boolean).join(', ')}
+                        {v.channel && (
+                          <span className="meta">
+                            <Tv className="icon icon--sm" aria-hidden="true" />
+                            {v.channel}
+                          </span>
+                        )}
+                        {duration && (
+                          <span className="meta">
+                            <Clock className="icon icon--sm" aria-hidden="true" />
+                            {duration}
+                          </span>
+                        )}
                       </span>
                     </span>
                   </Link>

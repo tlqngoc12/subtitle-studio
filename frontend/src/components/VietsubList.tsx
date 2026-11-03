@@ -1,76 +1,97 @@
-import { Download, FileUp, Trash2 } from 'lucide-react';
+import { Captions, Download, FilePlus, FileUp, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { viSrtUrl, type VideoDto } from '../api/client';
+import { rowMotion } from '../lib/motion';
+import { EmptyState } from './EmptyState';
+import { Tip } from './Tip';
 
 interface Props {
   videos: VideoDto[] | null;
   busyId: string | null;
   onReplace: (video: VideoDto, file: File) => void;
   onDelete: (video: VideoDto) => void;
+  /** The row to flash once, e.g. the video whose Vietsub was just replaced. */
+  highlightId?: string | null;
+  /** Changes when another page is shown, so its rows appear without enter/exit animations. */
+  listKey?: number;
   /** Shown under the list, e.g. the pager. */
   footer?: ReactNode;
 }
 
-export function VietsubList({ videos, busyId, onReplace, onDelete, footer }: Props) {
+export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, listKey, footer }: Props) {
   return (
-    <section className="history" aria-label="Quản lý Vietsub">
-      <h2 className="history__heading">Quản lý Vietsub</h2>
+    <section className="history" aria-label="Manage Vietsub">
+      <h2 className="history__heading">Manage Vietsub</h2>
       {videos === null ? (
-        <p className="muted">Đang tải danh sách…</p>
+        <p className="muted">Loading list…</p>
       ) : videos.length === 0 ? (
-        <p className="muted">Chưa có video nào có Vietsub. Dán link YouTube và chọn file .srt ở trên để bắt đầu.</p>
+        <EmptyState icon={FilePlus}>
+          No videos with Vietsub yet. Paste a YouTube link and choose an .srt file above to start.
+        </EmptyState>
       ) : (
-        <ul className="history__list">
-          {videos.map((v) => {
-            const busy = busyId === v.id;
-            return (
-              <li key={v.id} className="history__item" aria-busy={busy}>
-                <span className="history__open history__open--static">
-                  <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
-                  <span className="history__text">
-                    <span className="history__title">{v.title}</span>
-                    <span className="history__sub">{v.viCueCount} câu</span>
+        <ul className="history__list" key={listKey}>
+          <AnimatePresence initial={false}>
+            {videos.map((v) => {
+              const busy = busyId === v.id;
+              return (
+                <motion.li
+                  key={v.id}
+                  {...rowMotion}
+                  className={v.id === highlightId ? 'history__item history__item--new' : 'history__item'}
+                  aria-busy={busy}
+                >
+                  <span className="history__open history__open--static">
+                    <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
+                    <span className="history__text">
+                      <span className="history__title">{v.title}</span>
+                      <span className="history__sub">
+                        <span className="meta">
+                          <Captions className="icon icon--sm" aria-hidden="true" />
+                          {v.viCueCount} lines
+                        </span>
+                      </span>
+                    </span>
                   </span>
-                </span>
-                <span className="history__actions">
-                  <a
-                    className="button button--icon"
-                    href={viSrtUrl(v.id)}
-                    download
-                    aria-label={`Download Vietsub: ${v.title}`}
-                    title="Download Vietsub"
-                  >
-                    <Download className="icon" aria-hidden="true" />
-                  </a>
-                  <label className="button button--icon" title={busy ? 'Replacing…' : 'Replace Vietsub'}>
-                    <FileUp className="icon" aria-hidden="true" />
-                    <input
-                      className="visually-hidden"
-                      type="file"
-                      accept=".srt"
-                      disabled={busy}
-                      aria-label={`Replace Vietsub: ${v.title}`}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = '';
-                        if (file) onReplace(v, file);
-                      }}
-                    />
-                  </label>
-                  <button
-                    className="button button--icon button--danger"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => onDelete(v)}
-                    aria-label={`Delete Vietsub: ${v.title}`}
-                    title="Delete Vietsub"
-                  >
-                    <Trash2 className="icon" aria-hidden="true" />
-                  </button>
-                </span>
-              </li>
-            );
-          })}
+                  <span className="history__actions">
+                    <Tip label="Download Vietsub">
+                      <a className="button button--icon" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
+                        <Download className="icon" aria-hidden="true" />
+                      </a>
+                    </Tip>
+                    <Tip label={busy ? 'Replacing…' : 'Replace Vietsub'}>
+                      <label className="button button--icon">
+                        <FileUp className="icon" aria-hidden="true" />
+                        <input
+                          className="visually-hidden"
+                          type="file"
+                          accept=".srt"
+                          disabled={busy}
+                          aria-label={`Replace Vietsub: ${v.title}`}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (file) onReplace(v, file);
+                          }}
+                        />
+                      </label>
+                    </Tip>
+                    <Tip label="Delete Vietsub">
+                      <button
+                        className="button button--icon button--danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onDelete(v)}
+                        aria-label={`Delete Vietsub: ${v.title}`}
+                      >
+                        <Trash2 className="icon" aria-hidden="true" />
+                      </button>
+                    </Tip>
+                  </span>
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
         </ul>
       )}
       {footer}
