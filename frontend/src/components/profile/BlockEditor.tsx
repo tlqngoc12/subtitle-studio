@@ -1,0 +1,256 @@
+import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { ApiError, type FieldError } from '../../api/client';
+import type { BlockInput, BlockType, ProfileBlock } from '../../api/profiles';
+import { errorMessage, type ErrorMessage } from '../../lib/errors';
+import { ImagePicker, type PickedImage } from './ImagePicker';
+import { ItemListEditor } from './ItemListEditor';
+
+export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
+  TEXT: 'Văn bản',
+  IMAGE: 'Ảnh',
+  GALLERY: 'Thư viện ảnh',
+  EMBED: 'Nhạc / Video',
+  LINKS: 'Link',
+  FACTS: 'Thông tin nhanh',
+};
+
+interface Row {
+  key: number;
+  label: string;
+  value: string;
+  image: PickedImage | null;
+}
+
+const blankToNull = (s: string) => (s.trim() === '' ? null : s);
+
+/** Form for one block; `onSave` rejecting with an ApiError keeps the form open and shows the errors. */
+export function BlockEditor({
+  type,
+  initial,
+  onSave,
+  onCancel,
+}: {
+  type: BlockType;
+  initial?: ProfileBlock;
+  onSave: (input: BlockInput) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const idPrefix = useId();
+  const nextKey = useRef(0);
+  const newRow = (label = '', value = '', image: PickedImage | null = null): Row => ({
+    key: nextKey.current++,
+    label,
+    value,
+    image,
+  });
+
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [body, setBody] = useState(initial?.body ?? '');
+  const [caption, setCaption] = useState(initial?.caption ?? '');
+  const [embedUrl, setEmbedUrl] = useState(initial?.embedUrl ?? '');
+  const [image, setImage] = useState<PickedImage | null>(
+    initial?.mediaId != null && initial.mediaUrl ? { mediaId: initial.mediaId, mediaUrl: initial.mediaUrl } : null,
+  );
+  const [rows, setRows] = useState<Row[]>(() =>
+    (initial?.items ?? []).map((it) =>
+      newRow(
+        it.label ?? '',
+        it.value ?? '',
+        it.mediaId != null && it.mediaUrl ? { mediaId: it.mediaId, mediaUrl: it.mediaUrl } : null,
+      ),
+    ),
+  );
+  const [uploads, setUploads] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<ErrorMessage | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
+
+  const errorOf = (field: string) => fieldErrors.find((e) => e.field === field)?.message;
+  const onBusyChange = (busy: boolean) => setUploads((n) => n + (busy ? 1 : -1));
+
+  function input(): BlockInput {
+    const base: BlockInput = {
+      type,
+      title: blankToNull(title),
+      body: null,
+      mediaId: null,
+      caption: null,
+      embedUrl: null,
+      items: [],
+    };
+    switch (type) {
+      case 'TEXT':
+        return { ...base, body: blankToNull(body) };
+      case 'IMAGE':
+        return { ...base, mediaId: image?.mediaId ?? null, caption: blankToNull(caption) };
+      case 'EMBED':
+        return { ...base, embedUrl: blankToNull(embedUrl) };
+      case 'GALLERY':
+        return {
+          ...base,
+          items: rows.map((r) => ({ label: blankToNull(r.label), value: null, mediaId: r.image?.mediaId ?? null })),
+        };
+      case 'LINKS':
+      case 'FACTS':
+        return {
+          ...base,
+          items: rows.map((r) => ({ label: blankToNull(r.label), value: blankToNull(r.value), mediaId: null })),
+        };
+    }
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    setFieldErrors([]);
+    try {
+      await onSave(input());
+    } catch (err) {
+      setFormError(errorMessage(err));
+      setFieldErrors(err instanceof ApiError ? err.fieldErrors : []);
+      setSaving(false);
+    }
+  }
+
+  function field(name: string, label: string, control: (props: FieldProps) => ReactNode, hint?: string) {
+    const id = `${idPrefix}-${name}`;
+    const message = errorOf(name);
+    return (
+      <div className="field" key={name}>
+        <label htmlFor={id}>{label}</label>
+        {control({
+          id,
+          'aria-invalid': message ? true : undefined,
+          'aria-describedby': message ? `${id}-error` : undefined,
+        })}
+        {hint && <p className="field__hint">{hint}</p>}
+        {message && (
+          <p className="field__error" id={`${id}-error`}>
+            {message}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const text = (value: string, set: (v: string) => void) => (props: FieldProps) => (
+    <input {...props} type="text" value={value} onChange={(e) => set(e.target.value)} />
+  );
+
+  return (
+    <form className="peditor" aria-label={`Khối ${BLOCK_TYPE_LABELS[type]}`} onSubmit={submit} noValidate>
+      <p className="peditor__kind">{BLOCK_TYPE_LABELS[type]}</p>
+      {formError && (
+        <div className="alert" role="alert">
+          <p className="alert__title">{formError.title}</p>
+          {formError.hint && <p className="alert__hint">{formError.hint}</p>}
+        </div>
+      )}
+
+      {field('title', 'Tiêu đề', text(title, setTitle), 'Không bắt buộc')}
+
+      {type === 'TEXT' &&
+        field(
+          'body',
+          'Nội dung',
+          (props) => <textarea {...props} rows={8} value={body} onChange={(e) => setBody(e.target.value)} />,
+          'Hỗ trợ Markdown: **đậm**, *nghiêng*, - danh sách, [tên](https://link)',
+        )}
+
+      {type === 'IMAGE' && (
+        <>
+          <div className="field">
+            <ImagePicker
+              value={image}
+              onChange={setImage}
+              onBusyChange={onBusyChange}
+              invalid={!!errorOf('mediaId')}
+              describedBy={errorOf('mediaId') ? `${idPrefix}-mediaId-error` : undefined}
+            />
+            {errorOf('mediaId') && (
+              <p className="field__error" id={`${idPrefix}-mediaId-error`}>
+                {errorOf('mediaId')}
+              </p>
+            )}
+          </div>
+          {field('caption', 'Chú thích', text(caption, setCaption))}
+        </>
+      )}
+
+      {type === 'EMBED' &&
+        field('embedUrl', 'Link YouTube hoặc Spotify', text(embedUrl, setEmbedUrl), 'Dán link bài hát, album, playlist hoặc video')}
+
+      {type === 'GALLERY' && (
+        <ItemListEditor
+          rows={rows}
+          onChange={setRows}
+          newRow={() => newRow()}
+          noun="ảnh"
+          legend={(i) => `Ảnh ${i + 1}`}
+          renderRow={(row, i, update) => (
+            <>
+              <ImagePicker
+                value={row.image}
+                onChange={(img) => update({ image: img })}
+                onBusyChange={onBusyChange}
+                invalid={!!errorOf(`items[${i}].mediaId`)}
+              />
+              {errorOf(`items[${i}].mediaId`) && <p className="field__error">{errorOf(`items[${i}].mediaId`)}</p>}
+              {field(`items[${i}].label`, 'Chú thích ảnh', text(row.label, (v) => update({ label: v })))}
+            </>
+          )}
+        />
+      )}
+
+      {type === 'LINKS' && (
+        <ItemListEditor
+          rows={rows}
+          onChange={setRows}
+          newRow={() => newRow()}
+          noun="link"
+          legend={(i) => `Mục ${i + 1}`}
+          renderRow={(row, i, update) => (
+            <>
+              {field(`items[${i}].label`, 'Tên link', text(row.label, (v) => update({ label: v })))}
+              {field(`items[${i}].value`, 'Link', text(row.value, (v) => update({ value: v })))}
+            </>
+          )}
+        />
+      )}
+
+      {type === 'FACTS' && (
+        <ItemListEditor
+          rows={rows}
+          onChange={setRows}
+          newRow={() => newRow()}
+          noun="dòng"
+          legend={(i) => `Dòng ${i + 1}`}
+          renderRow={(row, i, update) => (
+            <>
+              {field(`items[${i}].label`, 'Nhãn', text(row.label, (v) => update({ label: v })))}
+              {field(`items[${i}].value`, 'Giá trị', text(row.value, (v) => update({ value: v })))}
+            </>
+          )}
+        />
+      )}
+
+      {errorOf('items') && <p className="field__error">{errorOf('items')}</p>}
+
+      <div className="peditor__actions">
+        <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
+          Lưu
+        </button>
+        <button type="button" className="button button--small" onClick={onCancel}>
+          Hủy
+        </button>
+      </div>
+    </form>
+  );
+}
+
+interface FieldProps {
+  id: string;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
+}

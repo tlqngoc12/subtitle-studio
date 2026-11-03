@@ -906,3 +906,164 @@ a.history__open {
   color: var(--muted);
   font-weight: 700;
 }
+
+/* ---------- Profile edit mode ---------- */
+
+.pmasthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pblock-wrap {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ptools,
+.items__tools {
+  display: flex;
+  gap: 6px;
+}
+
+.padd {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.padd__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.peditor {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  background: var(--surface);
+  border: 2px solid var(--caption);
+  border-radius: var(--radius-frame);
+}
+
+.peditor__kind {
+  margin: 0;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.peditor__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field label,
+.picker label {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.field input[type='text'],
+.field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field [aria-invalid='true'],
+.picker [aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.field__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.field__error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.picker {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.picker input[type='file'] {
+  font: inherit;
+  font-size: var(--step--1);
+  max-width: 100%;
+}
+
+.picker__preview {
+  max-height: 180px;
+  width: auto;
+  border-radius: var(--radius-control);
+}
+
+.items {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.items__row {
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.items__row legend {
+  padding: 0 4px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.items__fields {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .items__row {
+    grid-template-columns: 1fr;
+  }
+}
