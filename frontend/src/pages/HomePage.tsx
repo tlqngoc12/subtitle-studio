@@ -6,8 +6,10 @@ import {
   getPromptProfiles,
   listVideos,
   refreshVideo,
+  translateVideo,
   type CueDto,
   type PromptProfiles,
+  type SkipReason,
   type VideoDto,
 } from '../api/client';
 import { Pagination } from '../components/Pagination';
@@ -16,6 +18,7 @@ import { UrlForm } from '../components/UrlForm';
 import { VideoList } from '../components/VideoList';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { usePagination } from '../lib/usePagination';
+import { useTranslationPolling } from '../lib/useTranslationPolling';
 
 interface Current {
   video: VideoDto;
@@ -47,6 +50,24 @@ export default function HomePage() {
   const pager = usePagination(videos);
   const [profiles, setProfiles] = useState<PromptProfiles>({ configured: false, profiles: [] });
   const [profile, setProfile] = useState(readStoredProfile);
+  const [skipReason, setSkipReason] = useState<SkipReason | null>(null);
+
+  /** Replaces a video everywhere it is shown (list and result panel). */
+  const replaceVideo = useCallback((video: VideoDto) => {
+    setVideos((list) => (list ?? []).map((v) => (v.id === video.id ? video : v)));
+    setCurrent((c) => (c?.video.id === video.id ? { ...c, video } : c));
+  }, []);
+
+  const forgetVideo = useCallback((id: string) => {
+    setVideos((list) => (list ?? []).filter((v) => v.id !== id));
+    setCurrent((c) => (c?.video.id === id ? null : c));
+  }, []);
+
+  const translatingIds = [
+    ...(videos ?? []).filter((v) => v.translationStatus === 'TRANSLATING').map((v) => v.id),
+    ...(current?.video.translationStatus === 'TRANSLATING' ? [current.video.id] : []),
+  ];
+  useTranslationPolling(translatingIds, replaceVideo, forgetVideo);
 
   useEffect(() => {
     getPromptProfiles()
@@ -91,7 +112,8 @@ export default function HomePage() {
     setPending(true);
     setError(null);
     try {
-      const { video } = await fetchVideo(url, profiles.configured && profile ? profile : undefined);
+      const { video, skipReason: skipped } = await fetchVideo(url, profiles.configured && profile ? profile : undefined);
+      setSkipReason(skipped);
       setVideos((list) => upsert(list, video));
       pager.setPage(1, { replace: true }); // the fetched video is now first in the list
       await show(video);
@@ -99,6 +121,16 @@ export default function HomePage() {
       setError(errorMessage(e));
     } finally {
       setPending(false);
+    }
+  }
+
+  async function handleTranslate(video: VideoDto) {
+    if (video.viSource === 'AUTO' && !window.confirm('Thay Vietsub Gemini hiện có?')) return;
+    setError(null);
+    try {
+      replaceVideo(await translateVideo(video.id, profile));
+    } catch (e) {
+      setError(errorMessage(e));
     }
   }
 
@@ -154,7 +186,15 @@ export default function HomePage() {
         </div>
       )}
 
-      {current && <ResultPanel video={current.video} cues={current.cues} />}
+      {current && (
+        <ResultPanel
+          video={current.video}
+          cues={current.cues}
+          profile={profile}
+          skipReason={skipReason}
+          onTranslate={handleTranslate}
+        />
+      )}
 
       <VideoList
         videos={pager.items}
@@ -162,6 +202,7 @@ export default function HomePage() {
         busyId={busyId}
         onOpen={(v) => {
           setError(null);
+          setSkipReason(null); // only describes the video just fetched
           void show(v);
         }}
         onRefresh={handleRefresh}

@@ -1,13 +1,18 @@
-import { srtUrl, type CueDto, type VideoDto } from '../api/client';
+import { srtUrl, type CueDto, type SkipReason, type VideoDto } from '../api/client';
 import { formatDuration } from '../lib/format';
 import { CueTable } from './CueTable';
+import { VietsubStatus } from './VietsubStatus';
 
 interface Props {
   video: VideoDto;
   cues: CueDto[] | null;
+  /** Translation profile chosen in the link frame ('' = none). */
+  profile: string;
+  skipReason: SkipReason | null;
+  onTranslate: (video: VideoDto) => void;
 }
 
-export function ResultPanel({ video, cues }: Props) {
+export function ResultPanel({ video, cues, profile, skipReason, onTranslate }: Props) {
   const duration = formatDuration(video.durationSec);
   const isAuto = video.subSource === 'AUTO';
 
@@ -27,6 +32,7 @@ export function ResultPanel({ video, cues }: Props) {
           {duration && <span>{duration}</span>}
         </p>
         <p className="result__source">{video.cueCount} câu</p>
+        <VietsubStatus video={video} profile={profile} skipReason={skipReason} onTranslate={onTranslate} />
         {isAuto && (
           <p className="result__note">
             Phụ đề tự động của YouTube: không có dấu câu, bạn sẽ cần tự ngắt câu khi dịch.

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadedRegion } from '../test/loadedRegion';
 import { MemoryRouter, useLocation } from 'react-router';
 import HomePage from './HomePage';
@@ -41,7 +41,15 @@ const cues: CueDto[] = [
   { idx: 1, startMs: 6_010, endMs: 8_500, text: 'and why it matters' },
 ];
 
-type Route = { method: string; path: string; status: number; body?: unknown; delay?: Promise<void> };
+type Route = {
+  method: string;
+  path: string;
+  status: number;
+  body?: unknown;
+  delay?: Promise<void>;
+  /** Replies used one per call, in order; the last one repeats. Overrides status/body. */
+  replies?: { status: number; body?: unknown }[];
+};
 
 /** Minimal fetch fake: first matching route wins; records every call. */
 function fakeFetch(routes: Route[]) {
@@ -53,9 +61,10 @@ function fakeFetch(routes: Route[]) {
     const route = routes.find((r) => r.method === method && r.path === path);
     if (!route) throw new TypeError('Failed to fetch');
     if (route.delay) await route.delay;
-    const isProblem = route.status >= 400;
-    return new Response(route.body === undefined ? null : JSON.stringify(route.body), {
-      status: route.status,
+    const reply = route.replies ? (route.replies.length > 1 ? route.replies.shift()! : route.replies[0]) : route;
+    const isProblem = reply.status >= 400;
+    return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
+      status: reply.status,
       headers: { 'Content-Type': isProblem ? 'application/problem+json' : 'application/json' },
     });
   });
@@ -298,6 +307,197 @@ describe('HomePage', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lấy Engsub' }));
 
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+  });
+
+  describe('Vietsub status', () => {
+    const profiles: Route = {
+      method: 'GET', path: '/api/prompt-profiles', status: 200, body: { configured: true, profiles: ['EmiBonnie'] },
+    };
+    const cuesRoute: Route = { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues };
+    const translating: VideoDto = { ...autoVideo, translationStatus: 'TRANSLATING', translationProfile: 'EmiBonnie' };
+    const done: VideoDto = {
+      ...autoVideo, viCueCount: 2, viSource: 'AUTO', translationStatus: null, translationProfile: 'EmiBonnie',
+    };
+    const manual: VideoDto = { ...autoVideo, viCueCount: 2, viSource: 'MANUAL' };
+    const failed: VideoDto = {
+      ...autoVideo, translationStatus: 'FAILED', translationError: 'Hết lượt miễn phí của Gemini, thử lại sau.',
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** userEvent that also moves fake timers forward when a test uses them. */
+    const user = () => userEvent.setup(vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : {});
+
+    async function chooseProfile() {
+      const select = await screen.findByLabelText('Hồ sơ dịch');
+      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
+      await user().selectOptions(select, 'EmiBonnie');
+    }
+
+    async function openFromHistory() {
+      const history = await loadedRegion('Đã lấy trước đó');
+      await user().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
+      return screen.findByRole('region', { name: 'Kết quả' });
+    }
+
+    it('shows that Gemini is translating', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [] },
+        profiles,
+        { method: 'POST', path: '/api/videos', status: 201, body: translating },
+        { method: 'GET', path: `/api/videos/${ID}`, status: 200, body: translating },
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      await chooseProfile();
+
+      await submit(ID);
+
+      const result = await screen.findByRole('region', { name: 'Kết quả' });
+      expect(within(result).getByText('Đang dịch bằng Gemini (EmiBonnie)…')).toBeInTheDocument();
+    });
+
+    it('polls every 3 s and shows the AUTO Vietsub when done', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [translating] },
+        profiles,
+        { method: 'GET', path: `/api/videos/${ID}`, status: 200, replies: [{ status: 200, body: translating }, { status: 200, body: done }] },
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const result = await openFromHistory();
+      expect(within(result).getByText('Đang dịch bằng Gemini (EmiBonnie)…')).toBeInTheDocument();
+      const polls = () => calls.filter((c) => c.path === `/api/videos/${ID}`).length;
+
+      await vi.advanceTimersByTimeAsync(3000);
+      await vi.advanceTimersByTimeAsync(3000);
+
+      expect(await within(result).findByText('Vietsub: Gemini · EmiBonnie')).toBeInTheDocument();
+      expect(within(result).getByRole('link', { name: 'Xem Vietsub' })).toHaveAttribute('href', `/vietsub/${ID}`);
+      expect(within(result).getByRole('link', { name: 'Tải .vi.srt' }))
+        .toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
+      const afterDone = polls();
+      expect(afterDone).toBe(2);
+
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(polls()).toBe(afterDone);
+    });
+
+    it('shows a manual Vietsub without Dịch lại', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [manual] }, profiles, cuesRoute]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const result = await openFromHistory();
+
+      expect(within(result).getByText('Vietsub: tự upload')).toBeInTheDocument();
+      expect(within(result).getByText(/Xoá Vietsub tự upload ở trang Vietsub/)).toBeInTheDocument();
+      expect(within(result).queryByRole('button', { name: /Dịch/ })).not.toBeInTheDocument();
+    });
+
+    it('shows a failure with Dịch lại', async () => {
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [failed] },
+        profiles,
+        cuesRoute,
+        { method: 'POST', path: `/api/videos/${ID}/translate`, status: 202, body: translating },
+        { method: 'GET', path: `/api/videos/${ID}`, status: 200, body: translating },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      await chooseProfile();
+      const result = await openFromHistory();
+
+      expect(within(result).getByRole('alert')).toHaveTextContent('Hết lượt miễn phí của Gemini, thử lại sau.');
+      await userEvent.setup().click(within(result).getByRole('button', { name: 'Dịch lại' }));
+
+      expect(calls.find((c) => c.path.endsWith('/translate'))?.body).toBe(JSON.stringify({ profile: 'EmiBonnie' }));
+      expect(await within(result).findByText('Đang dịch bằng Gemini (EmiBonnie)…')).toBeInTheDocument();
+    });
+
+    it('asks before replacing an AUTO Vietsub', async () => {
+      vi.mocked(window.confirm).mockReturnValue(false);
+      const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [done] }, profiles, cuesRoute]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      await chooseProfile();
+      const result = await openFromHistory();
+
+      await userEvent.setup().click(within(result).getByRole('button', { name: 'Dịch lại' }));
+
+      expect(window.confirm).toHaveBeenCalledWith('Thay Vietsub Gemini hiện có?');
+      expect(calls.some((c) => c.path.endsWith('/translate'))).toBe(false);
+    });
+
+    it('disables Dịch lại without a profile', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [done] }, profiles, cuesRoute]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const result = await openFromHistory();
+
+      expect(within(result).getByRole('button', { name: 'Dịch lại' })).toBeDisabled();
+    });
+
+    it('offers Dịch bằng Gemini for a video without Vietsub', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }, profiles, cuesRoute]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      await chooseProfile();
+
+      const result = await openFromHistory();
+
+      expect(within(result).getByRole('button', { name: 'Dịch bằng Gemini' })).toBeEnabled();
+    });
+
+    it('shows the too-long reason instead of the button', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [] },
+        profiles,
+        { method: 'POST', path: '/api/videos', status: 201, body: { ...autoVideo, skipReason: 'VIDEO_TOO_LONG' } },
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      await chooseProfile();
+
+      await submit(ID);
+
+      const result = await screen.findByRole('region', { name: 'Kết quả' });
+      expect(await within(result).findByText('Video dài hơn 60 phút, không dịch tự động được.')).toBeInTheDocument();
+      expect(within(result).queryByRole('button', { name: 'Dịch bằng Gemini' })).not.toBeInTheDocument();
+    });
+
+    it('marks translating and failed videos in the history', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [{ ...translating, id: 'TRANSLATING', title: 'Video 01' }, { ...failed, id: 'FAILEDVIDEO', title: 'Video 02' }] },
+        { method: 'GET', path: '/api/videos/TRANSLATING', status: 200, body: { ...translating, id: 'TRANSLATING', title: 'Video 01' } },
+        profiles,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const history = await loadedRegion('Đã lấy trước đó');
+      const items = within(within(history).getByRole('list')).getAllByRole('listitem');
+      expect(items[0]).toHaveTextContent('· Đang dịch…');
+      expect(items[1]).toHaveTextContent('· Lỗi dịch');
+    });
+
+    it('stops polling a video that disappears', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const calls = fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [translating] },
+        profiles,
+        { method: 'GET', path: `/api/videos/${ID}`, status: 404, body: problem(404, 'VIDEO_NOT_FOUND', 'gone') },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const history = await loadedRegion('Đã lấy trước đó');
+      expect(within(history).getAllByRole('listitem')).toHaveLength(1);
+
+      await vi.advanceTimersByTimeAsync(3000);
+
+      await waitFor(() => expect(within(history).queryAllByRole('listitem')).toHaveLength(0));
+      const polls = calls.filter((c) => c.path === `/api/videos/${ID}`).length;
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(calls.filter((c) => c.path === `/api/videos/${ID}`).length).toBe(polls);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 
   describe('history', () => {

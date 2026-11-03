@@ -29,7 +29,10 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, footer }: Pro
                   <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                   <span className="history__text">
                     <span className="history__title">{v.title}</span>
-                    <span className="history__sub">{v.viCueCount} câu</span>
+                    <span className="history__sub">
+                      {v.viCueCount} câu ·{' '}
+                      {v.viSource === 'AUTO' ? `Gemini (${v.translationProfile ?? ''})` : 'Tự upload'}
+                    </span>
                   </span>
                 </span>
                 <span className="history__actions">

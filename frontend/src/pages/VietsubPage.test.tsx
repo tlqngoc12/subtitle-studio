@@ -101,10 +101,21 @@ describe('VietsubPage', () => {
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
-    expect(within(items[0]).getByText('7 câu')).toBeInTheDocument();
+    expect(within(items[0]).getByText('7 câu · Tự upload')).toBeInTheDocument();
     // Management list only: watching happens from /vietsub/list (the only link is the download).
     expect(within(list).queryByRole('link', { name: /^Xem/ })).not.toBeInTheDocument();
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
+  });
+
+  it('shows where each Vietsub came from', async () => {
+    const auto = { ...newer, viSource: 'AUTO' as const, translationProfile: 'EmiBonnie' };
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [auto, older] }]);
+    renderPage();
+
+    const list = await loadedRegion('Quản lý Vietsub');
+    const items = within(within(list).getByRole('list')).getAllByRole('listitem');
+    expect(within(items[0]).getByText('7 câu · Gemini (EmiBonnie)')).toBeInTheDocument();
+    expect(within(items[1]).getByText('5 câu · Tự upload')).toBeInTheDocument();
   });
 
   it('invites the user when no video has Vietsub', async () => {
@@ -199,7 +210,7 @@ describe('VietsubPage', () => {
 
     await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
 
-    expect(await within(list).findByText('9 câu')).toBeInTheDocument();
+    expect(await within(list).findByText('9 câu · Tự upload')).toBeInTheDocument();
     expect((calls.find((c) => c.method === 'POST')!.body as FormData).get('url')).toBe(ID);
   });
 
@@ -269,7 +280,7 @@ describe('VietsubPage', () => {
       await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Video 12'), srtFile());
 
       await waitFor(() => expect(titles(list)[0]).toBe('Video 12'));
-      expect(within(list).getByText('9 câu')).toBeInTheDocument();
+      expect(within(list).getByText('9 câu · Tự upload')).toBeInTheDocument();
       await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
     });
   });

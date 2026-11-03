@@ -779,3 +779,49 @@ a.history__open {
     max-width: none;
   }
 }
+
+/* Vietsub line in the result panel (Gemini translation). */
+.vietsub-status {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.vietsub-status > p,
+p.vietsub-status {
+  margin: 0;
+}
+
+p.vietsub-status,
+.vietsub-status__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.vietsub-status__link {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.vietsub-status__error {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.vietsub-status__note {
+  font-size: var(--step--1);
+  color: var(--muted);
+  max-width: 40ch;
+}
+
+.icon--spin {
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon--spin {
+    animation: none;
+  }
+}

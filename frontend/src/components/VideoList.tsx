@@ -35,6 +35,8 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, footer 
                     <span className="history__title">{v.title}</span>
                     <span className="history__sub">
                       {v.cueCount} câu{duration ? `, ${duration}` : ''}
+                      {v.translationStatus === 'TRANSLATING' && ' · Đang dịch…'}
+                      {v.translationStatus === 'FAILED' && ' · Lỗi dịch'}
                     </span>
                   </span>
                 </button>
