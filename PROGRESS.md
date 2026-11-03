@@ -359,6 +359,10 @@ Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/sp
 - **Link nhúng**: chỉ YouTube (qua `UrlParser`, nhúng `youtube-nocookie.com`) và Spotify `track/album/playlist/artist`; backend lưu URL nhúng đã chuẩn hoá. Link khối LINKS chỉ `http/https`. Markdown không render HTML thô.
 - **Frontend**: menu Profile, tab EmiBonnie · Emi · Bonnie, chế độ sửa tại chỗ (Lên/Xuống thay kéo thả), `react-markdown`, `yet-another-react-lightbox`, font dự phòng `Noto Sans Thai`.
 - Backend `mvn test`: 347/347. `mvn verify -Poracle`: 11/11 (gồm `onlyFlywayCreatesTables` lần đầu được chạy, và CLOB 50.000 ký tự Thái + emoji + tiếng Việt). Frontend: 151/151.
+- **Sau review, trên compose thật** (build image từ nhánh, `docker compose up -d --no-build subtitle-studio`; image cũ tag `subtitle-studio:pre-profiles`): Flyway chạy V2 trên Oracle, upload, đổi ảnh (ảnh cũ bị xoá), restart (khối và ảnh còn), chữ Việt/Thái/emoji OK. **Bug tìm được:** F5 ở `/profiles/emi` → 404 vì `SpaForwardController` chưa có route `/profiles` → đã thêm.
+- **Docker build nhanh hơn:** `mvn -B package -DskipTests` (bỏ cả JUnit lẫn Vitest) + BuildKit cache mount `/root/.m2`, `/root/.npm`. Lần build đầu với Dockerfile mới: 49 giây. Test phải chạy bằng `mvn test` / `npm test` trước khi commit.
+- **Màu chủ đạo:** cam `--brand` #F39A42 (nút chính, khung link, tab profile, viền form sửa), tím `--brand-2` #D9A1D9 (menu/trang hiện tại, hover). Chữ trên hai màu này luôn là `--on-brand` #1B2430; focus ring vẫn xanh.
+- Merge `--no-ff` vào `main` (`3a2f3c6`, `main` đã có spec/plan Phase 4 Gemini), push. Sau merge: backend 269/269, frontend 151/151.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
@@ -417,4 +421,5 @@ Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/sp
 | `UrlParser` hỗ trợ `music.youtube.com/watch?v=ID` | T02 | thêm host vào whitelist + test |
 | `UrlParser` hỗ trợ `youtube.com/live/ID` (livestream) | T02 | thêm nhánh path `live` giống `shorts`/`embed` + test |
 | Chặn import trùng khi 2 request `fetch` cùng videoId chạy đồng thời | T08 | lock theo videoId hoặc bắt lỗi PK rồi trả về bản đã lưu |
+| Review Profile (Minor): kết quả thêm/di chuyển/xoá về muộn sau khi đổi tab bị áp vào profile mới; toolbar không khoá khi đang di chuyển (bấm nhanh 2 lần có thể hiện sai thứ tự); dọn ảnh lúc khởi động nằm trong `@Transactional` nên lỗi DB có thể chặn khởi động; `BlockView` tin mọi `embedUrl` không phải Spotify; YouTube `?t=` bị bỏ, chưa nhận `live`/`music.youtube`/Spotify episode/`spotify:`; cắt `original_name` có thể tách đôi emoji; `max-request-size` = `max-file-size` nên file sát 10 MB bị 413; nút "Xong" đóng form đang sửa mà không hỏi | Profile | final review nhánh `profiles` |
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |

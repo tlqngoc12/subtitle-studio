@@ -66,6 +66,8 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 ### Frontend
 - TDD giống backend: viết test Vitest + React Testing Library trước. Giả lập `fetch` bằng `vi.stubGlobal`, không gọi backend thật.
 - Truy vấn theo role/label (`getByRole`, `getByLabelText`), không dùng class CSS hay test id. Nút chỉ có icon/text ngắn phải có `aria-label` đủ nghĩa.
+- Màu: dùng token trong `styles.css`: `--brand` (cam #F39A42, hành động chính), `--brand-2` (tím #D9A1D9, "đang ở đây": menu, trang hiện tại). Chữ trên hai màu này dùng `--on-brand` (chữ đậm), không dùng chữ trắng. Focus ring giữ `--focus` (xanh).
+- Thêm route phía client (React Router) thì phải thêm đường dẫn đó vào `SpaForwardController` (+ test), nếu không F5 sẽ 404.
 - Chuỗi hiển thị bằng tiếng Việt; thông báo lỗi lấy theo `code` của ProblemDetail (`src/lib/errors.ts`), luôn có fallback khi thiếu `code`.
 - Font phải có subset `vietnamese` (hiện dùng Be Vietnam Pro).
 - Icon dùng `lucide-react` (không tự vẽ SVG). Nút chỉ có icon phải có `aria-label` và `title` (tooltip).

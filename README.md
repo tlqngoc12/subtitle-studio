@@ -28,8 +28,9 @@ docker compose ps             # chờ cả hai báo (healthy)
 Mở http://localhost:8080. Thiếu `.env` thì compose dừng và báo biến nào còn thiếu.
 
 - **Database:** Oracle, dữ liệu trong volume Docker `subtitle-studio_oracle-data`. Schema do Flyway tạo (`src/main/resources/db/migration`).
-- **`./data`:** chỉ còn chứa file `.vtt` gốc (`subs/`). Trên Linux, thư mục này phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
+- **`./data`:** chứa file `.vtt` gốc (`subs/`) và ảnh của trang Profile (`media/`). Trên Linux, thư mục này phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
 - Image app có sẵn JRE 21, yt-dlp và deno (JS runtime mà yt-dlp cần để xử lý YouTube).
+- `docker build` **không chạy test** (`-DskipTests`, có cache Maven/npm nên build lại nhanh). Chạy `mvn test` và `cd frontend && npm test` trước khi commit.
 
 ### Xem dữ liệu bằng SQL Developer / DBeaver
 
