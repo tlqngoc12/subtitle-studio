@@ -1,8 +1,11 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.profile.BlockNotFoundException;
+import com.subtitlestudio.profile.InvalidBlockException;
 import com.subtitlestudio.profile.InvalidMediaException;
 import com.subtitlestudio.profile.MediaNotFoundException;
 import com.subtitlestudio.profile.MediaTooLargeException;
+import com.subtitlestudio.profile.ProfileNotFoundException;
 import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.VttParseException;
@@ -79,6 +82,24 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(FileTooLargeException.class)
     ProblemDetail fileTooLarge(FileTooLargeException e) {
         return problem(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", e.getMessage());
+    }
+
+    @ExceptionHandler(ProfileNotFoundException.class)
+    ProblemDetail profileNotFound(ProfileNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(BlockNotFoundException.class)
+    ProblemDetail blockNotFound(BlockNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "BLOCK_NOT_FOUND", e.getMessage());
+    }
+
+    /** {@code errors} lists every rejected field so the form can mark each input. */
+    @ExceptionHandler(InvalidBlockException.class)
+    ProblemDetail invalidBlock(InvalidBlockException e) {
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_BLOCK", e.getMessage());
+        pd.setProperty("errors", e.errors());
+        return pd;
     }
 
     @ExceptionHandler(InvalidMediaException.class)
