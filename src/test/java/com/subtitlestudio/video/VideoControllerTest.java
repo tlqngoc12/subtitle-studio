@@ -1,9 +1,20 @@
 package com.subtitlestudio.video;
 
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.ArgumentMatchers.anyString;
+import com.subtitlestudio.translate.VietsubManualException;
+import com.subtitlestudio.translate.VideoTooLongException;
+import com.subtitlestudio.translate.UnknownProfileException;
+import com.subtitlestudio.translate.TranslationService;
+import com.subtitlestudio.translate.TranslationInProgressException;
+import com.subtitlestudio.translate.SkipReason;
+import com.subtitlestudio.translate.PromptProfileStore;
+import com.subtitlestudio.translate.GeminiNotConfiguredException;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -47,6 +58,12 @@ class VideoControllerTest {
 
     @MockitoBean
     private SubtitleService service;
+
+    @MockitoBean
+    private PromptProfileStore profiles;
+
+    @MockitoBean
+    private TranslationService translation;
 
     @Nested
     class Fetch {
@@ -145,6 +162,140 @@ class VideoControllerTest {
             return mvc.perform(post("/api/videos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"url\":\"" + url + "\"}"));
+        }
+    }
+
+    @Nested
+    class Translate {
+
+        private ResultActions postWithProfile(String profile) throws Exception {
+            return mvc.perform(post("/api/videos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"url\":\"" + ID + "\",\"profile\":\"" + profile + "\"}"));
+        }
+
+        private ResultActions translate(String profile) throws Exception {
+            return mvc.perform(post("/api/videos/" + ID + "/translate")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"profile\":\"" + profile + "\"}"));
+        }
+
+        @Test
+        void fetchWithoutProfileKeepsOldShape() throws Exception {
+            when(service.fetch(ID)).thenReturn(new FetchResult(video(), false));
+
+            mvc.perform(post("/api/videos").contentType(MediaType.APPLICATION_JSON).content("{\"url\":\"" + ID + "\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(ID))
+                    .andExpect(jsonPath("$.skipReason").doesNotExist());
+            verify(translation, never()).startFromFetch(anyString(), anyString());
+        }
+
+        @Test
+        void blankProfileMeansNoTranslation() throws Exception {
+            when(service.fetch(ID)).thenReturn(new FetchResult(video(), false));
+
+            postWithProfile("  ").andExpect(status().isOk());
+
+            verify(profiles, never()).read(anyString());
+            verify(translation, never()).startFromFetch(anyString(), anyString());
+        }
+
+        @Test
+        void fetchWithProfileStartsTranslation() throws Exception {
+            when(service.fetch(ID)).thenReturn(new FetchResult(video(), true));
+            when(translation.startFromFetch(ID, "EmiBonnie")).thenReturn(null);
+            Video translating = video();
+            setTranslating(translating);
+            when(service.get(ID)).thenReturn(translating);
+
+            postWithProfile("EmiBonnie")
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(ID))
+                    .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"))
+                    .andExpect(jsonPath("$.skipReason").doesNotExist());
+            var order = inOrder(profiles, service, translation);
+            order.verify(profiles).read("EmiBonnie");
+            order.verify(service).fetch(ID);
+            order.verify(translation).startFromFetch(ID, "EmiBonnie");
+        }
+
+        @Test
+        void fetchWithUnknownProfileIs400BeforeYtDlp() throws Exception {
+            when(profiles.read("Nope")).thenThrow(new UnknownProfileException("Nope"));
+
+            expectProblem(postWithProfile("Nope"), 400, "UNKNOWN_PROFILE");
+            verify(service, never()).fetch(anyString());
+        }
+
+        @Test
+        void fetchReportsSkipReason() throws Exception {
+            when(service.fetch(ID)).thenReturn(new FetchResult(video(), false));
+            when(translation.startFromFetch(ID, "EmiBonnie")).thenReturn(SkipReason.VIETSUB_MANUAL);
+
+            postWithProfile("EmiBonnie")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.skipReason").value("VIETSUB_MANUAL"))
+                    .andExpect(jsonPath("$.id").value(ID));
+        }
+
+        @Test
+        void translateStarts202() throws Exception {
+            Video translating = video();
+            setTranslating(translating);
+            when(service.get(ID)).thenReturn(translating);
+
+            translate("EmiBonnie")
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"));
+            verify(translation).retranslate(ID, "EmiBonnie");
+        }
+
+        @Test
+        void translateWithBrokenProfileIs400() throws Exception {
+            doThrow(new UnknownProfileException("Big")).when(translation).retranslate(ID, "Big");
+
+            expectProblem(translate("Big"), 400, "UNKNOWN_PROFILE");
+        }
+
+        @Test
+        void translateManualIs409() throws Exception {
+            doThrow(new VietsubManualException(ID)).when(translation).retranslate(ID, "EmiBonnie");
+
+            expectProblem(translate("EmiBonnie"), 409, "VIETSUB_MANUAL");
+        }
+
+        @Test
+        void translateInProgressIs409() throws Exception {
+            doThrow(new TranslationInProgressException(ID)).when(translation).retranslate(ID, "EmiBonnie");
+
+            expectProblem(translate("EmiBonnie"), 409, "TRANSLATION_IN_PROGRESS");
+        }
+
+        @Test
+        void translateTooLongIs422() throws Exception {
+            doThrow(new VideoTooLongException(ID)).when(translation).retranslate(ID, "EmiBonnie");
+
+            expectProblem(translate("EmiBonnie"), 422, "VIDEO_TOO_LONG");
+        }
+
+        @Test
+        void translateNotConfiguredIs503() throws Exception {
+            doThrow(new GeminiNotConfiguredException(ID)).when(translation).retranslate(ID, "EmiBonnie");
+
+            expectProblem(translate("EmiBonnie"), 503, "GEMINI_NOT_CONFIGURED");
+        }
+
+        @Test
+        void translateUnknownVideoIs404() throws Exception {
+            doThrow(new VideoNotFoundException(ID)).when(translation).retranslate(ID, "EmiBonnie");
+
+            expectProblem(translate("EmiBonnie"), 404, "VIDEO_NOT_FOUND");
+        }
+
+        /** Video has no public setter for the status; use the same JPQL-free path the service would. */
+        private void setTranslating(Video v) {
+            org.springframework.test.util.ReflectionTestUtils.setField(v, "translationStatus", TranslationStatus.TRANSLATING);
         }
     }
 

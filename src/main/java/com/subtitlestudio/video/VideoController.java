@@ -2,6 +2,10 @@ package com.subtitlestudio.video;
 
 import com.subtitlestudio.subtitle.Cue;
 import com.subtitlestudio.subtitle.SrtWriter;
+import com.subtitlestudio.translate.PromptProfileStore;
+import com.subtitlestudio.translate.SkipReason;
+import com.subtitlestudio.translate.TranslateRequest;
+import com.subtitlestudio.translate.TranslationService;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -28,20 +32,47 @@ public class VideoController {
 
     private final SubtitleService service;
     private final SrtWriter srtWriter;
+    private final PromptProfileStore profiles;
+    private final TranslationService translation;
 
-    public VideoController(SubtitleService service, SrtWriter srtWriter) {
+    public VideoController(SubtitleService service, SrtWriter srtWriter, PromptProfileStore profiles,
+                           TranslationService translation) {
         this.service = service;
         this.srtWriter = srtWriter;
+        this.profiles = profiles;
+        this.translation = translation;
     }
 
-    /** 201 + Location when imported now, 200 when it was already stored. */
+    /**
+     * 201 + Location when imported now, 200 when it was already stored. With a {@code profile}, the profile
+     * is checked before fetching, then a translation starts when allowed ({@code skipReason} says why not).
+     */
     @PostMapping
-    public ResponseEntity<VideoDto> fetch(@RequestBody FetchRequest request) {
+    public ResponseEntity<FetchResponse> fetch(@RequestBody FetchRequest request) {
+        String profile = request.profile() == null || request.profile().isBlank() ? null : request.profile();
+        if (profile != null) {
+            profiles.read(profile); // UNKNOWN_PROFILE before any yt-dlp call
+        }
         FetchResult result = service.fetch(request.url());
-        VideoDto body = VideoDto.from(result.video());
+        Video video = result.video();
+        SkipReason skipReason = null;
+        if (profile != null) {
+            skipReason = translation.startFromFetch(video.getId(), profile);
+            if (skipReason == null) {
+                video = service.get(video.getId()); // now TRANSLATING
+            }
+        }
+        FetchResponse body = new FetchResponse(VideoDto.from(video), skipReason);
         return result.created()
-                ? ResponseEntity.created(URI.create("/api/videos/" + body.id())).body(body)
+                ? ResponseEntity.created(URI.create("/api/videos/" + video.getId())).body(body)
                 : ResponseEntity.ok(body);
+    }
+
+    /** "Dịch lại bằng Gemini": 202 with the video, now TRANSLATING. */
+    @PostMapping("/{id}/translate")
+    public ResponseEntity<VideoDto> translate(@PathVariable String id, @RequestBody TranslateRequest request) {
+        translation.retranslate(id, request.profile());
+        return ResponseEntity.accepted().body(VideoDto.from(service.get(id)));
     }
 
     @GetMapping
