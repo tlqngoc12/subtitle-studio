@@ -5,6 +5,7 @@ const SECTIONS = [
   { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => p === '/vietsub' || p === '/vietsub/' },
   // The watch page (/vietsub/:id) belongs to the list it is opened from.
   { to: '/vietsub/list', label: 'Danh sách Vietsub', isCurrent: (p: string) => /^\/vietsub\/[^/]+\/?$/.test(p) },
+  { to: '/profiles', label: 'Profile', isCurrent: (p: string) => p === '/profiles' || p.startsWith('/profiles/') },
 ];
 
 export function NavBar() {

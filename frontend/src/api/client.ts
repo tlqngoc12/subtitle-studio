@@ -30,19 +30,26 @@ export interface CueDto {
   text: string;
 }
 
+/** One rejected input of an INVALID_BLOCK problem, e.g. `items[2].value`. */
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
 /** A failed API call. `code` comes from the ProblemDetail body; status 0 + NETWORK means no response. */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | null,
     readonly detail: string,
+    readonly fieldErrors: FieldError[] = [],
   ) {
     super(detail);
     this.name = 'ApiError';
   }
 }
 
-async function send(path: string, init?: RequestInit): Promise<Response> {
+export async function send(path: string, init?: RequestInit): Promise<Response> {
   let res: Response;
   try {
     res = await fetch(path, init);
@@ -52,14 +59,16 @@ async function send(path: string, init?: RequestInit): Promise<Response> {
   if (!res.ok) {
     let code: string | null = null;
     let detail = res.statusText || `HTTP ${res.status}`;
+    let fieldErrors: FieldError[] = [];
     try {
       const problem = await res.json();
       code = typeof problem.code === 'string' ? problem.code : null;
       detail = typeof problem.detail === 'string' ? problem.detail : detail;
+      if (Array.isArray(problem.errors)) fieldErrors = problem.errors;
     } catch {
       // body was not JSON; keep the status text
     }
-    throw new ApiError(res.status, code, detail);
+    throw new ApiError(res.status, code, detail, fieldErrors);
   }
   return res;
 }
