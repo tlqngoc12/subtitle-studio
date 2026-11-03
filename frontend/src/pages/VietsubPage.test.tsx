@@ -114,9 +114,23 @@ describe('VietsubPage', () => {
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
     expect(within(items[0]).getByText('7 lines')).toBeInTheDocument();
-    // Management list only: watching happens from /vietsub/list (the only link is the download).
-    expect(within(list).queryByRole('link', { name: /^Xem/ })).not.toBeInTheDocument();
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
+  });
+
+  it('opens the watch page from the thumbnail or title of a row, like the Vietsub list', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer, older] }]);
+    renderPage();
+    const list = await loadedRegion('Manage Vietsub');
+    const items = within(list).getAllByRole('listitem');
+
+    const row = within(items[0]).getByRole('link', { name: /^Học Spring Boot/ });
+    expect(row).toHaveAttribute('href', `/vietsub/${ID}`);
+    expect(row.querySelector('img')).not.toBeNull();
+    expect(within(items[1]).getByRole('link', { name: /^Video cũ hơn/ })).toHaveAttribute('href', '/vietsub/OLDER000001');
+
+    await userEvent.setup().click(row);
+
+    expect(await screen.findByText(`watch ${ID}`)).toBeInTheDocument();
   });
 
   it('invites the user when no video has Vietsub', async () => {

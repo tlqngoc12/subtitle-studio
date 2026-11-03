@@ -494,10 +494,6 @@ a.history__open {
   text-decoration: none;
 }
 
-.history__open--static {
-  cursor: default;
-}
-
 .history__open:hover .history__title {
   text-decoration: underline;
 }
