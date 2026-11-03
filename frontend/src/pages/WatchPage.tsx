@@ -32,7 +32,7 @@ export default function WatchPage() {
   return (
     <main className="page">
       <Link className="back-link" to="/vietsub/list">
-        ← Danh sách Vietsub
+        ← Vietsub list
       </Link>
 
       {error && (
@@ -51,7 +51,7 @@ export default function WatchPage() {
 
       {video && video.viCueCount === 0 && (
         <p className="muted">
-          Video này chưa có Vietsub. <Link to="/vietsub">Thêm Vietsub</Link>
+          This video has no Vietsub yet. <Link to="/vietsub">Add Vietsub</Link>
         </p>
       )}
 

@@ -116,12 +116,12 @@ class ProfileControllerTest {
     @Test
     void invalidBlockReturns400WithFieldErrors() throws Exception {
         when(service.addBlock(eq("emi"), any())).thenThrow(new InvalidBlockException(
-                List.of(new FieldError("items[0].value", "Link phải bắt đầu bằng http:// hoặc https://"))));
+                List.of(new FieldError("items[0].value", "Links must start with http:// or https://"))));
 
         expectProblem(json(post("/api/profiles/emi/blocks"), LINKS_JSON), 400, "INVALID_BLOCK");
         json(post("/api/profiles/emi/blocks"), LINKS_JSON)
                 .andExpect(jsonPath("$.errors[0].field").value("items[0].value"))
-                .andExpect(jsonPath("$.errors[0].message").value("Link phải bắt đầu bằng http:// hoặc https://"));
+                .andExpect(jsonPath("$.errors[0].message").value("Links must start with http:// or https://"));
     }
 
     @Test

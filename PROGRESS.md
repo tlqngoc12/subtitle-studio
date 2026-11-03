@@ -364,6 +364,13 @@ Spec: [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/sp
 - **Màu chủ đạo:** cam `--brand` #F39A42 (nút chính, khung link, tab profile, viền form sửa), tím `--brand-2` #D9A1D9 (menu/trang hiện tại, hover). Chữ trên hai màu này luôn là `--on-brand` #1B2430; focus ring vẫn xanh.
 - Merge `--no-ff` vào `main` (`3a2f3c6`, `main` đã có spec/plan Phase 4 Gemini), push. Sau merge: backend 269/269, frontend 151/151.
 
+### 2026-11-03: UI polish, giao diện tiếng Anh ✅
+Nhánh `ui-polish` (commit `80e20de`), merge vào `main`. Quy trình: review giao diện bằng ảnh chụp (Edge headless + CDP, khối mẫu tạm rồi xoá) → chốt bảng phạm vi với người dùng → code (người dùng yêu cầu chưa build/test trong lúc làm) → chạy test → commit → merge → push.
+- **Đầu trang:** thanh dính khi cuộn, có tên app; NavBar 1 hàng, cuộn ngang trên điện thoại. **Form Vietsub:** nút "Choose .srt file" hiện tên file. **Danh sách:** hover dòng; cả dòng là link ở Vietsub list.
+- **Tiếng Anh** cho toàn bộ chuỗi giao diện (giữ Engsub/Vietsub), cả lỗi `errors.ts` và `FieldError.message` của backend; `<html lang="en">`. Bộ lọc theo dấu bỏ sót chuỗi không dấu ("Link YouTube", "Xong", "Trang sau") → phải rà thêm bằng tay.
+- **Chuyển động** (`motion`), **tooltip** (`@radix-ui/react-tooltip`), **logo mạng xã hội** (`simple-icons`), icon thông tin video và loại khối, trang trống có icon. Test: jsdom cần stub `ResizeObserver` cho Radix; tooltip trong test đóng bằng Esc (jsdom không ra khỏi "grace area" của Radix).
+- Test: frontend 166/166, backend 269/269.
+
 ### 2026-11-03: Phase 4, dịch Vietsub tự động bằng Gemini
 Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superpowers/specs/2026-11-03-gemini-translate-design.md). Plan: [docs/superpowers/plans/2026-11-03-gemini-translate.md](docs/superpowers/plans/2026-11-03-gemini-translate.md). Worktree `../subtitle-studio-gemini` (nhánh `gemini`).
 - **Hồ sơ dịch** = file Markdown `./data/prompts/<Tên>.md` (mẫu `_example.md` tự tạo lần đầu); `GET /api/prompt-profiles`; dropdown "Hồ sơ dịch" cạnh ô dán link, nhớ lựa chọn.
@@ -373,7 +380,7 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Giao diện:** dòng Vietsub trong panel kết quả (đang dịch / Gemini · hồ sơ / tự upload / lỗi + Dịch lại / Dịch bằng Gemini), polling 3 giây, "· Đang dịch…/· Lỗi dịch" trong danh sách, nguồn ở Quản lý Vietsub.
 - **Bug tìm được nhờ test:** SDK ném exception khi gọi `text()` trên phản hồi bị chặn (SAFETY) → xử lý theo `finishReason`.
 - Merge `main` (Profile menu) vào nhánh giữa chừng: 5 xung đột kiểu cùng thêm, giữ cả hai.
-- Backend `mvn test`: 427/427. Frontend: 173/173.
+- Merge `main` lần hai (UI polish, giao diện tiếng Anh): toàn bộ chuỗi giao diện và thông báo lỗi của tính năng dịch chuyển sang tiếng Anh; tooltip dùng `<Tip>`.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 

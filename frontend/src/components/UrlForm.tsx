@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Tip } from './Tip';
 
 interface Props {
   pending: boolean;
@@ -22,13 +23,30 @@ export function UrlForm({ pending, onSubmit, profiles, configured, profile, onPr
     if (trimmed && !pending) onSubmit(trimmed);
   }
 
+  const select = (
+    <select
+      id="profile"
+      className="frame__select"
+      value={profile}
+      disabled={!configured}
+      onChange={(e) => onProfileChange(e.target.value)}
+    >
+      <option value="">— No translation —</option>
+      {profiles.map((p) => (
+        <option key={p} value={p}>
+          {p}
+        </option>
+      ))}
+    </select>
+  );
+
   return (
     <form className="frame" onSubmit={handleSubmit} aria-busy={pending}>
       <label className="visually-hidden" htmlFor="url">
-        Link YouTube
+        YouTube link
       </label>
       <label className="visually-hidden" htmlFor="profile">
-        Hồ sơ dịch
+        Translation profile
       </label>
       <div className="frame__caption">
         <input
@@ -38,27 +56,19 @@ export function UrlForm({ pending, onSubmit, profiles, configured, profile, onPr
           inputMode="url"
           autoComplete="off"
           spellCheck={false}
-          placeholder="Dán link YouTube vào đây"
+          placeholder="Paste a YouTube link here"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
-        <select
-          id="profile"
-          className="frame__select"
-          value={profile}
-          disabled={!configured}
-          title={configured ? 'Hồ sơ dịch Gemini' : 'Chưa cấu hình GEMINI_API_KEY'}
-          onChange={(e) => onProfileChange(e.target.value)}
-        >
-          <option value="">— Không dịch —</option>
-          {profiles.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
+        {/* A disabled select gets no pointer events, so the tip sits on a wrapper; the structure stays the
+            same whether Gemini is configured or not, so the select is never remounted. */}
+        <Tip label="GEMINI_API_KEY is not set" disabled={configured}>
+          <span className="tip-target" tabIndex={configured ? undefined : 0}>
+            {select}
+          </span>
+        </Tip>
         <button className="button button--caption" type="submit" disabled={pending}>
-          {pending ? 'Đang lấy phụ đề…' : 'Lấy Engsub'}
+          {pending ? 'Fetching subtitles…' : 'Get Engsub'}
         </button>
       </div>
       <div className={pending ? 'frame__scrubber frame__scrubber--busy' : 'frame__scrubber'} aria-hidden="true" />

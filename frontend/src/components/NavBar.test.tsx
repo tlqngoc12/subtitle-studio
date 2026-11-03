@@ -24,17 +24,26 @@ describe('NavBar', () => {
       </MemoryRouter>,
     );
     const nav = screen.getByRole('navigation');
-    expect(within(nav).getByRole('link', { name: 'Lấy Engsub' })).toHaveAttribute('href', '/');
+    expect(within(nav).getByRole('link', { name: 'Get Engsub' })).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
-    expect(within(nav).getByRole('link', { name: 'Danh sách Vietsub' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
     expect(within(nav).getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profiles');
   });
 
+  it('links the app name to the home page', () => {
+    render(
+      <MemoryRouter initialEntries={['/profiles/emi']}>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toHaveAttribute('href', '/');
+  });
+
   it.each([
-    ['/', 'Lấy Engsub'],
+    ['/', 'Get Engsub'],
     ['/vietsub', 'Vietsub'],
-    ['/vietsub/list', 'Danh sách Vietsub'],
-    ['/vietsub/dQw4w9WgXcQ', 'Danh sách Vietsub'],
+    ['/vietsub/list', 'Vietsub list'],
+    ['/vietsub/dQw4w9WgXcQ', 'Vietsub list'],
     ['/profiles', 'Profile'],
     ['/profiles/emi', 'Profile'],
   ])('marks exactly one current section at %s', (path, expected) => {

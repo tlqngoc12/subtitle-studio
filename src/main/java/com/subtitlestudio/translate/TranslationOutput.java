@@ -43,6 +43,6 @@ public final class TranslationOutput {
 
     static TranslationFailedException invalid(int valid, int total) {
         return new TranslationFailedException(
-                "Gemini trả về thiếu/lệch câu (" + valid + "/" + total + " câu hợp lệ), thử dịch lại.");
+                "Gemini returned missing or mismatched lines (" + valid + "/" + total + " valid), try again.");
     }
 }

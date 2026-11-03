@@ -5,8 +5,8 @@ import type { PlayerError } from '../player/useYouTubePlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
 
 const ERROR_TEXT: Record<PlayerError, string> = {
-  EMBED_BLOCKED: 'Video này không cho phép phát nhúng trong app.',
-  LOAD_FAILED: 'Không tải được trình phát YouTube. Kiểm tra kết nối mạng.',
+  EMBED_BLOCKED: 'This video cannot be played in an embedded player.',
+  LOAD_FAILED: 'Could not load the YouTube player. Check your network connection.',
 };
 
 interface Props {
@@ -57,8 +57,8 @@ export function VideoPlayer({ containerRef, cue, error }: Props) {
         className="player__fs"
         type="button"
         onClick={toggle}
-        aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
-        title={fullscreen ? 'Thoát toàn màn hình (f)' : 'Toàn màn hình (f)'}
+        aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+        title={fullscreen ? 'Exit full screen (f)' : 'Full screen (f)'}
       >
         {fullscreen ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}
       </button>

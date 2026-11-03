@@ -70,13 +70,13 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             throw fromApi(e);
         } catch (GenAiIOException e) {
             throw causedByTimeout(e)
-                    ? new TranslationFailedException("Gemini không phản hồi kịp.")
-                    : new TranslationFailedException("Không dịch được: lỗi kết nối tới Gemini.");
+                    ? new TranslationFailedException("Gemini did not respond in time.")
+                    : new TranslationFailedException("Could not translate: connection to Gemini failed.");
         }
 
         String text = textOrNull(response);
         if (text == null || text.isBlank()) {
-            throw new TranslationFailedException("Gemini từ chối dịch nội dung này.");
+            throw new TranslationFailedException("Gemini refused to translate this content.");
         }
         try {
             return TranslationOutput.validate(lines, mapper.readValue(text, LINES));
@@ -125,12 +125,12 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
 
     private TranslationFailedException fromApi(ApiException e) {
         return switch (e.code()) {
-            case 429 -> new TranslationFailedException("Hết lượt miễn phí của Gemini, thử lại sau.");
-            case 401, 403 -> new TranslationFailedException("GEMINI_API_KEY không hợp lệ.");
+            case 429 -> new TranslationFailedException("Gemini free quota is used up, try again later.");
+            case 401, 403 -> new TranslationFailedException("GEMINI_API_KEY is not valid.");
             default -> {
                 // Error text from the API may echo request details; keep it out of the message and the log.
                 log.warn("Gemini request failed with HTTP {}", e.code());
-                yield new TranslationFailedException("Không dịch được: Gemini báo lỗi " + e.code() + ".");
+                yield new TranslationFailedException("Could not translate: Gemini returned error " + e.code() + ".");
             }
         };
     }

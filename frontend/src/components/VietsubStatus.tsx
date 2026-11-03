@@ -1,37 +1,38 @@
 import { Languages, Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
 import { viSrtUrl, type SkipReason, type VideoDto } from '../api/client';
+import { Tip } from './Tip';
 
 interface Props {
   video: VideoDto;
   /** Profile chosen in the link frame; '' = none, so translating is not possible. */
   profile: string;
-  /** Why Lấy Engsub did not start a translation, for the video just fetched. */
+  /** Why Get Engsub did not start a translation, for the video just fetched. */
   skipReason: SkipReason | null;
   onTranslate: (video: VideoDto) => void;
 }
 
 const SKIP_MESSAGES: Partial<Record<SkipReason, string>> = {
-  VIDEO_TOO_LONG: 'Video dài hơn 60 phút, không dịch tự động được.',
-  GEMINI_NOT_CONFIGURED: 'Chưa cấu hình GEMINI_API_KEY.',
+  VIDEO_TOO_LONG: 'The video is longer than 60 minutes, so it cannot be translated automatically.',
+  GEMINI_NOT_CONFIGURED: 'GEMINI_API_KEY is not set.',
 };
 
 /** The "Vietsub" line of the result panel: Gemini progress, the current Vietsub and its source, or why not. */
 export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props) {
-  const noProfileTitle = profile ? undefined : 'Chọn hồ sơ dịch ở khung phía trên';
-
   function translateButton(label: string) {
-    return (
-      <button
-        className="button button--small"
-        type="button"
-        disabled={!profile}
-        title={noProfileTitle}
-        onClick={() => onTranslate(video)}
-      >
+    const button = (
+      <button className="button button--small" type="button" disabled={!profile} onClick={() => onTranslate(video)}>
         <Languages className="icon" aria-hidden="true" />
         {label}
       </button>
+    );
+    // A disabled button gets no pointer events, so the tip sits on a wrapper that is always rendered.
+    return (
+      <Tip label="Choose a translation profile above" disabled={Boolean(profile)}>
+        <span className="tip-target" tabIndex={profile ? undefined : 0}>
+          {button}
+        </span>
+      </Tip>
     );
   }
 
@@ -39,14 +40,14 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
     return (
       <p className="vietsub-status">
         <Loader2 className="icon icon--spin" aria-hidden="true" />
-        Đang dịch bằng Gemini ({video.translationProfile})…
+        Translating with Gemini ({video.translationProfile})…
       </p>
     );
   }
 
   const watch = (
     <Link className="vietsub-status__link" to={`/vietsub/${video.id}`}>
-      Xem Vietsub
+      Watch Vietsub
     </Link>
   );
 
@@ -62,26 +63,26 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
           <span>Vietsub: Gemini · {video.translationProfile}</span>
           {watch}
           <a className="vietsub-status__link" href={viSrtUrl(video.id)} download>
-            Tải .vi.srt
+            Download .vi.srt
           </a>
-          {translateButton('Dịch lại')}
+          {translateButton('Translate again')}
         </p>
       )}
       {video.viSource === 'MANUAL' && (
         <>
           <p className="vietsub-status__line">
-            <span>Vietsub: tự upload</span>
+            <span>Vietsub: uploaded</span>
             {watch}
           </p>
-          <p className="vietsub-status__note">Xoá Vietsub tự upload ở trang Vietsub nếu muốn dịch bằng Gemini.</p>
+          <p className="vietsub-status__note">Delete the uploaded Vietsub on the Vietsub page to translate with Gemini.</p>
         </>
       )}
       {video.viSource === null && video.translationStatus === 'FAILED' && (
-        <p className="vietsub-status__line">{translateButton('Dịch lại')}</p>
+        <p className="vietsub-status__line">{translateButton('Translate again')}</p>
       )}
       {video.viSource === null && video.translationStatus === null && (
         <p className="vietsub-status__line">
-          {skipReason && SKIP_MESSAGES[skipReason] ? SKIP_MESSAGES[skipReason] : translateButton('Dịch bằng Gemini')}
+          {skipReason && SKIP_MESSAGES[skipReason] ? SKIP_MESSAGES[skipReason] : translateButton('Translate with Gemini')}
         </p>
       )}
     </div>

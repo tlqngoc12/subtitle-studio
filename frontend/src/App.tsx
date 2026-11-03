@@ -1,3 +1,4 @@
+import { MotionConfig } from 'motion/react';
 import { Navigate, Route, Routes } from 'react-router';
 import { NavBar } from './components/NavBar';
 import HomePage from './pages/HomePage';
@@ -8,7 +9,8 @@ import WatchPage from './pages/WatchPage';
 
 export default function App() {
   return (
-    <>
+    // Every animation in the app follows the OS "reduce motion" setting.
+    <MotionConfig reducedMotion="user">
       <NavBar />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -18,6 +20,6 @@ export default function App() {
         <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
         <Route path="/profiles/:slug" element={<ProfilePage />} />
       </Routes>
-    </>
+    </MotionConfig>
   );
 }

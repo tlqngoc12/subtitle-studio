@@ -68,9 +68,11 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Truy vấn theo role/label (`getByRole`, `getByLabelText`), không dùng class CSS hay test id. Nút chỉ có icon/text ngắn phải có `aria-label` đủ nghĩa.
 - Màu: dùng token trong `styles.css`: `--brand` (cam #F39A42, hành động chính), `--brand-2` (tím #D9A1D9, "đang ở đây": menu, trang hiện tại). Chữ trên hai màu này dùng `--on-brand` (chữ đậm), không dùng chữ trắng. Focus ring giữ `--focus` (xanh).
 - Thêm route phía client (React Router) thì phải thêm đường dẫn đó vào `SpaForwardController` (+ test), nếu không F5 sẽ 404.
-- Chuỗi hiển thị bằng tiếng Việt; thông báo lỗi lấy theo `code` của ProblemDetail (`src/lib/errors.ts`), luôn có fallback khi thiếu `code`.
-- Font phải có subset `vietnamese` (hiện dùng Be Vietnam Pro).
-- Icon dùng `lucide-react` (không tự vẽ SVG). Nút chỉ có icon phải có `aria-label` và `title` (tooltip).
+- Chuỗi giao diện (menu, nút, label, thông báo, lỗi) bằng **tiếng Anh**; giữ thuật ngữ "Engsub" / "Vietsub". Nội dung người dùng nhập và dữ liệu test (tên video, Vietsub) vẫn có thể là tiếng Việt. Thông báo lỗi lấy theo `code` của ProblemDetail (`src/lib/errors.ts`), luôn có fallback khi thiếu `code`. Lỗi kiểm tra dữ liệu từ backend (`FieldError.message`) cũng bằng tiếng Anh.
+- Font phải có subset `vietnamese` (hiện dùng Be Vietnam Pro) vì nội dung vẫn có tiếng Việt; chữ Thái dùng Noto Sans Thai.
+- Icon dùng `lucide-react` (không tự vẽ SVG; lucide 1.x không còn icon thương hiệu → logo mạng xã hội dùng `simple-icons`, xem `profile/BrandIcon.tsx`). Nút chỉ có icon phải có `aria-label` và bọc trong `<Tip label=…>` (`components/Tip.tsx`, Radix tooltip: hover + focus + Esc); không dùng `title` (ngoại lệ: nút toàn màn hình của player, vì tooltip render ra ngoài khung fullscreen). Test tooltip bằng `expectTooltip()` (`src/test/tooltip.ts`).
+- Chuyển động dùng `motion` với preset trong `src/lib/motion.ts`; chỉ để trả lời hành động của người dùng (thêm/xoá/đổi chỗ/mở form), không animate khi tải trang. `App` có `MotionConfig reducedMotion="user"`.
+- Danh sách/trang trống dùng `<EmptyState icon=…>`: icon + một câu chỉ bước tiếp theo.
 - Màn hình xem: không phụ thuộc `:hover` của khung player (khi chuột ở trên iframe YouTube, trang không nhận hover); phụ đề YouTube phải tắt (`cc_load_policy: 0` + `unloadModule('captions')`).
 - Version package cố định (không dùng `^`); `package-lock.json` được commit; `frontend/node`, `node_modules` không commit.
 

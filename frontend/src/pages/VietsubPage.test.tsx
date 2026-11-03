@@ -6,6 +6,7 @@ import { loadedRegion } from '../test/loadedRegion';
 import type { VideoDto } from '../api/client';
 import { NavBar } from '../components/NavBar';
 import { fakeFetch, problem } from '../test/fakeFetch';
+import { expectTooltip } from '../test/tooltip';
 import VietsubPage from './VietsubPage';
 
 const ID = 'dQw4w9WgXcQ';
@@ -71,9 +72,9 @@ const srtFile = () => new File(['1\n00:00:01,000 --> 00:00:02,000\nXin chào\n']
 
 async function fillForm(url: string, file?: File) {
   const user = userEvent.setup();
-  if (url) await user.type(screen.getByLabelText('Link YouTube'), url);
-  if (file) await user.upload(screen.getByLabelText('File Vietsub (.srt)'), file);
-  await user.click(screen.getByRole('button', { name: 'Thêm Vietsub' }));
+  if (url) await user.type(screen.getByLabelText('YouTube link'), url);
+  if (file) await user.upload(screen.getByLabelText('Vietsub file (.srt)'), file);
+  await user.click(screen.getByRole('button', { name: 'Add Vietsub' }));
   return user;
 }
 
@@ -82,47 +83,47 @@ describe('VietsubPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
+  it('shows the chosen .srt file name', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
+    renderPage();
+    expect(screen.getByText('No file chosen')).toBeInTheDocument();
+
+    await userEvent.setup().upload(screen.getByLabelText('Vietsub file (.srt)'), srtFile());
+
+    expect(screen.getByText('vi.srt')).toBeInTheDocument();
+    expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
+  });
+
   it('shows the nav with Vietsub as current page', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
     renderPage();
 
     const nav = screen.getByRole('navigation');
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('aria-current', 'page');
-    expect(within(nav).getByRole('link', { name: 'Lấy Engsub' })).toHaveAttribute('href', '/');
+    expect(within(nav).getByRole('link', { name: 'Get Engsub' })).toHaveAttribute('href', '/');
     // Let the list load finish inside the test (otherwise a slow machine logs an act() warning).
-    expect(await screen.findByText(/Chưa có video nào có Vietsub/)).toBeInTheDocument();
+    expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
   });
 
   it('manages only videos with Vietsub, newest update first', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none, older, newer] }]);
     renderPage();
 
-    const list = await loadedRegion('Quản lý Vietsub');
+    const list = await loadedRegion('Manage Vietsub');
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
-    expect(within(items[0]).getByText('7 câu · Tự upload')).toBeInTheDocument();
+    expect(within(items[0]).getByText('7 lines')).toBeInTheDocument();
     // Management list only: watching happens from /vietsub/list (the only link is the download).
     expect(within(list).queryByRole('link', { name: /^Xem/ })).not.toBeInTheDocument();
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
-  });
-
-  it('shows where each Vietsub came from', async () => {
-    const auto = { ...newer, viSource: 'AUTO' as const, translationProfile: 'EmiBonnie' };
-    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [auto, older] }]);
-    renderPage();
-
-    const list = await loadedRegion('Quản lý Vietsub');
-    const items = within(within(list).getByRole('list')).getAllByRole('listitem');
-    expect(within(items[0]).getByText('7 câu · Gemini (EmiBonnie)')).toBeInTheDocument();
-    expect(within(items[1]).getByText('5 câu · Tự upload')).toBeInTheDocument();
   });
 
   it('invites the user when no video has Vietsub', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none] }]);
     renderPage();
 
-    expect(await screen.findByText(/Chưa có video nào có Vietsub/)).toBeInTheDocument();
+    expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
   });
 
   it('adds Vietsub and opens the player', async () => {
@@ -151,7 +152,7 @@ describe('VietsubPage', () => {
 
     await fillForm(`https://youtu.be/${ID}`, srtFile());
 
-    expect(screen.getByRole('button', { name: 'Đang thêm…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Adding…' })).toBeDisabled();
   });
 
   it('does not submit without both url and file', async () => {
@@ -173,26 +174,26 @@ describe('VietsubPage', () => {
     await fillForm(`https://youtu.be/${ID}`, srtFile());
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Không đọc được file .srt');
+    expect(alert).toHaveTextContent('Could not read the .srt file');
     expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
   });
 
   it('offers Replace, Delete and Download for each video', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
-    const list = await loadedRegion('Quản lý Vietsub');
+    const list = await loadedRegion('Manage Vietsub');
     const item = within(list).getByRole('listitem');
 
     // Replace and Delete are icon buttons with tooltips.
     const replace = within(item).getByLabelText('Replace Vietsub: Học Spring Boot').closest('label')!;
     const remove = within(item).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' });
     for (const [el, tip] of [[replace, 'Replace Vietsub'], [remove, 'Delete Vietsub']] as const) {
-      expect(el).toHaveAttribute('title', tip);
+      await expectTooltip(el, tip);
       expect(el.textContent?.trim()).toBe('');
       expect(el.querySelector('svg')).not.toBeNull();
     }
     const download = within(item).getByRole('link', { name: 'Download Vietsub: Học Spring Boot' });
-    expect(download).toHaveAttribute('title', 'Download Vietsub');
+    await expectTooltip(download, 'Download Vietsub');
     expect(download.textContent?.trim()).toBe('');
     expect(download.querySelector('svg')).not.toBeNull();
     expect(download).toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
@@ -206,11 +207,11 @@ describe('VietsubPage', () => {
       { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
     ]);
     renderPage();
-    const list = await loadedRegion('Quản lý Vietsub');
+    const list = await loadedRegion('Manage Vietsub');
 
     await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
 
-    expect(await within(list).findByText('9 câu · Tự upload')).toBeInTheDocument();
+    expect(await within(list).findByText('9 lines')).toBeInTheDocument();
     expect((calls.find((c) => c.method === 'POST')!.body as FormData).get('url')).toBe(ID);
   });
 
@@ -220,7 +221,7 @@ describe('VietsubPage', () => {
       { method: 'DELETE', path: `/api/videos/${ID}/vietsub`, status: 204 },
     ]);
     renderPage();
-    const list = await loadedRegion('Quản lý Vietsub');
+    const list = await loadedRegion('Manage Vietsub');
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
 
@@ -233,10 +234,10 @@ describe('VietsubPage', () => {
     it('shows 10 videos per page and moves between pages', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
       renderPage();
-      const list = await loadedRegion('Quản lý Vietsub');
+      const list = await loadedRegion('Manage Vietsub');
       expect(titles(list)).toEqual(many(10).map((v) => v.title));
 
-      await userEvent.setup().click(within(list).getByRole('button', { name: 'Trang 3' }));
+      await userEvent.setup().click(within(list).getByRole('button', { name: 'Page 3' }));
 
       expect(titles(list)).toEqual(['Video 21', 'Video 22', 'Video 23']);
       expect(screen.getByLabelText('search')).toHaveTextContent('?page=3');
@@ -246,7 +247,7 @@ describe('VietsubPage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
       renderPage();
 
-      const list = await loadedRegion('Quản lý Vietsub');
+      const list = await loadedRegion('Manage Vietsub');
       expect(within(list).queryByRole('navigation')).not.toBeInTheDocument();
     });
 
@@ -256,7 +257,7 @@ describe('VietsubPage', () => {
         { method: 'DELETE', path: '/api/videos/VIDEO000011/vietsub', status: 204 },
       ]);
       renderPage('/vietsub?page=2');
-      const list = await loadedRegion('Quản lý Vietsub');
+      const list = await loadedRegion('Manage Vietsub');
       expect(titles(list)).toEqual(['Video 11']);
 
       await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Video 11' }));
@@ -275,12 +276,12 @@ describe('VietsubPage', () => {
         { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
       ]);
       renderPage('/vietsub?page=2');
-      const list = await loadedRegion('Quản lý Vietsub');
+      const list = await loadedRegion('Manage Vietsub');
 
       await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Video 12'), srtFile());
 
       await waitFor(() => expect(titles(list)[0]).toBe('Video 12'));
-      expect(within(list).getByText('9 câu · Tự upload')).toBeInTheDocument();
+      expect(within(list).getByText('9 lines')).toBeInTheDocument();
       await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
     });
   });
@@ -289,7 +290,7 @@ describe('VietsubPage', () => {
     vi.mocked(window.confirm).mockReturnValue(false);
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
-    const list = await loadedRegion('Quản lý Vietsub');
+    const list = await loadedRegion('Manage Vietsub');
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
 

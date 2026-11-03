@@ -25,12 +25,12 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Translates a video's English subtitles to an AUTO Vietsub with Gemini, in the background.
  *
  * <p>Rules: never over a MANUAL Vietsub; one translation per video at a time (guarded by a conditional
- * UPDATE); from Lấy Engsub only when the video has no Vietsub yet; status and errors live in the database.
+ * UPDATE); from Get Engsub only when the video has no Vietsub yet; status and errors live in the database.
  */
 @Service
 public class TranslationService {
 
-    static final String INTERRUPTED = "Bị gián đoạn do app khởi động lại, hãy dịch lại.";
+    static final String INTERRUPTED = "Interrupted by an app restart, translate again.";
     private static final int MAX_ERROR_LENGTH = 500;
     private static final Logger log = LoggerFactory.getLogger(TranslationService.class);
 
@@ -58,7 +58,7 @@ public class TranslationService {
     }
 
     /**
-     * After Lấy Engsub with a profile (already checked by the caller): starts a translation when allowed.
+     * After Get Engsub with a profile (already checked by the caller): starts a translation when allowed.
      *
      * @return null when a translation started, otherwise why not
      */
@@ -86,7 +86,7 @@ public class TranslationService {
                 ? SkipReason.VIETSUB_MANUAL : SkipReason.TRANSLATION_IN_PROGRESS;
     }
 
-    /** The "Dịch lại" button: may replace an AUTO Vietsub, never a MANUAL one. */
+    /** The "Translate again" button: may replace an AUTO Vietsub, never a MANUAL one. */
     public void retranslate(String videoId, String profile) {
         Video video = find(videoId);
         if (!gemini.configured()) {
@@ -142,10 +142,10 @@ public class TranslationService {
         } catch (TranslationFailedException e) {
             fail(id, e.userMessage());
         } catch (UnknownProfileException e) {
-            fail(id, "Không dịch được: hồ sơ dịch \"" + profile + "\" không còn dùng được.");
+            fail(id, "Could not translate: translation profile \"" + profile + "\" can no longer be used.");
         } catch (RuntimeException e) {
             log.warn("Translation of {} failed: {}", id, e.getClass().getName());
-            fail(id, "Không dịch được: lỗi " + e.getClass().getSimpleName() + ".");
+            fail(id, "Could not translate: " + e.getClass().getSimpleName() + ".");
         }
     }
 

@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadedRegion } from '../test/loadedRegion';
+import { expectTooltip } from '../test/tooltip';
 import { MemoryRouter, useLocation } from 'react-router';
 import HomePage from './HomePage';
 import type { CueDto, VideoDto } from '../api/client';
@@ -103,8 +104,8 @@ const titles = (list: HTMLElement) =>
 
 async function submit(url: string) {
   const user = userEvent.setup();
-  await user.type(screen.getByLabelText('Link YouTube'), url);
-  await user.click(screen.getByRole('button', { name: 'Lấy Engsub' }));
+  await user.type(screen.getByLabelText('YouTube link'), url);
+  await user.click(screen.getByRole('button', { name: 'Get Engsub' }));
   return user;
 }
 
@@ -123,10 +124,10 @@ describe('HomePage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie', 'Other'])]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const select = await screen.findByLabelText('Hồ sơ dịch');
+      const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(3));
       expect(within(select).getAllByRole('option').map((o) => o.textContent))
-        .toEqual(['— Không dịch —', 'EmiBonnie', 'Other']);
+        .toEqual(['— No translation —', 'EmiBonnie', 'Other']);
       expect(select).toHaveValue('');
       expect(select).toBeEnabled();
     });
@@ -135,12 +136,12 @@ describe('HomePage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(false, ['EmiBonnie'])]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const select = await screen.findByLabelText('Hồ sơ dịch');
+      const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(select).toBeDisabled());
-      expect(select).toHaveAttribute('title', 'Chưa cấu hình GEMINI_API_KEY');
+      await expectTooltip(select.parentElement!, 'GEMINI_API_KEY is not set');
     });
 
-    it('sends the chosen profile with Lấy Engsub', async () => {
+    it('sends the chosen profile with Get Engsub', async () => {
       const calls = fakeFetch([
         { method: 'GET', path: '/api/videos', status: 200, body: [] },
         profilesRoute(true, ['EmiBonnie']),
@@ -148,7 +149,7 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const select = await screen.findByLabelText('Hồ sơ dịch');
+      const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
 
       await userEvent.setup().selectOptions(select, 'EmiBonnie');
@@ -165,7 +166,7 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      await screen.findByLabelText('Hồ sơ dịch');
+      await screen.findByLabelText('Translation profile');
 
       await submit(ID);
 
@@ -175,14 +176,14 @@ describe('HomePage', () => {
     it('remembers the last profile', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie'])]);
       const first = render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const select = await screen.findByLabelText('Hồ sơ dịch');
+      const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
       await userEvent.setup().selectOptions(select, 'EmiBonnie');
       first.unmount();
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      await waitFor(() => expect(screen.getByLabelText('Hồ sơ dịch')).toHaveValue('EmiBonnie'));
+      await waitFor(() => expect(screen.getByLabelText('Translation profile')).toHaveValue('EmiBonnie'));
     });
 
     it('forgets a remembered profile that no longer exists', async () => {
@@ -190,7 +191,7 @@ describe('HomePage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie'])]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const select = await screen.findByLabelText('Hồ sơ dịch');
+      const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
       expect(select).toHaveValue('');
     });
@@ -201,7 +202,7 @@ describe('HomePage', () => {
 
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    expect(await screen.findByText(/Chưa có video nào/)).toBeInTheDocument();
+    expect(await screen.findByText(/No videos yet/)).toBeInTheDocument();
   });
 
   it('disables the button and shows progress while fetching', async () => {
@@ -216,12 +217,12 @@ describe('HomePage', () => {
 
     await submit(`https://youtu.be/${ID}`);
 
-    expect(screen.getByRole('button', { name: /Đang lấy/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Fetching/ })).toBeDisabled();
     expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: `https://youtu.be/${ID}` }));
     release();
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
     // Re-enabled only after the cue preview has loaded too.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Lấy Engsub' })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Get Engsub' })).toBeEnabled());
   });
 
   it('shows the fetched video with note, count, download link and cue preview', async () => {
@@ -234,14 +235,14 @@ describe('HomePage', () => {
 
     await submit(ID);
 
-    const result = await screen.findByRole('region', { name: 'Kết quả' });
+    const result = await screen.findByRole('region', { name: 'Result' });
     expect(within(result).getByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
     expect(within(result).getByText('Dev Channel')).toBeInTheDocument();
     expect(within(result).getByText('12:34')).toBeInTheDocument();
     expect(within(result).queryByText(/Auto-generated/)).not.toBeInTheDocument();
-    expect(within(result).getByText(/không có dấu câu/)).toBeInTheDocument();
-    expect(within(result).getByText('2 câu')).toBeInTheDocument();
-    expect(within(result).getByRole('link', { name: 'Tải .srt' }))
+    expect(within(result).getByText(/no punctuation/)).toBeInTheDocument();
+    expect(within(result).getByText('2 lines')).toBeInTheDocument();
+    expect(within(result).getByRole('link', { name: 'Download .srt' }))
       .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     expect(within(result).getByRole('img')).toHaveAttribute('src', autoVideo.thumbnailUrl);
 
@@ -261,10 +262,10 @@ describe('HomePage', () => {
 
     await submit('MANUAL00001');
 
-    const result = await screen.findByRole('region', { name: 'Kết quả' });
+    const result = await screen.findByRole('region', { name: 'Result' });
     expect(within(result).queryByText('Manual')).not.toBeInTheDocument();
-    expect(within(result).getByText('3 câu')).toBeInTheDocument();
-    expect(within(result).queryByText(/không có dấu câu/)).not.toBeInTheDocument();
+    expect(within(result).getByText('3 lines')).toBeInTheDocument();
+    expect(within(result).queryByText(/no punctuation/)).not.toBeInTheDocument();
   });
 
   it('explains an invalid link using the error code', async () => {
@@ -276,7 +277,7 @@ describe('HomePage', () => {
 
     await submit('https://evil.com/x');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Link không hợp lệ');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid link');
   });
 
   it('explains a video without English subtitles', async () => {
@@ -288,7 +289,7 @@ describe('HomePage', () => {
 
     await submit(ID);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Video này không có phụ đề tiếng Anh');
+    expect(await screen.findByRole('alert')).toHaveTextContent('This video has no English subtitles');
   });
 
   it('explains when the server cannot be reached', async () => {
@@ -297,14 +298,14 @@ describe('HomePage', () => {
 
     await submit(ID);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Không kết nối được máy chủ');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot reach the server');
   });
 
   it('does not submit an empty link', async () => {
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
     render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Lấy Engsub' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Get Engsub' }));
 
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
   });
@@ -320,7 +321,7 @@ describe('HomePage', () => {
     };
     const manual: VideoDto = { ...autoVideo, viCueCount: 2, viSource: 'MANUAL' };
     const failed: VideoDto = {
-      ...autoVideo, translationStatus: 'FAILED', translationError: 'Hết lượt miễn phí của Gemini, thử lại sau.',
+      ...autoVideo, translationStatus: 'FAILED', translationError: 'Gemini free quota is used up, try again later.',
     };
 
     afterEach(() => {
@@ -331,15 +332,15 @@ describe('HomePage', () => {
     const user = () => userEvent.setup(vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : {});
 
     async function chooseProfile() {
-      const select = await screen.findByLabelText('Hồ sơ dịch');
+      const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
       await user().selectOptions(select, 'EmiBonnie');
     }
 
     async function openFromHistory() {
-      const history = await loadedRegion('Đã lấy trước đó');
-      await user().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
-      return screen.findByRole('region', { name: 'Kết quả' });
+      const history = await loadedRegion('Fetched earlier');
+      await user().click(within(history).getByRole('button', { name: /Open Học Spring Boot/ }));
+      return screen.findByRole('region', { name: 'Result' });
     }
 
     it('shows that Gemini is translating', async () => {
@@ -355,8 +356,8 @@ describe('HomePage', () => {
 
       await submit(ID);
 
-      const result = await screen.findByRole('region', { name: 'Kết quả' });
-      expect(within(result).getByText('Đang dịch bằng Gemini (EmiBonnie)…')).toBeInTheDocument();
+      const result = await screen.findByRole('region', { name: 'Result' });
+      expect(within(result).getByText('Translating with Gemini (EmiBonnie)…')).toBeInTheDocument();
     });
 
     it('polls every 3 s and shows the AUTO Vietsub when done', async () => {
@@ -369,15 +370,15 @@ describe('HomePage', () => {
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
       const result = await openFromHistory();
-      expect(within(result).getByText('Đang dịch bằng Gemini (EmiBonnie)…')).toBeInTheDocument();
+      expect(within(result).getByText('Translating with Gemini (EmiBonnie)…')).toBeInTheDocument();
       const polls = () => calls.filter((c) => c.path === `/api/videos/${ID}`).length;
 
       await vi.advanceTimersByTimeAsync(3000);
       await vi.advanceTimersByTimeAsync(3000);
 
       expect(await within(result).findByText('Vietsub: Gemini · EmiBonnie')).toBeInTheDocument();
-      expect(within(result).getByRole('link', { name: 'Xem Vietsub' })).toHaveAttribute('href', `/vietsub/${ID}`);
-      expect(within(result).getByRole('link', { name: 'Tải .vi.srt' }))
+      expect(within(result).getByRole('link', { name: 'Watch Vietsub' })).toHaveAttribute('href', `/vietsub/${ID}`);
+      expect(within(result).getByRole('link', { name: 'Download .vi.srt' }))
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
       const afterDone = polls();
       expect(afterDone).toBe(2);
@@ -386,18 +387,18 @@ describe('HomePage', () => {
       expect(polls()).toBe(afterDone);
     });
 
-    it('shows a manual Vietsub without Dịch lại', async () => {
+    it('shows an uploaded Vietsub without Translate again', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [manual] }, profiles, cuesRoute]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
       const result = await openFromHistory();
 
-      expect(within(result).getByText('Vietsub: tự upload')).toBeInTheDocument();
-      expect(within(result).getByText(/Xoá Vietsub tự upload ở trang Vietsub/)).toBeInTheDocument();
-      expect(within(result).queryByRole('button', { name: /Dịch/ })).not.toBeInTheDocument();
+      expect(within(result).getByText('Vietsub: uploaded')).toBeInTheDocument();
+      expect(within(result).getByText(/Delete the uploaded Vietsub on the Vietsub page/)).toBeInTheDocument();
+      expect(within(result).queryByRole('button', { name: /Translate/ })).not.toBeInTheDocument();
     });
 
-    it('shows a failure with Dịch lại', async () => {
+    it('shows a failure with Translate again', async () => {
       const calls = fakeFetch([
         { method: 'GET', path: '/api/videos', status: 200, body: [failed] },
         profiles,
@@ -409,11 +410,11 @@ describe('HomePage', () => {
       await chooseProfile();
       const result = await openFromHistory();
 
-      expect(within(result).getByRole('alert')).toHaveTextContent('Hết lượt miễn phí của Gemini, thử lại sau.');
-      await userEvent.setup().click(within(result).getByRole('button', { name: 'Dịch lại' }));
+      expect(within(result).getByRole('alert')).toHaveTextContent('Gemini free quota is used up, try again later.');
+      await userEvent.setup().click(within(result).getByRole('button', { name: 'Translate again' }));
 
       expect(calls.find((c) => c.path.endsWith('/translate'))?.body).toBe(JSON.stringify({ profile: 'EmiBonnie' }));
-      expect(await within(result).findByText('Đang dịch bằng Gemini (EmiBonnie)…')).toBeInTheDocument();
+      expect(await within(result).findByText('Translating with Gemini (EmiBonnie)…')).toBeInTheDocument();
     });
 
     it('asks before replacing an AUTO Vietsub', async () => {
@@ -423,29 +424,29 @@ describe('HomePage', () => {
       await chooseProfile();
       const result = await openFromHistory();
 
-      await userEvent.setup().click(within(result).getByRole('button', { name: 'Dịch lại' }));
+      await userEvent.setup().click(within(result).getByRole('button', { name: 'Translate again' }));
 
-      expect(window.confirm).toHaveBeenCalledWith('Thay Vietsub Gemini hiện có?');
+      expect(window.confirm).toHaveBeenCalledWith('Replace the Gemini Vietsub?');
       expect(calls.some((c) => c.path.endsWith('/translate'))).toBe(false);
     });
 
-    it('disables Dịch lại without a profile', async () => {
+    it('disables Translate again without a profile', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [done] }, profiles, cuesRoute]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
       const result = await openFromHistory();
 
-      expect(within(result).getByRole('button', { name: 'Dịch lại' })).toBeDisabled();
+      expect(within(result).getByRole('button', { name: 'Translate again' })).toBeDisabled();
     });
 
-    it('offers Dịch bằng Gemini for a video without Vietsub', async () => {
+    it('offers Translate with Gemini for a video without Vietsub', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }, profiles, cuesRoute]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
       await chooseProfile();
 
       const result = await openFromHistory();
 
-      expect(within(result).getByRole('button', { name: 'Dịch bằng Gemini' })).toBeEnabled();
+      expect(within(result).getByRole('button', { name: 'Translate with Gemini' })).toBeEnabled();
     });
 
     it('shows the too-long reason instead of the button', async () => {
@@ -460,9 +461,9 @@ describe('HomePage', () => {
 
       await submit(ID);
 
-      const result = await screen.findByRole('region', { name: 'Kết quả' });
-      expect(await within(result).findByText('Video dài hơn 60 phút, không dịch tự động được.')).toBeInTheDocument();
-      expect(within(result).queryByRole('button', { name: 'Dịch bằng Gemini' })).not.toBeInTheDocument();
+      const result = await screen.findByRole('region', { name: 'Result' });
+      expect(await within(result).findByText('The video is longer than 60 minutes, so it cannot be translated automatically.')).toBeInTheDocument();
+      expect(within(result).queryByRole('button', { name: 'Translate with Gemini' })).not.toBeInTheDocument();
     });
 
     it('marks translating and failed videos in the history', async () => {
@@ -473,10 +474,10 @@ describe('HomePage', () => {
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(within(history).getByRole('list')).getAllByRole('listitem');
-      expect(items[0]).toHaveTextContent('· Đang dịch…');
-      expect(items[1]).toHaveTextContent('· Lỗi dịch');
+      expect(items[0]).toHaveTextContent('Translating…');
+      expect(items[1]).toHaveTextContent('Translation failed');
     });
 
     it('stops polling a video that disappears', async () => {
@@ -487,7 +488,7 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}`, status: 404, body: problem(404, 'VIDEO_NOT_FOUND', 'gone') },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       expect(within(history).getAllByRole('listitem')).toHaveLength(1);
 
       await vi.advanceTimersByTimeAsync(3000);
@@ -506,16 +507,16 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const item = within(history).getByRole('listitem');
       const actions = [
-        { el: within(item).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }), tip: 'Xem Vietsub' },
-        { el: within(item).getByRole('link', { name: 'Tải .srt của Học Spring Boot' }), tip: 'Tải .srt' },
-        { el: within(item).getByRole('button', { name: 'Làm mới Học Spring Boot' }), tip: 'Làm mới' },
-        { el: within(item).getByRole('button', { name: 'Xoá Học Spring Boot' }), tip: 'Xoá' },
+        { el: within(item).getByRole('link', { name: 'Watch with Vietsub: Học Spring Boot' }), tip: 'Watch with Vietsub' },
+        { el: within(item).getByRole('link', { name: 'Download .srt: Học Spring Boot' }), tip: 'Download .srt' },
+        { el: within(item).getByRole('button', { name: 'Refresh Học Spring Boot' }), tip: 'Refresh' },
+        { el: within(item).getByRole('button', { name: 'Delete Học Spring Boot' }), tip: 'Delete' },
       ];
       for (const { el, tip } of actions) {
-        expect(el).toHaveAttribute('title', tip);
+        await expectTooltip(el, tip);
         expect(el.textContent?.trim()).toBe('');
         expect(el.querySelector('svg')).not.toBeNull();
       }
@@ -526,11 +527,11 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
       expect(items).toHaveLength(2);
       expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
-      expect(within(items[0]).getByRole('link', { name: /Tải .srt/ }))
+      expect(within(items[0]).getByRole('link', { name: /Download .srt/ }))
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     });
 
@@ -539,10 +540,11 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
-      expect(within(items[0]).getByText('2 câu, 12:34')).toBeInTheDocument();
-      expect(within(items[1]).getByText('3 câu, 12:34')).toBeInTheDocument();
+      expect(within(items[0]).getByText('2 lines')).toBeInTheDocument();
+      expect(within(items[0]).getByText('12:34')).toBeInTheDocument();
+      expect(within(items[1]).getByText('3 lines')).toBeInTheDocument();
       expect(within(history).queryByText(/Auto-generated|Manual/)).not.toBeInTheDocument();
     });
 
@@ -551,9 +553,9 @@ describe('HomePage', () => {
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
-      expect(within(items[0]).getByRole('link', { name: 'Xem Vietsub của Học Spring Boot' }))
+      expect(within(items[0]).getByRole('link', { name: 'Watch with Vietsub: Học Spring Boot' }))
         .toHaveAttribute('href', `/vietsub/${ID}`);
       expect(within(items[1]).queryByRole('link', { name: /Xem Vietsub/ })).not.toBeInTheDocument();
     });
@@ -564,11 +566,11 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Mở Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Open Học Spring Boot/ }));
 
-      const result = await screen.findByRole('region', { name: 'Kết quả' });
+      const result = await screen.findByRole('region', { name: 'Result' });
       expect(await within(result).findByText('and why it matters')).toBeInTheDocument();
     });
 
@@ -578,9 +580,9 @@ describe('HomePage', () => {
         { method: 'DELETE', path: `/api/videos/${ID}`, status: 204 },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Delete Học Spring Boot/ }));
 
       await waitFor(() => expect(within(history).getAllByRole('listitem')).toHaveLength(1));
       expect(window.confirm).toHaveBeenCalled();
@@ -591,9 +593,9 @@ describe('HomePage', () => {
       vi.mocked(window.confirm).mockReturnValue(false);
       const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Xoá Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Delete Học Spring Boot/ }));
 
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
       expect(within(history).getAllByRole('listitem')).toHaveLength(1);
@@ -603,11 +605,11 @@ describe('HomePage', () => {
       it('shows 10 videos per page and keeps the page in the URL', async () => {
         fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
         renderAt('/');
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
         expect(titles(history)).toEqual(many(10).map((v) => v.title));
-        expect(within(history).getByRole('button', { name: 'Trang 1' })).toHaveAttribute('aria-current', 'page');
+        expect(within(history).getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
 
-        await userEvent.setup().click(within(history).getByRole('button', { name: 'Trang 2' }));
+        await userEvent.setup().click(within(history).getByRole('button', { name: 'Page 2' }));
 
         expect(titles(history)[0]).toBe('Video 11');
         expect(screen.getByLabelText('search')).toHaveTextContent('?page=2');
@@ -617,7 +619,7 @@ describe('HomePage', () => {
         fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(10) }]);
         renderAt('/');
 
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
       });
 
@@ -628,7 +630,7 @@ describe('HomePage', () => {
           { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
         ]);
         renderAt('/?page=2');
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
         expect(titles(history)[0]).toBe('Video 11');
 
         await submit(ID);
@@ -643,9 +645,9 @@ describe('HomePage', () => {
           { method: 'DELETE', path: '/api/videos/VIDEO000011', status: 204 },
         ]);
         renderAt('/?page=2');
-        const history = await loadedRegion('Đã lấy trước đó');
+        const history = await loadedRegion('Fetched earlier');
 
-        await userEvent.setup().click(within(history).getByRole('button', { name: 'Xoá Video 11' }));
+        await userEvent.setup().click(within(history).getByRole('button', { name: 'Delete Video 11' }));
 
         await waitFor(() => expect(titles(history)).toHaveLength(10));
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
@@ -661,9 +663,9 @@ describe('HomePage', () => {
         { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Đã lấy trước đó');
+      const history = await loadedRegion('Fetched earlier');
 
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Làm mới Học Spring Boot/ }));
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Refresh Học Spring Boot/ }));
 
       expect(await within(history).findByText('Học Spring Boot (v2)')).toBeInTheDocument();
       expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/refresh'))).toBe(true);

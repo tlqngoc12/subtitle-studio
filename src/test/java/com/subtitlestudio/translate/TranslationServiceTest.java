@@ -210,7 +210,7 @@ class TranslationServiceTest {
         assertThat(file).contains("Dịch: Hello").contains("00:00:03,000 --> 00:00:04,000");
     }
 
-    // --- conditions: from Lấy Engsub ---
+    // --- conditions: from Get Engsub ---
 
     @Test
     void notConfiguredSkipsFromFetch() {
@@ -356,14 +356,14 @@ class TranslationServiceTest {
     void failureMarksFailedWithMessage() {
         video(600);
         translator.behaviour = (v, p, lines) -> {
-            throw new TranslationFailedException("Hết lượt miễn phí của Gemini, thử lại sau.");
+            throw new TranslationFailedException("Gemini free quota is used up, try again later.");
         };
 
         service.startFromFetch(ID, PROFILE);
 
         Video v = reload();
         assertThat(v.getTranslationStatus()).isEqualTo(TranslationStatus.FAILED);
-        assertThat(v.getTranslationError()).isEqualTo("Hết lượt miễn phí của Gemini, thử lại sau.");
+        assertThat(v.getTranslationError()).isEqualTo("Gemini free quota is used up, try again later.");
         assertThat(v.getViSource()).isNull();
     }
 
@@ -378,7 +378,7 @@ class TranslationServiceTest {
 
         Video v = reload();
         assertThat(v.getTranslationStatus()).isEqualTo(TranslationStatus.FAILED);
-        assertThat(v.getTranslationError()).startsWith("Không dịch được: ").hasSizeLessThanOrEqualTo(500);
+        assertThat(v.getTranslationError()).startsWith("Could not translate: ").hasSizeLessThanOrEqualTo(500);
     }
 
     @Test
@@ -408,7 +408,7 @@ class TranslationServiceTest {
 
         Video v = reload();
         assertThat(v.getTranslationStatus()).isEqualTo(TranslationStatus.FAILED);
-        assertThat(v.getTranslationError()).isEqualTo("Bị gián đoạn do app khởi động lại, hãy dịch lại.");
+        assertThat(v.getTranslationError()).isEqualTo("Interrupted by an app restart, translate again.");
     }
 
     private TranslationService serviceWithKey(String key) {

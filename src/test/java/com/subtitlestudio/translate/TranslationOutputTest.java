@@ -53,7 +53,7 @@ class TranslationOutputTest {
         assertThatThrownBy(() -> TranslationOutput.validate(SENT, got))
                 .isInstanceOf(TranslationFailedException.class)
                 .extracting(e -> ((TranslationFailedException) e).userMessage())
-                .isEqualTo("Gemini trả về thiếu/lệch câu (2/3 câu hợp lệ), thử dịch lại.");
+                .isEqualTo("Gemini returned missing or mismatched lines (2/3 valid), try again.");
     }
 
     @Test
@@ -63,7 +63,7 @@ class TranslationOutputTest {
 
         assertThatThrownBy(() -> TranslationOutput.validate(SENT, got))
                 .extracting(e -> ((TranslationFailedException) e).userMessage())
-                .isEqualTo("Gemini trả về thiếu/lệch câu (3/3 câu hợp lệ), thử dịch lại.");
+                .isEqualTo("Gemini returned missing or mismatched lines (3/3 valid), try again.");
     }
 
     @Test
@@ -73,7 +73,7 @@ class TranslationOutputTest {
 
         assertThatThrownBy(() -> TranslationOutput.validate(SENT, got))
                 .extracting(e -> ((TranslationFailedException) e).userMessage())
-                .isEqualTo("Gemini trả về thiếu/lệch câu (2/3 câu hợp lệ), thử dịch lại.");
+                .isEqualTo("Gemini returned missing or mismatched lines (2/3 valid), try again.");
     }
 
     @Test
@@ -83,6 +83,6 @@ class TranslationOutputTest {
 
         assertThatThrownBy(() -> TranslationOutput.validate(SENT, got))
                 .extracting(e -> ((TranslationFailedException) e).userMessage())
-                .isEqualTo("Gemini trả về thiếu/lệch câu (1/3 câu hợp lệ), thử dịch lại.");
+                .isEqualTo("Gemini returned missing or mismatched lines (1/3 valid), try again.");
     }
 }

@@ -3,12 +3,12 @@ import { formatTimecode } from '../lib/format';
 
 export function CueTable({ cues }: { cues: CueDto[] }) {
   return (
-    <div className="cues" tabIndex={0} aria-label="Xem trước phụ đề">
+    <div className="cues" tabIndex={0} aria-label="Subtitle preview">
       <table>
         <thead>
           <tr>
-            <th scope="col">Thời gian</th>
-            <th scope="col">Câu</th>
+            <th scope="col">Time</th>
+            <th scope="col">Line</th>
           </tr>
         </thead>
         <tbody>

@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
+import { Captions, Clock, Download, Languages, MonitorPlay, Play, RotateCw, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { srtUrl, type VideoDto } from '../api/client';
-import { Download, Play, RotateCw, Trash2 } from 'lucide-react';
 import { formatDuration } from '../lib/format';
+import { rowMotion } from '../lib/motion';
+import { EmptyState } from './EmptyState';
+import { Tip } from './Tip';
 
 interface Props {
   videos: VideoDto[] | null;
@@ -10,69 +14,105 @@ interface Props {
   onOpen: (video: VideoDto) => void;
   onRefresh: (video: VideoDto) => void;
   onDelete: (video: VideoDto) => void;
+  /** The row to flash once, e.g. the video just fetched. */
+  highlightId?: string | null;
+  /** Changes when another page is shown, so its rows appear without enter/exit animations. */
+  listKey?: number;
   /** Shown under the list, e.g. the pager. */
   footer?: ReactNode;
 }
 
-export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, footer }: Props) {
+export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, highlightId, listKey, footer }: Props) {
   return (
-    <section className="history" aria-label="Đã lấy trước đó">
-      <h2 className="history__heading">Đã lấy trước đó</h2>
+    <section className="history" aria-label="Fetched earlier">
+      <h2 className="history__heading">Fetched earlier</h2>
       {videos === null ? (
-        <p className="muted">Đang tải danh sách…</p>
+        <p className="muted">Loading list…</p>
       ) : videos.length === 0 ? (
-        <p className="muted">Chưa có video nào. Dán link YouTube ở khung phía trên để bắt đầu.</p>
+        <EmptyState icon={MonitorPlay}>No videos yet. Paste a YouTube link above to start.</EmptyState>
       ) : (
-        <ul className="history__list">
-          {videos.map((v) => {
-            const busy = busyId === v.id;
-            const duration = formatDuration(v.durationSec);
-            return (
-              <li key={v.id} className="history__item" aria-busy={busy}>
-                <button className="history__open" type="button" onClick={() => onOpen(v)} aria-label={`Mở ${v.title}`}>
-                  <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
-                  <span className="history__text">
-                    <span className="history__title">{v.title}</span>
-                    <span className="history__sub">
-                      {v.cueCount} câu{duration ? `, ${duration}` : ''}
-                      {v.translationStatus === 'TRANSLATING' && ' · Đang dịch…'}
-                      {v.translationStatus === 'FAILED' && ' · Lỗi dịch'}
+        <ul className="history__list" key={listKey}>
+          <AnimatePresence initial={false}>
+            {videos.map((v) => {
+              const busy = busyId === v.id;
+              const duration = formatDuration(v.durationSec);
+              return (
+                <motion.li
+                  key={v.id}
+                  {...rowMotion}
+                  className={v.id === highlightId ? 'history__item history__item--new' : 'history__item'}
+                  aria-busy={busy}
+                >
+                  <button className="history__open" type="button" onClick={() => onOpen(v)} aria-label={`Open ${v.title}`}>
+                    <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
+                    <span className="history__text">
+                      <span className="history__title">{v.title}</span>
+                      <span className="history__sub">
+                        <span className="meta">
+                          <Captions className="icon icon--sm" aria-hidden="true" />
+                          {v.cueCount} lines
+                        </span>
+                        {duration && (
+                          <span className="meta">
+                            <Clock className="icon icon--sm" aria-hidden="true" />
+                            {duration}
+                          </span>
+                        )}
+                        {v.translationStatus === 'TRANSLATING' && (
+                          <span className="meta">
+                            <Languages className="icon icon--sm" aria-hidden="true" />
+                            Translating…
+                          </span>
+                        )}
+                        {v.translationStatus === 'FAILED' && (
+                          <span className="meta meta--error">
+                            <Languages className="icon icon--sm" aria-hidden="true" />
+                            Translation failed
+                          </span>
+                        )}
+                      </span>
                     </span>
+                  </button>
+                  <span className="history__actions">
+                    {v.viCueCount > 0 && (
+                      <Tip label="Watch with Vietsub">
+                        <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Watch with Vietsub: ${v.title}`}>
+                          <Play className="icon" aria-hidden="true" />
+                        </Link>
+                      </Tip>
+                    )}
+                    <Tip label="Download .srt">
+                      <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Download .srt: ${v.title}`}>
+                        <Download className="icon" aria-hidden="true" />
+                      </a>
+                    </Tip>
+                    <Tip label={busy ? 'Refreshing…' : 'Refresh'}>
+                      <button
+                        className={busy ? 'button button--icon button--spinning' : 'button button--icon'}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onRefresh(v)}
+                        aria-label={`Refresh ${v.title}`}
+                      >
+                        <RotateCw className="icon" aria-hidden="true" />
+                      </button>
+                    </Tip>
+                    <Tip label="Delete">
+                      <button
+                        className="button button--icon button--danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onDelete(v)}
+                        aria-label={`Delete ${v.title}`}
+                      >
+                        <Trash2 className="icon" aria-hidden="true" />
+                      </button>
+                    </Tip>
                   </span>
-                </button>
-                <span className="history__actions">
-                  {v.viCueCount > 0 && (
-                    <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Xem Vietsub của ${v.title}`} title="Xem Vietsub">
-                      <Play className="icon" aria-hidden="true" />
-                    </Link>
-                  )}
-                  <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Tải .srt của ${v.title}`} title="Tải .srt">
-                    <Download className="icon" aria-hidden="true" />
-                  </a>
-                  <button
-                    className={busy ? 'button button--icon button--spinning' : 'button button--icon'}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => onRefresh(v)}
-                    aria-label={`Làm mới ${v.title}`}
-                    title={busy ? 'Đang làm mới…' : 'Làm mới'}
-                  >
-                    <RotateCw className="icon" aria-hidden="true" />
-                  </button>
-                  <button
-                    className="button button--icon button--danger"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => onDelete(v)}
-                    aria-label={`Xoá ${v.title}`}
-                    title="Xoá"
-                  >
-                    <Trash2 className="icon" aria-hidden="true" />
-                  </button>
-                </span>
-              </li>
-            );
-          })}
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
         </ul>
       )}
       {footer}

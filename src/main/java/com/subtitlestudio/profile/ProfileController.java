@@ -50,7 +50,7 @@ public class ProfileController {
     @PostMapping("/api/profiles/{slug}/blocks/{id}/move")
     public List<BlockDto> move(@PathVariable String slug, @PathVariable long id, @RequestBody MoveRequest request) {
         if (request.direction() == null) {
-            throw new InvalidBlockException(List.of(new FieldError("direction", "Thiếu hướng di chuyển")));
+            throw new InvalidBlockException(List.of(new FieldError("direction", "Direction is required")));
         }
         return service.move(slug, id, request.direction());
     }

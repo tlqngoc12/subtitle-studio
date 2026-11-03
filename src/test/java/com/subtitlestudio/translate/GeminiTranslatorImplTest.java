@@ -74,7 +74,7 @@ class GeminiTranslatorImplTest {
         server.reply(429, "{\"error\":{\"code\":429,\"message\":\"Resource exhausted\",\"status\":\"RESOURCE_EXHAUSTED\"}}");
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
-                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Hết lượt miễn phí của Gemini, thử lại sau."));
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini free quota is used up, try again later."));
         assertThat(server.requests()).isEqualTo(1); // no automatic retries burning the free quota
     }
 
@@ -84,7 +84,7 @@ class GeminiTranslatorImplTest {
         server.reply(status, "{\"error\":{\"code\":" + status + ",\"message\":\"API key not valid\",\"status\":\"PERMISSION_DENIED\"}}");
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
-                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("GEMINI_API_KEY không hợp lệ."));
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("GEMINI_API_KEY is not valid."));
     }
 
     @Test
@@ -93,7 +93,7 @@ class GeminiTranslatorImplTest {
         server.replyText(GOOD, "STOP");
 
         assertThatThrownBy(() -> translator(Duration.ofSeconds(1)).translate(VIDEO, PROFILE, LINES))
-                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini không phản hồi kịp."));
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini did not respond in time."));
     }
 
     @Test
@@ -101,7 +101,7 @@ class GeminiTranslatorImplTest {
         server.reply(200, "{\"candidates\":[{\"finishReason\":\"SAFETY\"}]}");
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
-                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini từ chối dịch nội dung này."));
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini refused to translate this content."));
     }
 
     @ParameterizedTest
@@ -110,7 +110,7 @@ class GeminiTranslatorImplTest {
         server.replyText(text, "STOP");
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
-                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini trả về thiếu/lệch câu (0/2 câu hợp lệ), thử dịch lại."));
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini returned missing or mismatched lines (0/2 valid), try again."));
     }
 
     @Test
@@ -119,7 +119,7 @@ class GeminiTranslatorImplTest {
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
                 .satisfies(e -> {
-                    assertThat(userMessage(e)).startsWith("Không dịch được: ").doesNotContain(KEY);
+                    assertThat(userMessage(e)).startsWith("Could not translate: ").doesNotContain(KEY);
                     assertThat(e.getMessage()).doesNotContain(KEY);
                 });
     }

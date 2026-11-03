@@ -1,4 +1,5 @@
-import { Check, Pencil, Plus } from 'lucide-react';
+import { Check, Pencil, Plus, SquarePlus } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { ApiError } from '../api/client';
@@ -19,14 +20,16 @@ import {
 import { BLOCK_TYPE_LABELS, BlockEditor } from '../components/profile/BlockEditor';
 import { BlockToolbar } from '../components/profile/BlockToolbar';
 import { BlockView } from '../components/profile/BlockView';
+import { EmptyState } from '../components/EmptyState';
 import { ProfileTabs } from '../components/profile/ProfileTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { expandMotion, rowMotion } from '../lib/motion';
 
 type OpenForm = { mode: 'edit'; id: number } | { mode: 'add'; type: BlockType } | null;
 
 const TYPES = Object.keys(BLOCK_TYPE_LABELS) as BlockType[];
 
-/** Profile page (/profiles/:slug): name, tabs and the blocks in order; "Chỉnh sửa" edits them in place. */
+/** Profile page (/profiles/:slug): name, tabs and the blocks in order; "Edit" edits them in place. */
 export default function ProfilePage() {
   const { slug = 'emibonnie' } = useParams();
   const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
@@ -87,7 +90,7 @@ export default function ProfilePage() {
   };
 
   const remove = (id: number) => {
-    if (!window.confirm('Xóa khối này?')) return;
+    if (!window.confirm('Delete this block?')) return;
     void run(async () => {
       await deleteBlock(slug, id);
       setBlocks((bs) => bs.filter((b) => b.id !== id));
@@ -116,11 +119,11 @@ export default function ProfilePage() {
         <div className="alert" role="alert">
           <p className="alert__title">{error.message.title}</p>
           {error.message.hint && <p className="alert__hint">{error.message.hint}</p>}
-          {error.notFound && <Link to="/profiles/emibonnie">Về EmiBonnie</Link>}
+          {error.notFound && <Link to="/profiles/emibonnie">Back to EmiBonnie</Link>}
         </div>
       )}
 
-      {profile === null && !error && <p className="muted">Đang tải profile…</p>}
+      {profile === null && !error && <p className="muted">Loading profile…</p>}
 
       {profile && (
         <>
@@ -129,12 +132,12 @@ export default function ProfilePage() {
             {editing ? (
               <button type="button" className="button button--primary" onClick={stopEditing}>
                 <Check className="icon" aria-hidden="true" />
-                Xong
+                Done
               </button>
             ) : (
               <button type="button" className="button button--small" onClick={() => setEditing(true)}>
                 <Pencil className="icon" aria-hidden="true" />
-                Chỉnh sửa
+                Edit
               </button>
             )}
           </header>
@@ -147,36 +150,43 @@ export default function ProfilePage() {
           )}
 
           <div className="pblocks">
-            {profile.blocks.length === 0 && !formOpen && <p className="muted">Profile này chưa có nội dung.</p>}
-            {profile.blocks.map((b, i) =>
-              form?.mode === 'edit' && form.id === b.id ? (
-                <BlockEditor
-                  key={b.id}
-                  type={b.type}
-                  initial={b}
-                  onSave={saveEdit(b.id)}
-                  onCancel={() => setForm(null)}
-                />
-              ) : (
-                <div key={b.id} className="pblock-wrap">
-                  {editing && (
-                    <BlockToolbar
-                      first={i === 0}
-                      last={i === profile.blocks.length - 1}
-                      disabled={formOpen}
-                      onEdit={() => setForm({ mode: 'edit', id: b.id })}
-                      onMove={(d) => move(b.id, d)}
-                      onDelete={() => remove(b.id)}
-                    />
+            {profile.blocks.length === 0 && !formOpen && (
+              <EmptyState icon={SquarePlus}>
+                This profile has no content yet. {editing ? 'Use Add block below to start.' : 'Choose Edit to add the first block.'}
+              </EmptyState>
+            )}
+            <AnimatePresence initial={false}>
+              {profile.blocks.map((b, i) => (
+                // One motion wrapper per block: it glides on Move up/down and collapses on Delete.
+                <motion.div key={b.id} className="pblock-wrap" {...rowMotion}>
+                  {form?.mode === 'edit' && form.id === b.id ? (
+                    <motion.div {...expandMotion}>
+                      <BlockEditor type={b.type} initial={b} onSave={saveEdit(b.id)} onCancel={() => setForm(null)} />
+                    </motion.div>
+                  ) : (
+                    <>
+                      {editing && (
+                        <BlockToolbar
+                          first={i === 0}
+                          last={i === profile.blocks.length - 1}
+                          disabled={formOpen}
+                          onEdit={() => setForm({ mode: 'edit', id: b.id })}
+                          onMove={(d) => move(b.id, d)}
+                          onDelete={() => remove(b.id)}
+                        />
+                      )}
+                      <BlockView block={b} />
+                    </>
                   )}
-                  <BlockView block={b} />
-                </div>
-              ),
-            )}
+                </motion.div>
+              ))}
 
-            {form?.mode === 'add' && (
-              <BlockEditor type={form.type} onSave={saveNew} onCancel={() => setForm(null)} />
-            )}
+              {form?.mode === 'add' && (
+                <motion.div key="new-block" {...expandMotion}>
+                  <BlockEditor type={form.type} onSave={saveNew} onCancel={() => setForm(null)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {editing && (
               <div className="padd">
@@ -188,10 +198,10 @@ export default function ProfilePage() {
                   onClick={() => setChoosingType((v) => !v)}
                 >
                   <Plus className="icon" aria-hidden="true" />
-                  Thêm khối
+                  Add block
                 </button>
                 {choosingType && !formOpen && (
-                  <div className="padd__types" role="group" aria-label="Chọn loại khối">
+                  <div className="padd__types" role="group" aria-label="Choose block type">
                     {TYPES.map((t) => (
                       <button
                         key={t}

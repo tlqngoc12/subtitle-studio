@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import { Tip } from '../Tip';
 
 /** Editable list of GALLERY / LINKS / FACTS entries: add, remove, move up and down. */
 export function ItemListEditor<T extends { key: number }>({
@@ -14,7 +15,7 @@ export function ItemListEditor<T extends { key: number }>({
   /** A state setter: every change is applied to the latest rows, so uploads finishing later lose nothing. */
   onChange: Dispatch<SetStateAction<T[]>>;
   newRow: () => T;
-  /** Lower-case noun used in the button labels, e.g. "link" → "Thêm link", "Xóa link". */
+  /** Lower-case noun used in the button labels, e.g. "link" → "Add link", "Delete link". */
   noun: string;
   legend: (index: number) => string;
   renderRow: (row: T, index: number, update: (patch: Partial<T>) => void) => ReactNode;
@@ -41,41 +42,44 @@ export function ItemListEditor<T extends { key: number }>({
             )}
           </div>
           <div className="items__tools">
-            <button
-              type="button"
-              className="button button--icon"
-              aria-label={`Di chuyển ${noun} lên`}
-              title={`Di chuyển ${noun} lên`}
-              disabled={i === 0}
-              onClick={() => swap(row.key, -1)}
-            >
-              <ArrowUp className="icon" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="button button--icon"
-              aria-label={`Di chuyển ${noun} xuống`}
-              title={`Di chuyển ${noun} xuống`}
-              disabled={i === rows.length - 1}
-              onClick={() => swap(row.key, 1)}
-            >
-              <ArrowDown className="icon" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="button button--icon"
-              aria-label={`Xóa ${noun}`}
-              title={`Xóa ${noun}`}
-              onClick={() => onChange((prev) => prev.filter((r) => r.key !== row.key))}
-            >
-              <X className="icon" aria-hidden="true" />
-            </button>
+            <Tip label={`Move ${noun} up`}>
+              <button
+                type="button"
+                className="button button--icon"
+                aria-label={`Move ${noun} up`}
+                disabled={i === 0}
+                onClick={() => swap(row.key, -1)}
+              >
+                <ArrowUp className="icon" aria-hidden="true" />
+              </button>
+            </Tip>
+            <Tip label={`Move ${noun} down`}>
+              <button
+                type="button"
+                className="button button--icon"
+                aria-label={`Move ${noun} down`}
+                disabled={i === rows.length - 1}
+                onClick={() => swap(row.key, 1)}
+              >
+                <ArrowDown className="icon" aria-hidden="true" />
+              </button>
+            </Tip>
+            <Tip label={`Delete ${noun}`}>
+              <button
+                type="button"
+                className="button button--icon"
+                aria-label={`Delete ${noun}`}
+                onClick={() => onChange((prev) => prev.filter((r) => r.key !== row.key))}
+              >
+                <X className="icon" aria-hidden="true" />
+              </button>
+            </Tip>
           </div>
         </fieldset>
       ))}
       <button type="button" className="button button--small" onClick={() => onChange((prev) => [...prev, newRow()])}>
         <Plus className="icon" aria-hidden="true" />
-        {`Thêm ${noun}`}
+        {`Add ${noun}`}
       </button>
     </div>
   );
