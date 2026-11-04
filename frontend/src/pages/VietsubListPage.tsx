@@ -40,6 +40,32 @@ export default function VietsubListPage() {
   const query = params.get('q') ?? '';
   // The opened playlist, or 'missing' when the id in the URL does not exist (then the tabs show).
   const [playlist, setPlaylist] = useState<PublicPlaylistDetail | 'missing' | null>(null);
+  // Loaded once for the page: switching tabs must not load again (the list would collapse to "Loading…").
+  const [videos, setVideos] = useState<PublicVideo[] | null>(null);
+  const [videosError, setVideosError] = useState<ErrorMessage | null>(null);
+  const [playlists, setPlaylists] = useState<PublicPlaylistDetail[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    source
+      .listVideos()
+      .then((all) => !cancelled && setVideos(withVietsub(all)))
+      .catch((e) => {
+        if (cancelled) return;
+        setVideos([]);
+        setVideosError(errorMessage(e, { readOnly }));
+      });
+    source
+      .listPlaylists()
+      .then((list: PublicPlaylistSummary[]) =>
+        Promise.all(list.map((p) => source.getPlaylist(p.id).catch(() => null))),
+      )
+      .then((details) => !cancelled && setPlaylists(details.filter((d): d is PublicPlaylistDetail => d !== null)))
+      .catch(() => !cancelled && setPlaylists([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [source, readOnly]);
 
   useEffect(() => {
     setPlaylist(null);
@@ -143,10 +169,10 @@ export default function VietsubListPage() {
             </Tabs.Trigger>
           </Tabs.List>
           <Tabs.Content value="playlists">
-            <PlaylistsTab query={query} />
+            <PlaylistsTab query={query} playlists={playlists} />
           </Tabs.Content>
           <Tabs.Content value="all">
-            <AllVideosTab query={query} />
+            <AllVideosTab query={query} videos={videos} error={videosError} />
           </Tabs.Content>
         </Tabs.Root>
       )}
@@ -154,21 +180,9 @@ export default function VietsubListPage() {
   );
 }
 
-/** Every video with Vietsub, newest Vietsub first. */
-function AllVideosTab({ query }: { query: string }) {
-  const { source, readOnly } = useSite();
-  const [videos, setVideos] = useState<PublicVideo[] | null>(null);
-  const [error, setError] = useState<ErrorMessage | null>(null);
-
-  useEffect(() => {
-    source
-      .listVideos()
-      .then((all) => setVideos(withVietsub(all)))
-      .catch((e) => {
-        setVideos([]);
-        setError(errorMessage(e, { readOnly }));
-      });
-  }, [source, readOnly]);
+/** Every video with Vietsub, newest Vietsub first (loaded by the page). */
+function AllVideosTab({ query, videos, error }: { query: string; videos: PublicVideo[] | null; error: ErrorMessage | null }) {
+  const { readOnly } = useSite();
 
   return (
     <>
@@ -196,23 +210,8 @@ function AllVideosTab({ query }: { query: string }) {
  * Playlist cards. With a search, a playlist shows when its name matches or any of its videos does; the count
  * is then the matching videos (or the whole playlist when only the name matched).
  */
-function PlaylistsTab({ query }: { query: string }) {
-  const { source, readOnly } = useSite();
-  const [playlists, setPlaylists] = useState<PublicPlaylistDetail[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    source
-      .listPlaylists()
-      .then((list: PublicPlaylistSummary[]) =>
-        Promise.all(list.map((p) => source.getPlaylist(p.id).catch(() => null))),
-      )
-      .then((details) => !cancelled && setPlaylists(details.filter((d): d is PublicPlaylistDetail => d !== null)))
-      .catch(() => !cancelled && setPlaylists([]));
-    return () => {
-      cancelled = true;
-    };
-  }, [source]);
+function PlaylistsTab({ query, playlists }: { query: string; playlists: PublicPlaylistDetail[] | null }) {
+  const { readOnly } = useSite();
 
   const cards = useMemo(() => {
     if (playlists === null) return null;

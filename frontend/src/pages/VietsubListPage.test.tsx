@@ -220,6 +220,25 @@ describe('VietsubListPage', () => {
       expect(search()).toBe('?q=bangkok');
     });
 
+    it('switches tabs without loading again (no jumpy layout)', async () => {
+      const calls = fakeFetch(routes());
+      renderPage('/vietsub/list');
+      await cardNames();
+      await screen.findByRole('tab', { name: 'All videos' });
+      const user = userEvent.setup();
+      const loadsBefore = calls.length;
+
+      await user.click(screen.getByRole('tab', { name: 'All videos' }));
+      expect(screen.queryByText('Loading list…')).not.toBeInTheDocument();
+      expect(rowTitles(screen.getByRole('region', { name: 'Vietsub list' }))).toHaveLength(3);
+
+      await user.click(screen.getByRole('tab', { name: 'Playlists' }));
+      expect(screen.queryByText('Loading playlists…')).not.toBeInTheDocument();
+      expect(await cardNames()).toEqual(['VLOG', 'Fan Meeting', 'Empty']);
+
+      expect(calls.length).toBe(loadsBefore);
+    });
+
     it('filters All videos by title while typing and keeps q in the URL', async () => {
       fakeFetch(routes());
       renderPage();
