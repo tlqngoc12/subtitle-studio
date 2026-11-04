@@ -268,19 +268,9 @@ img {
   height: 14px;
 }
 
-.button--spinning .icon {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .button--spinning .icon {
-    animation: none;
   }
 }
 

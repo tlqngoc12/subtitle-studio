@@ -406,6 +406,11 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Hộp thoại xác nhận** (`@radix-ui/react-alert-dialog` 1.2.1, hook `useConfirmDialog`) thay `window.confirm` ở Delete video, Delete Vietsub, Delete block (Profile) và "Replace the Gemini Vietsub?"; focus mặc định ở Cancel.
 - Test frontend: jsdom thiếu `matchMedia`/`scrollIntoView` → giả lập trong `test/setup.ts`; sonner giữ toast giữa các test → `toast.dismiss()` sau mỗi test; test nhãn nguồn bị mất ở lần merge giao diện tiếng Anh đã được viết lại. Frontend 197/197.
 
+### 2026-11-04: Bỏ chức năng Refresh (lấy lại Engsub từ YouTube)
+- Người dùng thấy không cần: bỏ nút ↻ ở Fetched earlier, `handleRefresh`/`refreshVideo` (frontend), `POST /api/videos/{id}/refresh` và `SubtitleService.refresh` (backend), CSS `button--spinning`, dòng API trong README.
+- Test mới: `/refresh` trả 404, dòng Fetched earlier không còn nút Refresh; bỏ 7 test của chức năng cũ. Backend 429/429, frontend 196/196.
+- "Translate again" hiện chỉ có ở dòng Vietsub của panel kết quả (Get Engsub); Manage Vietsub chưa có (có thể thêm sau).
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.

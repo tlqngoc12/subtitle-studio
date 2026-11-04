@@ -238,60 +238,6 @@ class SubtitleServiceTest {
         assertThatThrownBy(() -> service.getCues(ID)).isInstanceOf(VideoNotFoundException.class);
     }
 
-    // --- refresh ---
-
-    @Test
-    void refreshReplacesCuesAndMetadata() {
-        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO, MANUAL_INFO);
-        service.fetch(ID);
-        clock.advance(Duration.ofHours(1));
-
-        Video refreshed = service.refresh(ID);
-        em.flush();
-        em.clear();
-
-        assertThat(refreshed.getTitle()).isEqualTo("Manual title");
-        assertThat(refreshed.getSubSource()).isEqualTo(SourceType.MANUAL);
-        assertThat(refreshed.getCueCount()).isEqualTo(3);
-        assertThat(refreshed.getFetchedAt()).isEqualTo(Instant.parse("2026-11-02T11:00:00Z"));
-        assertThat(service.getCues(ID)).extracting(Cue::text)
-                .containsExactly("Welcome back to the channel.",
-                        "Today we're talking about\ndependency injection in Spring.",
-                        "No identifier on this one.");
-        assertThat(videos.count()).isEqualTo(1);
-    }
-
-    @Test
-    void refreshDeletesOldVttWhenLanguageChanges() {
-        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO, MANUAL_INFO);
-        service.fetch(ID);
-
-        service.refresh(ID);
-
-        assertThat(SUBS_DIR.resolve(ID + ".en-orig.vtt")).doesNotExist();
-        assertThat(SUBS_DIR.resolve(ID + ".en.vtt")).isRegularFile();
-    }
-
-    @Test
-    void refreshFailureKeepsExistingData() {
-        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO).thenThrow(new YtDlpFailedException("boom"));
-        service.fetch(ID);
-
-        assertThatThrownBy(() -> service.refresh(ID)).isInstanceOf(YtDlpFailedException.class);
-
-        em.flush();
-        em.clear();
-        assertThat(service.get(ID).getTitle()).isEqualTo("Auto title");
-        assertThat(service.getCues(ID)).hasSize(2);
-    }
-
-    @Test
-    void refreshUnknownVideoThrowsNotFound() {
-        assertThatThrownBy(() -> service.refresh(ID)).isInstanceOf(VideoNotFoundException.class);
-
-        verify(ytDlp, never()).fetchInfo(anyString());
-    }
-
     // --- .srt files ---
 
     @Test
@@ -299,18 +245,6 @@ class SubtitleServiceTest {
         when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
 
         service.fetch("https://youtu.be/" + ID);
-
-        assertThat(Files.readAllBytes(SUBS_DIR.resolve(ID + ".en.srt")))
-                .isEqualTo(srtWriter.toBytes(service.getCues(ID), false));
-    }
-
-    @Test
-    void refreshRewritesEnglishSrt() throws IOException {
-        when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
-        service.fetch("https://youtu.be/" + ID);
-        when(ytDlp.fetchInfo(ID)).thenReturn(MANUAL_INFO);
-
-        service.refresh(ID);
 
         assertThat(Files.readAllBytes(SUBS_DIR.resolve(ID + ".en.srt")))
                 .isEqualTo(srtWriter.toBytes(service.getCues(ID), false));

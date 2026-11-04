@@ -110,11 +110,6 @@ public class VideoController {
                 .body(body);
     }
 
-    @PostMapping("/{id}/refresh")
-    public VideoDto refresh(@PathVariable String id) {
-        return VideoDto.from(service.refresh(id));
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         service.delete(id);

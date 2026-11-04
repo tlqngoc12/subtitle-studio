@@ -153,7 +153,6 @@ Quy ước làm việc trong repo: [CLAUDE.md](CLAUDE.md). Tiến độ: [PROGRE
 | GET | `/api/videos/{id}` | Thông tin một video |
 | GET | `/api/videos/{id}/cues` | Danh sách câu phụ đề |
 | GET | `/api/videos/{id}/subtitle.srt` | Tải file `.srt` (`?bom=true` để thêm BOM) |
-| POST | `/api/videos/{id}/refresh` | Lấy lại phụ đề từ YouTube |
 | DELETE | `/api/videos/{id}` | Xoá video, phụ đề (cả Vietsub) và file `.vtt` |
 | POST | `/api/vietsub` | `multipart/form-data`: `url` (link hoặc mã video) + `file` (.srt tiếng Việt, tối đa 5 MB). Thêm hoặc thay Vietsub |
 | GET | `/api/videos/{id}/vietsub` | Danh sách câu Vietsub `{startMs, endMs, text}` |

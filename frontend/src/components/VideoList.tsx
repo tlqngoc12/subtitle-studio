@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Captions, Clock, Download, Languages, MonitorPlay, Play, RotateCw, Trash2 } from 'lucide-react';
+import { Captions, Clock, Download, Languages, MonitorPlay, Play, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { srtUrl, type VideoDto } from '../api/client';
 import { formatDuration } from '../lib/format';
@@ -12,7 +12,6 @@ interface Props {
   videos: VideoDto[] | null;
   busyId: string | null;
   onOpen: (video: VideoDto) => void;
-  onRefresh: (video: VideoDto) => void;
   onDelete: (video: VideoDto) => void;
   /** The row to flash once, e.g. the video just fetched. */
   highlightId?: string | null;
@@ -22,7 +21,7 @@ interface Props {
   footer?: ReactNode;
 }
 
-export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, highlightId, listKey, footer }: Props) {
+export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listKey, footer }: Props) {
   return (
     <section className="history" aria-label="Fetched earlier">
       <h2 className="history__heading">Fetched earlier</h2>
@@ -85,17 +84,6 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, highlig
                       <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Download Engsub: ${v.title}`}>
                         <Download className="icon" aria-hidden="true" />
                       </a>
-                    </Tip>
-                    <Tip label={busy ? 'Refreshing…' : 'Refresh'}>
-                      <button
-                        className={busy ? 'button button--icon button--spinning' : 'button button--icon'}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => onRefresh(v)}
-                        aria-label={`Refresh ${v.title}`}
-                      >
-                        <RotateCw className="icon" aria-hidden="true" />
-                      </button>
                     </Tip>
                     <Tip label="Delete">
                       <button

@@ -7,7 +7,6 @@ import {
   getCues,
   getPromptProfiles,
   listVideos,
-  refreshVideo,
   translateVideo,
   type CueDto,
   type PromptProfiles,
@@ -164,20 +163,6 @@ export default function HomePage() {
     }
   }
 
-  async function handleRefresh(video: VideoDto) {
-    setBusyId(video.id);
-    setError(null);
-    try {
-      const updated = await refreshVideo(video.id);
-      setVideos((list) => (list ?? []).map((v) => (v.id === updated.id ? updated : v)));
-      if (current?.video.id === updated.id) await show(updated);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   async function handleDelete(video: VideoDto) {
     const ok = await confirm({
       title: `Delete "${video.title}"?`,
@@ -246,7 +231,6 @@ export default function HomePage() {
           void show(v);
           setScrollRequest((n) => n + 1); // scroll up to the cue timeline
         }}
-        onRefresh={handleRefresh}
         onDelete={handleDelete}
       />
     </main>

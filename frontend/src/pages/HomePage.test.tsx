@@ -560,7 +560,6 @@ describe('HomePage', () => {
       const actions = [
         { el: within(item).getByRole('link', { name: 'Watch Video: Học Spring Boot' }), tip: 'Watch Video' },
         { el: within(item).getByRole('link', { name: 'Download Engsub: Học Spring Boot' }), tip: 'Download Engsub' },
-        { el: within(item).getByRole('button', { name: 'Refresh Học Spring Boot' }), tip: 'Refresh' },
         { el: within(item).getByRole('button', { name: 'Delete Học Spring Boot' }), tip: 'Delete' },
       ];
       for (const { el, tip } of actions) {
@@ -568,6 +567,8 @@ describe('HomePage', () => {
         expect(el.textContent?.trim()).toBe('');
         expect(el.querySelector('svg')).not.toBeNull();
       }
+      // Re-fetching from YouTube (Refresh) was removed.
+      expect(within(item).queryByRole('button', { name: /Refresh/ })).not.toBeInTheDocument();
     });
 
     it('lists previously fetched videos with download links', async () => {
@@ -721,22 +722,6 @@ describe('HomePage', () => {
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();
         await waitFor(() => expect(screen.getByLabelText('search')).toHaveTextContent(/^$/));
       });
-    });
-
-    it('refreshes a video from YouTube', async () => {
-      const refreshed = { ...autoVideo, title: 'Học Spring Boot (v2)', cueCount: 5 };
-      const calls = fakeFetch([
-        { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
-        { method: 'POST', path: `/api/videos/${ID}/refresh`, status: 200, body: refreshed },
-        { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
-      ]);
-      render(<MemoryRouter><HomePage /></MemoryRouter>);
-      const history = await loadedRegion('Fetched earlier');
-
-      await userEvent.setup().click(within(history).getByRole('button', { name: /Refresh Học Spring Boot/ }));
-
-      expect(await within(history).findByText('Học Spring Boot (v2)')).toBeInTheDocument();
-      expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/refresh'))).toBe(true);
     });
   });
 });

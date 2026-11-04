@@ -132,10 +132,6 @@ export async function getCues(id: string): Promise<CueDto[]> {
   return (await send(`/api/videos/${encodeURIComponent(id)}/cues`)).json();
 }
 
-export async function refreshVideo(id: string): Promise<VideoDto> {
-  return (await send(`/api/videos/${encodeURIComponent(id)}/refresh`, { method: 'POST' })).json();
-}
-
 export async function deleteVideo(id: string): Promise<void> {
   await send(`/api/videos/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

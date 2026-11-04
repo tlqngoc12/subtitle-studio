@@ -413,19 +413,9 @@ class VideoControllerTest {
     class Modify {
 
         @Test
-        void refreshReturnsUpdatedVideo() throws Exception {
-            when(service.refresh(ID)).thenReturn(video());
-
-            mvc.perform(post("/api/videos/" + ID + "/refresh"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(ID));
-        }
-
-        @Test
-        void refreshUnknownReturns404() throws Exception {
-            when(service.refresh(ID)).thenThrow(new VideoNotFoundException(ID));
-
-            expectProblem(mvc.perform(post("/api/videos/" + ID + "/refresh")), 404, "VIDEO_NOT_FOUND");
+        void refreshEndpointIsGone() throws Exception {
+            // Re-fetching from YouTube was removed: the route no longer exists.
+            mvc.perform(post("/api/videos/" + ID + "/refresh")).andExpect(status().isNotFound());
         }
 
         @Test

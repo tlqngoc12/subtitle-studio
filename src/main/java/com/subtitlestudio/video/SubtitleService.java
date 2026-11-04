@@ -18,8 +18,6 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -32,8 +30,6 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Service
 public class SubtitleService {
-
-    private static final Logger log = LoggerFactory.getLogger(SubtitleService.class);
 
     private final UrlParser urlParser;
     private final YtDlpClient ytDlp;
@@ -107,27 +103,6 @@ public class SubtitleService {
         return cues.findByVideo_IdOrderByIdxAsc(id).stream().map(CueEntity::toCue).toList();
     }
 
-    /** Re-downloads subtitles from YouTube and replaces the stored cues. Existing data survives a failure. */
-    public Video refresh(String id) {
-        String oldLang = get(id).getSubLang();
-        Imported imported = download(id);
-        Video refreshed = tx.execute(status -> {
-            if (!videos.existsById(id)) {
-                throw new VideoNotFoundException(id);
-            }
-            cues.deleteByVideoId(id); // clears the persistence context, so load the video afterwards
-            Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
-            apply(video, imported);
-            saveCues(video, imported.cues());
-            return video;
-        });
-        if (!oldLang.equals(imported.track().lang())) {
-            deleteVttQuietly(id, oldLang);
-        }
-        files.writeEnglish(id, srtWriter.toBytes(imported.cues(), false));
-        return refreshed;
-    }
-
     /** Removes the video, its cues and all its subtitle files (.vtt and .srt). */
     public void delete(String id) {
         tx.executeWithoutResult(status -> {
@@ -168,16 +143,6 @@ public class SubtitleService {
             entities.add(new CueEntity(video, i, c.startMs(), c.endMs(), c.text()));
         }
         cues.saveAll(entities);
-    }
-
-    private void deleteVttQuietly(String id, String lang) {
-        Path file = subsDir.resolve(id + "." + lang + ".vtt");
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            // The DB is the source of truth; a leftover debug file is harmless.
-            log.warn("Could not delete {}: {}", file, e.getMessage());
-        }
     }
 
     private record Imported(VideoInfo info, SubtitleTrack track, List<Cue> cues) {}
