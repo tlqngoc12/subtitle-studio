@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavBar } from './NavBar';
 
 function currentAt(path: string) {
@@ -17,6 +17,20 @@ function currentAt(path: string) {
 }
 
 describe('NavBar', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('scrolls the current section into view (phones show only part of the row)', () => {
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    render(
+      <MemoryRouter initialEntries={['/profiles/emi']}>
+        <NavBar />
+      </MemoryRouter>,
+    );
+
+    expect(scroll).toHaveBeenCalledWith({ inline: 'center', block: 'nearest' });
+    expect(scroll.mock.contexts[0]).toBe(screen.getByRole('link', { name: 'Profile' }));
+  });
+
   it('links to the four sections', () => {
     render(
       <MemoryRouter>

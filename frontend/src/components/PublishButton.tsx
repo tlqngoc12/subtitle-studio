@@ -80,7 +80,8 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
             onClick={() => void publish()}
           >
             <UploadCloud className="icon" aria-hidden="true" />
-            Publish
+            {/* Visually hidden on phones (icon only); the name stays for screen readers. */}
+            <span className="publish__label">Publish</span>
           </button>
         </span>
       </Tip>

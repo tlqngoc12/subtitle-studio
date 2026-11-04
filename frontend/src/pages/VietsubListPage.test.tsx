@@ -205,6 +205,17 @@ describe('VietsubListPage', () => {
       );
     });
 
+    it('previews the first videos on a card without a description', async () => {
+      fakeFetch(routes());
+      renderPage('/vietsub/list');
+      await cardNames();
+
+      expect(within(card('VLOG')).getByText('Our trips')).toBeInTheDocument();
+      expect(within(card('VLOG')).queryByRole('list')).not.toBeInTheDocument();
+      const preview = within(card('Fan Meeting')).getByRole('list', { name: 'First videos' });
+      expect(within(preview).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Khám phá Chợ Đêm']);
+    });
+
     it('switches to All videos and keeps the query, back on page 1', async () => {
       fakeFetch(routes());
       renderPage('/vietsub/list?q=bangkok&page=2');
@@ -327,7 +338,7 @@ describe('VietsubListPage', () => {
       const items = within(region).getAllByRole('listitem');
       expect(items.map((li) => li.querySelector('.vlist__index')?.textContent)).toEqual(['1', '2', '3']);
       expect(within(items[1]).getByRole('link')).toHaveAttribute('href', '/vietsub/CHO00000001?playlist=1');
-      expect(screen.getByRole('link', { name: '← Playlists' })).toHaveAttribute('href', '/vietsub/list');
+      expect(screen.getByRole('link', { name: 'Back to Playlists' })).toHaveAttribute('href', '/vietsub/list');
       expect(screen.queryByRole('tab')).not.toBeInTheDocument();
       expect(search()).toBe('?playlist=1');
     });
@@ -349,7 +360,7 @@ describe('VietsubListPage', () => {
 
       await waitFor(() => expect(rowTitles(region)).toEqual(['Ăn sáng Bangkok']));
       expect(within(region).getByRole('listitem').querySelector('.vlist__index')?.textContent).toBe('3');
-      expect(screen.getByRole('link', { name: '← Playlists' })).toHaveAttribute('href', '/vietsub/list?q=bangkok');
+      expect(screen.getByRole('link', { name: 'Back to Playlists' })).toHaveAttribute('href', '/vietsub/list?q=bangkok');
     });
 
     it('has no Play all for an empty playlist', async () => {

@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import type { ViCue } from '../api/client';
@@ -65,7 +66,8 @@ export default function WatchPage() {
   return (
     <main className="page">
       <Link className="back-link" to={mode ? `/vietsub/list?playlist=${mode.playlist.id}` : '/vietsub/list'}>
-        ← Vietsub list
+        <ArrowLeft className="icon icon--sm" aria-hidden="true" />
+        Back to Vietsub list
       </Link>
 
       {error && (
@@ -76,7 +78,7 @@ export default function WatchPage() {
       )}
 
       {video && (
-        <header className="masthead">
+        <header className="masthead masthead--watch">
           <h1 className="masthead__name">{video.title}</h1>
           {video.channel && <p className="masthead__lede">{video.channel}</p>}
         </header>

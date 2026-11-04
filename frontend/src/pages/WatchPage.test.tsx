@@ -86,7 +86,7 @@ describe('WatchPage', () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Vietsub list/ })).toHaveAttribute('href', '/vietsub/list');
+    expect(screen.getByRole('link', { name: 'Back to Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('shows the subtitle for the current time', async () => {

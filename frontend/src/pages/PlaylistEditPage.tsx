@@ -178,10 +178,6 @@ export default function PlaylistEditPage() {
                   <Pencil className="icon" aria-hidden="true" />
                   Edit details
                 </button>
-                <button className="button button--danger" type="button" onClick={handleDelete}>
-                  <Trash2 className="icon" aria-hidden="true" />
-                  Delete playlist
-                </button>
               </div>
             </>
           )}
@@ -215,6 +211,16 @@ export default function PlaylistEditPage() {
             </DndContext>
           )}
         </section>
+      )}
+
+      {/* Destructive, so kept away from Play all / Edit details. */}
+      {playlist && !editing && (
+        <div className="danger-zone">
+          <button className="button button--danger" type="button" onClick={handleDelete}>
+            <Trash2 className="icon" aria-hidden="true" />
+            Delete playlist
+          </button>
+        </div>
       )}
     </main>
   );

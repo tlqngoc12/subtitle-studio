@@ -1,5 +1,5 @@
 import { useConfirmDialog } from '../components/useConfirmDialog';
-import { Check, Pencil, Plus, SquarePlus } from 'lucide-react';
+import { Check, Pencil, Plus, Sparkles, SquarePlus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -156,9 +156,13 @@ export default function ProfilePage() {
 
           <div className="pblocks">
             {profile.blocks.length === 0 && !formOpen && (
-              <EmptyState icon={SquarePlus}>
-                This profile has no content yet.{readOnly ? '' : editing ? ' Use Add block below to start.' : ' Choose Edit to add the first block.'}
-              </EmptyState>
+              readOnly ? (
+                <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
+              ) : (
+                <EmptyState icon={SquarePlus}>
+                  This profile has no content yet.{editing ? ' Use Add block below to start.' : ' Choose Edit to add the first block.'}
+                </EmptyState>
+              )
             )}
             <AnimatePresence initial={false}>
               {profile.blocks.map((b, i) => (

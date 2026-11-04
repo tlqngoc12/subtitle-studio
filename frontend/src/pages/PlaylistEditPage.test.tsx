@@ -226,6 +226,16 @@ describe('PlaylistEditPage', () => {
     expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/playlists/4')).toBe(true);
   });
 
+  it('keeps Delete playlist away from Play all, at the end of the page', async () => {
+    renderPage([get()]);
+    await rows();
+
+    const del = screen.getByRole('button', { name: 'Delete playlist' });
+    const videos = screen.getByRole('region', { name: 'Videos in this playlist' });
+    expect(videos.compareDocumentPosition(del) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Play all' }).parentElement).not.toContainElement(del);
+  });
+
   it('links Play all to the first video in playlist mode', async () => {
     renderPage([get()]);
     await rows();

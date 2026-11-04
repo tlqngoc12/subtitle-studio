@@ -55,6 +55,9 @@ describe('ProfilePage', () => {
     renderAt('/profiles/emibonnie');
     const tabs = await screen.findByRole('navigation', { name: 'Profile' });
     expect(await within(tabs).findByRole('link', { name: 'EmiBonnie' })).toHaveAttribute('aria-current', 'page');
+    // Same underline tabs as the Vietsub pages.
+    expect(tabs).toHaveClass('tabs__list');
+    expect(within(tabs).getByRole('link', { name: 'Emi' })).toHaveClass('tabs__tab');
 
     await userEvent.click(within(tabs).getByRole('link', { name: 'Emi' }));
 
@@ -216,7 +219,7 @@ describe('ProfilePage on the public site', () => {
       </SiteProvider>,
     );
 
-    expect(await screen.findByText(/This profile has no content yet\./)).toBeInTheDocument();
+    expect(await screen.findByText('Nothing here yet — check back soon.')).toBeInTheDocument();
     expect(screen.queryByText(/Choose Edit/)).not.toBeInTheDocument();
   });
 

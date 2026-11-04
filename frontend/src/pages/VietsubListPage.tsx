@@ -1,5 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
-import { Clock, ListVideo, Search, SearchX, Tv, X } from 'lucide-react';
+import { ArrowLeft, Clock, ListVideo, Search, SearchX, Tv, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { EmptyState } from '../components/EmptyState';
@@ -120,7 +120,8 @@ export default function VietsubListPage() {
 
       {active && (
         <Link className="back-link" to={backToPlaylists}>
-          ← Playlists
+          <ArrowLeft className="icon icon--sm" aria-hidden="true" />
+          Back to Playlists
         </Link>
       )}
 
