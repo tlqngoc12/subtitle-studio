@@ -33,11 +33,14 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -51,6 +54,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @ActiveProfiles("test")
 @Import({TranslationService.class, VietsubService.class, SrtParser.class, SrtWriter.class, UrlParser.class,
         SubtitleFileStore.class, PromptProfileStore.class, TranslationServiceTest.Config.class})
+@ExtendWith(OutputCaptureExtension.class)
 class TranslationServiceTest {
 
     private static final String ID = "dQw4w9WgXcQ";
@@ -365,6 +369,18 @@ class TranslationServiceTest {
         assertThat(v.getTranslationStatus()).isEqualTo(TranslationStatus.FAILED);
         assertThat(v.getTranslationError()).isEqualTo("Gemini free quota is used up, try again later.");
         assertThat(v.getViSource()).isNull();
+    }
+
+    @Test
+    void failureIsLoggedWithTheVideoId(CapturedOutput output) {
+        video(600);
+        translator.behaviour = (v, p, lines) -> {
+            throw new TranslationFailedException("Gemini returned missing or mismatched lines (1/2 valid), try again.");
+        };
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(output).contains("Translation of " + ID + " failed: Gemini returned missing or mismatched lines");
     }
 
     @Test

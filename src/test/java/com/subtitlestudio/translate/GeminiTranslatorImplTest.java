@@ -9,9 +9,13 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+@ExtendWith(OutputCaptureExtension.class)
 class GeminiTranslatorImplTest {
 
     private static final String KEY = "test-key-123";
@@ -148,6 +152,37 @@ class GeminiTranslatorImplTest {
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini returned missing or mismatched lines (0/2 valid), try again."));
+    }
+
+    @Test
+    void logsModelAndSummaryWhenTheAnswerIsInvalid(CapturedOutput output) {
+        server.replyText("[{\"id\":0,\"text\":\"Xin chào\"}]", "STOP");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES)).isInstanceOf(TranslationFailedException.class);
+
+        assertThat(output).contains("gemini-test-flash")
+                .contains("items=1 valid=1/2 missing=1 extra=0 duplicated=0 blank=0 missingIds=[1]");
+        assertThat(output).doesNotContain("Xin chào").doesNotContain("Hello").doesNotContain(KEY);
+    }
+
+    @Test
+    void logsWhenTheAnswerIsNotJson(CapturedOutput output) {
+        server.replyText("xin lỗi", "STOP");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES)).isInstanceOf(TranslationFailedException.class);
+
+        assertThat(output).contains("gemini-test-flash").contains("not the expected JSON");
+        assertThat(output).doesNotContain("xin lỗi");
+    }
+
+    @Test
+    void logsWhichModelAnswered(CapturedOutput output) {
+        server.replyForModel("gemini-test-flash", 503, "{\"error\":{\"code\":503,\"message\":\"busy\",\"status\":\"UNAVAILABLE\"}}");
+        server.replyText(GOOD, "STOP");
+
+        translator(Duration.ofSeconds(10), List.of("gemini-test-lite")).translate(VIDEO, PROFILE, LINES);
+
+        assertThat(output).contains("Gemini gemini-test-lite translated 2 lines");
     }
 
     @Test

@@ -140,6 +140,7 @@ public class TranslationService {
             }
             vietsub.saveAuto(id, vietsubCues, profile);
         } catch (TranslationFailedException e) {
+            log.warn("Translation of {} failed: {}", id, e.userMessage());
             fail(id, e.userMessage());
         } catch (UnknownProfileException e) {
             fail(id, "Could not translate: translation profile \"" + profile + "\" can no longer be used.");
