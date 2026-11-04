@@ -8,6 +8,8 @@ import com.subtitlestudio.profile.BlockNotFoundException;
 import com.subtitlestudio.profile.InvalidBlockException;
 import com.subtitlestudio.profile.InvalidMediaException;
 import com.subtitlestudio.profile.MediaNotFoundException;
+import com.subtitlestudio.publish.PublishInProgressException;
+import com.subtitlestudio.publish.PublishNotConfiguredException;
 import com.subtitlestudio.profile.MediaTooLargeException;
 import com.subtitlestudio.profile.ProfileNotFoundException;
 import com.subtitlestudio.subtitle.InvalidSrtException;
@@ -142,6 +144,16 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(MediaTooLargeException.class)
     ProblemDetail mediaTooLarge(MediaTooLargeException e) {
         return problem(HttpStatus.PAYLOAD_TOO_LARGE, "MEDIA_TOO_LARGE", e.getMessage());
+    }
+
+    @ExceptionHandler(PublishInProgressException.class)
+    ProblemDetail publishInProgress(PublishInProgressException e) {
+        return problem(HttpStatus.CONFLICT, "PUBLISH_IN_PROGRESS", e.getMessage());
+    }
+
+    @ExceptionHandler(PublishNotConfiguredException.class)
+    ProblemDetail publishNotConfigured(PublishNotConfiguredException e) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "PUBLISH_NOT_CONFIGURED", e.getMessage());
     }
 
     @ExceptionHandler(MediaNotFoundException.class)
