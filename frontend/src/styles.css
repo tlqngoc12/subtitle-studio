@@ -759,6 +759,24 @@ a.history__open {
   height: 100%;
 }
 
+/* iPhone Safari has no Fullscreen API for this frame: it fills the viewport instead (above the top bar),
+   so the Vietsub overlay stays on the video. dvh follows Safari's collapsing address bar. */
+.player--filled {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+html.player-filled-open,
+html.player-filled-open body {
+  overflow: hidden;
+}
+
 .player__video,
 .player__video iframe {
   position: absolute;

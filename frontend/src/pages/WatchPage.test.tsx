@@ -152,6 +152,50 @@ describe('WatchPage', () => {
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
   });
 
+  it('fills the screen when the browser has no Fullscreen API (iPhone)', async () => {
+    renderPage();
+    const frame = (await screen.findByRole('button', { name: 'Full screen' })).closest('.player')!;
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Full screen' }));
+
+    expect(frame).toHaveClass('player--filled');
+    expect(document.documentElement).toHaveClass('player-filled-open');
+    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Exit full screen' }));
+
+    expect(frame).not.toHaveClass('player--filled');
+    expect(document.documentElement).not.toHaveClass('player-filled-open');
+    expect(screen.getByRole('button', { name: 'Full screen' })).toBeInTheDocument();
+  });
+
+  it('leaves the filled screen with Escape', async () => {
+    renderPage();
+    const button = await screen.findByRole('button', { name: 'Full screen' });
+    const frame = button.closest('.player')!;
+    const user = userEvent.setup();
+    await user.click(button);
+
+    await user.keyboard('{Escape}');
+
+    expect(frame).not.toHaveClass('player--filled');
+  });
+
+  it('uses webkitRequestFullscreen when that is all the browser has', async () => {
+    const webkitRequestFullscreen = vi.fn();
+    (HTMLElement.prototype as { webkitRequestFullscreen?: unknown }).webkitRequestFullscreen = webkitRequestFullscreen;
+    try {
+      renderPage();
+
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Full screen' }));
+
+      expect(webkitRequestFullscreen).toHaveBeenCalledTimes(1);
+      expect(webkitRequestFullscreen.mock.contexts[0]).not.toHaveClass('player--filled');
+    } finally {
+      delete (HTMLElement.prototype as { webkitRequestFullscreen?: unknown }).webkitRequestFullscreen;
+    }
+  });
+
   it('explains when embedding is blocked', async () => {
     player.error = 'EMBED_BLOCKED';
     renderPage();
