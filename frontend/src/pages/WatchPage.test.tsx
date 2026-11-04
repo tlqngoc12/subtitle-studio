@@ -1,19 +1,26 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ViCue, VideoDto } from '../api/client';
-import { fakeFetch, problem } from '../test/fakeFetch';
+import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
+import { detail, vsVideo } from '../test/playlistFixtures';
 import WatchPage from './WatchPage';
 
 const player = vi.hoisted(() => ({
   currentMs: 0,
   state: 'ready' as 'loading' | 'ready' | 'playing' | 'paused' | 'ended',
   error: null as 'EMBED_BLOCKED' | 'LOAD_FAILED' | null,
+  /** Reports 'ended' only for this video, like a real player that starts fresh on the next one. */
+  endedFor: null as string | null,
+  calls: [] as { videoId: string; autoplay: boolean | undefined }[],
 }));
 
 vi.mock('../player/useYouTubePlayer', () => ({
-  useYouTubePlayer: () => player,
+  useYouTubePlayer: (_container: unknown, videoId: string, options?: { autoplay?: boolean }) => {
+    player.calls.push({ videoId, autoplay: options?.autoplay });
+    return { ...player, state: player.endedFor === videoId ? 'ended' : player.state };
+  },
 }));
 
 const ID = 'dQw4w9WgXcQ';
@@ -61,6 +68,9 @@ describe('WatchPage', () => {
     player.currentMs = 0;
     player.state = 'ready';
     player.error = null;
+    player.endedFor = null;
+    player.calls = [];
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -175,5 +185,154 @@ describe('WatchPage', () => {
     );
 
     expect(await screen.findByRole('alert')).toHaveTextContent('This video is no longer in the list');
+  });
+
+  describe('playlist mode', () => {
+    const A = vsVideo('aaaaaaaaaaa', 'Alpha');
+    const B = vsVideo('bbbbbbbbbbb', 'Bravo');
+    const C = vsVideo('ccccccccccc', 'Charlie');
+    const PL = detail(4, 'VLOG OF US', [A, B, C]);
+
+    function Location() {
+      const { pathname, search } = useLocation();
+      return <output aria-label="location">{pathname + search}</output>;
+    }
+
+    function renderAt(entry: string, playlistRoute: FakeRoute = { method: 'GET', path: '/api/playlists/4', status: 200, body: PL }) {
+      fakeFetch([
+        playlistRoute,
+        ...[A, B, C].flatMap((v): FakeRoute[] => [
+          { method: 'GET', path: `/api/videos/${v.id}`, status: 200, body: v },
+          { method: 'GET', path: `/api/videos/${v.id}/vietsub`, status: 200, body: cues },
+        ]),
+      ]);
+      // A new element each time: re-rendering the same element object would be skipped by React.
+      const tree = () => (
+        <MemoryRouter initialEntries={[entry]}>
+          <Routes>
+            <Route path="/vietsub/:id" element={<><WatchPage /><Location /></>} />
+          </Routes>
+        </MemoryRouter>
+      );
+      const result = render(tree());
+      return { rerender: () => result.rerender(tree()) };
+    }
+
+    const location = () => screen.getByLabelText('location').textContent;
+    const panel = () => screen.findByRole('complementary', { name: 'Playlist VLOG OF US' });
+
+    it('has no playlist panel without ?playlist', async () => {
+      renderAt(`/vietsub/${A.id}`);
+
+      await screen.findByRole('heading', { name: 'Alpha' });
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    });
+
+    it('shows the playlist panel in playlist mode', async () => {
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+
+      expect(within(await panel()).getByText('2 / 3')).toBeInTheDocument();
+    });
+
+    it('goes to the next and previous video, keeping the playlist and autoplaying', async () => {
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+      const user = userEvent.setup();
+
+      await user.click(within(await panel()).getByRole('button', { name: 'Next video' }));
+      expect(location()).toBe(`/vietsub/${C.id}?playlist=4`);
+      expect(await screen.findByRole('heading', { name: 'Charlie' })).toBeInTheDocument();
+      expect(player.calls.at(-1)).toEqual({ videoId: C.id, autoplay: true });
+
+      await user.click(within(await panel()).getByRole('button', { name: 'Previous video' }));
+      expect(location()).toBe(`/vietsub/${B.id}?playlist=4`);
+    });
+
+    it('plays the next video when one ends and Autoplay is on', async () => {
+      const { rerender } = renderAt(`/vietsub/${A.id}?playlist=4`);
+      await panel();
+
+      player.endedFor = A.id;
+      act(() => rerender());
+
+      await waitFor(() => expect(location()).toBe(`/vietsub/${B.id}?playlist=4`));
+      expect(player.calls.at(-1)).toEqual({ videoId: B.id, autoplay: true });
+    });
+
+    it('stays when a video ends and Autoplay is off', async () => {
+      const { rerender } = renderAt(`/vietsub/${A.id}?playlist=4`);
+      await userEvent.setup().click(within(await panel()).getByRole('switch', { name: 'Autoplay' }));
+
+      player.endedFor = A.id;
+      act(() => rerender());
+
+      await act(async () => {});
+      expect(location()).toBe(`/vietsub/${A.id}?playlist=4`);
+    });
+
+    it('stops at the end of the playlist', async () => {
+      const { rerender } = renderAt(`/vietsub/${C.id}?playlist=4`);
+      await panel();
+
+      player.endedFor = C.id;
+      act(() => rerender());
+
+      expect(await screen.findByText('End of playlist')).toBeInTheDocument();
+      expect(location()).toBe(`/vietsub/${C.id}?playlist=4`);
+    });
+
+    it('goes next with Shift+N and back with Shift+P, but not while typing', async () => {
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+      await panel();
+      const user = userEvent.setup();
+
+      await user.keyboard('{Shift>}N{/Shift}');
+      expect(location()).toBe(`/vietsub/${C.id}?playlist=4`);
+      await user.keyboard('{Shift>}P{/Shift}');
+      expect(location()).toBe(`/vietsub/${B.id}?playlist=4`);
+
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+      await user.keyboard('{Shift>}N{/Shift}');
+      expect(location()).toBe(`/vietsub/${B.id}?playlist=4`);
+      input.remove();
+    });
+
+    it('shows the normal page when the playlist does not exist', async () => {
+      renderAt(`/vietsub/${A.id}?playlist=4`, {
+        method: 'GET',
+        path: '/api/playlists/4',
+        status: 404,
+        body: problem(404, 'PLAYLIST_NOT_FOUND', 'gone'),
+      });
+
+      await screen.findByRole('heading', { name: 'Alpha' });
+      await act(async () => {});
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('shows the normal page when the video is not in the playlist', async () => {
+      renderAt(`/vietsub/${A.id}?playlist=4`, {
+        method: 'GET',
+        path: '/api/playlists/4',
+        status: 200,
+        body: detail(4, 'VLOG OF US', [B, C]),
+      });
+
+      await screen.findByRole('heading', { name: 'Alpha' });
+      await act(async () => {});
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    });
+
+    it('remembers the Autoplay choice', async () => {
+      renderAt(`/vietsub/${A.id}?playlist=4`);
+      await userEvent.setup().click(within(await panel()).getByRole('switch', { name: 'Autoplay' }));
+      cleanup();
+
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+
+      expect(within(await panel()).getByRole('switch', { name: 'Autoplay' })).not.toBeChecked();
+    });
   });
 });

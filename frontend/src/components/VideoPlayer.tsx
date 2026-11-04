@@ -1,4 +1,5 @@
 import { Maximize, Minimize } from 'lucide-react';
+import { isTyping } from '../lib/keyboard';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { ViCue } from '../api/client';
 import type { PlayerError } from '../player/useYouTubePlayer';
@@ -13,10 +14,6 @@ interface Props {
   containerRef: RefObject<HTMLDivElement | null>;
   cue: ViCue | null;
   error: PlayerError | null;
-}
-
-function isTyping(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null;
 }
 
 /**

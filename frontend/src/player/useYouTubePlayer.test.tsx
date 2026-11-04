@@ -14,11 +14,11 @@ const target = {
 };
 const event = (data: number): YTPlayerEvent => ({ data, target });
 
-function setup() {
+function setup(options?: { autoplay?: boolean }) {
   const el = document.createElement('div');
   document.body.appendChild(el);
   const ref = { current: el };
-  return renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
+  return renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ', options));
 }
 
 async function ready() {
@@ -61,6 +61,20 @@ describe('useYouTubePlayer', () => {
 
     expect(fake.options!.host).toBe('https://www.youtube-nocookie.com');
     expect(fake.options!.playerVars!.fs).toBe(0);
+  });
+
+  it('does not autoplay by default', async () => {
+    setup();
+    await ready();
+
+    expect(fake.options!.playerVars!.autoplay ?? 0).toBe(0);
+  });
+
+  it('autoplays when asked (next video of a playlist)', async () => {
+    setup({ autoplay: true });
+    await ready();
+
+    expect(fake.options!.playerVars!.autoplay).toBe(1);
   });
 
   it('turns off YouTube built-in captions so only the Vietsub overlay shows', async () => {

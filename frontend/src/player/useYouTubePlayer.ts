@@ -5,14 +5,22 @@ export type PlayerState = 'loading' | 'ready' | 'playing' | 'paused' | 'ended';
 export type PlayerError = 'EMBED_BLOCKED' | 'LOAD_FAILED';
 
 /**
- * Embeds a YouTube video inside `container` and reports its playback time.
+ * Embeds a YouTube video inside `container` and reports its playback time. A new `videoId` replaces the player
+ * inside the same container, so page fullscreen (which is on the container's frame) stays on.
  *
  * Uses youtube-nocookie.com and disables YouTube's own fullscreen button (fs: 0), because native
  * fullscreen would cover our subtitle overlay; the page offers its own fullscreen instead.
  * While playing, the time is read every animation frame; otherwise it is refreshed on state changes.
  */
-export function useYouTubePlayer(container: RefObject<HTMLDivElement | null>, videoId: string) {
+export function useYouTubePlayer(
+  container: RefObject<HTMLDivElement | null>,
+  videoId: string,
+  options?: { autoplay?: boolean },
+) {
   const [currentMs, setCurrentMs] = useState(0);
+  // Read when a player is created (each new video), so changing it alone does not rebuild the player.
+  const autoplayRef = useRef(false);
+  autoplayRef.current = options?.autoplay === true;
   const [state, setState] = useState<PlayerState>('loading');
   const [error, setError] = useState<PlayerError | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
@@ -35,7 +43,15 @@ export function useYouTubePlayer(container: RefObject<HTMLDivElement | null>, vi
           host: 'https://www.youtube-nocookie.com',
           // cc_load_policy 0 + unloading the captions module: YouTube's own subtitles would sit
           // where the Vietsub overlay is (it auto-enables them e.g. for foreign-language videos).
-          playerVars: { fs: 0, playsinline: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
+          // autoplay: the next video of a playlist starts by itself (the user already interacted with the page).
+          playerVars: {
+            fs: 0,
+            playsinline: 1,
+            rel: 0,
+            iv_load_policy: 3,
+            cc_load_policy: 0,
+            autoplay: autoplayRef.current ? 1 : 0,
+          },
           events: {
             onReady: (e) => {
               e.target.unloadModule?.('captions');

@@ -1707,3 +1707,123 @@ p.vietsub-status,
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* Watch page in playlist mode: player + playlist panel (right on desktop, below on phones). */
+.watch--playlist {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .watch--playlist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.plpanel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(70vh, 560px);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.plpanel__head {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--brand) 14%, var(--surface));
+}
+
+.plpanel__name,
+.plpanel__position,
+.plpanel__ended {
+  margin: 0;
+}
+
+.plpanel__name {
+  font-weight: 700;
+}
+
+.plpanel__ended {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.plpanel__controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.plpanel__autoplay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.plpanel__autoplay input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+}
+
+.plpanel__list {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.plpanel__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.plpanel__item:hover {
+  background: var(--paper);
+}
+
+.plpanel__item--current {
+  background: color-mix(in srgb, var(--brand) 22%, var(--surface));
+}
+
+.plpanel__index {
+  flex: none;
+  width: 1.4em;
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.plpanel__item img {
+  flex: none;
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.plpanel__title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--step--1);
+  font-weight: 700;
+}
