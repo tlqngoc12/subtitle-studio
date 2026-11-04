@@ -168,6 +168,7 @@ export default function PlaylistEditPage() {
                   <Link
                     className="button button--primary"
                     to={`/vietsub/${playlist.videos[0].id}?playlist=${playlist.id}`}
+                    state={{ autoplay: true }}
                   >
                     <Play className="icon" aria-hidden="true" />
                     Play all
@@ -284,6 +285,7 @@ function SortableRow({ video, index, count, disabled, onMove, onRemove }: RowPro
           <button
             className="button button--icon button--danger"
             type="button"
+            disabled={disabled}
             onClick={onRemove}
             aria-label={`Remove from playlist: ${video.title}`}
           >

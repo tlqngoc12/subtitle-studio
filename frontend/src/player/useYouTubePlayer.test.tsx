@@ -122,6 +122,26 @@ describe('useYouTubePlayer', () => {
     expect(result.current.error).toBe('EMBED_BLOCKED');
   });
 
+  it('never reports the previous video as ended after switching videos', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const seen: [string, string][] = [];
+    const { rerender } = renderHook(({ id }) => {
+      const r = useYouTubePlayer(ref, id);
+      seen.push([id, r.state]);
+      return r;
+    }, { initialProps: { id: 'aaaaaaaaaaa' } });
+    await ready();
+    act(() => fake.options!.events!.onStateChange!(event(0))); // ENDED
+    expect(seen.at(-1)).toEqual(['aaaaaaaaaaa', 'ended']);
+
+    rerender({ id: 'bbbbbbbbbbb' });
+
+    // A playlist page reacting to 'ended' would otherwise skip the next video.
+    expect(seen.filter(([id]) => id === 'bbbbbbbbbbb').map(([, state]) => state)).not.toContain('ended');
+  });
+
   it('destroys the player on unmount', async () => {
     const { unmount } = setup();
     await ready();

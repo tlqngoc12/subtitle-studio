@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlaylistDetail } from '../api/playlists';
 import { AppToaster } from '../components/AppToaster';
@@ -14,6 +14,11 @@ const B = vsVideo('bbbbbbbbbbb', 'Bravo');
 const C = vsVideo('ccccccccccc', 'Charlie');
 const PL = detail(4, 'VLOG OF US', [A, B, C], 'Daily');
 
+function WatchStub() {
+  const { pathname, search, state } = useLocation();
+  return <p>watch {pathname + search} autoplay={String((state as { autoplay?: boolean } | null)?.autoplay)}</p>;
+}
+
 function renderPage(routes: FakeRoute[]) {
   const calls = fakeFetch(routes);
   render(
@@ -22,6 +27,7 @@ function renderPage(routes: FakeRoute[]) {
       <Routes>
         <Route path="/vietsub/playlists/:playlistId" element={<PlaylistEditPage />} />
         <Route path="/vietsub/playlists" element={<p>playlists page</p>} />
+        <Route path="/vietsub/:id" element={<WatchStub />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -150,6 +156,29 @@ describe('PlaylistEditPage', () => {
     ]);
   });
 
+  it('locks Remove while an order is being saved', async () => {
+    let release!: () => void;
+    const delay = new Promise<void>((r) => (release = r));
+    renderPage([
+      get(),
+      {
+        method: 'PUT',
+        path: '/api/playlists/4/order',
+        status: 500,
+        body: problem(500, 'INTERNAL_ERROR', 'boom'),
+        delay,
+      },
+    ]);
+    await rows();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Move down: Alpha' }));
+
+    // Otherwise restoring the old order after a failure would bring back a video removed meanwhile.
+    expect(screen.getByRole('button', { name: 'Remove from playlist: Charlie' })).toBeDisabled();
+    release();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Remove from playlist: Charlie' })).toBeEnabled());
+  });
+
   it('reloads the playlist when the order is stale', async () => {
     const routes: FakeRoute[] = [
       get(),
@@ -202,6 +231,15 @@ describe('PlaylistEditPage', () => {
     await rows();
 
     expect(screen.getByRole('link', { name: 'Play all' })).toHaveAttribute('href', `/vietsub/${A.id}?playlist=4`);
+  });
+
+  it('starts playing right away after Play all', async () => {
+    renderPage([get()]);
+    await rows();
+
+    await userEvent.setup().click(screen.getByRole('link', { name: 'Play all' }));
+
+    expect(await screen.findByText(`watch /vietsub/${A.id}?playlist=4 autoplay=true`)).toBeInTheDocument();
   });
 
   it('shows a hint and no Play all for an empty playlist', async () => {

@@ -19,7 +19,11 @@ export function PlaylistHeader({ playlist }: { playlist: PlaylistDetail }) {
         {playlist.description && <p className="plcard__description">{playlist.description}</p>}
         <p className="muted">{videoCountLabel(playlist.videos.length)}</p>
         {first && (
-          <Link className="button button--primary" to={`/vietsub/${first.id}?playlist=${playlist.id}`}>
+          <Link
+            className="button button--primary"
+            to={`/vietsub/${first.id}?playlist=${playlist.id}`}
+            state={{ autoplay: true }}
+          >
             <Play className="icon" aria-hidden="true" />
             Play all
           </Link>

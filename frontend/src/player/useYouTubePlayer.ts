@@ -22,12 +22,16 @@ export function useYouTubePlayer(
   const autoplayRef = useRef(false);
   autoplayRef.current = options?.autoplay === true;
   const [state, setState] = useState<PlayerState>('loading');
+  // The video the state above belongs to. Right after `videoId` changes the old state (e.g. 'ended') would
+  // still be returned for one render; reporting 'loading' instead keeps "play the next video" from firing twice.
+  const [stateFor, setStateFor] = useState(videoId);
   const [error, setError] = useState<PlayerError | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setState('loading');
+    setStateFor(videoId);
     setError(null);
     setCurrentMs(0);
 
@@ -105,5 +109,5 @@ export function useYouTubePlayer(
     return () => clearInterval(timer);
   }, [state]);
 
-  return { currentMs, state, error };
+  return { currentMs, state: stateFor === videoId ? state : 'loading', error };
 }

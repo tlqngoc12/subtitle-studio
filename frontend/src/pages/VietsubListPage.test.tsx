@@ -47,11 +47,17 @@ function Location() {
   return <output aria-label="search">{search}</output>;
 }
 
+function WatchStub() {
+  const { pathname, search, state } = useLocation();
+  return <p>watch {pathname + search} autoplay={String((state as { autoplay?: boolean } | null)?.autoplay)}</p>;
+}
+
 function renderPage(entry = '/vietsub/list') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/vietsub/list" element={<><VietsubListPage /><Location /></>} />
+        <Route path="/vietsub/:id" element={<WatchStub />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -237,6 +243,16 @@ describe('VietsubListPage', () => {
       expect(within(items[1]).getByRole('link')).toHaveAttribute('href', '/vietsub/CHO00000001?playlist=1');
       expect(within(chips).getByRole('link', { name: 'VLOG (3)' })).toHaveAttribute('aria-current', 'page');
       expect(search()).toBe('?playlist=1');
+    });
+
+    it('starts playing right away after Play all', async () => {
+      fakeFetch(routes());
+      renderPage('/vietsub/list?playlist=1');
+      const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
+
+      await userEvent.setup().click(within(header).getByRole('link', { name: 'Play all' }));
+
+      expect(await screen.findByText('watch /vietsub/THAI0000001?playlist=1 autoplay=true')).toBeInTheDocument();
     });
 
     it('keeps the original numbers when searching inside a playlist', async () => {
