@@ -49,7 +49,9 @@ describe('PublicApp', () => {
   it('rootOpensVietsubList', async () => {
     renderAt('/');
 
-    expect(await screen.findByText('Us EP.5')).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Playlists' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText(/No playlists yet\./)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create a playlist' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('path')).toHaveTextContent('/vietsub/list');
   });
 
@@ -60,7 +62,7 @@ describe('PublicApp', () => {
     expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile']);
     expect(screen.queryByRole('button', { name: /Publish/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toHaveAttribute('href', '/vietsub/list');
-    await screen.findByText('Us EP.5');
+    await screen.findByText(/No playlists yet\./);
   });
 
   it('footerShowsCreditAndYear', async () => {

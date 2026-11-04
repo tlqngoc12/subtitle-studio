@@ -1362,6 +1362,31 @@ p.vietsub-status,
   border-radius: var(--radius-control);
 }
 
+/* Brand colours (CLAUDE.md): success in orange, everything informative in orchid; errors keep red. */
+[data-sonner-toast].toast {
+  border-left: 4px solid var(--brand-2);
+}
+
+[data-sonner-toast].toast [data-icon] {
+  color: var(--brand-2);
+}
+
+[data-sonner-toast][data-type='success'].toast {
+  border-left-color: var(--brand);
+}
+
+[data-sonner-toast][data-type='success'].toast [data-icon] {
+  color: var(--brand);
+}
+
+[data-sonner-toast][data-type='error'].toast {
+  border-left-color: var(--danger);
+}
+
+[data-sonner-toast][data-type='error'].toast [data-icon] {
+  color: var(--danger);
+}
+
 /* ---------- Confirm dialog (Radix AlertDialog, useConfirmDialog) ---------- */
 
 .confirm__overlay {
@@ -1636,35 +1661,43 @@ p.vietsub-status,
   right: 4px;
 }
 
-.chips {
+/* Vietsub list tabs (Radix Tabs): Playlists | All videos. The open tab is marked in orchid ("you are here"). */
+.tabs {
+  display: grid;
+  gap: 18px;
+}
+
+.tabs__list {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  gap: 6px;
+  border-bottom: 1px solid var(--rule);
 }
 
-.chip {
-  flex: none;
-  padding: 6px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  font-size: var(--step--1);
+.tabs__tab {
+  margin-bottom: -1px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
   font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
+  cursor: pointer;
 }
 
-.chip:hover {
-  border-color: var(--brand);
+.tabs__tab:hover {
+  color: var(--ink);
 }
 
-.chip[aria-current='page'] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+.tabs__tab[data-state='active'] {
+  border-bottom-color: var(--brand-2);
+  color: var(--ink);
+}
+
+/* Playlist cards stacked vertically. */
+.plcards {
+  display: grid;
+  gap: 16px;
 }
 
 .plcard {
@@ -1710,9 +1743,35 @@ p.vietsub-status,
   white-space: pre-line;
 }
 
+.plcard__coverlink {
+  display: block;
+  border-radius: var(--radius-control);
+}
+
+.plcard__name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.plcard__name a:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}
+
 @media (max-width: 760px) {
   .plcard {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* In the Playlists tab the cards stay compact on phones: small cover on the left. */
+  .plcards .plcard {
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .plcards .plcard__name {
+    font-size: var(--step-1);
   }
 }
 

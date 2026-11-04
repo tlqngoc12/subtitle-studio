@@ -54,7 +54,7 @@ function WatchStub() {
   return <p>watch {pathname + search} autoplay={String((state as { autoplay?: boolean } | null)?.autoplay)}</p>;
 }
 
-function renderPage(entry = '/vietsub/list') {
+function renderPage(entry = '/vietsub/list?tab=all') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
@@ -127,7 +127,7 @@ describe('VietsubListPage', () => {
 
       await user.click(within(list).getByRole('button', { name: 'Page 2' }));
       expect(titles(list)[0]).toBe('Video 11');
-      expect(screen.getByLabelText('search')).toHaveTextContent('?page=2');
+      expect(screen.getByLabelText('search')).toHaveTextContent('?tab=all&page=2');
 
       await user.click(within(list).getByRole('button', { name: 'Next page' }));
       expect(titles(list)).toEqual(['Video 21', 'Video 22', 'Video 23']);
@@ -138,7 +138,7 @@ describe('VietsubListPage', () => {
 
     it('opens on the page given in the URL', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(23) }]);
-      renderPage('/vietsub/list?page=3');
+      renderPage('/vietsub/list?tab=all&page=3');
 
       const list = await loadedRegion('Vietsub list');
       expect(titles(list)).toEqual(['Video 21', 'Video 22', 'Video 23']);
@@ -147,7 +147,7 @@ describe('VietsubListPage', () => {
 
     it('shows the last page when the URL points past the end', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: many(12) }]);
-      renderPage('/vietsub/list?page=9');
+      renderPage('/vietsub/list?tab=all&page=9');
 
       const list = await loadedRegion('Vietsub list');
       expect(titles(list)).toEqual(['Video 11', 'Video 12']);
@@ -161,17 +161,19 @@ describe('VietsubListPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Cannot reach the server');
   });
 
-  describe('playlists and search', () => {
+  describe('tabs, playlists and search', () => {
     const cho = { ...vsVideo('CHO00000001', 'Khám phá Chợ Đêm'), viUpdatedAt: '2026-11-02T12:00:00Z' };
     const an = { ...vsVideo('AN000000001', 'Ăn sáng Bangkok', 'Food Lovers'), viUpdatedAt: '2026-11-02T11:00:00Z' };
     const thai = { ...vsVideo('THAI0000001', 'ตะลุยตลาดนัด'), viUpdatedAt: '2026-11-02T10:00:00Z' };
     const all = [cho, an, thai];
     const vlog = summary(1, 'VLOG', 3);
+    const fm = summary(3, 'Fan Meeting', 1);
     const emptyPl = summary(2, 'Empty', 0);
     const routes = (): FakeRoute[] => [
       { method: 'GET', path: '/api/videos', status: 200, body: all },
-      { method: 'GET', path: '/api/playlists', status: 200, body: [vlog, emptyPl] },
+      { method: 'GET', path: '/api/playlists', status: 200, body: [vlog, fm, emptyPl] },
       { method: 'GET', path: '/api/playlists/1', status: 200, body: detail(1, 'VLOG', [thai, cho, an], 'Our trips') },
+      { method: 'GET', path: '/api/playlists/3', status: 200, body: detail(3, 'Fan Meeting', [cho]) },
       { method: 'GET', path: '/api/playlists/2', status: 200, body: detail(2, 'Empty', []) },
     ];
     const rowTitles = (region: HTMLElement) =>
@@ -179,19 +181,46 @@ describe('VietsubListPage', () => {
         .queryAllByRole('listitem')
         .map((li) => li.querySelector('.history__title')?.textContent);
     const search = () => screen.getByLabelText('search').textContent;
+    const cardNames = async () => {
+      const region = await screen.findByRole('region', { name: 'Playlists' });
+      await waitFor(() => expect(within(region).queryByText('Loading playlists…')).not.toBeInTheDocument());
+      return within(region)
+        .queryAllByRole('region', { name: /^Playlist / })
+        .map((c) => c.getAttribute('aria-label')!.replace('Playlist ', ''));
+    };
+    const card = (name: string) => screen.getByRole('region', { name: `Playlist ${name}` });
 
-    it('shows an All chip with the count and one chip per playlist', async () => {
+    it('opens on the Playlists tab with one card per playlist', async () => {
       fakeFetch(routes());
-      renderPage();
-      await loadedRegion('Vietsub list');
+      renderPage('/vietsub/list');
 
-      const chips = await screen.findByRole('navigation', { name: 'Playlists' });
-      await within(chips).findByRole('link', { name: 'VLOG (3)' });
-      expect(within(chips).getByRole('link', { name: 'All (3)' })).toHaveAttribute('aria-current', 'page');
-      expect(within(chips).getByRole('link', { name: 'Empty (0)' })).toBeInTheDocument();
+      expect(await screen.findByRole('tab', { name: 'Playlists' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'All videos' })).toHaveAttribute('aria-selected', 'false');
+      expect(await cardNames()).toEqual(['VLOG', 'Fan Meeting', 'Empty']);
+      expect(within(card('VLOG')).getByText('3 videos')).toBeInTheDocument();
+      expect(within(card('VLOG')).getByRole('link', { name: 'VLOG' })).toHaveAttribute('href', '/vietsub/list?playlist=1');
+      expect(within(card('VLOG')).getByRole('link', { name: 'Play all' })).toHaveAttribute(
+        'href',
+        '/vietsub/THAI0000001?playlist=1',
+      );
     });
 
-    it('filters All by title while typing and keeps q in the URL', async () => {
+    it('switches to All videos and keeps the query, back on page 1', async () => {
+      fakeFetch(routes());
+      renderPage('/vietsub/list?q=bangkok&page=2');
+      const user = userEvent.setup();
+      await cardNames();
+
+      await user.click(screen.getByRole('tab', { name: 'All videos' }));
+
+      const region = await loadedRegion('Vietsub list');
+      expect(rowTitles(region)).toEqual(['Ăn sáng Bangkok']);
+      expect(search()).toBe('?q=bangkok&tab=all');
+      await user.click(screen.getByRole('tab', { name: 'Playlists' }));
+      expect(search()).toBe('?q=bangkok');
+    });
+
+    it('filters All videos by title while typing and keeps q in the URL', async () => {
       fakeFetch(routes());
       renderPage();
       const region = await loadedRegion('Vietsub list');
@@ -199,51 +228,88 @@ describe('VietsubListPage', () => {
       await userEvent.setup().type(screen.getByRole('searchbox', { name: 'Search videos' }), 'cho dem');
 
       expect(rowTitles(region)).toEqual(['Khám phá Chợ Đêm']);
-      expect(search()).toBe('?q=cho+dem');
+      expect(search()).toBe('?tab=all&q=cho+dem');
     });
 
     it('matches the channel name', async () => {
       fakeFetch(routes());
-      renderPage('/vietsub/list?q=food');
+      renderPage('/vietsub/list?tab=all&q=food');
       const region = await loadedRegion('Vietsub list');
 
       expect(rowTitles(region)).toEqual(['Ăn sáng Bangkok']);
       expect(screen.getByRole('searchbox', { name: 'Search videos' })).toHaveValue('food');
     });
 
-    it('says when nothing matches and clears with the X button', async () => {
+    it('says when no video matches and clears with the X button', async () => {
       fakeFetch(routes());
-      renderPage('/vietsub/list?q=zzz');
+      renderPage('/vietsub/list?tab=all&q=zzz');
       const region = await loadedRegion('Vietsub list');
 
       expect(within(region).getByText('No videos match "zzz".')).toBeInTheDocument();
       await userEvent.setup().click(screen.getByRole('button', { name: 'Clear search' }));
       expect(rowTitles(region)).toHaveLength(3);
-      expect(search()).toBe('');
+      expect(search()).toBe('?tab=all');
     });
 
-    it('shows a YouTube-like header and the playlist order when a playlist is chosen', async () => {
+    it('finds playlists by name and keeps their total count', async () => {
       fakeFetch(routes());
-      renderPage();
-      await loadedRegion('Vietsub list');
-      const chips = await screen.findByRole('navigation', { name: 'Playlists' });
+      renderPage('/vietsub/list?q=vlog');
 
-      await userEvent.setup().click(await within(chips).findByRole('link', { name: 'VLOG (3)' }));
+      expect(await cardNames()).toEqual(['VLOG']);
+      expect(within(card('VLOG')).getByText('3 videos')).toBeInTheDocument();
+      expect(screen.getByRole('searchbox', { name: 'Search playlists and videos' })).toHaveValue('vlog');
+    });
+
+    it('finds playlists by their videos and counts only the matches', async () => {
+      fakeFetch(routes());
+      renderPage('/vietsub/list?q=cho+dem');
+
+      expect(await cardNames()).toEqual(['VLOG', 'Fan Meeting']);
+      expect(within(card('VLOG')).getByText('1 video')).toBeInTheDocument();
+      expect(within(card('Fan Meeting')).getByText('1 video')).toBeInTheDocument();
+    });
+
+    it('says when no playlist matches', async () => {
+      fakeFetch(routes());
+      renderPage('/vietsub/list?q=zzz');
+
+      expect(await screen.findByText('No playlists match "zzz".')).toBeInTheDocument();
+    });
+
+    it('pages through playlist cards, 10 per page', async () => {
+      const twelve = Array.from({ length: 12 }, (_, i) => summary(i + 10, `PL ${String(i + 1).padStart(2, '0')}`, 1));
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: all },
+        { method: 'GET', path: '/api/playlists', status: 200, body: twelve },
+        ...twelve.map(
+          (p): FakeRoute => ({ method: 'GET', path: `/api/playlists/${p.id}`, status: 200, body: detail(p.id, p.name, [cho]) }),
+        ),
+      ]);
+      renderPage('/vietsub/list');
+
+      expect(await cardNames()).toHaveLength(10);
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Page 2' }));
+      expect(await cardNames()).toEqual(['PL 11', 'PL 12']);
+      expect(search()).toBe('?page=2');
+    });
+
+    it('opens a playlist with its videos in order and a link back to Playlists', async () => {
+      fakeFetch(routes());
+      renderPage('/vietsub/list');
+      await cardNames();
+
+      await userEvent.setup().click(within(card('VLOG')).getByRole('link', { name: 'VLOG' }));
 
       const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
-      expect(within(header).getByRole('heading', { name: 'VLOG' })).toBeInTheDocument();
       expect(within(header).getByText('Our trips')).toBeInTheDocument();
       expect(within(header).getByText('3 videos')).toBeInTheDocument();
-      expect(within(header).getByRole('link', { name: 'Play all' })).toHaveAttribute(
-        'href',
-        '/vietsub/THAI0000001?playlist=1',
-      );
       const region = await loadedRegion('Vietsub list');
       await waitFor(() => expect(rowTitles(region)).toEqual(['ตะลุยตลาดนัด', 'Khám phá Chợ Đêm', 'Ăn sáng Bangkok']));
       const items = within(region).getAllByRole('listitem');
       expect(items.map((li) => li.querySelector('.vlist__index')?.textContent)).toEqual(['1', '2', '3']);
       expect(within(items[1]).getByRole('link')).toHaveAttribute('href', '/vietsub/CHO00000001?playlist=1');
-      expect(within(chips).getByRole('link', { name: 'VLOG (3)' })).toHaveAttribute('aria-current', 'page');
+      expect(screen.getByRole('link', { name: '← Playlists' })).toHaveAttribute('href', '/vietsub/list');
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
       expect(search()).toBe('?playlist=1');
     });
 
@@ -264,6 +330,7 @@ describe('VietsubListPage', () => {
 
       await waitFor(() => expect(rowTitles(region)).toEqual(['Ăn sáng Bangkok']));
       expect(within(region).getByRole('listitem').querySelector('.vlist__index')?.textContent).toBe('3');
+      expect(screen.getByRole('link', { name: '← Playlists' })).toHaveAttribute('href', '/vietsub/list?q=bangkok');
     });
 
     it('has no Play all for an empty playlist', async () => {
@@ -278,39 +345,16 @@ describe('VietsubListPage', () => {
       ).toBeInTheDocument();
     });
 
-    it('falls back to All when the playlist in the URL does not exist', async () => {
+    it('falls back to the Playlists tab when the playlist in the URL does not exist', async () => {
       fakeFetch(routes());
       renderPage('/vietsub/list?playlist=999');
-      const region = await loadedRegion('Vietsub list');
 
-      await waitFor(() => expect(rowTitles(region)).toHaveLength(3));
-      const chips = await screen.findByRole('navigation', { name: 'Playlists' });
-      await waitFor(() =>
-        expect(within(chips).getByRole('link', { name: 'All (3)' })).toHaveAttribute('aria-current', 'page'),
-      );
-      expect(screen.queryByRole('region', { name: /^Playlist / })).not.toBeInTheDocument();
+      expect(await screen.findByRole('tab', { name: 'Playlists' })).toHaveAttribute('aria-selected', 'true');
+      expect(await cardNames()).toEqual(['VLOG', 'Fan Meeting', 'Empty']);
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
-    it('goes back to page 1 when the playlist or the query changes', async () => {
-      fakeFetch([
-        { method: 'GET', path: '/api/videos', status: 200, body: many(23) },
-        { method: 'GET', path: '/api/playlists', status: 200, body: [summary(1, 'VLOG', 1)] },
-        { method: 'GET', path: '/api/playlists/1', status: 200, body: detail(1, 'VLOG', [thai]) },
-      ]);
-      renderPage('/vietsub/list?page=2');
-      await loadedRegion('Vietsub list');
-      const user = userEvent.setup();
-
-      await user.type(screen.getByRole('searchbox', { name: 'Search videos' }), 'video');
-      expect(search()).toBe('?q=video');
-
-      const chips = await screen.findByRole('navigation', { name: 'Playlists' });
-      await user.click(await within(chips).findByRole('link', { name: 'VLOG (1)' }));
-      expect(search()).toBe('?playlist=1');
-    });
-
-    it('links rows in All without a playlist and without numbers', async () => {
+    it('links rows in All videos without a playlist and without numbers', async () => {
       fakeFetch(routes());
       renderPage();
       const region = await loadedRegion('Vietsub list');
@@ -326,7 +370,7 @@ describe('VietsubListPage on the public site', () => {
   function renderPublic(source: Parameters<typeof publicSite>[0]) {
     return render(
       <SiteProvider value={publicSite(source)}>
-        <MemoryRouter initialEntries={['/vietsub/list']}>
+        <MemoryRouter initialEntries={['/vietsub/list?tab=all']}>
           <Routes>
             <Route path="/vietsub/list" element={<VietsubListPage />} />
           </Routes>

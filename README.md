@@ -150,6 +150,8 @@ Lưu ý free tier: nội dung gửi lên có thể được Google dùng để c
 
 ## Phát triển
 
+**Màu giao diện:** mọi phần giao diện (kể cả toast, tab, thẻ, trang public) dùng 2 màu chủ đạo: **cam #F39A42** (`--brand`: hành động chính, nhấn mạnh, thành công) và **tím #D9A1D9** (`--brand-2`: mục đang chọn, thông tin). Chữ trên hai màu dùng chữ đậm tối (`--on-brand`), không dùng chữ trắng; đỏ chỉ dành cho lỗi/xoá. Token nằm đầu `frontend/src/styles.css`.
+
 ```bash
 # Backend (cổng 8080)
 mvn spring-boot:run

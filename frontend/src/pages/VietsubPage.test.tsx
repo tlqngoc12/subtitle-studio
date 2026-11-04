@@ -83,6 +83,16 @@ async function fillForm(url: string, file?: File) {
 
 describe('VietsubPage', () => {
 
+  it('explains the page in one short sentence', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
+    renderPage();
+
+    expect(
+      screen.getByText('Add a Vietnamese .srt (same timing) to a YouTube video and watch it with Vietsub.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
+  });
+
   it('shows the chosen .srt file name', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
     renderPage();

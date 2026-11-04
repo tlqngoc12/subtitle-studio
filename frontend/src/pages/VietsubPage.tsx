@@ -83,9 +83,7 @@ export default function VietsubPage() {
       {confirmDialog}
       <header className="masthead">
         <h1 className="masthead__name">Vietsub</h1>
-        <p className="masthead__lede">
-          Paste a YouTube link and choose a Vietnamese .srt file (with the original timing) to watch the video with Vietsub.
-        </p>
+        <p className="masthead__lede">Add a Vietnamese .srt (same timing) to a YouTube video and watch it with Vietsub.</p>
       </header>
       <VietsubTabs />
 
