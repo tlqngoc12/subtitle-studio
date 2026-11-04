@@ -1583,3 +1583,127 @@ p.vietsub-status,
   min-width: 0;
   cursor: default;
 }
+
+/* Vietsub list: search, playlist chips, YouTube-like playlist header, numbered rows. */
+.searchbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchbar__icon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.searchbar__input {
+  width: 100%;
+  padding: 10px 44px 10px 40px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+/* The X button replaces the browser's own clear control. */
+.searchbar__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.searchbar__clear {
+  position: absolute;
+  right: 4px;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.chip {
+  flex: none;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--step--1);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: var(--brand);
+}
+
+.chip[aria-current='page'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.plcard {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 18%, var(--surface)), var(--surface) 60%);
+}
+
+.plcard__cover {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.plcard__cover--empty {
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+}
+
+.plcard__body {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.plcard__name {
+  margin: 0;
+  font-size: var(--step-2);
+}
+
+.plcard__description {
+  margin: 0;
+  white-space: pre-line;
+}
+
+@media (max-width: 760px) {
+  .plcard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.vlist__index {
+  flex: none;
+  align-self: center;
+  min-width: 1.6em;
+  text-align: right;
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
