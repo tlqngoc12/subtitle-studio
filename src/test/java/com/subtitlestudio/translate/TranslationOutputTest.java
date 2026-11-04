@@ -47,6 +47,28 @@ class TranslationOutputTest {
     }
 
     @Test
+    void describesWhatIsWrongWithoutSubtitleText() {
+        List<TranslatedLine> got = List.of(
+                new TranslatedLine(0, "Xin chào"),
+                new TranslatedLine(0, "Xin chào lần nữa"),
+                new TranslatedLine(2, "  "),
+                new TranslatedLine(7, "thừa"));
+
+        String summary = TranslationOutput.describe(SENT, got);
+
+        assertThat(summary).isEqualTo("items=4 valid=0/3 missing=1 extra=1 duplicated=1 blank=1 missingIds=[1]");
+        assertThat(summary).doesNotContain("Xin chào").doesNotContain("Hello");
+    }
+
+    @Test
+    void listsAtMostTenMissingIds() {
+        List<SourceLine> many = java.util.stream.IntStream.range(0, 15).mapToObj(i -> new SourceLine(i, "l" + i)).toList();
+
+        assertThat(TranslationOutput.describe(many, List.of()))
+                .isEqualTo("items=0 valid=0/15 missing=15 extra=0 duplicated=0 blank=0 missingIds=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, …]");
+    }
+
+    @Test
     void rejectsMissingId() {
         List<TranslatedLine> got = List.of(new TranslatedLine(0, "a"), new TranslatedLine(1, "b"));
 

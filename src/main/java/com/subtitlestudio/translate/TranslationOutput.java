@@ -2,14 +2,19 @@ package com.subtitlestudio.translate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /** Checks Gemini's answer against what was sent: exactly the same ids, each with non-blank text. */
 public final class TranslationOutput {
 
     private static final Pattern LINE_BREAK = Pattern.compile("\\r\\n?");
+
+    private static final int MAX_LOGGED_IDS = 10;
 
     private TranslationOutput() {
     }
@@ -39,6 +44,42 @@ public final class TranslationOutput {
             throw invalid(ordered.size(), sent.size());
         }
         return ordered;
+    }
+
+    /**
+     * One-line diagnosis of an answer for the log: counts and the first missing ids, never subtitle text.
+     * Same notion of "valid" as {@link #validate}: the id was sent, appears exactly once and has non-blank text.
+     */
+    public static String describe(List<SourceLine> sent, List<TranslatedLine> got) {
+        Map<Integer, Integer> seen = new HashMap<>();
+        Map<Integer, Boolean> blankById = new HashMap<>();
+        int blank = 0;
+        for (TranslatedLine line : got) {
+            seen.merge(line.id(), 1, Integer::sum);
+            boolean isBlank = line.text() == null || line.text().isBlank();
+            blankById.merge(line.id(), isBlank, Boolean::logicalOr);
+            if (isBlank) {
+                blank++;
+            }
+        }
+        Set<Integer> sentIds = new HashSet<>();
+        List<Integer> missing = new ArrayList<>();
+        int valid = 0;
+        for (SourceLine source : sent) {
+            sentIds.add(source.id());
+            int count = seen.getOrDefault(source.id(), 0);
+            if (count == 0) {
+                missing.add(source.id());
+            } else if (count == 1 && !blankById.get(source.id())) {
+                valid++;
+            }
+        }
+        long extra = seen.keySet().stream().filter(id -> !sentIds.contains(id)).count();
+        long duplicated = seen.values().stream().filter(n -> n > 1).count();
+        String missingIds = missing.stream().limit(MAX_LOGGED_IDS).map(String::valueOf).collect(Collectors.joining(", "))
+                + (missing.size() > MAX_LOGGED_IDS ? ", …" : "");
+        return "items=" + got.size() + " valid=" + valid + "/" + sent.size() + " missing=" + missing.size()
+                + " extra=" + extra + " duplicated=" + duplicated + " blank=" + blank + " missingIds=[" + missingIds + "]";
     }
 
     static TranslationFailedException invalid(int valid, int total) {

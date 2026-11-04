@@ -65,6 +65,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
     @Override
     public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines) {
         GenerateContentResponse response = null;
+        String answeredBy = null;
         String content = userContent(video, profile, lines);
         GenerateContentConfig config = config();
         try (Client client = client()) {
@@ -75,6 +76,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             for (int i = 0; response == null; i++) {
                 try {
                     response = client.models.generateContent(models.get(i), content, config);
+                    answeredBy = models.get(i);
                 } catch (ApiException e) {
                     if (e.code() != 503) {
                         throw fromApi(e);
@@ -96,10 +98,22 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
         if (text == null || text.isBlank()) {
             throw new TranslationFailedException("Gemini refused to translate this content.");
         }
+        List<TranslatedLine> got;
         try {
-            return TranslationOutput.validate(lines, mapper.readValue(text, LINES));
+            got = mapper.readValue(text, LINES);
         } catch (JsonProcessingException e) {
+            log.warn("Gemini {} answer for {} lines is not the expected JSON ({} chars)", answeredBy, lines.size(),
+                    text.length());
             throw TranslationOutput.invalid(0, lines.size());
+        }
+        // Answers vary between runs, so a rejected one is only diagnosable from this line (no subtitle text in it).
+        try {
+            List<TranslatedLine> valid = TranslationOutput.validate(lines, got);
+            log.info("Gemini {} translated {} lines", answeredBy, lines.size());
+            return valid;
+        } catch (TranslationFailedException e) {
+            log.warn("Gemini {} returned an invalid answer: {}", answeredBy, TranslationOutput.describe(lines, got));
+            throw e;
         }
     }
 
