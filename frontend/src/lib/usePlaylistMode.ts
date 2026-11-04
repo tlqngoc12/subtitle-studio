@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { getPlaylist, type PlaylistDetail } from '../api/playlists';
+import { useSite } from '../data/SiteContext';
+import type { PublicPlaylistDetail } from '../data/types';
 
 const AUTOPLAY_KEY = 'subtitle-studio.autoplay';
 
@@ -26,7 +27,7 @@ function parseId(raw: string | null): number | null {
 }
 
 export interface PlaylistMode {
-  playlist: PlaylistDetail;
+  playlist: PublicPlaylistDetail;
   index: number;
   autoplay: boolean;
   setAutoplay: (on: boolean) => void;
@@ -43,14 +44,16 @@ export function usePlaylistMode(videoId: string): PlaylistMode | null {
   const [params] = useSearchParams();
   const playlistId = parseId(params.get('playlist'));
   const navigate = useNavigate();
-  const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
+  const { source } = useSite();
+  const [playlist, setPlaylist] = useState<PublicPlaylistDetail | null>(null);
   const [autoplay, setAutoplayState] = useState(readAutoplay);
 
   useEffect(() => {
     setPlaylist(null);
     if (playlistId === null) return;
     let cancelled = false;
-    getPlaylist(playlistId)
+    source
+      .getPlaylist(playlistId)
       .then((p) => !cancelled && setPlaylist(p))
       .catch(() => {
         // a stale link: show the normal watch page
@@ -58,7 +61,7 @@ export function usePlaylistMode(videoId: string): PlaylistMode | null {
     return () => {
       cancelled = true;
     };
-  }, [playlistId]);
+  }, [playlistId, source]);
 
   const go = useCallback(
     (index: number) => {

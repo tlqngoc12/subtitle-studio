@@ -6,6 +6,8 @@ import type { ViCue, VideoDto } from '../api/client';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { detail, vsVideo } from '../test/playlistFixtures';
 import WatchPage from './WatchPage';
+import { SiteProvider } from '../data/SiteContext';
+import { fakeSource, publicSite } from '../test/fakeSource';
 
 const player = vi.hoisted(() => ({
   currentMs: 0,
@@ -334,5 +336,32 @@ describe('WatchPage', () => {
 
       expect(within(await panel()).getByRole('switch', { name: 'Autoplay' })).not.toBeChecked();
     });
+  });
+});
+
+describe('WatchPage on the public site', () => {
+  function renderPublic(source: Parameters<typeof publicSite>[0]) {
+    return render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={[`/vietsub/${ID}`]}>
+          <Routes>
+            <Route path="/vietsub/:id" element={<WatchPage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+  }
+
+  it('usesTheSiteSource', async () => {
+    renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
+
+    expect(await screen.findByRole('heading', { name: video.title })).toBeInTheDocument();
+  });
+
+  it('readOnlyEmptyStateHasNoAddLink', async () => {
+    renderPublic(fakeSource({ getVideo: async () => ({ ...video, viCueCount: 0 }), getVietsub: async () => [] }));
+
+    expect(await screen.findByText(/This video has no Vietsub yet\./)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Add Vietsub' })).not.toBeInTheDocument();
   });
 });

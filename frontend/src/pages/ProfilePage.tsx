@@ -7,8 +7,6 @@ import { ApiError } from '../api/client';
 import {
   addBlock,
   deleteBlock,
-  getProfile,
-  listProfiles,
   moveBlock,
   updateBlock,
   type BlockInput,
@@ -23,6 +21,7 @@ import { BlockToolbar } from '../components/profile/BlockToolbar';
 import { BlockView } from '../components/profile/BlockView';
 import { EmptyState } from '../components/EmptyState';
 import { ProfileTabs } from '../components/profile/ProfileTabs';
+import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { expandMotion, rowMotion } from '../lib/motion';
 
@@ -37,16 +36,18 @@ export default function ProfilePage() {
   const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<{ message: ErrorMessage; notFound: boolean } | null>(null);
+  const { source, readOnly } = useSite();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<OpenForm>(null);
   const [choosingType, setChoosingType] = useState(false);
   const [actionError, setActionError] = useState<ErrorMessage | null>(null);
 
   useEffect(() => {
-    listProfiles()
+    source
+      .listProfiles()
       .then(setProfiles)
       .catch(() => setProfiles([]));
-  }, []);
+  }, [source]);
 
   useEffect(() => {
     let current = true;
@@ -55,7 +56,8 @@ export default function ProfilePage() {
     setForm(null);
     setChoosingType(false);
     setActionError(null);
-    getProfile(slug)
+    source
+      .getProfile(slug)
       .then((p) => current && setProfile(p))
       .catch((e) => {
         if (!current) return;
@@ -65,7 +67,7 @@ export default function ProfilePage() {
     return () => {
       current = false;
     };
-  }, [slug]);
+  }, [slug, source]);
 
   const setBlocks = (update: (blocks: ProfileBlock[]) => ProfileBlock[]) =>
     setProfile((p) => (p ? { ...p, blocks: update(p.blocks) } : p));
@@ -132,7 +134,7 @@ export default function ProfilePage() {
         <>
           <header className="masthead pmasthead">
             <h1 className="masthead__name">{profile.displayName}</h1>
-            {editing ? (
+            {readOnly ? null : editing ? (
               <button type="button" className="button button--primary" onClick={stopEditing}>
                 <Check className="icon" aria-hidden="true" />
                 Done

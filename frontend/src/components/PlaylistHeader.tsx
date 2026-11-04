@@ -1,9 +1,10 @@
 import { ListVideo, Play } from 'lucide-react';
 import { Link } from 'react-router';
-import { videoCountLabel, type PlaylistDetail } from '../api/playlists';
+import { videoCountLabel } from '../api/playlists';
+import type { PublicPlaylistDetail } from '../data/types';
 
 /** YouTube-like playlist header: cover (first video), name, description, count and Play all. */
-export function PlaylistHeader({ playlist }: { playlist: PlaylistDetail }) {
+export function PlaylistHeader({ playlist }: { playlist: PublicPlaylistDetail }) {
   const first = playlist.videos[0];
   return (
     <section className="plcard" aria-label={`Playlist ${playlist.name}`}>

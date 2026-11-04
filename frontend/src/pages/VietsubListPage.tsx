@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock, ListVideo, Search, SearchX, Tv, X } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
-import { listVideos, type VideoDto } from '../api/client';
-import { getPlaylist, listPlaylists, type PlaylistDetail, type PlaylistSummary } from '../api/playlists';
+import { useSite } from '../data/SiteContext';
+import type { PublicPlaylistDetail, PublicPlaylistSummary, PublicVideo } from '../data/types';
 import { EmptyState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
 import { PlaylistChips } from '../components/PlaylistChips';
@@ -15,7 +15,7 @@ import { withVietsub } from '../lib/vietsub';
 
 /** A row of the list; `position` is the video's number in the chosen playlist (null in All). */
 interface Entry {
-  video: VideoDto;
+  video: PublicVideo;
   position: number | null;
 }
 
@@ -32,36 +32,40 @@ export default function VietsubListPage() {
   const [params, setParams] = useSearchParams();
   const requestedPlaylist = parsePlaylistId(params.get('playlist'));
   const query = params.get('q') ?? '';
-  const [videos, setVideos] = useState<VideoDto[] | null>(null);
-  const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
+  const { source, readOnly } = useSite();
+  const [videos, setVideos] = useState<PublicVideo[] | null>(null);
+  const [playlists, setPlaylists] = useState<PublicPlaylistSummary[]>([]);
   // The loaded playlist, or 'missing' when the id in the URL does not exist (then the page shows All).
-  const [playlist, setPlaylist] = useState<PlaylistDetail | 'missing' | null>(null);
+  const [playlist, setPlaylist] = useState<PublicPlaylistDetail | 'missing' | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
 
   useEffect(() => {
-    listVideos()
+    source
+      .listVideos()
       .then((all) => setVideos(withVietsub(all)))
       .catch((e) => {
         setVideos([]);
         setError(errorMessage(e));
       });
     // The chips are extra: without them the list still works, so a failure here stays quiet.
-    listPlaylists()
+    source
+      .listPlaylists()
       .then(setPlaylists)
       .catch(() => setPlaylists([]));
-  }, []);
+  }, [source]);
 
   useEffect(() => {
     setPlaylist(null);
     if (requestedPlaylist === null) return;
     let cancelled = false;
-    getPlaylist(requestedPlaylist)
+    source
+      .getPlaylist(requestedPlaylist)
       .then((p) => !cancelled && setPlaylist(p))
       .catch(() => !cancelled && setPlaylist('missing'));
     return () => {
       cancelled = true;
     };
-  }, [requestedPlaylist]);
+  }, [requestedPlaylist, source]);
 
   const active = playlist !== null && playlist !== 'missing' ? playlist : null;
   const waitingForPlaylist = requestedPlaylist !== null && playlist === null;
@@ -97,13 +101,14 @@ export default function VietsubListPage() {
     if (active) {
       return (
         <EmptyState icon={ListVideo}>
-          This playlist has no videos yet. <Link to={`/vietsub/playlists/${active.id}`}>Manage playlist</Link>
+          This playlist has no videos yet.
+          {!readOnly && <> <Link to={`/vietsub/playlists/${active.id}`}>Manage playlist</Link></>}
         </EmptyState>
       );
     }
     return (
       <EmptyState icon={ListVideo}>
-        No videos with Vietsub yet. <Link to="/vietsub">Add Vietsub</Link>
+        No videos with Vietsub yet.{!readOnly && <> <Link to="/vietsub">Add Vietsub</Link></>}
       </EmptyState>
     );
   }

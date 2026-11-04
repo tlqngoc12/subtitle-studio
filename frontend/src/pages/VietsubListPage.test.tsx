@@ -7,6 +7,8 @@ import type { VideoDto } from '../api/client';
 import { fakeFetch, type Route as FakeRoute } from '../test/fakeFetch';
 import { detail, summary, vsVideo } from '../test/playlistFixtures';
 import VietsubListPage from './VietsubListPage';
+import { SiteProvider } from '../data/SiteContext';
+import { fakeSource, publicSite } from '../test/fakeSource';
 
 const ID = 'dQw4w9WgXcQ';
 
@@ -317,5 +319,34 @@ describe('VietsubListPage', () => {
       expect(within(first).getByRole('link')).toHaveAttribute('href', '/vietsub/CHO00000001');
       expect(first.querySelector('.vlist__index')).toBeNull();
     });
+  });
+});
+
+describe('VietsubListPage on the public site', () => {
+  function renderPublic(source: Parameters<typeof publicSite>[0]) {
+    return render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={['/vietsub/list']}>
+          <Routes>
+            <Route path="/vietsub/list" element={<VietsubListPage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+  }
+
+  it('usesTheSiteSource', async () => {
+    renderPublic(fakeSource({ listVideos: async () => [newer, older] }));
+
+    const list = await loadedRegion('Vietsub list');
+    expect(within(list).getByText('Học Spring Boot')).toBeInTheDocument();
+    expect(within(list).getByText('Video cũ hơn')).toBeInTheDocument();
+  });
+
+  it('readOnlyEmptyStateHasNoAddLink', async () => {
+    renderPublic(fakeSource({ listVideos: async () => [] }));
+
+    expect(await screen.findByText(/No videos with Vietsub yet\./)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Add Vietsub' })).not.toBeInTheDocument();
   });
 });

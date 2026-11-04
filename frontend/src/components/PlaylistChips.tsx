@@ -1,9 +1,9 @@
 import { Link } from 'react-router';
-import type { PlaylistSummary } from '../api/playlists';
+import type { PublicPlaylistSummary } from '../data/types';
 
 interface Props {
   allCount: number;
-  playlists: PlaylistSummary[];
+  playlists: PublicPlaylistSummary[];
   /** The chosen playlist, or null for All. */
   current: number | null;
 }

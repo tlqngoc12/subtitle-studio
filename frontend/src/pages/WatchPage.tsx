@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import { getVideo, getVietsub, type ViCue, type VideoDto } from '../api/client';
+import type { ViCue } from '../api/client';
+import { useSite } from '../data/SiteContext';
+import type { PublicVideo } from '../data/types';
 import { PlaylistPanel } from '../components/PlaylistPanel';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -15,7 +17,8 @@ import { useYouTubePlayer } from '../player/useYouTubePlayer';
  */
 export default function WatchPage() {
   const { id = '' } = useParams();
-  const [video, setVideo] = useState<VideoDto | null>(null);
+  const { source, readOnly } = useSite();
+  const [video, setVideo] = useState<PublicVideo | null>(null);
   const [cues, setCues] = useState<ViCue[]>([]);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
@@ -29,13 +32,13 @@ export default function WatchPage() {
     setVideo(null);
     setCues([]);
     setError(null);
-    Promise.all([getVideo(id), getVietsub(id)])
+    Promise.all([source.getVideo(id), source.getVietsub(id)])
       .then(([v, c]) => {
         setVideo(v);
         setCues(c);
       })
       .catch((e) => setError(errorMessage(e)));
-  }, [id]);
+  }, [id, source]);
 
   // Autoplay: when a video ends, go straight to the next one (no countdown), and stop after the last.
   const ended = player.state === 'ended';
@@ -81,7 +84,7 @@ export default function WatchPage() {
 
       {video && video.viCueCount === 0 && (
         <p className="muted">
-          This video has no Vietsub yet. <Link to="/vietsub">Add Vietsub</Link>
+          This video has no Vietsub yet.{!readOnly && <> <Link to="/vietsub">Add Vietsub</Link></>}
         </p>
       )}
 

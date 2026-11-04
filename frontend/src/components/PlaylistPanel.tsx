@@ -1,11 +1,11 @@
 import { SkipBack, SkipForward } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
-import type { PlaylistDetail } from '../api/playlists';
+import type { PublicPlaylistDetail } from '../data/types';
 import { Tip } from './Tip';
 
 interface Props {
-  playlist: PlaylistDetail;
+  playlist: PublicPlaylistDetail;
   /** Index of the video being watched. */
   index: number;
   autoplay: boolean;

@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { block, profile, SUMMARIES } from '../test/profileFixtures';
 import ProfilePage from './ProfilePage';
+import { SiteProvider } from '../data/SiteContext';
+import { fakeSource, publicSite } from '../test/fakeSource';
 
 function Location() {
   return <output aria-label="path">{useLocation().pathname}</output>;
@@ -194,5 +196,26 @@ describe('ProfilePage edit mode', () => {
 
     expect(screen.getByRole('button', { name: 'Edit block' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Add block' })).toBeDisabled();
+  });
+});
+
+describe('ProfilePage on the public site', () => {
+  it('readOnlyHidesEditing', async () => {
+    const source = fakeSource({
+      listProfiles: async () => SUMMARIES,
+      getProfile: async () => profile('emi', 'Emi', [block({ id: 2, type: 'TEXT', body: 'Trang của Emi' })]),
+    });
+    render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={['/profiles/emi']}>
+          <Routes>
+            <Route path="/profiles/:slug" element={<ProfilePage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+
+    expect(await screen.findByText('Trang của Emi')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 });
