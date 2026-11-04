@@ -120,8 +120,8 @@ Nút **Publish** (góc phải thanh đầu trang) xuất bản **chỉ đọc** 
 
 **Lần đầu (khoảng 10 phút):**
 1. Tạo tài khoản [Cloudflare](https://dash.cloudflare.com) (miễn phí). Sao lưu dữ liệu trước (mục *Sao lưu và khôi phục*).
-2. **Workers & Pages → Create → Pages → Direct Upload**: đặt tên project (vd `emibonnie-vietsub`), tạo trống (không cần upload gì).
-3. **My Profile → API Tokens → Create Token → Custom token**: quyền **Account → Cloudflare Pages → Edit**, chỉ cho account của bạn. Copy token.
+2. Tạo project Pages trống. Cách chắc chắn nhất (sau khi đã có token ở bước 3–5): `docker compose run --rm --no-deps --entrypoint /opt/wrangler/node_modules/.bin/wrangler subtitle-studio pages project create <tên> --production-branch main`. Hoặc trong dashboard: **Workers & Pages** (có thể nằm dưới **Compute**) → **Create** → **Pages** → **Direct Upload**. Dòng "available at …" cho biết link thật: nếu tên `*.pages.dev` đã có người dùng, Cloudflare thêm hậu tố (vd `-bkx`) — khi đó nên chọn tên khác để link khớp tên project.
+3. **My Profile → API Tokens → Create Token → Custom token** (loại **User API Token**): quyền **Account → Cloudflare Pages → Edit**, chỉ cho account của bạn. Copy token (chỉ hiện một lần).
 4. Account ID: trang **Workers & Pages** (cột bên phải) hoặc URL dashboard.
 5. Điền vào `.env`: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUBTITLESTUDIO_PUBLISH_PROJECT` (tên project ở bước 2); `docker compose up -d`.
 6. Bấm **Publish** → xác nhận → chờ thông báo **Published** → **Open site**. Gửi link `https://<project>.pages.dev` cho nhóm.
