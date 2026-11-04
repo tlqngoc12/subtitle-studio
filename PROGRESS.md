@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-03
+> Cập nhật lần cuối: 2026-11-04
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -429,6 +429,8 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Vietsub list:** ô search không phân biệt dấu (`lib/search.ts`), chip All/playlist, khung playlist kiểu YouTube; URL `?playlist&q&page`.
 - **Trang xem:** `?playlist=` → khung playlist, Previous/Next, Shift+N/P, Autoplay (`localStorage` `subtitle-studio.autoplay`, mặc định bật); player được tạo lại trong cùng khung nên toàn màn hình giữ nguyên khi chuyển video.
 - Test jsdom: kéo thả bằng bàn phím của dnd-kit cần giả lập `getBoundingClientRect` và chờ một `setTimeout` sau khi bắt đầu kéo (dnd-kit gắn listener phím trễ một nhịp).
+- **Review độc lập cả nhánh** tìm ra và đã sửa (mỗi lỗi có test RED→GREEN): Autoplay nhảy cóc video (player còn báo `ended` của video cũ một nhịp sau khi đổi `videoId` → `useYouTubePlayer` trả `loading` tới khi state thuộc video mới); lưu thứ tự lỗi có thể làm hiện lại video vừa gỡ (khoá nút gỡ khi đang lưu); Play all chưa tự phát. Lỗi nhỏ để sau: xem Backlog.
+- Merge fast-forward vào `main`, push, deploy 2026-11-04: Flyway lên `v4` trên Oracle. Frontend 271/271, backend `mvn clean test` + `verify -Poracle` (12/12) xanh. Chưa kiểm tra tay: kéo thả bằng chuột, tự phát tiếp có tiếng trên trình duyệt thật.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
@@ -479,6 +481,8 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - Gemini thỉnh thoảng trả câu trả lời thiếu/gộp/đánh lại id (nhất là model dự phòng `-lite`, và phụ đề có nhiều chú thích lặp hoặc câu cắt qua nhiều block): app báo "missing or mismatched lines", người dùng bấm Translate again. Xem dòng `returned an invalid answer` trong `app.log` để biết kiểu hỏng trước khi quyết định có tự khắc phục hay không.
 
 ## 10. Backlog (để phase sau)
+
+- Playlist (lỗi nhỏ từ review 2026-11-04): `addVideo` tính vị trí `count+1` không khoá (hai tab thêm cùng lúc → trùng vị trí; cùng video hai lần → 500); N+1 query ở `PlaylistService.list/detail`; Save to playlist bỏ qua im lặng cú bấm ô khác khi đang lưu, race khi mở lại nhanh, tạo xong mà thêm lỗi thì playlist mới bị ẩn; trang sửa báo "It has been reloaded" cả khi tải lại lỗi, `:playlistId` không phải số hiện HTTP 400; nút kéo và nút xoá ô search chưa có `<Tip>`; video bị chặn nhúng làm Autoplay dừng.
 
 | Mục | Nguồn | Ghi chú |
 |---|---|---|
