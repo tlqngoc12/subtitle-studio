@@ -450,6 +450,12 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - `/vietsub`: mô tả còn một câu. Toast `sonner`: thành công cam, thông tin tím, lỗi đỏ. Quy tắc 2 màu chủ đạo ghi vào CLAUDE.md và README.
 - Frontend 305/305 (chỉ chạy test theo yêu cầu, rồi merge → build → restart).
 
+### 2026-11-04: Chuyển tab không giật; review giao diện (agent) và sửa
+- **Giật khi chuyển tab Vietsub list:** Radix Tabs gỡ tab ẩn khỏi trang, mỗi tab tự gọi API khi hiện → mỗi lần chuyển tải lại (Playlists N+1 request) và danh sách co về "Loading…". Sửa: tải video + playlist **một lần ở cấp trang** rồi truyền xuống 2 tab (test: chuyển tab không có request mới).
+- **Tab gạch chân dùng chung** (`tabs__list` / `tabs__tab`, tab đang mở gạch **tím**): Vietsub list (Radix Tabs, `data-state`), menu Vietsub Videos | Playlists và tab Profile (link, `aria-current`). Bỏ kiểu pill `ptabs`.
+- **Theo review giao diện:** menu tự cuộn tới mục đang mở + mép phải mờ trên điện thoại, viền focus không bị cắt, Publish chỉ còn icon ở ≤520px; tiêu đề video 2 dòng trên điện thoại (thấy số tập); trang xem trên iPhone tiêu đề nhỏ để video lên cao; video đang phát trong khung playlist màu **tím**; thẻ playlist gọn, bấm cả thẻ (stretched link), không có mô tả thì hiện 3 tập đầu; link quay lại một kiểu "← Back to …"; Delete playlist xuống cuối trang sửa; ô dán link: gợi ý nhạt, focus xanh; profile trống trên trang public: "Nothing here yet — check back soon."; vùng chạm ≥44px trên điện thoại. Chưa làm (để sau): gom hàng trang sửa playlist trên điện thoại, gợi ý video khác dưới trang xem.
+- Frontend 309/309.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
