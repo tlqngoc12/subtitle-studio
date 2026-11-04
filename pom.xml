@@ -157,6 +157,17 @@
                             <arguments>run build</arguments>
                         </configuration>
                     </execution>
+                    <!-- The read-only public site (PublicApp) → classpath:public-site, deployed by Publish. -->
+                    <execution>
+                        <id>npm-build-public</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build:public</arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

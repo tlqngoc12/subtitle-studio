@@ -1827,3 +1827,19 @@ p.vietsub-status,
   font-size: var(--step--1);
   font-weight: 700;
 }
+
+/* ---------- Public site footer ---------- */
+
+.site-footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px var(--gutter) 40px;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-align: center;
+}
+
+.site-footer p {
+  margin: 0;
+}

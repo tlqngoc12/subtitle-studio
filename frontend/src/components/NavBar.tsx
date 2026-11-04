@@ -1,31 +1,46 @@
 import { motion } from 'motion/react';
 import { Link, useLocation } from 'react-router';
+import { useSite } from '../data/SiteContext';
 import { pillTransition } from '../lib/motion';
 
-const SECTIONS = [
+interface Section {
+  to: string;
+  label: string;
+  isCurrent: (pathname: string) => boolean;
+}
+
+/** The watch page (/vietsub/:id) belongs to the list it is opened from. */
+const VIETSUB_LIST: Section = {
+  to: '/vietsub/list',
+  label: 'Vietsub list',
+  isCurrent: (p) => /^\/vietsub\/[^/]+\/?$/.test(p) && !/^\/vietsub\/playlists\/?$/.test(p),
+};
+const PROFILE: Section = { to: '/profiles', label: 'Profile', isCurrent: (p) => p === '/profiles' || p.startsWith('/profiles/') };
+
+/** Guests only read: no Get Engsub, no Vietsub management. */
+const PUBLIC_SECTIONS: Section[] = [VIETSUB_LIST, PROFILE];
+
+const ADMIN_SECTIONS: Section[] = [
   { to: '/', label: 'Get Engsub', isCurrent: (p: string) => p === '/' },
   // The playlist pages (/vietsub/playlists, /vietsub/playlists/:id) are part of managing Vietsub.
   { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => /^\/vietsub(\/|\/playlists(\/.*)?)?$/.test(p) },
-  // The watch page (/vietsub/:id) belongs to the list it is opened from.
-  {
-    to: '/vietsub/list',
-    label: 'Vietsub list',
-    isCurrent: (p: string) => /^\/vietsub\/[^/]+\/?$/.test(p) && !/^\/vietsub\/playlists\/?$/.test(p),
-  },
-  { to: '/profiles', label: 'Profile', isCurrent: (p: string) => p === '/profiles' || p.startsWith('/profiles/') },
+  VIETSUB_LIST,
+  PROFILE,
 ];
 
 /** Sticky top bar: app name (home link) and the main sections; the sections scroll sideways on narrow screens. */
 export function NavBar() {
   const { pathname } = useLocation();
+  const { readOnly, homePath } = useSite();
+  const sections = readOnly ? PUBLIC_SECTIONS : ADMIN_SECTIONS;
   return (
     <header className="topbar">
       <div className="topbar__inner">
-        <Link className="topbar__brand" to="/">
+        <Link className="topbar__brand" to={homePath}>
           Subtitle Studio
         </Link>
         <nav className="nav" aria-label="Main">
-          {SECTIONS.map((s) => {
+          {sections.map((s) => {
             const current = s.isCurrent(pathname);
             return (
               <Link key={s.to} className="nav__link" to={s.to} aria-current={current ? 'page' : undefined}>
