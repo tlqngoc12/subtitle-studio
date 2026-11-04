@@ -1,5 +1,6 @@
 package com.subtitlestudio.video;
 
+import org.springframework.context.ApplicationEventPublisher;
 import com.subtitlestudio.subtitle.Cue;
 import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.SrtEntry;
@@ -24,6 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class VietsubService {
 
+    private final ApplicationEventPublisher events;
+
     static final int MAX_TEXT_LENGTH = 1000;
     /** Checked here: the multipart limit is 10 MB for profile images. */
     static final int MAX_SRT_BYTES = 5 * 1024 * 1024;
@@ -40,7 +43,9 @@ public class VietsubService {
 
     public VietsubService(UrlParser urlParser, SrtParser srtParser, SrtWriter srtWriter, SubtitleService subtitleService,
                           VideoRepository videos, ViCueRepository viCues, TransactionTemplate tx, Clock clock,
-                          SubtitleFileStore files) {
+                          SubtitleFileStore files,
+                          ApplicationEventPublisher events) {
+        this.events = events;
         this.files = files;
         this.urlParser = urlParser;
         this.srtParser = srtParser;
@@ -132,6 +137,7 @@ public class VietsubService {
     public void clear(String id) {
         ViSource source = tx.execute(status -> {
             ViSource current = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).getViSource();
+            events.publishEvent(new VideoRemovalEvent(id)); // playlists hold only videos with Vietsub
             viCues.deleteByVideoId(id); // clears the persistence context, so load the video afterwards
             videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id)).clearVietsub();
             return current;

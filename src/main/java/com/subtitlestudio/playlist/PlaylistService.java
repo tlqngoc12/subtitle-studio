@@ -4,6 +4,7 @@ import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.video.Video;
 import com.subtitlestudio.video.VideoDto;
 import com.subtitlestudio.video.VideoNotFoundException;
+import com.subtitlestudio.video.VideoRemovalEvent;
 import com.subtitlestudio.video.VideoRepository;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -156,6 +158,13 @@ public class PlaylistService {
             renumber(p.getId());
             p.touch(clock.instant());
         }
+    }
+
+    /** Runs inside the publisher's transaction, before the Vietsub or the video is deleted. */
+    @EventListener
+    @Transactional
+    public void on(VideoRemovalEvent event) {
+        removeVideoEverywhere(event.videoId());
     }
 
     private void renumber(Long playlistId) {

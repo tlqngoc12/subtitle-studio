@@ -1,5 +1,6 @@
 package com.subtitlestudio.video;
 
+import org.springframework.context.ApplicationEventPublisher;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.subtitle.CaptionNormalizer;
 import com.subtitlestudio.subtitle.Cue;
@@ -31,6 +32,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class SubtitleService {
 
+    private final ApplicationEventPublisher events;
+
     private final UrlParser urlParser;
     private final YtDlpClient ytDlp;
     private final SubtitleTrackSelector trackSelector;
@@ -49,7 +52,9 @@ public class SubtitleService {
                            VttParser vttParser, CaptionNormalizer normalizer, VideoRepository videos,
                            CueRepository cues, ViCueRepository viCues, SubtitleStudioProperties properties,
                            TransactionTemplate tx,
-                           Clock clock, SrtWriter srtWriter, SubtitleFileStore files) {
+                           Clock clock, SrtWriter srtWriter, SubtitleFileStore files,
+                           ApplicationEventPublisher events) {
+        this.events = events;
         this.srtWriter = srtWriter;
         this.files = files;
         this.urlParser = urlParser;
@@ -109,6 +114,7 @@ public class SubtitleService {
             if (!videos.existsById(id)) {
                 throw new VideoNotFoundException(id);
             }
+            events.publishEvent(new VideoRemovalEvent(id)); // playlist items reference the video (FK)
             viCues.deleteByVideoId(id); // Vietsub rows reference the video too (FK)
             cues.deleteByVideoId(id); // clears the persistence context
             videos.deleteById(id);
