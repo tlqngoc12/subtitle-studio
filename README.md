@@ -107,6 +107,30 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.gemini.fallback-models` | `SUBTITLESTUDIO_GEMINI_FALLBACKMODELS` | `gemini-3.5-flash-lite` | Thử lần lượt khi model chính quá tải (HTTP 503); lỗi hết quota (429) thì không thử |
 | `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
 | `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `60m` | Video dài hơn không dịch tự động |
+| `subtitle-studio.publish.cloudflare-api-token` | `CLOUDFLARE_API_TOKEN` | (trống = tắt Publish) | API token Cloudflare (quyền Cloudflare Pages: Edit) |
+| `subtitle-studio.publish.cloudflare-account-id` | `CLOUDFLARE_ACCOUNT_ID` | (trống) | Account ID Cloudflare |
+| `subtitle-studio.publish.project` | `SUBTITLESTUDIO_PUBLISH_PROJECT` | (trống) | Tên project Cloudflare Pages; trang public ở `https://<project>.pages.dev` |
+| `subtitle-studio.publish.indexable` | `SUBTITLESTUDIO_PUBLISH_INDEXABLE` | `false` | `false` = noindex (Google không đưa trang lên kết quả tìm kiếm) |
+| `subtitle-studio.publish.wrangler-path` | `SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH` | `wrangler` (image Docker: `/opt/wrangler/...`) | CLI deploy của Cloudflare |
+| `subtitle-studio.publish.timeout` | | `5m` | Quá thời gian thì Publish báo lỗi |
+
+## Trang public cho nhóm fan (Publish)
+
+Nút **Publish** (góc phải thanh đầu trang) xuất bản **chỉ đọc** lên Cloudflare Pages (miễn phí, chạy 24/24, máy bạn tắt vẫn xem được): **Vietsub list** (tìm kiếm, playlist), trang **xem video kèm Vietsub** (chế độ playlist, Autoplay) và **Profile**. Khách không đăng nhập, không sửa được gì; không có Engsub, file `.srt`, hồ sơ dịch hay trạng thái dịch. Khách chỉ thấy thay đổi **sau khi bạn bấm Publish** lần nữa.
+
+**Lần đầu (khoảng 10 phút):**
+1. Tạo tài khoản [Cloudflare](https://dash.cloudflare.com) (miễn phí). Sao lưu dữ liệu trước (mục *Sao lưu và khôi phục*).
+2. **Workers & Pages → Create → Pages → Direct Upload**: đặt tên project (vd `emibonnie-vietsub`), tạo trống (không cần upload gì).
+3. **My Profile → API Tokens → Create Token → Custom token**: quyền **Account → Cloudflare Pages → Edit**, chỉ cho account của bạn. Copy token.
+4. Account ID: trang **Workers & Pages** (cột bên phải) hoặc URL dashboard.
+5. Điền vào `.env`: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUBTITLESTUDIO_PUBLISH_PROJECT` (tên project ở bước 2); `docker compose up -d`.
+6. Bấm **Publish** → xác nhận → chờ thông báo **Published** → **Open site**. Gửi link `https://<project>.pages.dev` cho nhóm.
+
+- Mặc định trang có **noindex** (meta, header `X-Robots-Tag`, `robots.txt`). Muốn Google tìm thấy: `SUBTITLESTUDIO_PUBLISH_INDEXABLE=true` rồi Publish lại.
+- Chân trang: "Vietsub by @byZenQN · All videos are the property of their original creators · Updated <năm>".
+- Quay lại bản cũ: Cloudflare dashboard → project → **Deployments** → chọn bản trước → **Rollback**.
+- Gắn tên miền riêng (tuỳ chọn): project → **Custom domains**.
+- Token chỉ nằm trong `.env` (không commit) và chỉ được truyền cho tiến trình `wrangler`; app không ghi token hay output của wrangler vào log.
 
 ## Dịch Vietsub tự động bằng Gemini
 
@@ -176,8 +200,10 @@ Quy ước làm việc trong repo: [CLAUDE.md](CLAUDE.md). Tiến độ: [PROGRE
 | POST | `/api/playlists/{id}/videos` | Body `{"videoId": "..."}`: thêm video có Vietsub vào cuối; đã có thì giữ nguyên vị trí |
 | DELETE | `/api/playlists/{id}/videos/{videoId}` | Gỡ video (các video sau dồn lên), 204; không có cũng 204 |
 | PUT | `/api/playlists/{id}/order` | Body `{"videoIds": [...]}`: thứ tự mới, phải gồm đúng đủ các video đang có |
+| GET | `/api/publish` | Trạng thái Publish `{status: IDLE\|PUBLISHING\|DONE\|FAILED, configured, lastPublishedAt, url, error}` |
+| POST | `/api/publish` | Bắt đầu Publish chạy nền (202 + trạng thái) |
 
-Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `PROFILE_NOT_FOUND` (404), `BLOCK_NOT_FOUND` (404), `INVALID_BLOCK` (400, kèm `errors: [{field, message}]`), `INVALID_MEDIA` (400), `MEDIA_TOO_LARGE` (413), `MEDIA_NOT_FOUND` (404), `PLAYLIST_NOT_FOUND` (404), `INVALID_PLAYLIST` (400, kèm `errors: [{field, message}]`), `VIDEO_HAS_NO_VIETSUB` (409), `INVALID_PLAYLIST_ORDER` (400), `INTERNAL_ERROR` (500).
+Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `PROFILE_NOT_FOUND` (404), `BLOCK_NOT_FOUND` (404), `INVALID_BLOCK` (400, kèm `errors: [{field, message}]`), `INVALID_MEDIA` (400), `MEDIA_TOO_LARGE` (413), `MEDIA_NOT_FOUND` (404), `PLAYLIST_NOT_FOUND` (404), `INVALID_PLAYLIST` (400, kèm `errors: [{field, message}]`), `VIDEO_HAS_NO_VIETSUB` (409), `INVALID_PLAYLIST_ORDER` (400), `PUBLISH_IN_PROGRESS` (409), `PUBLISH_NOT_CONFIGURED` (503), `INTERNAL_ERROR` (500).
 
 ## Khi gặp lỗi
 

@@ -432,6 +432,14 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Review độc lập cả nhánh** tìm ra và đã sửa (mỗi lỗi có test RED→GREEN): Autoplay nhảy cóc video (player còn báo `ended` của video cũ một nhịp sau khi đổi `videoId` → `useYouTubePlayer` trả `loading` tới khi state thuộc video mới); lưu thứ tự lỗi có thể làm hiện lại video vừa gỡ (khoá nút gỡ khi đang lưu); Play all chưa tự phát. Lỗi nhỏ để sau: xem Backlog.
 - Merge fast-forward vào `main`, push, deploy 2026-11-04: Flyway lên `v4` trên Oracle. Frontend 271/271, backend `mvn clean test` + `verify -Poracle` (12/12) xanh. Chưa kiểm tra tay: kéo thả bằng chuột, tự phát tiếp có tiếng trên trình duyệt thật.
 
+### 2026-11-04: Trang public cho nhóm fan (Publish lên Cloudflare Pages)
+Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers/specs/2026-11-04-public-site-design.md). Plan: [docs/superpowers/plans/2026-11-04-public-site.md](docs/superpowers/plans/2026-11-04-public-site.md). Worktree `../subtitle-studio-public-site` (nhánh `public-site`).
+- **Hướng đã chọn:** app đầy đủ chạy ở máy người dùng; nút **Publish** xuất bản chỉ đọc thành trang tĩnh và `wrangler pages deploy` lên Cloudflare Pages (miễn phí, 24/24). Không cần đăng nhập vì trang public không có chức năng ghi.
+- **Backend `publish`:** `SiteExporter` (allowlist `PublicVideo`, Vietsub, playlist chỉ gồm video có Vietsub, Profile với ảnh đổi sang `/media/<storage_key>.<ext>`; ảnh mất file → bỏ + WARN), `PublicSiteBundle` (`public.html` → `index.html`, `_redirects` SPA, `_headers`: `/data/*` no-cache, `/assets/*` `/media/*` immutable; noindex mặc định), `WranglerClientImpl` (token/account chỉ qua env; output không log; lỗi phân loại token/project/mạng/timeout), `PublishService` (một lần mỗi lúc, chạy nền, trạng thái trong bộ nhớ, dọn `publish-tmp`).
+- **Frontend:** `ReadSource` (`apiSource` / `createStaticSource`) qua `SiteContext` (`useSite()`; mặc định là app quản trị nên test cũ không đổi); `PublicApp` + `main.public.tsx` + `public.html`, `npm run build:public` → `classpath:public-site/`; NavBar bản public 2 mục; chân trang; nút **Publish** (xác nhận, hỏi trạng thái mỗi 2 s, toast Published + Open site).
+- **Docker:** stage `node:22.23.4-bookworm-slim` cài `wrangler@4.151.3` vào `/opt/wrangler`; image chạy chép `node` + `/opt/wrangler`. 4 biến mới trong `.env.example`/compose.
+- Nhãn Manual/AI giữ nguyên như app (chỉ ở Manage Vietsub); dữ liệu public có `viSource` để thêm nhãn sau nếu muốn.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.

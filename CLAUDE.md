@@ -42,6 +42,7 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
   - `video`: entity, repository, `SubtitleService`, controller (T08–T09)
   - `web`: `@RestControllerAdvice` (T09)
   - `profile`: trang Profile: entity `T_*`, `ProfileBlockValidator`, `EmbedUrlResolver`, `MediaService` (ảnh), `ProfileService`, 2 controller
+  - `publish`: trang public: `SiteExporter` (JSON + ảnh theo allowlist), `PublicSiteBundle` (bản build public + `_redirects`/`_headers`/`robots.txt`), `WranglerClient`, `PublishService`, `PublishController`
 - Bảng mới đặt tiền tố `T_` (bảng cũ `video`, `cue`, `vi_cue` giữ nguyên tên). Không đặt tên cột trùng từ khoá H2 (vd `value` → `item_value`).
 - Cấu hình đọc qua `SubtitleStudioProperties` (record, `@Validated`). Không dùng `@Value` rải rác.
 
@@ -92,6 +93,13 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Vietsub `AUTO` (Gemini) không bao giờ ghi đè `MANUAL` (tự upload): kiểm tra lại dưới khoá dòng khi lưu (`VietsubService.saveAuto`).
 - Log của phần dịch chỉ ghi số liệu và id (model, `TranslationOutput.describe`, id video), **không bao giờ ghi nội dung phụ đề** (gốc hay bản dịch) hay câu trả lời thô của Gemini. Test kiểm tra điều này bằng `OutputCaptureExtension`.
 - Hồ sơ dịch trong `./data/prompts/*.md` là dữ liệu của người dùng: không commit (chỉ có mẫu `src/main/resources/prompts/_example.md`).
+
+### Trang public (package `publish`, frontend `PublicApp`)
+- Dữ liệu public theo **allowlist**: chỉ ghi record riêng (`PublicVideo`, `PublicPlaylist*`), không serialize thẳng `VideoDto`/entity. Thêm field cho khách xem = sửa `PublicVideo.java` **và** `PublicVideo` trong `frontend/src/data/types.ts`, kèm test chặn field nội bộ.
+- Trang chạy cả ở bản public (`VietsubListPage`, `WatchPage`, `ProfilePage` và component con) đọc dữ liệu qua `useSite().source` (không gọi `api/*` trực tiếp), chỉ dùng field của `PublicVideo`, và ẩn mọi nút/link quản trị khi `useSite().readOnly`.
+- Route của bản public: `/vietsub/list`, `/vietsub/:id`, `/profiles/:slug` (+ chuyển hướng `/`, `/profiles`, trang "Page not found"). Thêm route public mới thì sửa `PublicApp.tsx`.
+- `CLOUDFLARE_API_TOKEN` không bao giờ vào log, message, `toString()` hay commit; chỉ truyền qua env của tiến trình `wrangler`. Không log output của wrangler.
+- Test `WranglerClientImpl` bằng `FakeWrangler` (Java, `java -cp`, `-Dfake.mode=`), không gọi Cloudflare thật.
 
 ### Locale
 - `String.format`, `toLowerCase`/`toUpperCase` và các hàm format khác phải truyền `Locale.ROOT`. Locale mặc định có thể sinh chữ số không phải ASCII và làm hỏng file `.srt`.

@@ -19,7 +19,11 @@ RUN --mount=type=cache,target=/root/.m2 \
     --mount=type=cache,target=/root/.npm \
     mvn -B package -DskipTests
 
-# ---------- Runtime: JRE + yt-dlp + deno ----------
+# ---------- wrangler: Cloudflare Pages deploys for the Publish button ----------
+FROM node:22.23.4-bookworm-slim AS wrangler
+RUN npm install --prefix /opt/wrangler --omit=dev --no-audit --no-fund wrangler@4.151.3
+
+# ---------- Runtime: JRE + yt-dlp + deno + node/wrangler ----------
 FROM eclipse-temurin:21-jre-noble
 
 # Pinned so builds are reproducible. When YouTube changes and fetches fail with YTDLP_FAILED,
@@ -35,6 +39,11 @@ RUN apt-get update \
 
 # Recent yt-dlp needs a JavaScript runtime to handle YouTube fully; deno is the recommended one.
 COPY --from=denoland/deno:bin-2.9.8 /deno /usr/local/bin/deno
+
+# Publish runs wrangler (a Node CLI) to upload the public site; only the node binary is needed to run it.
+COPY --from=wrangler /usr/local/bin/node /usr/local/bin/node
+COPY --from=wrangler /opt/wrangler /opt/wrangler
+ENV SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH=/opt/wrangler/node_modules/.bin/wrangler     WRANGLER_SEND_METRICS=false
 
 RUN useradd --system --uid 10001 --create-home app \
     && mkdir -p /data \
