@@ -181,6 +181,10 @@ Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_
   - Chạy trực tiếp: `yt-dlp -U` (hoặc `winget upgrade yt-dlp.yt-dlp`).
 - **Video giới hạn tuổi, riêng tư hoặc chỉ dành cho hội viên:** chưa hỗ trợ (cần cookies), app sẽ báo `YTDLP_FAILED`.
 - **`Could not start yt-dlp`:** yt-dlp chưa có trong `PATH`, hoặc đặt `SUBTITLESTUDIO_YTDLP_PATH` trỏ tới file chạy.
+- **Dịch Gemini báo "Gemini returned missing or mismatched lines (x/y valid)":** Gemini thỉnh thoảng trả câu trả lời thiếu hoặc sai block; app từ chối để không lưu Vietsub sai. Bấm **Translate again** (thường thành công ở lần sau). Muốn biết kiểu hỏng, tìm trong `app.log`:
+  - `Translation of <id video> failed: …` cho biết video nào;
+  - `Gemini <model> returned an invalid answer: items=… valid=… missing=… extra=… duplicated=… blank=… missingIds=[…]` cho biết model nào và hỏng thế nào (thiếu/gộp block → `missing` lớn; đánh lại id → `extra` lớn; bỏ trống → `blank` lớn). Log không chứa nội dung phụ đề.
+  - `Gemini <model> translated <n> lines`: lần dịch thành công, kèm model đã trả lời (model chính hay model dự phòng khi model chính quá tải).
 
 ## Lưu ý bản quyền
 

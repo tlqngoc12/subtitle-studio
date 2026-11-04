@@ -411,6 +411,17 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - Test mới: `/refresh` trả 404, dòng Fetched earlier không còn nút Refresh; bỏ 7 test của chức năng cũ. Backend 429/429, frontend 196/196.
 - "Translate again" hiện chỉ có ở dòng Vietsub của panel kết quả (Get Engsub); Manage Vietsub chưa có (có thể thêm sau).
 
+### 2026-11-04: Chẩn đoán lỗi "Gemini returned missing or mismatched lines"
+- **Báo lỗi:** video `ogF17eFThI0` (Behind The Scenes "Us" EP.5, 104 câu Engsub MANUAL, hồ sơ EmiBonnie) dịch FAILED: "Gemini returned missing or mismatched lines (17/104 valid), try again." Nghĩa là câu trả lời là JSON hợp lệ nhưng chỉ 17 id khớp đúng một lần và có chữ (`TranslationOutput.validate`).
+- **Điều tra:** phát lại đúng request của app (rules, schema, hồ sơ, `temperature: 0.3`) bằng script ngoài app: `gemini-3.6-flash` 1/1 lần và `gemini-3.5-flash-lite` 4/4 lần đều trả đủ **104/104** → **không tái hiện**, lỗi là câu trả lời hỏng ngẫu nhiên của model (lúc đó log cho thấy 3.6-flash đang 503 nên app chạy bản lite). Phụ đề có nhiều chú thích `[IN HOA]` lặp lại và câu bị cắt qua 2–3 block, dễ bị model gộp/bỏ. App từ chối đúng (không lưu Vietsub sai); bấm Translate again là đủ.
+- **Không đủ dữ liệu để biết kiểu hỏng** (log không ghi gì) → thêm **log chẩn đoán**, không bao giờ chứa nội dung phụ đề hay API key:
+  - `Gemini <model> translated <n> lines` khi thành công (biết model nào trả lời, kể cả khi đã chuyển sang model dự phòng);
+  - `Gemini <model> returned an invalid answer: items=… valid=…/… missing=… extra=… duplicated=… blank=… missingIds=[…]` (tối đa 10 id, `TranslationOutput.describe`);
+  - `Gemini <model> answer for <n> lines is not the expected JSON (<k> chars)`;
+  - `Translation of <videoId> failed: <thông báo>` (`TranslationService`).
+- **Chưa làm (Backlog):** tự khắc phục khi câu trả lời hỏng (hỏi lại chỉ các block thiếu/sai, hoặc gửi lại cả request).
+- Nhánh `translate-diagnostics`, merge fast-forward vào `main`. Backend 339/339 (đếm theo surefire report).
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -457,6 +468,7 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
 - Video giới hạn tuổi / private / members-only: Phase 1 chỉ báo lỗi, không xử lý cookies.
 - Auto-caption không có dấu câu: normalizer chỉ gộp theo độ dài và khoảng nghỉ.
+- Gemini thỉnh thoảng trả câu trả lời thiếu/gộp/đánh lại id (nhất là model dự phòng `-lite`, và phụ đề có nhiều chú thích lặp hoặc câu cắt qua nhiều block): app báo "missing or mismatched lines", người dùng bấm Translate again. Xem dòng `returned an invalid answer` trong `app.log` để biết kiểu hỏng trước khi quyết định có tự khắc phục hay không.
 
 ## 10. Backlog (để phase sau)
 
@@ -472,3 +484,4 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
 | Hồ sơ dịch lưu trong Oracle + sửa trên web | P4 | phase cải tiến (hiện là file `./data/prompts/*.md`) |
 | Video > 60 phút: chia đợt dịch Gemini | P4 | hiện bỏ qua với `VIDEO_TOO_LONG` |
+| Tự khắc phục khi Gemini trả thiếu/sai block | P4 | gợi ý: hỏi lại chỉ các id thiếu/sai (giữ block đúng, request nhỏ, ít tốn quota); xem log chẩn đoán 2026-11-04 trước |

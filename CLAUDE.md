@@ -88,6 +88,7 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Test **không bao giờ gọi Gemini thật**: dùng `GeminiTranslator` giả, hoặc `FakeGeminiServer` (HTTP server trong test) cho `GeminiTranslatorImpl`.
 - `GEMINI_API_KEY` không bao giờ xuất hiện trong log, message exception hay commit. `SubtitleStudioProperties.Gemini.toString()` đã che key.
 - Vietsub `AUTO` (Gemini) không bao giờ ghi đè `MANUAL` (tự upload): kiểm tra lại dưới khoá dòng khi lưu (`VietsubService.saveAuto`).
+- Log của phần dịch chỉ ghi số liệu và id (model, `TranslationOutput.describe`, id video), **không bao giờ ghi nội dung phụ đề** (gốc hay bản dịch) hay câu trả lời thô của Gemini. Test kiểm tra điều này bằng `OutputCaptureExtension`.
 - Hồ sơ dịch trong `./data/prompts/*.md` là dữ liệu của người dùng: không commit (chỉ có mẫu `src/main/resources/prompts/_example.md`).
 
 ### Locale
@@ -108,4 +109,4 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 ## Giao tiếp
 
 - Trả lời bằng tiếng Việt có dấu đầy đủ. Tên kỹ thuật và identifier giữ nguyên.
-- Mọi thứ trong code đều viết **tiếng Anh**: comment, Javadoc, tên class/method/biến, comment trong file config, message trong exception và log. Chuỗi hiển thị cho người dùng trên frontend vẫn dùng tiếng Việt.
+- Mọi thứ trong code đều viết **tiếng Anh**: comment, Javadoc, tên class/method/biến, comment trong file config, message trong exception và log. Chuỗi hiển thị cho người dùng trên frontend cũng bằng tiếng Anh (xem mục Frontend).
