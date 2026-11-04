@@ -46,3 +46,15 @@ subtitle-studio:
     timeout: 3m
     max-duration: 60m
     temperature: 0.3
+
+# Log to the console (docker compose logs) and to a file that survives container rebuilds:
+# {data-dir}/logs/app.log, i.e. ./data/logs on the host. Rolled daily and at 10 MB (app.log.YYYY-MM-DD.N.gz),
+# kept 14 days and at most 200 MB in total. Override with LOGGING_FILE_NAME (empty = no file).
+logging:
+  file:
+    name: ${subtitle-studio.data-dir}/logs/app.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 14
+      total-size-cap: 200MB

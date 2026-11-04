@@ -99,6 +99,7 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.ytdlp.path` | `SUBTITLESTUDIO_YTDLP_PATH` | `yt-dlp` | Đường dẫn tới yt-dlp |
 | `subtitle-studio.ytdlp.timeout` | `SUBTITLESTUDIO_YTDLP_TIMEOUT` | `60s` | Quá thời gian thì dừng yt-dlp |
 | `server.port` | `SERVER_PORT` | `8080` | Cổng HTTP |
+| `logging.file.name` | `LOGGING_FILE_NAME` | `{data-dir}/logs/app.log` | File log (để trống = chỉ ghi ra console) |
 | `subtitle-studio.gemini.api-key` | `GEMINI_API_KEY` | (trống = tắt) | Key Gemini để dịch Vietsub tự động |
 | `subtitle-studio.gemini.model` | `SUBTITLESTUDIO_GEMINI_MODEL` | `gemini-3.8-flash` | Model Gemini (nên dùng bản Flash có free tier) |
 | `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
@@ -169,6 +170,11 @@ Quy ước làm việc trong repo: [CLAUDE.md](CLAUDE.md). Tiến độ: [PROGRE
 Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `PROFILE_NOT_FOUND` (404), `BLOCK_NOT_FOUND` (404), `INVALID_BLOCK` (400, kèm `errors: [{field, message}]`), `INVALID_MEDIA` (400), `MEDIA_TOO_LARGE` (413), `MEDIA_NOT_FOUND` (404), `INTERNAL_ERROR` (500).
 
 ## Khi gặp lỗi
+
+**Xem log:**
+
+- File: `./data/logs/app.log` (còn giữ sau khi build lại container). Xoay vòng mỗi ngày hoặc khi quá 10 MB thành `app.log.YYYY-MM-DD.N.gz`, giữ 14 ngày, tối đa 200 MB.
+- Trực tiếp từ container: `docker compose logs -f subtitle-studio` (hoặc Docker Desktop → Containers → Logs).
 
 - **`YTDLP_FAILED` với video vẫn xem được bình thường:** YouTube thay đổi thường xuyên, yt-dlp phải cập nhật theo.
   - Docker: tăng `YTDLP_VERSION` trong `Dockerfile` lên bản mới nhất rồi `docker compose up -d --build`.

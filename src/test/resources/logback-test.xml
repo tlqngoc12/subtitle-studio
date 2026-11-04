@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Every test logs to the console only. Without this, tests that do not activate the "test" profile
+  (e.g. @WebMvcTest) would pick up logging.file.name from application.yml and write ./data/logs/app.log.
+  Same console format as Spring Boot's default.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
