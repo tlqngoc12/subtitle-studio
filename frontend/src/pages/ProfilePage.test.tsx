@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { block, profile, SUMMARIES } from '../test/profileFixtures';
 import ProfilePage from './ProfilePage';
+import { ApiError } from '../api/client';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource, publicSite } from '../test/fakeSource';
 
@@ -200,6 +201,43 @@ describe('ProfilePage edit mode', () => {
 });
 
 describe('ProfilePage on the public site', () => {
+  it('readOnlyEmptyProfileHasNoAdminHint', async () => {
+    const source = fakeSource({
+      listProfiles: async () => SUMMARIES,
+      getProfile: async () => profile('bonnie', 'Bonnie', []),
+    });
+    render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={['/profiles/bonnie']}>
+          <Routes>
+            <Route path="/profiles/:slug" element={<ProfilePage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+
+    expect(await screen.findByText(/This profile has no content yet\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Choose Edit/)).not.toBeInTheDocument();
+  });
+
+  it('readOnlyNetworkErrorHasNoAdminHint', async () => {
+    const source = fakeSource({
+      getProfile: () => Promise.reject(new ApiError(0, 'NETWORK', 'Failed to fetch')),
+    });
+    render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={['/profiles/emi']}>
+          <Routes>
+            <Route path="/profiles/:slug" element={<ProfilePage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+
+    expect(await screen.findByText('Check your internet connection and try again.')).toBeInTheDocument();
+    expect(screen.queryByText(/Subtitle Studio is running/)).not.toBeInTheDocument();
+  });
+
   it('readOnlyHidesEditing', async () => {
     const source = fakeSource({
       listProfiles: async () => SUMMARIES,

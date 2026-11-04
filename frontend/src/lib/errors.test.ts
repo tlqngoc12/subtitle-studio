@@ -59,6 +59,12 @@ describe('errorMessage', () => {
     expect(new ApiError(400, 'X', 'y').fieldErrors).toEqual([]);
   });
 
+  it('gives guests a network hint without admin instructions', () => {
+    const msg = errorMessage(new ApiError(0, 'NETWORK', 'Failed to fetch'), { readOnly: true });
+    expect(msg.title).toBe('Cannot reach the server.');
+    expect(msg.hint).toBe('Check your internet connection and try again.');
+  });
+
   it('explains network failures', () => {
     expect(errorMessage(new ApiError(0, 'NETWORK', 'Failed to fetch')).title)
       .toContain('Cannot reach the server');

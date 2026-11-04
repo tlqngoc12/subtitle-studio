@@ -6,7 +6,8 @@ export interface ErrorMessage {
 }
 
 /** Turns an API error into user-facing English copy, keyed by the backend's ProblemDetail `code`. */
-export function errorMessage(error: unknown): ErrorMessage {
+/** `readOnly`: the reader is a guest on the public site, so hints never mention running the app. */
+export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: boolean } = {}): ErrorMessage {
   if (!(error instanceof ApiError)) {
     return { title: 'Something went wrong.', hint: error instanceof Error ? error.message : undefined };
   }
@@ -83,7 +84,10 @@ export function errorMessage(error: unknown): ErrorMessage {
     case 'INVALID_PLAYLIST_ORDER':
       return { title: 'The playlist changed meanwhile. It has been reloaded.' };
     case 'NETWORK':
-      return { title: 'Cannot reach the server.', hint: 'Check that Subtitle Studio is running.' };
+      return {
+        title: 'Cannot reach the server.',
+        hint: readOnly ? 'Check your internet connection and try again.' : 'Check that Subtitle Studio is running.',
+      };
     default:
       return { title: `Something went wrong (HTTP ${error.status}).`, hint: error.detail };
   }

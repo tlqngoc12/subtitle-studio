@@ -62,12 +62,12 @@ export default function ProfilePage() {
       .catch((e) => {
         if (!current) return;
         const notFound = e instanceof ApiError && e.code === 'PROFILE_NOT_FOUND';
-        setError({ message: errorMessage(e), notFound });
+        setError({ message: errorMessage(e, { readOnly }), notFound });
       });
     return () => {
       current = false;
     };
-  }, [slug, source]);
+  }, [slug, source, readOnly]);
 
   const setBlocks = (update: (blocks: ProfileBlock[]) => ProfileBlock[]) =>
     setProfile((p) => (p ? { ...p, blocks: update(p.blocks) } : p));
@@ -157,7 +157,7 @@ export default function ProfilePage() {
           <div className="pblocks">
             {profile.blocks.length === 0 && !formOpen && (
               <EmptyState icon={SquarePlus}>
-                This profile has no content yet. {editing ? 'Use Add block below to start.' : 'Choose Edit to add the first block.'}
+                This profile has no content yet.{readOnly ? '' : editing ? ' Use Add block below to start.' : ' Choose Edit to add the first block.'}
               </EmptyState>
             )}
             <AnimatePresence initial={false}>

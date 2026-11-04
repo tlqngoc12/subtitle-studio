@@ -37,8 +37,8 @@ export default function WatchPage() {
         setVideo(v);
         setCues(c);
       })
-      .catch((e) => setError(errorMessage(e)));
-  }, [id, source]);
+      .catch((e) => setError(errorMessage(e, { readOnly })));
+  }, [id, source, readOnly]);
 
   // Autoplay: when a video ends, go straight to the next one (no countdown), and stop after the last.
   const ended = player.state === 'ended';

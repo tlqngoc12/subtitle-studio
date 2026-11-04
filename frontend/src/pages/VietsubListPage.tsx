@@ -45,14 +45,14 @@ export default function VietsubListPage() {
       .then((all) => setVideos(withVietsub(all)))
       .catch((e) => {
         setVideos([]);
-        setError(errorMessage(e));
+        setError(errorMessage(e, { readOnly }));
       });
     // The chips are extra: without them the list still works, so a failure here stays quiet.
     source
       .listPlaylists()
       .then(setPlaylists)
       .catch(() => setPlaylists([]));
-  }, [source]);
+  }, [source, readOnly]);
 
   useEffect(() => {
     setPlaylist(null);
