@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -32,7 +33,12 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
 
     /** Gemini translation. A blank {@code apiKey} turns the feature off. Never log the key. */
     public record Gemini(String apiKey, @NotBlank String model, @NotNull Duration timeout,
-                         @NotNull Duration maxDuration, double temperature) {
+                         @NotNull Duration maxDuration, double temperature, List<String> fallbackModels) {
+
+        /** Models tried in order when the previous one is overloaded (HTTP 503); never null. */
+        public Gemini {
+            fallbackModels = fallbackModels == null ? List.of() : List.copyOf(fallbackModels);
+        }
 
         public boolean configured() {
             return apiKey != null && !apiKey.isBlank();
@@ -40,7 +46,7 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
 
         @Override
         public String toString() {
-            return "Gemini[model=" + model + ", configured=" + configured() + "]";
+            return "Gemini[model=" + model + ", fallbackModels=" + fallbackModels + ", configured=" + configured() + "]";
         }
     }
 }

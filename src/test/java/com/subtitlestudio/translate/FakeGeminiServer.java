@@ -14,6 +14,7 @@ final class FakeGeminiServer implements AutoCloseable {
 
     private final HttpServer server;
     private final AtomicInteger requests = new AtomicInteger();
+    private final java.util.Map<String, Reply> perModel = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile int status = 200;
     private volatile String body = "{}";
     private volatile Duration delay = Duration.ZERO;
@@ -35,9 +36,17 @@ final class FakeGeminiServer implements AutoCloseable {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            int replyStatus = status;
+            String replyBody = body;
+            for (var entry : perModel.entrySet()) {
+                if (lastPath.contains("/models/" + entry.getKey() + ":")) {
+                    replyStatus = entry.getValue().status();
+                    replyBody = entry.getValue().body();
+                }
+            }
+            byte[] bytes = replyBody.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(status, bytes.length);
+            exchange.sendResponseHeaders(replyStatus, bytes.length);
             try (OutputStream out = exchange.getResponseBody()) {
                 out.write(bytes);
             } catch (IOException ignored) {
@@ -62,6 +71,13 @@ final class FakeGeminiServer implements AutoCloseable {
         this.status = status;
         this.body = body;
     }
+
+    /** A reply used only for requests to {@code model}; other models get the default reply. */
+    void replyForModel(String model, int status, String body) {
+        perModel.put(model, new Reply(status, body));
+    }
+
+    private record Reply(int status, String body) {}
 
     void delay(Duration delay) {
         this.delay = delay;

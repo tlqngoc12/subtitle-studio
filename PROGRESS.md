@@ -391,6 +391,13 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - **Sửa:** khi có track gốc của ngôn ngữ khác (`xx-orig` ≠ `en-orig`), bỏ auto `en` → `NO_ENGLISH_SUBTITLE`, không gọi tải phụ đề. Không có `-orig` nào thì giữ cách chọn cũ. Fixture `ytdlp/info-machine-translated-en.json` theo video thật; backend 432/432.
 - Ý tưởng để sau: video tiếng Thái lấy `th-orig` rồi Gemini dịch Thái → Việt.
 
+### 2026-11-04: Sửa lỗi "Could not translate: Gemini returned error 503"
+- **Nguyên nhân (đo trực tiếp bằng request nhỏ "Say OK"):** `gemini-3.8-flash` (và `gemini-flash-latest`) trả 503 "This model is currently experiencing high demand" liên tục ở free tier; `gemini-3.6-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` trả 200. Không phải lỗi code hay độ dài video.
+- **Sửa:** model mặc định `gemini-3.6-flash`; thêm `fallback-models` (mặc định `gemini-3.5-flash-lite`) được thử lần lượt khi gặp 503 (429 hết quota thì không thử để khỏi tốn lượt). Hết model mà vẫn 503: "Gemini is busy right now (high demand), try again in a few minutes."
+- **Kiểm chứng thật** (jar ngoài Docker, H2 tạm, video TED 427 câu, hồ sơ EmiBonnie): 3.6-flash lúc đó cũng 503 → tự chuyển 3.5-flash-lite → dịch xong 427/427 câu trong ~33 s, timecode khớp 100%. Ghi chú: câu Engsub 2 dòng có thể thành 1 dòng tiếng Việt (chấp nhận được cho phụ đề).
+- Backend 435/435.
+- Log ra file `{data-dir}/logs/app.log` (xoay vòng ngày/10 MB, giữ 14 ngày/200 MB); test chỉ log ra console (`logback-test.xml`). Manage Vietsub: ảnh/tiêu đề mở trang xem.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -452,4 +459,3 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
 | Hồ sơ dịch lưu trong Oracle + sửa trên web | P4 | phase cải tiến (hiện là file `./data/prompts/*.md`) |
 | Video > 60 phút: chia đợt dịch Gemini | P4 | hiện bỏ qua với `VIDEO_TOO_LONG` |
-| Gemini 503/504 với video ~400 câu (lần thử đầu) | P4 | thử lại; nếu lặp lại: thinking budget 0 hoặc Flash-Lite |

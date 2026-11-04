@@ -53,7 +53,7 @@ class MediaServiceTest {
             return new SubtitleStudioProperties(
                     new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
                     new SubtitleStudioProperties.Gemini("", "gemini-3.8-flash", Duration.ofMinutes(3),
-                            Duration.ofMinutes(60), 0.3));
+                            Duration.ofMinutes(60), 0.3, java.util.List.of()));
         }
     }
 

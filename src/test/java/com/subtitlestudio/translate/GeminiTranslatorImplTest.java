@@ -29,13 +29,18 @@ class GeminiTranslatorImplTest {
         server.close();
     }
 
-    private GeminiTranslatorImpl translator(Duration timeout) {
-        var gemini = new SubtitleStudioProperties.Gemini(KEY, "gemini-test-flash", timeout, Duration.ofMinutes(60), 0.3);
+    private GeminiTranslatorImpl translator(Duration timeout, List<String> fallbackModels) {
+        var gemini = new SubtitleStudioProperties.Gemini(KEY, "gemini-test-flash", timeout, Duration.ofMinutes(60), 0.3,
+                fallbackModels);
         return new GeminiTranslatorImpl(gemini, new ObjectMapper(), server.baseUrl());
     }
 
+    private GeminiTranslatorImpl translator(Duration timeout) {
+        return translator(timeout, List.of());
+    }
+
     private GeminiTranslatorImpl translator() {
-        return translator(Duration.ofSeconds(10));
+        return translator(Duration.ofSeconds(10), List.of());
     }
 
     private static String userMessage(Throwable e) {
@@ -94,6 +99,38 @@ class GeminiTranslatorImplTest {
 
         assertThatThrownBy(() -> translator(Duration.ofSeconds(1)).translate(VIDEO, PROFILE, LINES))
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini did not respond in time."));
+    }
+
+    @Test
+    void fallsBackToTheNextModelWhenBusy() {
+        server.replyForModel("gemini-test-flash", 503, "{\"error\":{\"code\":503,\"message\":\"This model is currently experiencing high demand.\",\"status\":\"UNAVAILABLE\"}}");
+        server.replyText(GOOD, "STOP");
+
+        List<TranslatedLine> out = translator(Duration.ofSeconds(10), List.of("gemini-test-lite")).translate(VIDEO, PROFILE, LINES);
+
+        assertThat(out).hasSize(2);
+        assertThat(server.requests()).isEqualTo(2);
+        assertThat(server.lastPath()).endsWith("/models/gemini-test-lite:generateContent");
+    }
+
+    @Test
+    void reportsBusyWhenEveryModelIsBusy() {
+        server.reply(503, "{\"error\":{\"code\":503,\"message\":\"This model is currently experiencing high demand.\",\"status\":\"UNAVAILABLE\"}}");
+
+        assertThatThrownBy(() -> translator(Duration.ofSeconds(10), List.of("gemini-test-lite")).translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e))
+                        .isEqualTo("Gemini is busy right now (high demand), try again in a few minutes."));
+        assertThat(server.requests()).isEqualTo(2);
+    }
+
+    @Test
+    void quotaErrorDoesNotTryOtherModels() {
+        server.replyForModel("gemini-test-flash", 429, "{\"error\":{\"code\":429,\"message\":\"quota\",\"status\":\"RESOURCE_EXHAUSTED\"}}");
+        server.replyText(GOOD, "STOP");
+
+        assertThatThrownBy(() -> translator(Duration.ofSeconds(10), List.of("gemini-test-lite")).translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini free quota is used up, try again later."));
+        assertThat(server.requests()).isEqualTo(1);
     }
 
     @Test

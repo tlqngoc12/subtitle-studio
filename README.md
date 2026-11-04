@@ -101,7 +101,8 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `server.port` | `SERVER_PORT` | `8080` | Cổng HTTP |
 | `logging.file.name` | `LOGGING_FILE_NAME` | `{data-dir}/logs/app.log` | File log (để trống = chỉ ghi ra console) |
 | `subtitle-studio.gemini.api-key` | `GEMINI_API_KEY` | (trống = tắt) | Key Gemini để dịch Vietsub tự động |
-| `subtitle-studio.gemini.model` | `SUBTITLESTUDIO_GEMINI_MODEL` | `gemini-3.8-flash` | Model Gemini (nên dùng bản Flash có free tier) |
+| `subtitle-studio.gemini.model` | `SUBTITLESTUDIO_GEMINI_MODEL` | `gemini-3.6-flash` | Model Gemini (nên dùng bản Flash có free tier) |
+| `subtitle-studio.gemini.fallback-models` | `SUBTITLESTUDIO_GEMINI_FALLBACKMODELS` | `gemini-3.5-flash-lite` | Thử lần lượt khi model chính quá tải (HTTP 503); lỗi hết quota (429) thì không thử |
 | `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
 | `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `60m` | Video dài hơn không dịch tự động |
 

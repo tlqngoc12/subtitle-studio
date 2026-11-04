@@ -17,6 +17,7 @@ import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
 import java.io.InterruptedIOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,11 +64,28 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
 
     @Override
     public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines) {
-        GenerateContentResponse response;
+        GenerateContentResponse response = null;
+        String content = userContent(video, profile, lines);
+        GenerateContentConfig config = config();
         try (Client client = client()) {
-            response = client.models.generateContent(settings.model(), userContent(video, profile, lines), config());
-        } catch (ApiException e) {
-            throw fromApi(e);
+            // The main model, then the fallbacks, as long as each one answers "overloaded" (503).
+            List<String> models = new ArrayList<>();
+            models.add(settings.model());
+            models.addAll(settings.fallbackModels());
+            for (int i = 0; response == null; i++) {
+                try {
+                    response = client.models.generateContent(models.get(i), content, config);
+                } catch (ApiException e) {
+                    if (e.code() != 503) {
+                        throw fromApi(e);
+                    }
+                    log.warn("Gemini model {} is overloaded (HTTP 503)", models.get(i));
+                    if (i == models.size() - 1) {
+                        throw new TranslationFailedException(
+                                "Gemini is busy right now (high demand), try again in a few minutes.");
+                    }
+                }
+            }
         } catch (GenAiIOException e) {
             throw causedByTimeout(e)
                     ? new TranslationFailedException("Gemini did not respond in time.")

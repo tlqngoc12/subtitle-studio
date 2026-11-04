@@ -413,7 +413,7 @@ class TranslationServiceTest {
 
     private TranslationService serviceWithKey(String key) {
         var g = properties.gemini();
-        var gemini = new SubtitleStudioProperties.Gemini(key, g.model(), g.timeout(), Duration.ofMinutes(60), g.temperature());
+        var gemini = new SubtitleStudioProperties.Gemini(key, g.model(), g.timeout(), Duration.ofMinutes(60), g.temperature(), g.fallbackModels());
         var props = new SubtitleStudioProperties(properties.ytdlp(), properties.dataDir(), gemini);
         return new TranslationService(props, profiles, translator, videos, cues, vietsub, tx, executor);
     }

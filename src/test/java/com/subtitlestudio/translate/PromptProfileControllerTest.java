@@ -27,7 +27,7 @@ class PromptProfileControllerTest {
     private SubtitleStudioProperties properties;
 
     private static SubtitleStudioProperties.Gemini gemini(String key) {
-        return new SubtitleStudioProperties.Gemini(key, "gemini-3.8-flash", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3);
+        return new SubtitleStudioProperties.Gemini(key, "gemini-3.8-flash", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of());
     }
 
     @Test
