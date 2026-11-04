@@ -83,6 +83,8 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Hibernate chỉ `validate`; không bật `ddl-auto` khác. Id dùng `SEQUENCE` với `allocationSize` khớp `INCREMENT BY` của sequence.
 - Thay đổi liên quan DB: chạy cả `mvn test` và `mvn verify -Poracle -Dskip.npm` trước khi commit.
 - Nhiều nhánh có thể cùng thêm migration: trước khi merge, kiểm tra số version không trùng (đã từng trùng `V2`), đổi số trên nhánh chưa merge.
+- Playlist (`t_playlist`, `t_playlist_item`): `position` luôn liền mạch 1..n, `PlaylistService` ghi lại sau mỗi lần thêm/gỡ/sắp xếp; không có unique `(playlist_id, position)` để đổi thứ tự không bị trùng giữa chừng. Playlist chỉ chứa video có Vietsub.
+- Bảng ở package khác tham chiếu `video` (vd `t_playlist_item`): package `video` không phụ thuộc vào chúng mà phát `VideoRemovalEvent` trong transaction, trước khi gỡ Vietsub (`VietsubService.clear`) hoặc xoá video (`SubtitleService.delete`); bên kia `@EventListener` xoá dòng của mình trước (khoá ngoại).
 
 ### Gemini (dịch Vietsub, package `translate`)
 - Test **không bao giờ gọi Gemini thật**: dùng `GeminiTranslator` giả, hoặc `FakeGeminiServer` (HTTP server trong test) cho `GeminiTranslatorImpl`.

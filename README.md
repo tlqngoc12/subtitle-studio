@@ -10,7 +10,9 @@ Dán link YouTube, nhận về phụ đề tiếng Anh đã làm sạch dưới 
 Và xem video với Vietsub:
 
 - Menu **Vietsub** (`/vietsub`): dán link YouTube và chọn file `.srt` tiếng Việt bạn đã dịch (giữ nguyên timing) → app lưu Vietsub. Bên dưới là danh sách quản lý với các nút Download / Replace / Delete Vietsub.
-- Menu **Vietsub list** (`/vietsub/list`): chọn video để xem trên YouTube kèm Vietsub. Nút ⛶ ở góc dưới bên phải (hoặc phím `F`) bật/tắt toàn màn hình mà Vietsub vẫn hiện; phụ đề có sẵn của YouTube được tắt.
+- Menu **Vietsub** › tab **Playlists** (`/vietsub/playlists`): tạo playlist cho các video đã có Vietsub, đổi tên, xoá; mở một playlist để kéo thả (hoặc ↑ ↓) sắp thứ tự và gỡ video. Thêm video bằng nút **Save to playlist** ở từng dòng Manage Vietsub (tick để thêm vào cuối, bỏ tick để gỡ, "New playlist" để tạo mới).
+- Menu **Vietsub list** (`/vietsub/list`): chọn video để xem trên YouTube kèm Vietsub. Ô **Search** lọc theo tên video và kênh (không phân biệt hoa thường và dấu: "cho dem" tìm được "Chợ Đêm"); các chip **All** / từng playlist ở trên danh sách. Chọn playlist thì có khung kiểu YouTube (ảnh bìa, **Play all**) và video đánh số theo thứ tự. Nút ⛶ ở góc dưới bên phải (hoặc phím `F`) bật/tắt toàn màn hình mà Vietsub vẫn hiện; phụ đề có sẵn của YouTube được tắt.
+- Xem từ playlist (`/vietsub/{id}?playlist={playlistId}`): khung playlist bên cạnh player với **Previous / Next** (`Shift+P` / `Shift+N`) và công tắc **Autoplay** (mặc định bật, trình duyệt nhớ lựa chọn): hết video thì tự sang video kế tiếp, kể cả khi đang toàn màn hình; hết video cuối thì dừng.
 - Menu **Profile** (`/profiles`): trang giới thiệu EmiBonnie, Emi và Bonnie. Bấm **Edit** để thêm, sửa, xoá, sắp xếp các khối: Text (Markdown), Image, Gallery, Music / Video (link YouTube hoặc Spotify), Links, Quick facts. Ảnh upload (JPEG/PNG/WebP/GIF, tối đa 10 MB) lưu ở `./data/media/`.
 
 Kế hoạch các phase sau (sửa trực tiếp, chế độ kiểm tra song ngữ, engine dịch) nằm trong [PLAN.md](PLAN.md).
@@ -166,8 +168,16 @@ Quy ước làm việc trong repo: [CLAUDE.md](CLAUDE.md). Tiến độ: [PROGRE
 | POST | `/api/profiles/{slug}/blocks/{id}/move` | Body `{"direction":"UP"\|"DOWN"}`, trả về danh sách khối mới |
 | POST | `/api/media` | `multipart/form-data` field `file`: upload ảnh, trả `{id, url}` (201) |
 | GET | `/api/media/{id}` | File ảnh |
+| GET | `/api/playlists` | Danh sách playlist, mới sửa trước: `{id, name, description, videoCount, thumbnailUrl, updatedAt}`. Thêm `?videoId=…` thì mỗi playlist có `containsVideo` |
+| POST | `/api/playlists` | Body `{"name": "...", "description": "..."}` (mô tả tuỳ chọn). Tạo playlist (201) |
+| GET | `/api/playlists/{id}` | Playlist kèm `videos` theo thứ tự |
+| PATCH | `/api/playlists/{id}` | Body `{name?, description?}`: đổi tên / mô tả (field vắng mặt thì giữ nguyên) |
+| DELETE | `/api/playlists/{id}` | Xoá playlist (video và Vietsub giữ nguyên), 204 |
+| POST | `/api/playlists/{id}/videos` | Body `{"videoId": "..."}`: thêm video có Vietsub vào cuối; đã có thì giữ nguyên vị trí |
+| DELETE | `/api/playlists/{id}/videos/{videoId}` | Gỡ video (các video sau dồn lên), 204; không có cũng 204 |
+| PUT | `/api/playlists/{id}/order` | Body `{"videoIds": [...]}`: thứ tự mới, phải gồm đúng đủ các video đang có |
 
-Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `PROFILE_NOT_FOUND` (404), `BLOCK_NOT_FOUND` (404), `INVALID_BLOCK` (400, kèm `errors: [{field, message}]`), `INVALID_MEDIA` (400), `MEDIA_TOO_LARGE` (413), `MEDIA_NOT_FOUND` (404), `INTERNAL_ERROR` (500).
+Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_URL` (400), `NO_ENGLISH_SUBTITLE` (422), `VIDEO_NOT_FOUND` (404), `YTDLP_FAILED` (502), `YTDLP_TIMEOUT` (504), `INVALID_SRT` (400), `FILE_TOO_LARGE` (413), `NO_VIETSUB` (404), `PROFILE_NOT_FOUND` (404), `BLOCK_NOT_FOUND` (404), `INVALID_BLOCK` (400, kèm `errors: [{field, message}]`), `INVALID_MEDIA` (400), `MEDIA_TOO_LARGE` (413), `MEDIA_NOT_FOUND` (404), `PLAYLIST_NOT_FOUND` (404), `INVALID_PLAYLIST` (400, kèm `errors: [{field, message}]`), `VIDEO_HAS_NO_VIETSUB` (409), `INVALID_PLAYLIST_ORDER` (400), `INTERNAL_ERROR` (500).
 
 ## Khi gặp lỗi
 

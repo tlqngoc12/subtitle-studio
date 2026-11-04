@@ -411,6 +411,14 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - Test mới: `/refresh` trả 404, dòng Fetched earlier không còn nút Refresh; bỏ 7 test của chức năng cũ. Backend 429/429, frontend 196/196.
 - "Translate again" hiện chỉ có ở dòng Vietsub của panel kết quả (Get Engsub); Manage Vietsub chưa có (có thể thêm sau).
 
+### 2026-11-04: Playlist cho video Vietsub
+- Spec [docs/superpowers/specs/2026-11-04-playlists-design.md](docs/superpowers/specs/2026-11-04-playlists-design.md), plan [docs/superpowers/plans/2026-11-04-playlists.md](docs/superpowers/plans/2026-11-04-playlists.md).
+- **Backend:** Flyway `V4__playlists.sql` (`t_playlist`, `t_playlist_item`, theo quy ước tiền tố `T_`), package `playlist` (`PlaylistService`, `PlaylistController`, `/api/playlists…`), mã lỗi `PLAYLIST_NOT_FOUND`, `INVALID_PLAYLIST`, `VIDEO_HAS_NO_VIETSUB`, `INVALID_PLAYLIST_ORDER`. Gỡ Vietsub / xoá video thì tự gỡ khỏi mọi playlist qua `VideoRemovalEvent`.
+- **Menu Vietsub:** tab Videos | Playlists; nút Save to playlist (`@radix-ui/react-popover` 1.3.1) ở Manage Vietsub; trang `/vietsub/playlists` (tạo, xoá) và `/vietsub/playlists/:id` (kéo thả bằng `@dnd-kit/core` 6.3.1 + `@dnd-kit/sortable` 10.0.0 + `@dnd-kit/utilities` 3.2.2, có bàn phím; ↑ ↓; gỡ; sửa tên/mô tả; Play all; xoá).
+- **Vietsub list:** ô search không phân biệt dấu (`lib/search.ts`), chip All/playlist, khung playlist kiểu YouTube; URL `?playlist&q&page`.
+- **Trang xem:** `?playlist=` → khung playlist, Previous/Next, Shift+N/P, Autoplay (`localStorage` `subtitle-studio.autoplay`, mặc định bật); player được tạo lại trong cùng khung nên toàn màn hình giữ nguyên khi chuyển video.
+- Test jsdom: kéo thả bằng bàn phím của dnd-kit cần giả lập `getBoundingClientRect` và chờ một `setTimeout` sau khi bắt đầu kéo (dnd-kit gắn listener phím trễ một nhịp).
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
