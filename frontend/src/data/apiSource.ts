@@ -1,0 +1,15 @@
+import { getVideo, getVietsub, listVideos } from '../api/client';
+import { getPlaylist, listPlaylists } from '../api/playlists';
+import { getProfile, listProfiles } from '../api/profiles';
+import type { ReadSource } from './types';
+
+/** The admin app's data: the live REST API. */
+export const apiSource: ReadSource = {
+  listVideos,
+  getVideo,
+  getVietsub,
+  listPlaylists: () => listPlaylists(),
+  getPlaylist,
+  listProfiles,
+  getProfile,
+};

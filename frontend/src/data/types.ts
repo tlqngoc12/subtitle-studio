@@ -1,0 +1,27 @@
+import type { ViCue, VideoDto } from '../api/client';
+import type { PlaylistDetail, PlaylistSummary } from '../api/playlists';
+import type { Profile, ProfileSummary } from '../api/profiles';
+
+/**
+ * What the public site knows about a video: exactly the fields the backend exports (PublicVideo.java).
+ * Pages that also run on the public site may only read these fields.
+ */
+export type PublicVideo = Pick<
+  VideoDto,
+  'id' | 'title' | 'channel' | 'durationSec' | 'thumbnailUrl' | 'viCueCount' | 'viUpdatedAt' | 'viSource'
+>;
+
+export type PublicPlaylistSummary = Omit<PlaylistSummary, 'containsVideo'>;
+
+export type PublicPlaylistDetail = Omit<PlaylistDetail, 'videos'> & { videos: PublicVideo[] };
+
+/** Read-only data for the pages guests see; backed by the API (admin app) or by static JSON (public site). */
+export interface ReadSource {
+  listVideos(): Promise<PublicVideo[]>;
+  getVideo(id: string): Promise<PublicVideo>;
+  getVietsub(id: string): Promise<ViCue[]>;
+  listPlaylists(): Promise<PublicPlaylistSummary[]>;
+  getPlaylist(id: number): Promise<PublicPlaylistDetail>;
+  listProfiles(): Promise<ProfileSummary[]>;
+  getProfile(slug: string): Promise<Profile>;
+}
