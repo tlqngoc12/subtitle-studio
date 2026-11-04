@@ -11,7 +11,8 @@ import java.util.List;
 /**
  * Stand-in for the wrangler CLI, launched as a separate JVM by {@link WranglerClientImplTest}.
  *
- * <p>System properties: {@code fake.mode} = ok | auth | missing | network | other | sleep;
+ * <p>System properties: {@code fake.mode} = ok | auth | missing | network | other | sleep | child (starts a sleeping
+ * child process that inherits stdout/stderr, like wrangler.cmd starting node, then sleeps);
  * {@code fake.out}: file receiving the arguments (one per line), then {@code account=<id>} and {@code tokenLength=<n>}.
  */
 public final class FakeWrangler {
@@ -26,6 +27,7 @@ public final class FakeWrangler {
             List<String> lines = new ArrayList<>(Arrays.asList(args));
             lines.add("account=" + System.getenv().getOrDefault("CLOUDFLARE_ACCOUNT_ID", ""));
             lines.add("tokenLength=" + token.length());
+            lines.add("cwd=" + Path.of("").toAbsolutePath());
             Files.write(Path.of(outFile), lines, StandardCharsets.UTF_8);
         }
 
@@ -46,6 +48,12 @@ public final class FakeWrangler {
             }
             case "other" -> System.exit(7);
             case "sleep" -> Thread.sleep(30_000);
+            case "child" -> {
+                String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+                new ProcessBuilder(java, "-Dfake.mode=sleep", "-cp", System.getProperty("java.class.path"),
+                        FakeWrangler.class.getName()).inheritIO().start();
+                Thread.sleep(30_000);
+            }
             default -> throw new IllegalArgumentException("unknown fake.mode");
         }
     }

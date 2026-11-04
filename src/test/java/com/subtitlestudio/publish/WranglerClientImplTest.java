@@ -47,13 +47,15 @@ class WranglerClientImplTest {
 
     @Test
     void passesArgumentsAndEnvironment() throws Exception {
-        Path site = tmp.resolve("site");
+        Path site = tmp.resolve("work/site");
+        Files.createDirectories(site);
 
         client("ok").deploy(site);
 
+        // wrangler runs in the site's parent directory (writable by the app user), with an absolute site path.
         assertThat(Files.readAllLines(tmp.resolve("out.txt"), StandardCharsets.UTF_8)).containsExactly(
-                "pages", "deploy", site.toString(), "--project-name", "fans", "--branch", "main",
-                "account=acc-42", "tokenLength=" + TOKEN.length());
+                "pages", "deploy", site.toAbsolutePath().toString(), "--project-name", "fans", "--branch", "main",
+                "account=acc-42", "tokenLength=" + TOKEN.length(), "cwd=" + tmp.resolve("work").toAbsolutePath());
     }
 
     @Test
@@ -96,6 +98,15 @@ class WranglerClientImplTest {
         assertThatThrownBy(() -> client("sleep", Duration.ofSeconds(2)).deploy(tmp))
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Publishing timed out."));
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(20));
+    }
+
+    @Test
+    void timeoutAlsoStopsProcessesWranglerStarted() {
+        long start = System.nanoTime();
+
+        assertThatThrownBy(() -> client("child", Duration.ofSeconds(3)).deploy(tmp))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Publishing timed out."));
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(15));
     }
 
     @Test

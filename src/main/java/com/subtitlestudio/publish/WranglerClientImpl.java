@@ -43,10 +43,13 @@ public class WranglerClientImpl implements WranglerClient {
 
     @Override
     public void deploy(Path dir) {
+        Path site = dir.toAbsolutePath();
         List<String> command = new ArrayList<>(baseCommand);
-        command.addAll(List.of("pages", "deploy", dir.toString(), "--project-name", settings.project(),
+        command.addAll(List.of("pages", "deploy", site.toString(), "--project-name", settings.project(),
                 "--branch", "main"));
         ProcessBuilder pb = new ProcessBuilder(command);
+        // wrangler writes a cache (.wrangler/) into its working directory: use one the app user can write.
+        pb.directory(site.getParent().toFile());
         pb.environment().put("CLOUDFLARE_API_TOKEN", settings.cloudflareApiToken());
         pb.environment().put("CLOUDFLARE_ACCOUNT_ID", settings.cloudflareAccountId());
 
@@ -64,7 +67,7 @@ public class WranglerClientImpl implements WranglerClient {
             process.getOutputStream().close();
 
             if (!process.waitFor(settings.timeout().toMillis(), TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly();
+                kill(process);
                 throw new PublishFailedException("Publishing timed out.");
             }
             int exit = process.exitValue();
@@ -73,13 +76,23 @@ public class WranglerClientImpl implements WranglerClient {
                 throw new PublishFailedException(messageFor(exit, stdout.get() + "\n" + stderr.get()));
             }
         } catch (InterruptedException e) {
-            process.destroyForcibly();
+            kill(process);
             Thread.currentThread().interrupt();
             throw new PublishFailedException("Publishing was interrupted.");
         } catch (IOException | ExecutionException e) {
-            process.destroyForcibly();
+            kill(process);
             throw new PublishFailedException("Could not run wrangler.");
         }
+    }
+
+    /**
+     * Kills the process and everything it started (wrangler.cmd starts node, which holds the output pipes).
+     * Descendants are listed first: once the parent is gone they can no longer be found through it.
+     */
+    private static void kill(Process process) {
+        List<ProcessHandle> descendants = process.descendants().toList();
+        descendants.forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
     }
 
     private String messageFor(int exit, String output) {
