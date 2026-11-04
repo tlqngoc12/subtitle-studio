@@ -1,5 +1,9 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.playlist.InvalidPlaylistException;
+import com.subtitlestudio.playlist.InvalidPlaylistOrderException;
+import com.subtitlestudio.playlist.PlaylistNotFoundException;
+import com.subtitlestudio.playlist.VideoHasNoVietsubException;
 import com.subtitlestudio.profile.BlockNotFoundException;
 import com.subtitlestudio.profile.InvalidBlockException;
 import com.subtitlestudio.profile.InvalidMediaException;
@@ -105,6 +109,29 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_BLOCK", e.getMessage());
         pd.setProperty("errors", e.errors());
         return pd;
+    }
+
+    @ExceptionHandler(PlaylistNotFoundException.class)
+    ProblemDetail playlistNotFound(PlaylistNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "PLAYLIST_NOT_FOUND", e.getMessage());
+    }
+
+    /** Same shape as INVALID_BLOCK: {@code errors} lists every rejected field. */
+    @ExceptionHandler(InvalidPlaylistException.class)
+    ProblemDetail invalidPlaylist(InvalidPlaylistException e) {
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_PLAYLIST", e.getMessage());
+        pd.setProperty("errors", e.errors());
+        return pd;
+    }
+
+    @ExceptionHandler(VideoHasNoVietsubException.class)
+    ProblemDetail videoHasNoVietsub(VideoHasNoVietsubException e) {
+        return problem(HttpStatus.CONFLICT, "VIDEO_HAS_NO_VIETSUB", e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPlaylistOrderException.class)
+    ProblemDetail invalidPlaylistOrder(InvalidPlaylistOrderException e) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_PLAYLIST_ORDER", e.getMessage());
     }
 
     @ExceptionHandler(InvalidMediaException.class)
