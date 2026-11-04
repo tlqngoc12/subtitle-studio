@@ -45,6 +45,13 @@ class FlywaySchemaTest {
     }
 
     @Test
+    void appliesV4Migration() {
+        assertThat(jdbc.queryForObject(
+                "select count(*) from \"flyway_schema_history\" where \"version\" = '4' and \"success\" = true",
+                Integer.class)).isEqualTo(1);
+    }
+
+    @Test
     void seedsThreeProfiles() {
         assertThat(jdbc.queryForList("select slug from t_profile order by id", String.class))
                 .containsExactly("emibonnie", "emi", "bonnie");
@@ -82,7 +89,7 @@ class FlywaySchemaTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"CUE_SEQ", "VI_CUE_SEQ", "T_PROFILE_SEQ", "T_MEDIA_SEQ", "T_PROFILE_BLOCK_SEQ",
-            "T_PROFILE_BLOCK_ITEM_SEQ"})
+            "T_PROFILE_BLOCK_ITEM_SEQ", "T_PLAYLIST_SEQ", "T_PLAYLIST_ITEM_SEQ"})
     void sequencesIncrementBy50(String name) {
         assertThat(jdbc.queryForObject(
                 "select increment from information_schema.sequences where sequence_name = ?", Long.class, name))
