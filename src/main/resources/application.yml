@@ -50,6 +50,15 @@ subtitle-studio:
     timeout: 3m
     max-duration: 60m
     temperature: 0.3
+  # Public read-only site on Cloudflare Pages (Publish button). Empty token, account id or project = off.
+  publish:
+    cloudflare-api-token: ${CLOUDFLARE_API_TOKEN:}
+    cloudflare-account-id: ${CLOUDFLARE_ACCOUNT_ID:}
+    project: ${SUBTITLESTUDIO_PUBLISH_PROJECT:}
+    # false = noindex (meta, X-Robots-Tag, robots.txt): search engines leave the site out.
+    indexable: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:false}
+    wrangler-path: ${SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH:wrangler}
+    timeout: 5m
 
 # Log to the console (docker compose logs) and to a file that survives container rebuilds:
 # {data-dir}/logs/app.log, i.e. ./data/logs on the host. Rolled daily and at 10 MB (app.log.YYYY-MM-DD.N.gz),

@@ -12,7 +12,8 @@ import org.springframework.validation.annotation.Validated;
 /** Application settings bound from the {@code subtitle-studio.*} prefix in application.yml. */
 @Validated
 @ConfigurationProperties(prefix = "subtitle-studio")
-public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Path dataDir, @Valid @NotNull Gemini gemini) {
+public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Path dataDir, @Valid @NotNull Gemini gemini,
+                                       @Valid @NotNull Publish publish) {
 
     /** Directory holding the original downloaded .vtt files: {@code {dataDir}/subs}. */
     public Path subsDir() {
@@ -30,6 +31,32 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
     }
 
     public record Ytdlp(@NotBlank String path, @NotNull Duration timeout) {}
+
+    /**
+     * Publishing the public site to Cloudflare Pages with wrangler. Blank token, account id or project turns it off.
+     * Never log the token.
+     */
+    public record Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
+                          @NotBlank String wranglerPath, @NotNull Duration timeout) {
+
+        public boolean configured() {
+            return notBlank(cloudflareApiToken) && notBlank(cloudflareAccountId) && notBlank(project);
+        }
+
+        /** The site address on Cloudflare's free subdomain. */
+        public String url() {
+            return "https://" + project + ".pages.dev";
+        }
+
+        private static boolean notBlank(String value) {
+            return value != null && !value.isBlank();
+        }
+
+        @Override
+        public String toString() {
+            return "Publish[project=" + project + ", indexable=" + indexable + ", configured=" + configured() + "]";
+        }
+    }
 
     /** Gemini translation. A blank {@code apiKey} turns the feature off. Never log the key. */
     public record Gemini(String apiKey, @NotBlank String model, @NotNull Duration timeout,
