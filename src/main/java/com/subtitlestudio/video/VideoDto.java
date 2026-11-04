@@ -21,7 +21,7 @@ public record VideoDto(
         String translationError,
         String translationProfile) {
 
-    static VideoDto from(Video v) {
+    public static VideoDto from(Video v) {
         return new VideoDto(v.getId(), v.getTitle(), v.getChannel(), v.getDurationSec(), v.getSubLang(),
                 v.getSubSource(), v.getCueCount(), v.getFetchedAt(),
                 "https://i.ytimg.com/vi/" + v.getId() + "/mqdefault.jpg",
