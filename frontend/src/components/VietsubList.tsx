@@ -55,12 +55,12 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                         {v.viSource === 'AUTO' ? (
                           <span className="meta">
                             <Languages className="icon icon--sm" aria-hidden="true" />
-                            Gemini ({v.translationProfile})
+                            AI
                           </span>
                         ) : (
                           <span className="meta">
                             <FileUp className="icon icon--sm" aria-hidden="true" />
-                            Uploaded
+                            Manual
                           </span>
                         )}
                       </span>

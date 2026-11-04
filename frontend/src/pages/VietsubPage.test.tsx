@@ -117,6 +117,19 @@ describe('VietsubPage', () => {
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
   });
 
+  it('labels each Vietsub as Manual (uploaded) or AI (Gemini)', async () => {
+    const auto = { ...newer, viSource: 'AUTO' as const, translationProfile: 'EmiBonnie' };
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [auto, older] }]);
+    renderPage();
+
+    const list = await loadedRegion('Manage Vietsub');
+    const items = within(within(list).getByRole('list')).getAllByRole('listitem');
+    expect(within(items[0]).getByText('AI', { exact: true })).toBeInTheDocument();
+    expect(within(items[0]).queryByText(/Gemini|EmiBonnie/)).not.toBeInTheDocument();
+    expect(within(items[1]).getByText('Manual', { exact: true })).toBeInTheDocument();
+    expect(within(list).queryByText('Uploaded')).not.toBeInTheDocument();
+  });
+
   it('opens the watch page from the thumbnail or title of a row, like the Vietsub list', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer, older] }]);
     renderPage();
