@@ -43,6 +43,7 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
   - `web`: `@RestControllerAdvice` (T09)
   - `profile`: trang Profile: entity `T_*`, `ProfileBlockValidator`, `EmbedUrlResolver`, `MediaService` (ảnh), `ProfileService`, 2 controller
   - `publish`: trang public: `SiteExporter` (JSON + ảnh theo allowlist), `PublicSiteBundle` (bản build public + `_redirects`/`_headers`/`robots.txt`), `WranglerClient`, `PublishService`, `PublishController`
+- `.gitignore` chỉ bỏ qua `/data/` ở gốc repo. Tạo thư mục mới thì kiểm tra `git check-ignore -v <file>` (đã mất 5 file `frontend/src/data/` vì quy tắc cũ `data/`); trước khi xoá worktree xem `git status --ignored`.
 - Bảng mới đặt tiền tố `T_` (bảng cũ `video`, `cue`, `vi_cue` giữ nguyên tên). Không đặt tên cột trùng từ khoá H2 (vd `value` → `item_value`).
 - Cấu hình đọc qua `SubtitleStudioProperties` (record, `@Validated`). Không dùng `@Value` rải rác.
 

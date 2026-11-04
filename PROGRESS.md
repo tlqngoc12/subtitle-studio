@@ -443,6 +443,13 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - **Publish thật (2026-11-04):** project Pages `subtitle-studio-vn` → **https://subtitle-studio-vn.pages.dev** (tên `subtitle-studio` đã có người dùng, Cloudflare tự gán `subtitle-studio-bkx.pages.dev` → tạo project mới và xoá project đó). Token loại **User API Token**, quyền Account → Cloudflare Pages → Edit; project tạo bằng `wrangler pages project create` trong container. Kiểm tra: status DONE, `X-Robots-Tag: noindex, nofollow`, `robots.txt` Disallow, `data/videos.json` 23 video chỉ 8 trường allowlist, F5 deep link 200; file JSON thiếu → 200 text/html (xác nhận lỗi (1)).
 - Backend 420/420, frontend 297/297 (một test VietsubPage có sẵn thỉnh thoảng fail do thời gian, chạy lại pass).
 
+### 2026-11-04: Khôi phục file bị .gitignore chặn; fullscreen iPhone; Vietsub list 2 tab; màu toast
+- **Sự cố:** quy tắc `data/` trong `.gitignore` chặn **mọi** thư mục tên `data`, nên `frontend/src/data/` (5 file `ReadSource` của trang public) chưa từng được commit; khi xoá worktree `public-site`, git xoá luôn file bị ignore → `main` đã push thiếu file (clone về không build được; bản đang chạy và trang public không ảnh hưởng vì build từ trước). Đã tạo lại đúng nội dung (gồm bản sửa SPA fallback) và đổi quy tắc thành `/data/`. **Bài học:** thư mục mới → `git check-ignore -v <file>`; trước khi xoá worktree xem `git status --ignored`.
+- **Fullscreen trên iPhone:** Safari iPhone chỉ cho `<video>` fullscreen → nút ⛶ không có tác dụng. Không có Fullscreen API thì khung player phủ kín viewport (`.player--filled`, fixed, `100dvh`, khoá cuộn trang), Vietsub vẫn hiện; nút hoặc Esc để thoát; dùng `webkitRequestFullscreen` khi chỉ có bản prefix. Nút Copy link, âm lượng/CC/settings ở góc trên là giao diện của YouTube (iframe khác tên miền), app không đổi được.
+- **Vietsub list:** 2 tab **Playlists** (mặc định) và **All videos** (Radix Tabs 1.2.1), mỗi tab có tìm kiếm + phân trang 10/trang. Tab Playlists: thẻ xếp dọc dùng chung `PlaylistHeader` (ảnh bìa, tên, số video, Play all); tìm kiếm khớp tên playlist hoặc video bên trong, "N videos" = số video khớp. Mở playlist có link "← Playlists" (giữ `q`). Bỏ chip ngang (`PlaylistChips`). URL: `?tab=all`, `?playlist=`, `?q=`, `?page=`.
+- `/vietsub`: mô tả còn một câu. Toast `sonner`: thành công cam, thông tin tím, lỗi đỏ. Quy tắc 2 màu chủ đạo ghi vào CLAUDE.md và README.
+- Frontend 305/305 (chỉ chạy test theo yêu cầu, rồi merge → build → restart).
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
