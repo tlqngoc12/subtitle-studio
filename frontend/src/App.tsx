@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
 import HomePage from './pages/HomePage';
+import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import ProfilePage from './pages/ProfilePage';
 import VietsubListPage from './pages/VietsubListPage';
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/vietsub" element={<VietsubPage />} />
         <Route path="/vietsub/list" element={<VietsubListPage />} />
         <Route path="/vietsub/playlists" element={<PlaylistsPage />} />
+        <Route path="/vietsub/playlists/:playlistId" element={<PlaylistEditPage />} />
         <Route path="/vietsub/:id" element={<WatchPage />} />
         <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
         <Route path="/profiles/:slug" element={<ProfilePage />} />
