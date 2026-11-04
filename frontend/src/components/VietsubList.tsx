@@ -1,4 +1,4 @@
-import { Captions, Download, FilePlus, FileUp, Languages, Trash2 } from 'lucide-react';
+import { Captions, Download, FilePlus, FileUp, Languages, Play, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -42,8 +42,8 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                   className={v.id === highlightId ? 'history__item history__item--new' : 'history__item'}
                   aria-busy={busy}
                 >
-                  {/* Thumbnail + title open the watch page, like the Vietsub list. */}
-                  <Link className="history__open" to={`/vietsub/${v.id}`}>
+                  {/* The row (up to the action buttons) opens the watch page, like the Vietsub list. */}
+                  <Link className="history__open history__open--row" to={`/vietsub/${v.id}`}>
                     <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                     <span className="history__text">
                       <span className="history__title">{v.title}</span>
@@ -67,6 +67,11 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                     </span>
                   </Link>
                   <span className="history__actions">
+                    <Tip label="Watch Video">
+                      <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Watch Video: ${v.title}`}>
+                        <Play className="icon" aria-hidden="true" />
+                      </Link>
+                    </Tip>
                     <Tip label="Download Vietsub">
                       <a className="button button--icon" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
                         <Download className="icon" aria-hidden="true" />

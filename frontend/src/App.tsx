@@ -1,5 +1,6 @@
 import { MotionConfig } from 'motion/react';
 import { Navigate, Route, Routes } from 'react-router';
+import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
@@ -12,6 +13,7 @@ export default function App() {
     // Every animation in the app follows the OS "reduce motion" setting.
     <MotionConfig reducedMotion="user">
       <NavBar />
+      <AppToaster />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/vietsub" element={<VietsubPage />} />

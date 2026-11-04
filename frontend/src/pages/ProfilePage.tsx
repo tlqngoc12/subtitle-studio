@@ -1,3 +1,4 @@
+import { useConfirmDialog } from '../components/useConfirmDialog';
 import { Check, Pencil, Plus, SquarePlus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -31,6 +32,7 @@ const TYPES = Object.keys(BLOCK_TYPE_LABELS) as BlockType[];
 
 /** Profile page (/profiles/:slug): name, tabs and the blocks in order; "Edit" edits them in place. */
 export default function ProfilePage() {
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const { slug = 'emibonnie' } = useParams();
   const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -89,8 +91,8 @@ export default function ProfilePage() {
     setForm(null);
   };
 
-  const remove = (id: number) => {
-    if (!window.confirm('Delete this block?')) return;
+  const remove = async (id: number) => {
+    if (!(await confirm({ title: 'Delete this block?', confirmLabel: 'Delete', destructive: true }))) return;
     void run(async () => {
       await deleteBlock(slug, id);
       setBlocks((bs) => bs.filter((b) => b.id !== id));
@@ -113,6 +115,7 @@ export default function ProfilePage() {
 
   return (
     <main className="page">
+      {confirmDialog}
       <ProfileTabs profiles={profiles} current={slug} />
 
       {error && (

@@ -1,7 +1,8 @@
+import { answerConfirm } from '../test/confirm';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { block, profile, SUMMARIES } from '../test/profileFixtures';
 import ProfilePage from './ProfilePage';
@@ -152,21 +153,20 @@ describe('ProfilePage edit mode', () => {
   });
 
   it('deletes a block after confirming', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const calls = await openEditing([{ method: 'DELETE', path: '/api/profiles/emibonnie/blocks/1', status: 204 }]);
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Delete block' })[0]);
+    await answerConfirm('Delete', 'Delete this block?');
 
-    expect(confirm).toHaveBeenCalledWith('Delete this block?');
     await waitFor(() => expect(screen.queryByText('Khối A')).not.toBeInTheDocument());
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
   });
 
   it('keeps the block when deletion is not confirmed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     const calls = await openEditing();
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Delete block' })[0]);
+    await answerConfirm('Cancel');
 
     expect(screen.getByText('Khối A')).toBeInTheDocument();
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false);

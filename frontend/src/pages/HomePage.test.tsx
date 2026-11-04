@@ -1,10 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { answerConfirm } from '../test/confirm';
 import { loadedRegion } from '../test/loadedRegion';
 import { expectTooltip } from '../test/tooltip';
 import { MemoryRouter, useLocation } from 'react-router';
 import HomePage from './HomePage';
+import { AppToaster } from '../components/AppToaster';
 import type { CueDto, VideoDto } from '../api/client';
 
 const ID = 'dQw4w9WgXcQ';
@@ -111,7 +113,6 @@ async function submit(url: string) {
 
 describe('HomePage', () => {
   beforeEach(() => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     localStorage.clear();
   });
 
@@ -242,7 +243,7 @@ describe('HomePage', () => {
     expect(within(result).queryByText(/Auto-generated/)).not.toBeInTheDocument();
     expect(within(result).getByText(/no punctuation/)).toBeInTheDocument();
     expect(within(result).getByText('2 lines')).toBeInTheDocument();
-    expect(within(result).getByRole('link', { name: 'Download .srt' }))
+    expect(within(result).getByRole('link', { name: 'Download Engsub' }))
       .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     expect(within(result).getByRole('img')).toHaveAttribute('src', autoVideo.thumbnailUrl);
 
@@ -278,6 +279,54 @@ describe('HomePage', () => {
     await submit('https://evil.com/x');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid link');
+    // The link stays so it can be corrected.
+    expect(screen.getByLabelText('YouTube link')).toHaveValue('https://evil.com/x');
+  });
+
+  it('warns with a toast when the video was already fetched, and still opens it', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
+      // 200 instead of 201: the backend returned the stored video without calling YouTube.
+      { method: 'POST', path: '/api/videos', status: 200, body: autoVideo },
+      { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+    ]);
+    render(<MemoryRouter><HomePage /><AppToaster /></MemoryRouter>);
+
+    await submit(`https://youtu.be/${ID}`);
+
+    const toast = (await screen.findByText('Already fetched: Học Spring Boot')).closest('li')!;
+    expect(toast).toHaveAttribute('data-type', 'warning');
+    expect(await screen.findByRole('region', { name: 'Result' })).toBeInTheDocument();
+  });
+
+  it('shows no warning toast for a newly fetched video', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
+      { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+    ]);
+    render(<MemoryRouter><HomePage /><AppToaster /></MemoryRouter>);
+
+    await submit(`https://youtu.be/${ID}`);
+
+    await screen.findByRole('region', { name: 'Result' });
+    expect(screen.queryByText(/Already fetched/)).not.toBeInTheDocument();
+  });
+
+  it('clears the link field after a successful Get Engsub', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [] },
+      { method: 'POST', path: '/api/videos', status: 201, body: autoVideo },
+      { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+    ]);
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    await submit(`https://youtu.be/${ID}`);
+
+    await screen.findByRole('region', { name: 'Result' });
+    const field = screen.getByLabelText('YouTube link');
+    await waitFor(() => expect(field).toHaveValue(''));
+    expect(field).toHaveAttribute('placeholder', 'Paste a YouTube link here');
   });
 
   it('explains a video without English subtitles', async () => {
@@ -376,9 +425,9 @@ describe('HomePage', () => {
       await vi.advanceTimersByTimeAsync(3000);
       await vi.advanceTimersByTimeAsync(3000);
 
-      expect(await within(result).findByText('Vietsub: Gemini · EmiBonnie')).toBeInTheDocument();
+      expect(await within(result).findByText('Vietsub: AI')).toBeInTheDocument();
       expect(within(result).getByRole('link', { name: 'Watch Vietsub' })).toHaveAttribute('href', `/vietsub/${ID}`);
-      expect(within(result).getByRole('link', { name: 'Download .vi.srt' }))
+      expect(within(result).getByRole('link', { name: 'Download Vietsub' }))
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
       const afterDone = polls();
       expect(afterDone).toBe(2);
@@ -393,7 +442,7 @@ describe('HomePage', () => {
 
       const result = await openFromHistory();
 
-      expect(within(result).getByText('Vietsub: uploaded')).toBeInTheDocument();
+      expect(within(result).getByText('Vietsub: Manual')).toBeInTheDocument();
       expect(within(result).getByText(/Delete the uploaded Vietsub on the Vietsub page/)).toBeInTheDocument();
       expect(within(result).queryByRole('button', { name: /Translate/ })).not.toBeInTheDocument();
     });
@@ -418,15 +467,14 @@ describe('HomePage', () => {
     });
 
     it('asks before replacing an AUTO Vietsub', async () => {
-      vi.mocked(window.confirm).mockReturnValue(false);
       const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [done] }, profiles, cuesRoute]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
       await chooseProfile();
       const result = await openFromHistory();
 
       await userEvent.setup().click(within(result).getByRole('button', { name: 'Translate again' }));
+      await answerConfirm('Cancel', 'Replace the Gemini Vietsub?');
 
-      expect(window.confirm).toHaveBeenCalledWith('Replace the Gemini Vietsub?');
       expect(calls.some((c) => c.path.endsWith('/translate'))).toBe(false);
     });
 
@@ -510,8 +558,8 @@ describe('HomePage', () => {
       const history = await loadedRegion('Fetched earlier');
       const item = within(history).getByRole('listitem');
       const actions = [
-        { el: within(item).getByRole('link', { name: 'Watch with Vietsub: Học Spring Boot' }), tip: 'Watch with Vietsub' },
-        { el: within(item).getByRole('link', { name: 'Download .srt: Học Spring Boot' }), tip: 'Download .srt' },
+        { el: within(item).getByRole('link', { name: 'Watch Video: Học Spring Boot' }), tip: 'Watch Video' },
+        { el: within(item).getByRole('link', { name: 'Download Engsub: Học Spring Boot' }), tip: 'Download Engsub' },
         { el: within(item).getByRole('button', { name: 'Refresh Học Spring Boot' }), tip: 'Refresh' },
         { el: within(item).getByRole('button', { name: 'Delete Học Spring Boot' }), tip: 'Delete' },
       ];
@@ -531,7 +579,7 @@ describe('HomePage', () => {
       const items = within(history).getAllByRole('listitem');
       expect(items).toHaveLength(2);
       expect(within(items[0]).getByText('Học Spring Boot')).toBeInTheDocument();
-      expect(within(items[0]).getByRole('link', { name: /Download .srt/ }))
+      expect(within(items[0]).getByRole('link', { name: /Download Engsub/ }))
         .toHaveAttribute('href', `/api/videos/${ID}/subtitle.srt`);
     });
 
@@ -555,9 +603,9 @@ describe('HomePage', () => {
 
       const history = await loadedRegion('Fetched earlier');
       const items = within(history).getAllByRole('listitem');
-      expect(within(items[0]).getByRole('link', { name: 'Watch with Vietsub: Học Spring Boot' }))
+      expect(within(items[0]).getByRole('link', { name: 'Watch Video: Học Spring Boot' }))
         .toHaveAttribute('href', `/vietsub/${ID}`);
-      expect(within(items[1]).queryByRole('link', { name: /Xem Vietsub/ })).not.toBeInTheDocument();
+      expect(within(items[1]).queryByRole('link', { name: /Watch Video/ })).not.toBeInTheDocument();
     });
 
     it('opens a video from the list', async () => {
@@ -574,6 +622,25 @@ describe('HomePage', () => {
       expect(await within(result).findByText('and why it matters')).toBeInTheDocument();
     });
 
+    it('scrolls up to the result panel (cue timeline) when a video is opened from the list', async () => {
+      const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
+        { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: cues },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const history = await loadedRegion('Fetched earlier');
+
+      await userEvent.setup().click(within(history).getByRole('button', { name: /Open Học Spring Boot/ }));
+
+      const result = await screen.findByRole('region', { name: 'Result' });
+      await waitFor(() => expect(scroll).toHaveBeenCalled());
+      expect(scroll.mock.contexts[0]).toBe(result);
+      expect(scroll.mock.calls[0][0]).toMatchObject({ block: 'start' });
+      // Keyboard and screen-reader users land on the opened video too.
+      expect(within(result).getByRole('heading', { name: 'Học Spring Boot' })).toHaveFocus();
+    });
+
     it('deletes a video after confirmation', async () => {
       const calls = fakeFetch([
         { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo, manualVideo] },
@@ -583,19 +650,19 @@ describe('HomePage', () => {
       const history = await loadedRegion('Fetched earlier');
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Delete Học Spring Boot/ }));
+      await answerConfirm('Delete', 'Delete "Học Spring Boot"?');
 
       await waitFor(() => expect(within(history).getAllByRole('listitem')).toHaveLength(1));
-      expect(window.confirm).toHaveBeenCalled();
       expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
     });
 
     it('keeps the video when deletion is not confirmed', async () => {
-      vi.mocked(window.confirm).mockReturnValue(false);
       const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] }]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
       const history = await loadedRegion('Fetched earlier');
 
       await userEvent.setup().click(within(history).getByRole('button', { name: /Delete Học Spring Boot/ }));
+      await answerConfirm('Cancel');
 
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
       expect(within(history).getAllByRole('listitem')).toHaveLength(1);
@@ -648,6 +715,7 @@ describe('HomePage', () => {
         const history = await loadedRegion('Fetched earlier');
 
         await userEvent.setup().click(within(history).getByRole('button', { name: 'Delete Video 11' }));
+        await answerConfirm('Delete');
 
         await waitFor(() => expect(titles(history)).toHaveLength(10));
         expect(within(history).queryByRole('navigation')).not.toBeInTheDocument();

@@ -398,6 +398,14 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
 - Backend 435/435.
 - Log ra file `{data-dir}/logs/app.log` (xoay vòng ngày/10 MB, giữ 14 ngày/200 MB); test chỉ log ra console (`logback-test.xml`). Manage Vietsub: ảnh/tiêu đề mở trang xem.
 
+### 2026-11-04: Chỉnh giao diện theo phản hồi (toast, hộp thoại xác nhận, nhãn)
+- **Nhãn:** Manage Vietsub hiện nguồn `Manual` / `AI`; panel kết quả "Vietsub: AI" / "Vietsub: Manual"; tooltip "Watch Video", "Download Engsub"; link "Download Vietsub"; nút cam "Download Engsub".
+- **Manage Vietsub:** thêm nút Watch Video; cả dòng (tới các nút) là link tới trang xem → con trỏ bàn tay.
+- **Get Engsub:** bấm tên video ở Fetched earlier thì cuộn lên panel kết quả (timeline) và chuyển focus tới tiêu đề; Get Engsub thành công thì xoá ô link (lỗi thì giữ); dán link đã có → toast cảnh báo "Already fetched: …".
+- **Toast** (`sonner` 2.0.8, `components/AppToaster.tsx`): "Vietsub replaced: … (N lines)" sau Replace.
+- **Hộp thoại xác nhận** (`@radix-ui/react-alert-dialog` 1.2.1, hook `useConfirmDialog`) thay `window.confirm` ở Delete video, Delete Vietsub, Delete block (Profile) và "Replace the Gemini Vietsub?"; focus mặc định ở Cancel.
+- Test frontend: jsdom thiếu `matchMedia`/`scrollIntoView` → giả lập trong `test/setup.ts`; sonner giữ toast giữa các test → `toast.dismiss()` sau mỗi test; test nhãn nguồn bị mất ở lần merge giao diện tiếng Anh đã được viết lại. Frontend 197/197.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.

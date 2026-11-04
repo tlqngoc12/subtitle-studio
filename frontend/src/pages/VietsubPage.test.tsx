@@ -1,13 +1,15 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { answerConfirm } from '../test/confirm';
 import { loadedRegion } from '../test/loadedRegion';
 import type { VideoDto } from '../api/client';
 import { NavBar } from '../components/NavBar';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import { expectTooltip } from '../test/tooltip';
 import VietsubPage from './VietsubPage';
+import { AppToaster } from '../components/AppToaster';
 
 const ID = 'dQw4w9WgXcQ';
 
@@ -49,6 +51,7 @@ function renderPage(entry = '/vietsub') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <NavBar />
+      <AppToaster />
       <Routes>
         <Route path="/vietsub" element={<><VietsubPage /><Location /></>} />
         <Route path="/vietsub/:id" element={<WatchStub />} />
@@ -79,9 +82,6 @@ async function fillForm(url: string, file?: File) {
 }
 
 describe('VietsubPage', () => {
-  beforeEach(() => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-  });
 
   it('shows the chosen .srt file name', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
@@ -139,6 +139,7 @@ describe('VietsubPage', () => {
     const row = within(items[0]).getByRole('link', { name: /^Học Spring Boot/ });
     expect(row).toHaveAttribute('href', `/vietsub/${ID}`);
     expect(row.querySelector('img')).not.toBeNull();
+    expect(row).toHaveClass('history__open--row'); // stretches to the action buttons, so the whole row shows a pointer
     expect(within(items[1]).getByRole('link', { name: /^Video cũ hơn/ })).toHaveAttribute('href', '/vietsub/OLDER000001');
 
     await userEvent.setup().click(row);
@@ -205,7 +206,7 @@ describe('VietsubPage', () => {
     expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
   });
 
-  it('offers Replace, Delete and Download for each video', async () => {
+  it('offers Watch Video, Download, Replace and Delete for each video', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
     const list = await loadedRegion('Manage Vietsub');
@@ -225,6 +226,11 @@ describe('VietsubPage', () => {
     expect(download.querySelector('svg')).not.toBeNull();
     expect(download).toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
     expect(download).toHaveAttribute('download');
+    const watch = within(item).getByRole('link', { name: 'Watch Video: Học Spring Boot' });
+    await expectTooltip(watch, 'Watch Video');
+    expect(watch.textContent?.trim()).toBe('');
+    expect(watch.querySelector('svg')).not.toBeNull();
+    expect(watch).toHaveAttribute('href', `/vietsub/${ID}`);
   });
 
   it('replaces Vietsub from the list', async () => {
@@ -242,6 +248,35 @@ describe('VietsubPage', () => {
     expect((calls.find((c) => c.method === 'POST')!.body as FormData).get('url')).toBe(ID);
   });
 
+  it('confirms a finished replace with a toast', async () => {
+    const replaced = { ...newer, viCueCount: 9, viUpdatedAt: '2026-11-02T12:00:00Z' };
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [newer] },
+      { method: 'POST', path: '/api/vietsub', status: 200, body: replaced },
+    ]);
+    renderPage();
+    const list = await loadedRegion('Manage Vietsub');
+
+    await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
+
+    const toast = (await screen.findByText('Vietsub replaced: Học Spring Boot (9 lines)')).closest('li')!;
+    expect(within(toast).getByRole('button', { name: /close/i })).toBeInTheDocument();
+  });
+
+  it('shows no success toast when replacing fails', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/videos', status: 200, body: [newer] },
+      { method: 'POST', path: '/api/vietsub', status: 400, body: problem(400, 'INVALID_SRT', 'No subtitle blocks found') },
+    ]);
+    renderPage();
+    const list = await loadedRegion('Manage Vietsub');
+
+    await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText(/Vietsub replaced/)).not.toBeInTheDocument();
+  });
+
   it('deletes Vietsub after confirmation', async () => {
     const calls = fakeFetch([
       { method: 'GET', path: '/api/videos', status: 200, body: [newer, older] },
@@ -251,9 +286,9 @@ describe('VietsubPage', () => {
     const list = await loadedRegion('Manage Vietsub');
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
+    await answerConfirm('Delete', 'Delete the Vietsub of "Học Spring Boot"?');
 
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(1));
-    expect(window.confirm).toHaveBeenCalled();
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
   });
 
@@ -288,6 +323,7 @@ describe('VietsubPage', () => {
       expect(titles(list)).toEqual(['Video 11']);
 
       await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Video 11' }));
+      await answerConfirm('Delete');
 
       await waitFor(() => expect(titles(list)).toHaveLength(10));
       expect(titles(list)[0]).toBe('Video 01');
@@ -314,12 +350,12 @@ describe('VietsubPage', () => {
   });
 
   it('keeps Vietsub when deletion is not confirmed', async () => {
-    vi.mocked(window.confirm).mockReturnValue(false);
     const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
     const list = await loadedRegion('Manage Vietsub');
 
     await userEvent.setup().click(within(list).getByRole('button', { name: 'Delete Vietsub: Học Spring Boot' }));
+    await answerConfirm('Cancel');
 
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
     expect(within(list).getAllByRole('listitem')).toHaveLength(1);

@@ -75,14 +75,14 @@ export function VideoList({ videos, busyId, onOpen, onRefresh, onDelete, highlig
                   </button>
                   <span className="history__actions">
                     {v.viCueCount > 0 && (
-                      <Tip label="Watch with Vietsub">
-                        <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Watch with Vietsub: ${v.title}`}>
+                      <Tip label="Watch Video">
+                        <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Watch Video: ${v.title}`}>
                           <Play className="icon" aria-hidden="true" />
                         </Link>
                       </Tip>
                     )}
-                    <Tip label="Download .srt">
-                      <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Download .srt: ${v.title}`}>
+                    <Tip label="Download Engsub">
+                      <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Download Engsub: ${v.title}`}>
                         <Download className="icon" aria-hidden="true" />
                       </a>
                     </Tip>

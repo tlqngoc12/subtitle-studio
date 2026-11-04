@@ -3,7 +3,8 @@ import { Tip } from './Tip';
 
 interface Props {
   pending: boolean;
-  onSubmit: (url: string) => void;
+  /** Resolves true when the subtitles were fetched; the field is then cleared for the next link. */
+  onSubmit: (url: string) => Promise<boolean>;
   /** Translation profiles from ./data/prompts. */
   profiles: string[];
   /** Whether GEMINI_API_KEY is set; otherwise the profile list is disabled. */
@@ -20,7 +21,9 @@ export function UrlForm({ pending, onSubmit, profiles, configured, profile, onPr
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = url.trim();
-    if (trimmed && !pending) onSubmit(trimmed);
+    if (trimmed && !pending) {
+      void onSubmit(trimmed).then((ok) => ok && setUrl(''));
+    }
   }
 
   const select = (

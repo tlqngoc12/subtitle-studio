@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useConfirmDialog } from '../components/useConfirmDialog';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   deleteVideo,
   fetchVideo,
@@ -42,6 +44,7 @@ function upsert(list: VideoDto[] | null, video: VideoDto): VideoDto[] {
 }
 
 export default function HomePage() {
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [videos, setVideos] = useState<VideoDto[] | null>(null);
   const [current, setCurrent] = useState<Current | null>(null);
   const [pending, setPending] = useState(false);
@@ -52,6 +55,18 @@ export default function HomePage() {
   const [profiles, setProfiles] = useState<PromptProfiles>({ configured: false, profiles: [] });
   const [profile, setProfile] = useState(readStoredProfile);
   const [skipReason, setSkipReason] = useState<SkipReason | null>(null);
+  const resultRef = useRef<HTMLElement>(null);
+  /** Bumped when a video is opened from the list; the panel then scrolls into view. */
+  const [scrollRequest, setScrollRequest] = useState(0);
+
+  useEffect(() => {
+    const panel = resultRef.current;
+    if (scrollRequest === 0 || !panel) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    panel.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    // Move focus with the view so keyboard and screen-reader users land on the opened video.
+    panel.querySelector<HTMLElement>('.result__title')?.focus({ preventScroll: true });
+  }, [scrollRequest]);
 
   /** Replaces a video everywhere it is shown (list and result panel). */
   const replaceVideo = useCallback((video: VideoDto) => {
@@ -109,25 +124,38 @@ export default function HomePage() {
     }
   }, []);
 
-  async function handleFetch(url: string) {
+  /** Get Engsub; returns whether it worked so the link field can be cleared. */
+  async function handleFetch(url: string): Promise<boolean> {
     setPending(true);
     setError(null);
     try {
-      const { video, skipReason: skipped } = await fetchVideo(url, profiles.configured && profile ? profile : undefined);
+      const { video, created, skipReason: skipped } = await fetchVideo(url, profiles.configured && profile ? profile : undefined);
+      if (!created) toast.warning(`Already fetched: ${video.title}`); // the stored copy is shown, YouTube was not called
       setSkipReason(skipped);
       setVideos((list) => upsert(list, video));
       setHighlightId(video.id);
       pager.setPage(1, { replace: true }); // the fetched video is now first in the list
       await show(video);
+      return true;
     } catch (e) {
       setError(errorMessage(e));
+      return false;
     } finally {
       setPending(false);
     }
   }
 
   async function handleTranslate(video: VideoDto) {
-    if (video.viSource === 'AUTO' && !window.confirm('Replace the Gemini Vietsub?')) return;
+    if (
+      video.viSource === 'AUTO' &&
+      !(await confirm({
+        title: 'Replace the Gemini Vietsub?',
+        description: 'The current AI Vietsub is replaced by a new translation.',
+        confirmLabel: 'Replace',
+      }))
+    ) {
+      return;
+    }
     setError(null);
     try {
       replaceVideo(await translateVideo(video.id, profile));
@@ -151,7 +179,13 @@ export default function HomePage() {
   }
 
   async function handleDelete(video: VideoDto) {
-    if (!window.confirm(`Delete "${video.title}" and its saved subtitles?`)) return;
+    const ok = await confirm({
+      title: `Delete "${video.title}"?`,
+      description: 'Its English subtitles, Vietsub and saved subtitle files are deleted too.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusyId(video.id);
     setError(null);
     try {
@@ -167,6 +201,7 @@ export default function HomePage() {
 
   return (
     <main className="page">
+      {confirmDialog}
       <header className="masthead">
         <h1 className="masthead__name">Subtitle Studio</h1>
         <p className="masthead__lede">Paste a YouTube link to get cleaned-up English subtitles, then download the .srt file to translate.</p>
@@ -195,6 +230,7 @@ export default function HomePage() {
           profile={profile}
           skipReason={skipReason}
           onTranslate={handleTranslate}
+          ref={resultRef}
         />
       )}
 
@@ -208,6 +244,7 @@ export default function HomePage() {
           setError(null);
           setSkipReason(null); // only describes the video just fetched
           void show(v);
+          setScrollRequest((n) => n + 1); // scroll up to the cue timeline
         }}
         onRefresh={handleRefresh}
         onDelete={handleDelete}

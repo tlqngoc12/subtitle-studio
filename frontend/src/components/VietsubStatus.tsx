@@ -60,10 +60,10 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
       )}
       {video.viSource === 'AUTO' && (
         <p className="vietsub-status__line">
-          <span>Vietsub: Gemini · {video.translationProfile}</span>
+          <span>Vietsub: AI</span>
           {watch}
           <a className="vietsub-status__link" href={viSrtUrl(video.id)} download>
-            Download .vi.srt
+            Download Vietsub
           </a>
           {translateButton('Translate again')}
         </p>
@@ -71,7 +71,7 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
       {video.viSource === 'MANUAL' && (
         <>
           <p className="vietsub-status__line">
-            <span>Vietsub: uploaded</span>
+            <span>Vietsub: Manual</span>
             {watch}
           </p>
           <p className="vietsub-status__note">Delete the uploaded Vietsub on the Vietsub page to translate with Gemini.</p>
