@@ -420,7 +420,7 @@ Spec: [docs/superpowers/specs/2026-11-03-gemini-translate-design.md](docs/superp
   - `Gemini <model> answer for <n> lines is not the expected JSON (<k> chars)`;
   - `Translation of <videoId> failed: <thông báo>` (`TranslationService`).
 - **Chưa làm (Backlog):** tự khắc phục khi câu trả lời hỏng (hỏi lại chỉ các block thiếu/sai, hoặc gửi lại cả request).
-- Nhánh `translate-diagnostics`, merge fast-forward vào `main`. Backend 339/339 (đếm theo surefire report).
+- Nhánh `translate-diagnostics`, merge fast-forward vào `main`. Backend 439/439.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
