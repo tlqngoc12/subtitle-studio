@@ -98,9 +98,12 @@ describe('VietsubPage', () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
     renderPage();
 
-    const nav = screen.getByRole('navigation');
+    const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('aria-current', 'page');
     expect(within(nav).getByRole('link', { name: 'Get Engsub' })).toHaveAttribute('href', '/');
+    const tabs = screen.getByRole('navigation', { name: 'Vietsub' });
+    expect(within(tabs).getByRole('link', { name: 'Videos' })).toHaveAttribute('aria-current', 'page');
+    expect(within(tabs).getByRole('link', { name: 'Playlists' })).toHaveAttribute('href', '/vietsub/playlists');
     // Let the list load finish inside the test (otherwise a slow machine logs an act() warning).
     expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
   });

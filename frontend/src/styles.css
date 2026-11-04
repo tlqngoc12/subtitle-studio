@@ -1419,3 +1419,38 @@ p.vietsub-status,
     animation: none;
   }
 }
+
+/* ---------- Playlists (Vietsub › Playlists) ---------- */
+
+.vsform--playlist {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  align-items: start;
+}
+
+.vsform--playlist > .button {
+  align-self: end;
+}
+
+.vsform--playlist > .alert {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .vsform--playlist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Stands in for the cover of an empty playlist; same box as a row thumbnail. */
+.playlist-cover-empty {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 96px;
+  height: 54px;
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+}

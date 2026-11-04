@@ -49,4 +49,14 @@ describe('NavBar', () => {
   ])('marks exactly one current section at %s', (path, expected) => {
     expect(currentAt(path)).toEqual([expected]);
   });
+  it.each(['/vietsub/playlists', '/vietsub/playlists/3', '/vietsub/playlists/3/'])(
+    'marks Vietsub as current on the playlist pages (%s)',
+    (path) => {
+      expect(currentAt(path)).toEqual(['Vietsub']);
+    },
+  );
+
+  it('still marks Vietsub list as current on the watch page', () => {
+    expect(currentAt('/vietsub/abc')).toEqual(['Vietsub list']);
+  });
 });

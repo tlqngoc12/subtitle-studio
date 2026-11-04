@@ -67,6 +67,14 @@ export function errorMessage(error: unknown): ErrorMessage {
       return { title: 'Image too large (10 MB max).' };
     case 'MEDIA_NOT_FOUND':
       return { title: 'Image not found.' };
+    case 'PLAYLIST_NOT_FOUND':
+      return { title: 'This playlist no longer exists.', hint: 'It may have been deleted. Reload the page.' };
+    case 'INVALID_PLAYLIST':
+      return { title: 'Check the playlist name and description.' };
+    case 'VIDEO_HAS_NO_VIETSUB':
+      return { title: 'Only videos with Vietsub can be added to a playlist.' };
+    case 'INVALID_PLAYLIST_ORDER':
+      return { title: 'The playlist changed meanwhile. It has been reloaded.' };
     case 'NETWORK':
       return { title: 'Cannot reach the server.', hint: 'Check that Subtitle Studio is running.' };
     default:

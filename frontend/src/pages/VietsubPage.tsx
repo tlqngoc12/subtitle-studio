@@ -6,6 +6,7 @@ import { addVietsub, deleteVietsub, listVideos, type VideoDto } from '../api/cli
 import { Pagination } from '../components/Pagination';
 import { VietsubForm } from '../components/VietsubForm';
 import { VietsubList } from '../components/VietsubList';
+import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
@@ -86,6 +87,7 @@ export default function VietsubPage() {
           Paste a YouTube link and choose a Vietnamese .srt file (with the original timing) to watch the video with Vietsub.
         </p>
       </header>
+      <VietsubTabs />
 
       <VietsubForm pending={pending} onSubmit={handleAdd} />
 

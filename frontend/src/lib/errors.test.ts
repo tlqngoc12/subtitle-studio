@@ -15,6 +15,10 @@ describe('errorMessage', () => {
     ['VIDEO_TOO_LONG', 'longer than 60 minutes'],
     ['VIETSUB_MANUAL', 'already has an uploaded Vietsub'],
     ['TRANSLATION_IN_PROGRESS', 'already being translated'],
+    ['PLAYLIST_NOT_FOUND', 'This playlist no longer exists.'],
+    ['INVALID_PLAYLIST', 'Check the playlist name and description.'],
+    ['VIDEO_HAS_NO_VIETSUB', 'Only videos with Vietsub can be added to a playlist.'],
+    ['INVALID_PLAYLIST_ORDER', 'The playlist changed meanwhile. It has been reloaded.'],
   ])('maps %s to an English message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
   });

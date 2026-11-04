@@ -4,9 +4,14 @@ import { pillTransition } from '../lib/motion';
 
 const SECTIONS = [
   { to: '/', label: 'Get Engsub', isCurrent: (p: string) => p === '/' },
-  { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => p === '/vietsub' || p === '/vietsub/' },
+  // The playlist pages (/vietsub/playlists, /vietsub/playlists/:id) are part of managing Vietsub.
+  { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => /^\/vietsub(\/|\/playlists(\/.*)?)?$/.test(p) },
   // The watch page (/vietsub/:id) belongs to the list it is opened from.
-  { to: '/vietsub/list', label: 'Vietsub list', isCurrent: (p: string) => /^\/vietsub\/[^/]+\/?$/.test(p) },
+  {
+    to: '/vietsub/list',
+    label: 'Vietsub list',
+    isCurrent: (p: string) => /^\/vietsub\/[^/]+\/?$/.test(p) && !/^\/vietsub\/playlists\/?$/.test(p),
+  },
   { to: '/profiles', label: 'Profile', isCurrent: (p: string) => p === '/profiles' || p.startsWith('/profiles/') },
 ];
 
