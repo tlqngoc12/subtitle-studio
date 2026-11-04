@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { viSrtUrl, type VideoDto } from '../api/client';
 import { rowMotion } from '../lib/motion';
 import { EmptyState } from './EmptyState';
+import { SaveToPlaylist } from './SaveToPlaylist';
 import { Tip } from './Tip';
 
 interface Props {
@@ -72,6 +73,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                         <Play className="icon" aria-hidden="true" />
                       </Link>
                     </Tip>
+                    <SaveToPlaylist video={v} />
                     <Tip label="Download Vietsub">
                       <a className="button button--icon" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
                         <Download className="icon" aria-hidden="true" />

@@ -209,7 +209,7 @@ describe('VietsubPage', () => {
     expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
   });
 
-  it('offers Watch Video, Download, Replace and Delete for each video', async () => {
+  it('offers Watch Video, Download, Replace, Delete and Save to playlist for each video', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
     const list = await loadedRegion('Manage Vietsub');
@@ -234,6 +234,10 @@ describe('VietsubPage', () => {
     expect(watch.textContent?.trim()).toBe('');
     expect(watch.querySelector('svg')).not.toBeNull();
     expect(watch).toHaveAttribute('href', `/vietsub/${ID}`);
+    const save = within(item).getByRole('button', { name: 'Save to playlist: Học Spring Boot' });
+    await expectTooltip(save, 'Save to playlist');
+    expect(save.textContent?.trim()).toBe('');
+    expect(save.querySelector('svg')).not.toBeNull();
   });
 
   it('replaces Vietsub from the list', async () => {
