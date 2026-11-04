@@ -1689,7 +1689,13 @@ p.vietsub-status,
   color: var(--ink);
 }
 
-.tabs__tab[data-state='active'] {
+/* Radix Tabs mark the open tab with data-state; the Vietsub page's link tabs with aria-current. */
+a.tabs__tab {
+  text-decoration: none;
+}
+
+.tabs__tab[data-state='active'],
+.tabs__tab[aria-current='page'] {
   border-bottom-color: var(--brand-2);
   color: var(--ink);
 }

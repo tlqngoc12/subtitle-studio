@@ -114,6 +114,10 @@ describe('VietsubPage', () => {
     const tabs = screen.getByRole('navigation', { name: 'Vietsub' });
     expect(within(tabs).getByRole('link', { name: 'Videos' })).toHaveAttribute('aria-current', 'page');
     expect(within(tabs).getByRole('link', { name: 'Playlists' })).toHaveAttribute('href', '/vietsub/playlists');
+    // Same underline tabs as the Vietsub list page (not the pill style of the profile tabs).
+    expect(tabs).toHaveClass('tabs__list');
+    expect(within(tabs).getByRole('link', { name: 'Videos' })).toHaveClass('tabs__tab');
+    expect(within(tabs).getByRole('link', { name: 'Playlists' })).toHaveClass('tabs__tab');
     // Let the list load finish inside the test (otherwise a slow machine logs an act() warning).
     expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
   });
