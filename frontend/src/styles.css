@@ -1843,3 +1843,11 @@ p.vietsub-status,
 .site-footer p {
   margin: 0;
 }
+
+/* ---------- Publish (admin top bar) ---------- */
+
+.publish {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+}

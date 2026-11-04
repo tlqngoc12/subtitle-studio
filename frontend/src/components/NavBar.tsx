@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { Link, useLocation } from 'react-router';
 import { useSite } from '../data/SiteContext';
 import { pillTransition } from '../lib/motion';
+import { PublishButton } from './PublishButton';
 
 interface Section {
   to: string;
@@ -51,6 +52,7 @@ export function NavBar() {
             );
           })}
         </nav>
+        {!readOnly && <PublishButton />}
       </div>
     </header>
   );

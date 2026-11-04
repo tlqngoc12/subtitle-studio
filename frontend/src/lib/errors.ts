@@ -55,6 +55,13 @@ export function errorMessage(error: unknown): ErrorMessage {
       };
     case 'TRANSLATION_IN_PROGRESS':
       return { title: 'This video is already being translated.' };
+    case 'PUBLISH_IN_PROGRESS':
+      return { title: 'A publish is already running.' };
+    case 'PUBLISH_NOT_CONFIGURED':
+      return {
+        title: 'Publishing is not set up.',
+        hint: 'Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and SUBTITLESTUDIO_PUBLISH_PROJECT in .env and restart the app.',
+      };
     case 'PROFILE_NOT_FOUND':
       return { title: 'Profile not found.' };
     case 'BLOCK_NOT_FOUND':
