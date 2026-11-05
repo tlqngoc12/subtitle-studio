@@ -1,0 +1,147 @@
+package com.subtitlestudio.novel;
+
+import com.subtitlestudio.profile.FieldError;
+import com.subtitlestudio.profile.Media;
+import com.subtitlestudio.profile.MediaRepository;
+import com.subtitlestudio.profile.MediaService;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Create, edit, list and delete novels (spec section 6). */
+@Service
+public class NovelService {
+
+    private final NovelRepository novels;
+    private final ChapterRepository chapters;
+    private final ChapterPageRepository pages;
+    private final NovelNotebookRepository notebooks;
+    private final MediaRepository media;
+    private final MediaService mediaService;
+    private final NovelValidator validator;
+    private final Clock clock;
+
+    public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
+                        NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService, NovelValidator validator, Clock clock) {
+        this.novels = novels;
+        this.chapters = chapters;
+        this.pages = pages;
+        this.notebooks = notebooks;
+        this.media = media;
+        this.mediaService = mediaService;
+        this.validator = validator;
+        this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public List<NovelSummary> list() {
+        return novels.findAllByOrderByUpdatedAtDesc().stream().map(n -> {
+            List<Chapter> cs = chapters.findByNovelIdOrderByChapterNo(n.getId());
+            int published = (int) cs.stream()
+                    .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).count();
+            return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(), cs.size(),
+                    published, n.getUpdatedAt());
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public NovelDetail get(long id) {
+        return detail(find(id));
+    }
+
+    @Transactional
+    public NovelDetail create(NovelRequest request) {
+        NovelRequest r = validator.validate(request);
+        if (novels.existsBySlug(r.slug())) {
+            throw new DuplicateNovelSlugException(r.slug());
+        }
+        Novel n = new Novel(r.slug(), r.title(), r.novelStatus(), clock.instant());
+        apply(n, r);
+        return detail(novels.save(n));
+    }
+
+    @Transactional
+    public NovelDetail update(long id, NovelRequest request) {
+        Novel n = find(id);
+        NovelRequest r = validator.validate(request);
+        if (!r.slug().equals(n.getSlug()) && novels.existsBySlug(r.slug())) {
+            throw new DuplicateNovelSlugException(r.slug());
+        }
+        Long oldCover = n.getCover() == null ? null : n.getCover().getId();
+        n.setSlug(r.slug());
+        n.setTitle(r.title());
+        n.setNovelStatus(r.novelStatus());
+        apply(n, r);
+        n.touch(clock.instant());
+        novels.flush();
+        if (oldCover != null && !oldCover.equals(r.coverMediaId())) {
+            mediaService.deleteIfUnreferenced(List.of(oldCover));
+        }
+        return detail(n);
+    }
+
+    /** Deletes the novel, its chapters, pages and notebooks, and the images nothing else uses. */
+    @Transactional
+    public void delete(long id) {
+        Novel n = find(id);
+        List<Long> images = new ArrayList<>();
+        if (n.getCover() != null) {
+            images.add(n.getCover().getId());
+        }
+        List<Chapter> cs = chapters.findByNovelIdOrderByChapterNo(id);
+        for (Chapter c : cs) {
+            List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(c.getId());
+            ps.forEach(p -> images.add(p.getMedia().getId()));
+            pages.deleteAll(ps);
+        }
+        chapters.deleteAll(cs);
+        notebooks.deleteAll(notebooks.findByNovelIdOrderByAfterChapterNo(id));
+        novels.delete(n);
+        novels.flush();
+        mediaService.deleteIfUnreferenced(images);
+    }
+
+    Novel find(long id) {
+        return novels.findById(id).orElseThrow(() -> new NovelNotFoundException(id));
+    }
+
+    private void apply(Novel n, NovelRequest r) {
+        n.setCover(cover(r.coverMediaId()));
+        n.setOriginalAuthor(r.originalAuthor());
+        n.setDescription(r.description());
+        n.setTags(r.tags().isEmpty() ? null : String.join(",", r.tags()));
+        n.setTranslatorCredit(r.translatorCredit());
+        n.setSourceUrl(r.sourceUrl());
+        n.setPromptProfile(r.promptProfile());
+    }
+
+    private Media cover(Long mediaId) {
+        if (mediaId == null) {
+            return null;
+        }
+        return media.findById(mediaId).orElseThrow(() -> new InvalidNovelException(
+                List.of(new FieldError("coverMediaId", "The cover image was not found."))));
+    }
+
+    NovelDetail detail(Novel n) {
+        List<ChapterSummary> list = chapters.findByNovelIdOrderByChapterNo(n.getId()).stream()
+                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getTranslationStatus(),
+                        c.getTranslationError(), c.getPublishStatus(), (int) pages.countByChapterId(c.getId())))
+                .toList();
+        return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),
+                n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),
+                n.getDescription(), tags(n), n.getNovelStatus(), n.getTranslatorCredit(), n.getSourceUrl(),
+                n.getPromptProfile(), n.getNotebookStatus(), n.getNotebookError(), list);
+    }
+
+    static List<String> tags(Novel n) {
+        return n.getTags() == null ? List.of() : Arrays.asList(n.getTags().split(","));
+    }
+
+    private static String coverUrl(Novel n) {
+        return n.getCover() == null ? null : "/api/media/" + n.getCover().getId();
+    }
+}

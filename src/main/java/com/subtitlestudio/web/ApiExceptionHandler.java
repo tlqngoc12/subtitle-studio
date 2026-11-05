@@ -1,5 +1,8 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.novel.DuplicateNovelSlugException;
+import com.subtitlestudio.novel.InvalidNovelException;
+import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.playlist.InvalidPlaylistException;
 import com.subtitlestudio.playlist.InvalidPlaylistOrderException;
 import com.subtitlestudio.playlist.PlaylistNotFoundException;
@@ -111,6 +114,24 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_BLOCK", e.getMessage());
         pd.setProperty("errors", e.errors());
         return pd;
+    }
+
+    @ExceptionHandler(NovelNotFoundException.class)
+    ProblemDetail novelNotFound(NovelNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "NOVEL_NOT_FOUND", e.getMessage());
+    }
+
+    /** Same shape as INVALID_BLOCK: {@code errors} lists every rejected field. */
+    @ExceptionHandler(InvalidNovelException.class)
+    ProblemDetail invalidNovel(InvalidNovelException e) {
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_NOVEL", e.getMessage());
+        pd.setProperty("errors", e.errors());
+        return pd;
+    }
+
+    @ExceptionHandler(DuplicateNovelSlugException.class)
+    ProblemDetail duplicateNovelSlug(DuplicateNovelSlugException e) {
+        return problem(HttpStatus.CONFLICT, "DUPLICATE_NOVEL_SLUG", e.getMessage());
     }
 
     @ExceptionHandler(PlaylistNotFoundException.class)
