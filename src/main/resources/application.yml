@@ -48,6 +48,7 @@ subtitle-studio:
     # Tried in order when the model above is overloaded (503); a quota error (429) is not retried.
     fallback-models:
       - gemini-3.5-flash-lite
+      - gemini-3.5-flash
     timeout: 3m
     max-duration: 60m
     temperature: 0.3
