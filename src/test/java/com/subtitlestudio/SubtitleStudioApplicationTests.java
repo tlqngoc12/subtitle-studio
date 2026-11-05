@@ -35,7 +35,7 @@ class SubtitleStudioApplicationTests {
         assertThat(properties.gemini().maxDuration()).isEqualTo(Duration.ofMinutes(60));
         assertThat(properties.gemini().temperature()).isEqualTo(0.3);
         assertThat(properties.gemini().model()).isEqualTo("gemini-3.6-flash");
-        assertThat(properties.gemini().fallbackModels()).containsExactly("gemini-3.5-flash-lite");
+        assertThat(properties.gemini().fallbackModels()).containsExactly("gemini-3.5-flash-lite", "gemini-3.5-flash");
         assertThat(properties.gemini().configured()).isTrue(); // test profile sets a dummy key
         assertThat(normalized(properties.promptsDir())).isEqualTo(normalized(Path.of("./data/prompts")));
     }
