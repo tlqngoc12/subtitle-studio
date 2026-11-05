@@ -23,18 +23,19 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Translation profiles: one Markdown file per series in {@code {dataDir}/prompts/<Name>.md}, sent to
- * Gemini as written. Names are restricted so a profile name can never reach outside that folder.
+ * Translation profiles: one Markdown file per series in {@code {dataDir}/prompts/<Name>.md} (Vietsub), sent to
+ * Gemini as written. Novels keep theirs in a subfolder ({@code NovelProfileStore}), which this store does not list. Names are restricted so a profile name can never reach outside that folder.
  */
 @Component
 public class PromptProfileStore {
 
     static final int MAX_BYTES = 20 * 1024;
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_-]{1,40}");
-    private static final String EXAMPLE = "prompts/_example.md";
+    static final String EXAMPLE = "prompts/_example.md";
     private static final Logger log = LoggerFactory.getLogger(PromptProfileStore.class);
 
     private final Path dir;
+    private final String example;
 
     @Autowired
     public PromptProfileStore(SubtitleStudioProperties properties) {
@@ -42,7 +43,13 @@ public class PromptProfileStore {
     }
 
     PromptProfileStore(Path dir) {
+        this(dir, EXAMPLE);
+    }
+
+    /** A store for another folder, installing the classpath resource {@code example} as its {@code _example.md}. */
+    public PromptProfileStore(Path dir, String example) {
         this.dir = dir;
+        this.example = example;
     }
 
     /** Usable profile names, sorted case-insensitively. */
@@ -77,7 +84,7 @@ public class PromptProfileStore {
         if (Files.exists(dir)) {
             return;
         }
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream(EXAMPLE)) {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(example)) {
             if (in == null) {
                 return;
             }

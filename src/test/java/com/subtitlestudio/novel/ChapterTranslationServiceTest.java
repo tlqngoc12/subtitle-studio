@@ -38,7 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterTranslationService.class, ChapterService.class, MediaService.class, ImageSniffer.class,
-    PromptProfileStore.class, PageImagePreparer.class, ChapterTranslationServiceTest.Config.class})
+    PromptProfileStore.class, NovelProfileStore.class, PageImagePreparer.class, ChapterTranslationServiceTest.Config.class})
 class ChapterTranslationServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
@@ -137,8 +137,8 @@ class ChapterTranslationServiceTest {
 
     @BeforeAll
     static void profiles() throws IOException {
-        Files.createDirectories(dataDir.resolve("prompts"));
-        Files.writeString(dataDir.resolve("prompts/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
+        Files.createDirectories(dataDir.resolve("prompts/novels"));
+        Files.writeString(dataDir.resolve("prompts/novels/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
     }
 
     @Autowired
@@ -166,7 +166,7 @@ class ChapterTranslationServiceTest {
     private FakeNotebookSource notebookSource;
 
     @Autowired
-    private PromptProfileStore profiles;
+    private NovelProfileStore profiles;
 
     @Autowired
     private MediaService mediaService;

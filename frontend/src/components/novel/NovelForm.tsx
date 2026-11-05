@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { ApiError, getPromptProfiles, type FieldError } from '../../api/client';
-import type { NovelDetail, NovelInput, NovelStatus } from '../../api/novels';
+import { ApiError, type FieldError } from '../../api/client';
+import { getNovelProfiles, type NovelDetail, type NovelInput, type NovelStatus } from '../../api/novels';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImagePicker, type PickedImage } from '../profile/ImagePicker';
 
@@ -54,7 +54,7 @@ export function NovelForm({
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
 
   useEffect(() => {
-    getPromptProfiles()
+    getNovelProfiles()
       .then((p) => setProfiles(p.profiles))
       .catch(() => setProfiles([]));
   }, []);
@@ -228,7 +228,7 @@ export function NovelForm({
       {renderField({
         name: 'promptProfile',
         label: 'Translation profile',
-        hint: 'A .md file in ./data/prompts: source language, names, how characters address each other.',
+        hint: 'A .md file in ./data/prompts/novels: source language, names, how characters address each other.',
         children: (a) => (
           <select id={a.id} value={profile} aria-invalid={a.invalid} aria-describedby={a.describedBy}
             onChange={(e) => setProfile(e.target.value)}>

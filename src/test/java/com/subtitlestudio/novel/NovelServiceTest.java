@@ -32,7 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
     NovelServiceTest.Config.class})
 class NovelServiceTest {
 
@@ -60,8 +60,8 @@ class NovelServiceTest {
 
     @BeforeAll
     static void profiles() throws IOException {
-        Files.createDirectories(dataDir.resolve("prompts"));
-        Files.writeString(dataDir.resolve("prompts/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
+        Files.createDirectories(dataDir.resolve("prompts/novels"));
+        Files.writeString(dataDir.resolve("prompts/novels/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
     }
 
     @Autowired
@@ -133,6 +133,16 @@ class NovelServiceTest {
                 .extracting(FieldError::field).containsExactly("novelStatus");
         assertThat(errorsOf(copy(v, v.slug(), v.title(), v.description(), v.tags(), v.novelStatus(), v.sourceUrl(),
                 "Nope")))
+                .containsExactly(new FieldError("promptProfile", "Unknown translation profile."));
+    }
+
+    @Test
+    void vietsubProfileIsNotANovelProfile() throws IOException {
+        Files.writeString(dataDir.resolve("prompts/EmiBonnie.md"), "vlog");
+        NovelRequest v = valid();
+
+        assertThat(errorsOf(copy(v, v.slug(), v.title(), v.description(), v.tags(), v.novelStatus(), v.sourceUrl(),
+                "EmiBonnie")))
                 .containsExactly(new FieldError("promptProfile", "Unknown translation profile."));
     }
 

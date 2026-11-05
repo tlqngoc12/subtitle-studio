@@ -3,7 +3,6 @@ package com.subtitlestudio.novel;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.profile.MediaService;
 import com.subtitlestudio.translate.GeminiNotConfiguredException;
-import com.subtitlestudio.translate.PromptProfileStore;
 import com.subtitlestudio.translate.TranslationFailedException;
 import com.subtitlestudio.translate.UnknownProfileException;
 import java.time.Clock;
@@ -39,7 +38,7 @@ public class ChapterTranslationService {
 
     private final SubtitleStudioProperties.Gemini gemini;
     private final int pagesPerRequest;
-    private final PromptProfileStore profiles;
+    private final NovelProfileStore profiles;
     private final ChapterTranslator translator;
     private final PageImagePreparer preparer;
     private final MediaService media;
@@ -52,7 +51,7 @@ public class ChapterTranslationService {
     private final Executor executor;
     private final Clock clock;
 
-    public ChapterTranslationService(SubtitleStudioProperties properties, PromptProfileStore profiles,
+    public ChapterTranslationService(SubtitleStudioProperties properties, NovelProfileStore profiles,
                                      ChapterTranslator translator, PageImagePreparer preparer, MediaService media,
                                      ChapterRepository chapters, ChapterPageRepository pages,
                                      NotebookPromptSource notebook, NotebookScheduler scheduler,

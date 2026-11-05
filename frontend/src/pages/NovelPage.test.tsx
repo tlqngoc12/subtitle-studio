@@ -25,7 +25,7 @@ function renderPage() {
 }
 
 const getNovel = { method: 'GET', path: '/api/novels/3', status: 200, body: novelDetail() };
-const profiles = { method: 'GET', path: '/api/prompt-profiles', status: 200, body: { configured: true, profiles: ['SummerLove'] } };
+const profiles = { method: 'GET', path: '/api/novel-profiles', status: 200, body: { configured: true, profiles: ['SummerLove'] } };
 
 describe('NovelPage', () => {
   it('lists chapters with their translation and publish badges', async () => {

@@ -23,7 +23,7 @@ function renderPage() {
   );
 }
 
-const profiles = { method: 'GET', path: '/api/prompt-profiles', status: 200, body: { configured: true, profiles: ['SummerLove'] } };
+const profiles = { method: 'GET', path: '/api/novel-profiles', status: 200, body: { configured: true, profiles: ['SummerLove'] } };
 
 describe('NovelNewPage', () => {
   it('turns a Vietnamese title into a slug', () => {

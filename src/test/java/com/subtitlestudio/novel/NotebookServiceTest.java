@@ -38,7 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({NotebookService.class, PromptProfileStore.class, NotebookServiceTest.Config.class})
+@Import({NotebookService.class, PromptProfileStore.class, NovelProfileStore.class, NotebookServiceTest.Config.class})
 // Real commits: updates start after the publishing transaction commits.
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class NotebookServiceTest {
@@ -108,8 +108,8 @@ class NotebookServiceTest {
 
     @BeforeAll
     static void profiles() throws IOException {
-        Files.createDirectories(dataDir.resolve("prompts"));
-        Files.writeString(dataDir.resolve("prompts/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
+        Files.createDirectories(dataDir.resolve("prompts/novels"));
+        Files.writeString(dataDir.resolve("prompts/novels/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
     }
 
     @Autowired
@@ -310,7 +310,7 @@ class NotebookServiceTest {
     }
 
     @Autowired
-    private PromptProfileStore profileStore;
+    private NovelProfileStore profileStore;
 
     @Autowired
     private ObjectMapper objectMapper;

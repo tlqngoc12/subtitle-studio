@@ -4,6 +4,7 @@ import { chapterDetail, notebookView, novelDetail } from '../test/novelFixtures'
 import {
   addChapter,
   deletePage,
+  getNovelProfiles,
   getNotebook,
   publishChapter,
   reorderPages,
@@ -80,6 +81,12 @@ describe('novels API', () => {
     ]);
     expect(JSON.parse(calls[0].body as string)).toEqual({ title: 'Mở đầu' });
     expect(JSON.parse(calls[3].body as string)).toEqual({ pages: [{ id: 11, textVi: 'Chào' }] });
+  });
+
+  it('lists novel profiles from their own endpoint', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/novel-profiles', status: 200, body: { configured: true, profiles: ['BeMySugar'] } }]);
+
+    expect((await getNovelProfiles()).profiles).toEqual(['BeMySugar']);
   });
 
   it('fixtures match the backend shape', () => {

@@ -1,4 +1,4 @@
-import { send } from './client';
+import { send, type PromptProfiles } from './client';
 
 /** Novels API (spec section 6). Field names match the backend records. */
 
@@ -112,6 +112,11 @@ export interface NotebookView {
 
 function json(method: string, body: unknown): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+/** Translation profiles for novels (./data/prompts/novels), separate from the Vietsub ones. */
+export async function getNovelProfiles(): Promise<PromptProfiles> {
+  return (await send('/api/novel-profiles')).json();
 }
 
 export async function listNovels(): Promise<NovelSummary[]> {

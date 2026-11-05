@@ -38,6 +38,11 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
         return dataDir.resolve("prompts");
     }
 
+    /** Translation profiles for novels, apart from the Vietsub ones: {@code {dataDir}/prompts/novels}. */
+    public Path novelPromptsDir() {
+        return promptsDir().resolve("novels");
+    }
+
     /** Directory holding uploaded profile images: {@code {dataDir}/media}. */
     public Path mediaDir() {
         return dataDir.resolve("media");

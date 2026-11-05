@@ -1,7 +1,6 @@
 package com.subtitlestudio.novel;
 
 import com.subtitlestudio.profile.FieldError;
-import com.subtitlestudio.translate.PromptProfileStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -22,9 +21,9 @@ public class NovelValidator {
 
     private static final Pattern SLUG = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*");
 
-    private final PromptProfileStore profiles;
+    private final NovelProfileStore profiles;
 
-    public NovelValidator(PromptProfileStore profiles) {
+    public NovelValidator(NovelProfileStore profiles) {
         this.profiles = profiles;
     }
 

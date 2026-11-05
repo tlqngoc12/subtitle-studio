@@ -3,7 +3,6 @@ package com.subtitlestudio.novel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.subtitlestudio.config.SubtitleStudioProperties;
-import com.subtitlestudio.translate.PromptProfileStore;
 import com.subtitlestudio.translate.TranslationFailedException;
 import com.subtitlestudio.translate.UnknownProfileException;
 import java.time.Clock;
@@ -43,7 +42,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
     private final ChapterPageRepository pages;
     private final NovelNotebookRepository notebooks;
     private final NotebookUpdater updater;
-    private final PromptProfileStore profiles;
+    private final NovelProfileStore profiles;
     private final ObjectMapper mapper;
     private final TransactionTemplate tx;
     private final Executor executor;
@@ -53,7 +52,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
 
     public NotebookService(SubtitleStudioProperties properties, NovelRepository novels, ChapterRepository chapters,
                            ChapterPageRepository pages,
-                           NovelNotebookRepository notebooks, NotebookUpdater updater, PromptProfileStore profiles,
+                           NovelNotebookRepository notebooks, NotebookUpdater updater, NovelProfileStore profiles,
                            ObjectMapper mapper, TransactionTemplate tx,
                            @Qualifier("translationExecutor") Executor executor, Clock clock) {
         this.gemini = properties.gemini();
