@@ -116,6 +116,7 @@ class ChapterControllerTest {
         when(service.get(4L)).thenThrow(new InvalidPageOrderException());
         when(service.get(5L)).thenThrow(new PageNotFoundException(7));
         when(service.get(6L)).thenThrow(new ChapterTranslationInProgressException(6));
+        when(service.get(7L)).thenThrow(new ChapterPublishedException(7));
 
         expect(1, 404, "CHAPTER_NOT_FOUND");
         expect(2, 400, "INVALID_CHAPTER");
@@ -123,6 +124,7 @@ class ChapterControllerTest {
         expect(4, 400, "INVALID_PAGE_ORDER");
         expect(5, 404, "PAGE_NOT_FOUND");
         expect(6, 409, "TRANSLATION_IN_PROGRESS");
+        expect(7, 409, "CHAPTER_PUBLISHED");
     }
 
     private void expect(long id, int status, String code) throws Exception {

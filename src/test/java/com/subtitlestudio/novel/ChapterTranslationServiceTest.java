@@ -316,13 +316,13 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
-    void retranslatingPublishedChapterSchedulesNotebook() {
+    void publishedChapterCannotBeTranslatedAgain() {
         ChapterDetail c = chapter(4, 1);
         reload(c.id()).setPublishStatus(ChapterPublishStatus.PUBLISHED);
 
-        service.start(c.id());
-
-        assertThat(scheduler.calls).containsExactly(novel.getId() + ":4");
+        assertThatThrownBy(() -> service.start(c.id())).isInstanceOf(ChapterPublishedException.class);
+        assertThat(translator.prompts).isEmpty();
+        assertThat(reload(c.id()).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.NONE);
     }
 
     @Test

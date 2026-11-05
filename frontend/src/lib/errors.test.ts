@@ -30,6 +30,7 @@ describe('errorMessage', () => {
     ['CHAPTER_HAS_NO_PAGES', 'Add page screenshots before translating.'],
     ['CHAPTER_NOT_TRANSLATED', 'Every page needs a translation before publishing.'],
     ['NOTEBOOK_UPDATE_IN_PROGRESS', 'The notebook is being updated.'],
+    ['CHAPTER_PUBLISHED', 'This chapter is published.'],
   ])('maps %s to an English message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
   });

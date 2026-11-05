@@ -285,6 +285,30 @@ class ChapterServiceTest {
     }
 
     @Test
+    void publishedChapterOnlyAcceptsTextAndTitle() {
+        ChapterDetail c = chapterWithPages(3, "a.png", "b.png");
+        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+        List<Long> ids = c.pages().stream().map(PageDto::id).toList();
+
+        assertThatThrownBy(() -> service.addPages(c.id(), List.of(img("c.png"))))
+                .isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.reorder(c.id(), new PageOrderRequest(List.of(ids.get(1), ids.get(0)))))
+                .isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.deletePage(c.id(), ids.get(0)))
+                .isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.update(c.id(), new ChapterUpdateRequest(4, null, null)))
+                .isInstanceOf(ChapterPublishedException.class);
+
+        ChapterDetail edited = service.update(c.id(), new ChapterUpdateRequest(3, "Tựa mới",
+                List.of(new PageTextEdit(ids.get(0), "Sửa chữ"))));
+
+        assertThat(edited.title()).isEqualTo("Tựa mới");
+        assertThat(edited.pages().getFirst().textVi()).isEqualTo("Sửa chữ");
+        assertThat(edited.pages()).extracting(PageDto::id).containsExactlyElementsOf(ids);
+        assertThat(scheduler.calls).containsExactly(novel.getId() + ":3");
+    }
+
+    @Test
     void prevNextIdsFollowChapterNumbers() {
         ChapterDetail one = service.add(novel.getId(), new ChapterRequest(1, null));
         ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));

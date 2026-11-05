@@ -11,6 +11,7 @@ export function PageEditorRow({
   number,
   text,
   locked,
+  fixedPages,
   onText,
   onEnlarge,
   onDelete,
@@ -19,6 +20,8 @@ export function PageEditorRow({
   number: number;
   text: string;
   locked: boolean;
+  /** Published chapter: no reordering or deleting, the text stays editable. */
+  fixedPages: boolean;
   onText: (text: string) => void;
   onEnlarge: () => void;
   onDelete: () => void;
@@ -26,7 +29,7 @@ export function PageEditorRow({
   const id = useId();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: page.id,
-    disabled: locked,
+    disabled: locked || fixedPages,
   });
   return (
     <li
@@ -36,27 +39,31 @@ export function PageEditorRow({
     >
       <div className="page-row__side">
         <span className="page-row__number">{number}</span>
-        <button
-          ref={setActivatorNodeRef}
-          className="button button--icon"
-          type="button"
-          aria-label={`Drag to reorder: page ${number}`}
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="icon" aria-hidden="true" />
-        </button>
-        <Tip label="Delete page">
-          <button
-            className="button button--icon button--danger"
-            type="button"
-            disabled={locked}
-            onClick={onDelete}
-            aria-label={`Delete page ${number}`}
-          >
-            <Trash2 className="icon" aria-hidden="true" />
-          </button>
-        </Tip>
+        {!fixedPages && (
+          <>
+            <button
+              ref={setActivatorNodeRef}
+              className="button button--icon"
+              type="button"
+              aria-label={`Drag to reorder: page ${number}`}
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="icon" aria-hidden="true" />
+            </button>
+            <Tip label="Delete page">
+              <button
+                className="button button--icon button--danger"
+                type="button"
+                disabled={locked}
+                onClick={onDelete}
+                aria-label={`Delete page ${number}`}
+              >
+                <Trash2 className="icon" aria-hidden="true" />
+              </button>
+            </Tip>
+          </>
+        )}
       </div>
       <button className="page-row__shot" type="button" onClick={onEnlarge} aria-label={`Enlarge page ${number}`}>
         <img src={page.mediaUrl} alt="" loading="lazy" />

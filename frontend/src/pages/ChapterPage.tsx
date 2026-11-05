@@ -129,6 +129,8 @@ export default function ChapterPage() {
   const novelPath = `/novels/${chapter.novelId}`;
   const chapterPath = (id: number) => `${novelPath}/chapters/${id}`;
   const locked = translating || busy;
+  // Published: the notebook was built from this chapter, so only its text and title change (Unpublish to do more).
+  const published = chapter.publishStatus === 'PUBLISHED';
 
   async function translate() {
     if (!chapter) return;
@@ -221,11 +223,14 @@ export default function ChapterPage() {
           <StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />
         </div>
         <div className="chapter-head__actions">
-          <button className="button button--primary" type="button" onClick={() => void translate()} disabled={locked || chapter.pages.length === 0}>
-            <Languages className="icon" aria-hidden="true" />
-            {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
-          </button>
-          {chapter.publishStatus === 'PUBLISHED' ? (
+          {!published && (
+            <button className="button button--primary" type="button" onClick={() => void translate()}
+              disabled={locked || chapter.pages.length === 0}>
+              <Languages className="icon" aria-hidden="true" />
+              {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
+            </button>
+          )}
+          {published ? (
             // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
             <button className="button button--small" type="button" disabled={locked || dirty}
               onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
@@ -274,7 +279,7 @@ export default function ChapterPage() {
       <div className="chapter-meta">
         <div className="field">
           <label htmlFor={`${ids}-no`}>Chapter number</label>
-          <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
+          <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked || published}
             onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
         </div>
         <div className="field">
@@ -284,7 +289,13 @@ export default function ChapterPage() {
         </div>
       </div>
 
-      <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
+      {published ? (
+        <p className="chapter-note">
+          This chapter is published: only the text can be edited. Unpublish to change pages or translate again.
+        </p>
+      ) : (
+        <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
+      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={chapter.pages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
@@ -296,6 +307,7 @@ export default function ChapterPage() {
                 number={i + 1}
                 text={drafts[p.id] ?? ''}
                 locked={locked}
+                fixedPages={published}
                 onText={(t) => setDrafts((d) => ({ ...d, [p.id]: t }))}
                 onEnlarge={() => setEnlarged(i)}
                 onDelete={() => void removePage(p, i + 1)}

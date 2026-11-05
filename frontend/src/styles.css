@@ -2620,3 +2620,12 @@ a.tabs__tab {
     gap: 14px;
   }
 }
+
+/* Published chapter: what can still be changed (information = purple). */
+.chapter-note {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--brand-2);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}

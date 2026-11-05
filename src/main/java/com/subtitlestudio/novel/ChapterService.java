@@ -77,6 +77,9 @@ public class ChapterService {
         int no = request.chapterNo() != null ? request.chapterNo() : c.getChapterNo();
         String title = request.title() != null ? validate(no, request.title()) : validate(no, c.getTitle());
         if (no != c.getChapterNo()) {
+            if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
+                throw new ChapterPublishedException(id);
+            }
             chapters.findByNovelIdAndChapterNo(c.getNovel().getId(), no).ifPresent(other -> {
                 throw new DuplicateChapterNumberException(no);
             });
@@ -127,7 +130,7 @@ public class ChapterService {
     /** Appends the screenshots after the existing pages, ordered by file name. */
     @Transactional
     public List<PageDto> addPages(long id, List<NamedImage> files) {
-        Chapter c = editable(id);
+        Chapter c = structural(id);
         if (files == null || files.isEmpty()) {
             throw new InvalidMediaException("No files");
         }
@@ -154,7 +157,7 @@ public class ChapterService {
 
     @Transactional
     public List<PageDto> reorder(long id, PageOrderRequest request) {
-        editable(id);
+        structural(id);
         List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(id);
         List<Long> order = request.pageIds() == null ? List.of() : request.pageIds();
         Map<Long, ChapterPage> byId = new HashMap<>();
@@ -172,7 +175,7 @@ public class ChapterService {
 
     @Transactional
     public void deletePage(long id, long pageId) {
-        Chapter c = editable(id);
+        Chapter c = structural(id);
         List<ChapterPage> ps = new ArrayList<>(pages.findByChapterIdOrderByPosition(id));
         ChapterPage target = ps.stream().filter(p -> p.getId() == pageId).findFirst()
                 .orElseThrow(() -> new PageNotFoundException(pageId));
@@ -195,6 +198,18 @@ public class ChapterService {
         Chapter c = find(id);
         if (c.getTranslationStatus() == ChapterTranslationStatus.TRANSLATING) {
             throw new ChapterTranslationInProgressException(id);
+        }
+        return c;
+    }
+
+    /**
+     * The chapter, when its pages may change: not while translating, and not once published (the notebook was built
+     * from it; Unpublish first).
+     */
+    private Chapter structural(long id) {
+        Chapter c = editable(id);
+        if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
+            throw new ChapterPublishedException(id);
         }
         return c;
     }

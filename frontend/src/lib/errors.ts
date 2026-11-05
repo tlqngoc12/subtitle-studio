@@ -74,6 +74,11 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'The pages changed meanwhile. They have been reloaded.' };
     case 'CHAPTER_HAS_NO_PAGES':
       return { title: 'Add page screenshots before translating.' };
+    case 'CHAPTER_PUBLISHED':
+      return {
+        title: 'This chapter is published.',
+        hint: 'Only its text can be edited. Unpublish it to change pages or translate again.',
+      };
     case 'CHAPTER_NOT_TRANSLATED':
       return { title: 'Every page needs a translation before publishing.' };
     case 'NOTEBOOK_UPDATE_IN_PROGRESS':

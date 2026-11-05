@@ -77,6 +77,9 @@ public class ChapterTranslationService {
     public ChapterDetail start(long chapterId) {
         ChapterDetail started = tx.execute(status -> {
             Chapter c = chapterService.find(chapterId);
+            if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
+                throw new ChapterPublishedException(chapterId);
+            }
             if (!gemini.configured()) {
                 throw new GeminiNotConfiguredException("chapter " + chapterId);
             }

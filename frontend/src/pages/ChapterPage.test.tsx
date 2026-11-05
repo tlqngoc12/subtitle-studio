@@ -253,6 +253,34 @@ describe('ChapterPage', () => {
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeDisabled();
   });
 
+  it('only lets the text and title of a published chapter change', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+
+    expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
+    expect(screen.getByLabelText('Page 1 translation')).toBeEnabled();
+    expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
+    expect(screen.getByLabelText('Chapter number')).toBeDisabled();
+    expect(screen.queryByLabelText('Add page screenshots')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Drag to reorder: page 1' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete page 1' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enlarge page 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
+  });
+
+  it('keeps every control on a draft chapter', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(screen.queryByText(/This chapter is published/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Chapter number')).toBeEnabled();
+    expect(screen.getByLabelText('Add page screenshots')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Translate again' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Drag to reorder: page 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete page 1' })).toBeInTheDocument();
+  });
+
   it('links to the neighbouring chapters', async () => {
     renderPage([get({ prevChapterId: 8, nextChapterId: 10 })]);
     await loaded();

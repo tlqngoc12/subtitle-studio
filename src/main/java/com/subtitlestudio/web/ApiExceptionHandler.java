@@ -3,6 +3,7 @@ package com.subtitlestudio.web;
 import com.subtitlestudio.novel.ChapterHasNoPagesException;
 import com.subtitlestudio.novel.ChapterNotFoundException;
 import com.subtitlestudio.novel.ChapterNotTranslatedException;
+import com.subtitlestudio.novel.ChapterPublishedException;
 import com.subtitlestudio.novel.ChapterTranslationInProgressException;
 import com.subtitlestudio.novel.DuplicateChapterNumberException;
 import com.subtitlestudio.novel.DuplicateNovelSlugException;
@@ -175,6 +176,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ChapterTranslationInProgressException.class)
     ProblemDetail chapterTranslationInProgress(ChapterTranslationInProgressException e) {
         return problem(HttpStatus.CONFLICT, "TRANSLATION_IN_PROGRESS", e.getMessage());
+    }
+
+    @ExceptionHandler(ChapterPublishedException.class)
+    ProblemDetail chapterPublished(ChapterPublishedException e) {
+        return problem(HttpStatus.CONFLICT, "CHAPTER_PUBLISHED", e.getMessage());
     }
 
     @ExceptionHandler(ChapterHasNoPagesException.class)
