@@ -4,6 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.novel.Chapter;
+import com.subtitlestudio.novel.ChapterPage;
+import com.subtitlestudio.novel.ChapterPageRepository;
+import com.subtitlestudio.novel.ChapterRepository;
+import com.subtitlestudio.novel.Novel;
+import com.subtitlestudio.novel.NovelRepository;
+import com.subtitlestudio.novel.NovelStatus;
 import com.subtitlestudio.test.MutableClock;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -81,8 +88,20 @@ class MediaServiceTest {
         clock.reset();
     }
 
+    @Autowired
+    private NovelRepository novels;
+
+    @Autowired
+    private ChapterRepository chapters;
+
+    @Autowired
+    private ChapterPageRepository chapterPages;
+
     @AfterEach
     void cleanUp() throws IOException {
+        chapterPages.deleteAll();
+        chapters.deleteAll();
+        novels.deleteAll();
         blocks.deleteAll();
         media.deleteAll();
         Path dir = dataDir.resolve("media");
@@ -223,6 +242,38 @@ class MediaServiceTest {
         assertThat(media.findAll()).extracting(Media::getId).containsExactly(used.getId());
         assertThat(fileOf(free, "png")).doesNotExist();
         assertThat(fileOf(used, "png")).exists();
+    }
+
+    @Test
+    void abandonedCleanupKeepsNovelCoverAndChapterPages() {
+        Media cover = storeAt(NOW.minus(Duration.ofHours(25)));
+        Media page = storeAt(NOW.minus(Duration.ofHours(25)));
+        Media abandoned = storeAt(NOW.minus(Duration.ofHours(25)));
+        useAsNovelCoverAndPage(cover, page);
+
+        assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isEqualTo(1);
+
+        assertThat(media.findAll()).extracting(Media::getId).containsExactlyInAnyOrder(cover.getId(), page.getId());
+        assertThat(fileOf(abandoned, "png")).doesNotExist();
+    }
+
+    @Test
+    void deleteIfUnreferencedKeepsNovelImages() {
+        Media cover = service.store("c.png", ImageSnifferTest.PNG);
+        Media page = service.store("p.png", ImageSnifferTest.PNG);
+        useAsNovelCoverAndPage(cover, page);
+
+        service.deleteIfUnreferenced(List.of(cover.getId(), page.getId()));
+
+        assertThat(media.findAll()).extracting(Media::getId).containsExactlyInAnyOrder(cover.getId(), page.getId());
+    }
+
+    private void useAsNovelCoverAndPage(Media cover, Media page) {
+        Novel novel = new Novel("n-" + cover.getId(), "N", NovelStatus.ONGOING, NOW);
+        novel.setCover(cover);
+        novels.saveAndFlush(novel);
+        Chapter chapter = chapters.saveAndFlush(new Chapter(novel, 1, null, NOW));
+        chapterPages.saveAndFlush(new ChapterPage(chapter, 1, page));
     }
 
     @Test

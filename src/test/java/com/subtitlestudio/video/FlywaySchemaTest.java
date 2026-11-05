@@ -52,6 +52,13 @@ class FlywaySchemaTest {
     }
 
     @Test
+    void appliesV5Migration() {
+        assertThat(jdbc.queryForObject(
+                "select count(*) from \"flyway_schema_history\" where \"version\" = '5' and \"success\" = true",
+                Integer.class)).isEqualTo(1);
+    }
+
+    @Test
     void seedsThreeProfiles() {
         assertThat(jdbc.queryForList("select slug from t_profile order by id", String.class))
                 .containsExactly("emibonnie", "emi", "bonnie");

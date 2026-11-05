@@ -7,13 +7,26 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
+import org.springframework.util.unit.DataSize;
 import org.springframework.validation.annotation.Validated;
 
 /** Application settings bound from the {@code subtitle-studio.*} prefix in application.yml. */
 @Validated
 @ConfigurationProperties(prefix = "subtitle-studio")
 public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Path dataDir, @Valid @NotNull Gemini gemini,
-                                       @Valid @NotNull Publish publish) {
+                                       @Valid @NotNull Publish publish, @Valid Novel novel) {
+
+    /** Missing {@code novel} settings fall back to {@link Novel#defaults()}. */
+    @ConstructorBinding
+    public SubtitleStudioProperties {
+        novel = novel == null ? Novel.defaults() : novel;
+    }
+
+    /** For tests and callers that do not care about novels. */
+    public SubtitleStudioProperties(Ytdlp ytdlp, Path dataDir, Gemini gemini, Publish publish) {
+        this(ytdlp, dataDir, gemini, publish, Novel.defaults());
+    }
 
     /** Directory holding the original downloaded .vtt files: {@code {dataDir}/subs}. */
     public Path subsDir() {
@@ -28,6 +41,42 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
     /** Directory holding uploaded profile images: {@code {dataDir}/media}. */
     public Path mediaDir() {
         return dataDir.resolve("media");
+    }
+
+    /** Cache of chapter images drawn for the public site: {@code {dataDir}/novel-render}. */
+    public Path novelRenderDir() {
+        return dataDir.resolve("novel-render");
+    }
+
+    /**
+     * Novels: how many page screenshots go to Gemini per request, the upload limit, how chapters are drawn for the
+     * public site, and the watermark text (blank = the public site's host).
+     */
+    public record Novel(int pagesPerRequest, DataSize maxPageImageSize, @Valid Render render, String watermarkText) {
+
+        public Novel {
+            pagesPerRequest = pagesPerRequest <= 0 ? 20 : pagesPerRequest;
+            maxPageImageSize = maxPageImageSize == null ? DataSize.ofMegabytes(10) : maxPageImageSize;
+            render = render == null ? Render.defaults() : render;
+            watermarkText = watermarkText == null ? "" : watermarkText;
+        }
+
+        public static Novel defaults() {
+            return new Novel(20, DataSize.ofMegabytes(10), Render.defaults(), "");
+        }
+
+        public record Render(int width, int height, int fontSize) {
+
+            public Render {
+                width = width <= 0 ? 1080 : width;
+                height = height <= 0 ? 1600 : height;
+                fontSize = fontSize <= 0 ? 44 : fontSize;
+            }
+
+            public static Render defaults() {
+                return new Render(1080, 1600, 44);
+            }
+        }
     }
 
     public record Ytdlp(@NotBlank String path, @NotNull Duration timeout) {}

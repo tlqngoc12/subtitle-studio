@@ -30,9 +30,10 @@ spring:
       enabled: true
   servlet:
     multipart:
-      # 10 MB for profile images; VietsubService still limits .srt files to 5 MB.
+      # 10 MB per file (profile images, chapter screenshots); VietsubService still limits .srt files to 5 MB.
+      # A request may carry many chapter screenshots at once.
       max-file-size: 10MB
-      max-request-size: 10MB
+      max-request-size: 300MB
 
 subtitle-studio:
   ytdlp:
@@ -59,6 +60,18 @@ subtitle-studio:
     indexable: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:false}
     wrangler-path: ${SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH:wrangler}
     timeout: 5m
+  # Novels translated from page screenshots (Novels menu).
+  novel:
+    # Screenshots sent to Gemini per request; longer chapters go in several requests.
+    pages-per-request: 20
+    max-page-image-size: 10MB
+    # How chapters are drawn as images for the public site (px).
+    render:
+      width: 1080
+      height: 1600
+      font-size: 44
+    # Watermark on public chapter images; empty = the public site's host (<project>.pages.dev).
+    watermark-text: ${SUBTITLESTUDIO_NOVEL_WATERMARK:}
 
 # Log to the console (docker compose logs) and to a file that survives container rebuilds:
 # {data-dir}/logs/app.log, i.e. ./data/logs on the host. Rolled daily and at 10 MB (app.log.YYYY-MM-DD.N.gz),
