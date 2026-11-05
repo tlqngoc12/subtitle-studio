@@ -22,7 +22,7 @@ const PROFILE: Section = { to: '/profiles', label: 'Profile', isCurrent: (p) => 
 const NOVELS: Section = { to: '/novels', label: 'Novels', isCurrent: (p) => p === '/novels' || p.startsWith('/novels/') };
 
 /** Guests only read: no Get Engsub, no Vietsub management. */
-const PUBLIC_SECTIONS: Section[] = [VIETSUB_LIST, PROFILE];
+const PUBLIC_SECTIONS: Section[] = [VIETSUB_LIST, PROFILE, NOVELS];
 
 const ADMIN_SECTIONS: Section[] = [
   { to: '/', label: 'Get Engsub', isCurrent: (p: string) => p === '/' },

@@ -8,29 +8,34 @@ interface VideoFile {
 }
 
 /**
+ * Reads `${base}data/${path}`. A missing file answers like the API would (404 with `notFoundCode`); so does the SPA
+ * page Cloudflare Pages serves for a missing file (200, text/html).
+ */
+export async function readStaticJson<T>(base: string, path: string, notFoundCode: string | null = null): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${base}data/${path}`);
+  } catch (e) {
+    throw new ApiError(0, 'NETWORK', e instanceof Error ? e.message : String(e));
+  }
+  const isJson = (res.headers.get('Content-Type') ?? '').includes('json');
+  if (res.status === 404 || (res.ok && !isJson)) {
+    throw new ApiError(404, notFoundCode, `Not found: ${path}`);
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, null, `Could not load ${path}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/**
  * The public site's data: JSON files written by Publish under `${base}data/`. A missing file answers like the
  * API would (404 with the matching code), so pages show the same "not found" messages.
  */
 export function createStaticSource(base = '/'): ReadSource {
   const videoFiles = new Map<string, Promise<VideoFile>>();
 
-  async function read<T>(path: string, notFoundCode: string | null = null): Promise<T> {
-    let res: Response;
-    try {
-      res = await fetch(`${base}data/${path}`);
-    } catch (e) {
-      throw new ApiError(0, 'NETWORK', e instanceof Error ? e.message : String(e));
-    }
-    // Cloudflare Pages answers a missing file with the SPA's index.html (200, text/html): treat that as 404 too.
-    const isJson = (res.headers.get('Content-Type') ?? '').includes('json');
-    if (res.status === 404 || (res.ok && !isJson)) {
-      throw new ApiError(404, notFoundCode, `Not found: ${path}`);
-    }
-    if (!res.ok) {
-      throw new ApiError(res.status, null, `Could not load ${path}`);
-    }
-    return res.json() as Promise<T>;
-  }
+  const read = <T,>(path: string, notFoundCode: string | null = null) => readStaticJson<T>(base, path, notFoundCode);
 
   function videoFile(id: string): Promise<VideoFile> {
     let file = videoFiles.get(id);

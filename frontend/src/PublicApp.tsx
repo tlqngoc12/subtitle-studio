@@ -4,9 +4,13 @@ import { Navigate, Route, Routes } from 'react-router';
 import { NavBar } from './components/NavBar';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteProvider, type Site } from './data/SiteContext';
+import { createNovelSource } from './data/novelSource';
 import { createStaticSource } from './data/staticSource';
 import NotFoundPage from './pages/NotFoundPage';
 import ProfilePage from './pages/ProfilePage';
+import PublicNovelPage from './pages/public/PublicNovelPage';
+import PublicNovelsPage from './pages/public/PublicNovelsPage';
+import ReaderPage from './pages/public/ReaderPage';
 import VietsubListPage from './pages/VietsubListPage';
 import WatchPage from './pages/WatchPage';
 
@@ -16,6 +20,7 @@ export default function PublicApp() {
     () => ({ source: createStaticSource(), readOnly: true, homePath: '/vietsub/list' }),
     [],
   );
+  const novels = useMemo(() => createNovelSource(), []);
   return (
     <SiteProvider value={site}>
       <MotionConfig reducedMotion="user">
@@ -26,6 +31,9 @@ export default function PublicApp() {
           <Route path="/vietsub/:id" element={<WatchPage />} />
           <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
           <Route path="/profiles/:slug" element={<ProfilePage />} />
+          <Route path="/novels" element={<PublicNovelsPage source={novels} />} />
+          <Route path="/novels/:slug" element={<PublicNovelPage source={novels} />} />
+          <Route path="/novels/:slug/:chapterNo" element={<ReaderPage source={novels} />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <SiteFooter />

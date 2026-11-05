@@ -13,6 +13,12 @@ const FILES: Record<string, unknown> = {
   '/data/site.json': { publishedAt: '2026-11-04T10:00:00Z', year: 2026 },
   '/data/videos.json': [VIDEO],
   '/data/playlists.json': [],
+  '/data/novels.json': [],
+  '/data/novels/abc.json': {
+    slug: 'abc', title: 'ABC', coverUrl: null, originalAuthor: null, description: null, tags: [], novelStatus: 'ONGOING',
+    translatorCredit: null, sourceUrl: null, chapters: [{ chapterNo: 2, title: null }],
+  },
+  '/data/novels/abc/2.json': { chapterNo: 2, title: null, prev: null, next: null, images: ['/novels/abc/x-1.webp'] },
   '/data/profiles.json': [{ slug: 'emibonnie', displayName: 'EmiBonnie' }, { slug: 'emi', displayName: 'Emi' }],
   '/data/profiles/emi.json': {
     slug: 'emi', displayName: 'Emi', updatedAt: 'x',
@@ -59,7 +65,7 @@ describe('PublicApp', () => {
     renderAt('/vietsub/list');
 
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile']);
+    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile', 'Novels']);
     expect(screen.queryByRole('button', { name: /Publish/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toHaveAttribute('href', '/vietsub/list');
     await screen.findByText(/No playlists yet\./);
@@ -85,5 +91,11 @@ describe('PublicApp', () => {
 
     expect(await screen.findByText('Trang của Emi')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('readerOpensAChapter', async () => {
+    renderAt('/novels/abc/2');
+
+    expect(await screen.findByRole('img', { name: 'Chapter 2, page 1 of 1' })).toHaveAttribute('src', '/novels/abc/x-1.webp');
   });
 });

@@ -2456,3 +2456,165 @@ a.tabs__tab {
     min-height: 44px;
   }
 }
+
+/* ---------- Novels (public) ---------- */
+
+.novel-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-block: 8px 20px;
+}
+
+.novel-hero__cover {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+
+.novel-hero__text {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.novel-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.novel-facts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.novel-facts div {
+  display: flex;
+  gap: 8px;
+}
+
+.novel-facts dt {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.novel-facts dd {
+  margin: 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.novel-description {
+  max-width: 70ch;
+  white-space: pre-line;
+}
+
+.reader-page {
+  max-width: 720px;
+}
+
+.reader__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.reader__title {
+  margin: 0;
+  font-size: var(--step-2);
+}
+
+.reader__select {
+  min-width: 200px;
+}
+
+/* The selected chapter in the list uses the "you are here" colour. */
+.reader__select select:focus {
+  border-color: var(--brand-2);
+}
+
+.reader__nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block: 12px;
+}
+
+.reader__nav .button {
+  min-height: 44px;
+}
+
+/* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
+.reader {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  max-width: 600px;
+  margin-inline: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.reader__page {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  pointer-events: none;
+  transition: filter 0.2s;
+}
+
+.reader__shield {
+  position: absolute;
+  inset: 0;
+}
+
+.reader--hidden .reader__page {
+  filter: blur(24px);
+}
+
+.reader-print-note {
+  display: none;
+}
+
+@media print {
+  .reader,
+  .reader__nav,
+  .reader__head {
+    display: none !important;
+  }
+
+  .reader-print-note {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader__page {
+    transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .novel-hero {
+    grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
+    gap: 14px;
+  }
+}
