@@ -1,0 +1,407 @@
+package com.subtitlestudio.novel;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.profile.ImageSniffer;
+import com.subtitlestudio.profile.MediaService;
+import com.subtitlestudio.test.MutableClock;
+import com.subtitlestudio.translate.GeminiNotConfiguredException;
+import com.subtitlestudio.translate.PromptProfileStore;
+import com.subtitlestudio.translate.TranslationFailedException;
+import com.subtitlestudio.translate.UnknownProfileException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.stream.IntStream;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
+@Import({ChapterTranslationService.class, ChapterService.class, MediaService.class, ImageSniffer.class,
+    PromptProfileStore.class, PageImagePreparer.class, ChapterTranslationServiceTest.Config.class})
+class ChapterTranslationServiceTest {
+
+    static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
+
+    @TempDir
+    static Path dataDir;
+
+    /** Replies "T{page} xxx…" ({@code length} chars) for each page; can fail or run an action on a given call. */
+    static class FakeTranslator implements ChapterTranslator {
+        final List<ChapterPrompt> prompts = new ArrayList<>();
+        int length = 3_000;
+        int failOnCall = -1;
+        Runnable beforeReturn;
+
+        @Override
+        public List<TranslatedPage> translate(ChapterPrompt prompt) {
+            prompts.add(prompt);
+            if (prompts.size() == failOnCall) {
+                throw new TranslationFailedException(
+                        "Gemini is busy right now (high demand), try again in a few minutes.");
+            }
+            if (beforeReturn != null) {
+                beforeReturn.run();
+            }
+            return prompt.pages().stream()
+                    .map(p -> new TranslatedPage(p.page(), pad("T" + p.page() + " ")))
+                    .toList();
+        }
+
+        private String pad(String s) {
+            return s + "x".repeat(Math.max(0, length - s.length()));
+        }
+    }
+
+    static class RecordingScheduler implements NotebookScheduler {
+        final List<String> calls = new ArrayList<>();
+
+        @Override
+        public void scheduleUpdate(long novelId, int chapterNo) {
+            calls.add(novelId + ":" + chapterNo);
+        }
+    }
+
+    static class FakeNotebookSource implements NotebookPromptSource {
+        final List<String> asked = new ArrayList<>();
+
+        @Override
+        public String textBefore(long novelId, int chapterNo) {
+            asked.add(novelId + ":" + chapterNo);
+            return "## Nhân vật\nA";
+        }
+    }
+
+    @TestConfiguration
+    static class Config {
+        @Bean
+        MutableClock clock() {
+            return new MutableClock(NOW);
+        }
+
+        @Bean
+        FakeTranslator translator() {
+            return new FakeTranslator();
+        }
+
+        @Bean
+        @Primary
+        RecordingScheduler scheduler() {
+            return new RecordingScheduler();
+        }
+
+        @Bean
+        @Primary
+        FakeNotebookSource notebookSource() {
+            return new FakeNotebookSource();
+        }
+
+        @Bean(name = "translationExecutor")
+        Executor translationExecutor() {
+            return Runnable::run;
+        }
+
+        @Bean
+        SubtitleStudioProperties properties() {
+            return propertiesWithKey("key");
+        }
+    }
+
+    static SubtitleStudioProperties propertiesWithKey(String apiKey) {
+        return new SubtitleStudioProperties(
+                new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
+                new SubtitleStudioProperties.Gemini(apiKey, "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3,
+                        List.of()),
+                new SubtitleStudioProperties.Publish("", "", "", false, "wrangler", Duration.ofMinutes(5)));
+    }
+
+    @BeforeAll
+    static void profiles() throws IOException {
+        Files.createDirectories(dataDir.resolve("prompts"));
+        Files.writeString(dataDir.resolve("prompts/SummerLove.md"), "Ngôn ngữ gốc: tiếng Thái");
+    }
+
+    @Autowired
+    private ChapterTranslationService service;
+
+    @Autowired
+    private ChapterService chapterService;
+
+    @Autowired
+    private NovelRepository novels;
+
+    @Autowired
+    private ChapterRepository chapters;
+
+    @Autowired
+    private ChapterPageRepository pages;
+
+    @Autowired
+    private FakeTranslator translator;
+
+    @Autowired
+    private RecordingScheduler scheduler;
+
+    @Autowired
+    private FakeNotebookSource notebookSource;
+
+    @Autowired
+    private PromptProfileStore profiles;
+
+    @Autowired
+    private MediaService mediaService;
+
+    @Autowired
+    private PageImagePreparer preparer;
+
+    @Autowired
+    private TransactionTemplate tx;
+
+    @Autowired
+    private MutableClock clock;
+
+    private Novel novel;
+
+    @BeforeEach
+    void setUp() {
+        translator.prompts.clear();
+        translator.length = 3_000;
+        translator.failOnCall = -1;
+        translator.beforeReturn = null;
+        scheduler.calls.clear();
+        notebookSource.asked.clear();
+        Novel n = new Novel("n", "Tình Yêu", NovelStatus.ONGOING, NOW);
+        n.setPromptProfile("SummerLove");
+        novel = novels.save(n);
+    }
+
+    private ChapterDetail chapter(int no, int pageCount) {
+        ChapterDetail c = chapterService.add(novel.getId(), new ChapterRequest(no, null));
+        if (pageCount > 0) {
+            chapterService.addPages(c.id(), IntStream.rangeClosed(1, pageCount)
+                    .mapToObj(i -> new NamedImage("p" + i + ".png", TestImages.png())).toList());
+        }
+        return chapterService.get(c.id());
+    }
+
+    private void setTexts(long chapterId, String text) {
+        pages.findByChapterIdOrderByPosition(chapterId).forEach(p -> p.setTextVi(text));
+        pages.flush();
+    }
+
+    private Chapter reload(long id) {
+        return chapters.findById(id).orElseThrow();
+    }
+
+    @Test
+    void geminiNotConfiguredComesFirst() {
+        ChapterTranslationService off = new ChapterTranslationService(propertiesWithKey(""), profiles, translator, preparer,
+                mediaService, chapters, pages, notebookSource, scheduler, chapterService, tx, Runnable::run,
+                clock);
+
+        assertThatThrownBy(() -> off.start(chapter(1, 0).id())).isInstanceOf(GeminiNotConfiguredException.class);
+    }
+
+    @Test
+    void checksInOrder() {
+        novel.setPromptProfile(null);
+        ChapterDetail empty = chapter(1, 0);
+        assertThatThrownBy(() -> service.start(empty.id())).isInstanceOf(UnknownProfileException.class);
+        novel.setPromptProfile("Gone");
+        assertThatThrownBy(() -> service.start(empty.id())).isInstanceOf(UnknownProfileException.class);
+        novel.setPromptProfile("SummerLove");
+        assertThatThrownBy(() -> service.start(empty.id())).isInstanceOf(ChapterHasNoPagesException.class);
+
+        ChapterDetail c = chapter(2, 1);
+        reload(c.id()).setTranslationStatus(ChapterTranslationStatus.TRANSLATING);
+        assertThatThrownBy(() -> service.start(c.id())).isInstanceOf(ChapterTranslationInProgressException.class);
+        assertThatThrownBy(() -> service.start(999)).isInstanceOf(ChapterNotFoundException.class);
+    }
+
+    @Test
+    void translatesInBatchesWithCarryOver() {
+        ChapterDetail c = chapter(1, 45);
+
+        ChapterDetail started = service.start(c.id());
+
+        assertThat(started.translationStatus()).isIn(ChapterTranslationStatus.TRANSLATING,
+                ChapterTranslationStatus.TRANSLATED);
+        assertThat(translator.prompts).hasSize(3);
+        assertThat(translator.prompts.get(0).pages()).hasSize(20);
+        assertThat(translator.prompts.get(0).carryOver()).isNull();
+        assertThat(translator.prompts.get(1).carryOver()).hasSize(2_000).endsWith("x");
+        assertThat(translator.prompts.get(2).pages()).extracting(PageImage::page).startsWith(41).endsWith(45);
+        assertThat(translator.prompts.get(0).profile()).isEqualTo("Ngôn ngữ gốc: tiếng Thái");
+        assertThat(translator.prompts.get(0).novelTitle()).isEqualTo("Tình Yêu");
+        Chapter done = reload(c.id());
+        assertThat(done.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(done.getTranslatedAt()).isEqualTo(NOW);
+        assertThat(done.isEditedAfterTranslation()).isFalse();
+        List<ChapterPage> result = pages.findByChapterIdOrderByPosition(c.id());
+        assertThat(result.getFirst().getTextVi()).startsWith("T1 ");
+        assertThat(result.get(44).getTextVi()).startsWith("T45 ");
+    }
+
+    @Test
+    void usesNotebookBeforeAndPreviousChapterText() {
+        ChapterDetail two = chapter(2, 1);
+        setTexts(two.id(), "Bản nháp chương hai");
+        ChapterDetail three = chapter(3, 1);
+
+        service.start(three.id());
+
+        assertThat(notebookSource.asked).containsExactly(novel.getId() + ":3");
+        assertThat(translator.prompts.getFirst().notebookText()).isEqualTo("## Nhân vật\nA");
+        assertThat(translator.prompts.getFirst().previousText()).isEqualTo("Bản nháp chương hai");
+        assertThat(translator.prompts.getFirst().chapterNo()).isEqualTo(3);
+    }
+
+    @Test
+    void previousChapterNeedsEveryPageTranslated() {
+        ChapterDetail one = chapter(1, 1);
+        setTexts(one.id(), "Chương một");
+        chapter(2, 2);
+        ChapterDetail three = chapter(3, 1);
+
+        service.start(three.id());
+
+        assertThat(translator.prompts.getFirst().previousText()).isEqualTo("Chương một");
+    }
+
+    @Test
+    void previousTextIsTail20000() {
+        ChapterDetail one = chapter(1, 1);
+        setTexts(one.id(), "a".repeat(5_000) + "b".repeat(20_000));
+        ChapterDetail two = chapter(2, 1);
+
+        service.start(two.id());
+
+        assertThat(translator.prompts.getFirst().previousText()).isEqualTo("b".repeat(20_000));
+    }
+
+    @Test
+    void failureKeepsOldText() {
+        ChapterDetail c = chapter(1, 25);
+        setTexts(c.id(), "cũ");
+        translator.failOnCall = 2;
+
+        service.start(c.id());
+
+        Chapter failed = reload(c.id());
+        assertThat(failed.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(failed.getTranslationError())
+                .isEqualTo("Gemini is busy right now (high demand), try again in a few minutes.");
+        assertThat(pages.findByChapterIdOrderByPosition(c.id())).extracting(ChapterPage::getTextVi)
+                .containsOnly("cũ");
+    }
+
+    @Test
+    void retranslatingPublishedChapterSchedulesNotebook() {
+        ChapterDetail c = chapter(4, 1);
+        reload(c.id()).setPublishStatus(ChapterPublishStatus.PUBLISHED);
+
+        service.start(c.id());
+
+        assertThat(scheduler.calls).containsExactly(novel.getId() + ":4");
+    }
+
+    @Test
+    void draftTranslationDoesNotScheduleNotebook() {
+        service.start(chapter(1, 1).id());
+
+        assertThat(scheduler.calls).isEmpty();
+    }
+
+    @Test
+    void restartMarksInterrupted() {
+        ChapterDetail c = chapter(1, 1);
+        reload(c.id()).setTranslationStatus(ChapterTranslationStatus.TRANSLATING);
+        chapters.flush();
+
+        service.markInterrupted();
+
+        Chapter after = reload(c.id());
+        assertThat(after.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(after.getTranslationError()).isEqualTo("Translation was interrupted.");
+    }
+
+    @Test
+    void chapterDeletedMidTranslationEndsQuietly() {
+        ChapterDetail c = chapter(1, 2);
+        translator.beforeReturn = () -> {
+            pages.deleteAll(pages.findByChapterIdOrderByPosition(c.id()));
+            chapters.deleteById(c.id());
+            chapters.flush();
+        };
+
+        service.start(c.id());
+
+        assertThat(chapters.findById(c.id())).isEmpty();
+        assertThat(pages.findByChapterIdOrderByPosition(c.id())).isEmpty();
+    }
+
+    @Test
+    void publishRequiresAllPagesTranslated() {
+        ChapterDetail empty = chapter(1, 0);
+        assertThatThrownBy(() -> service.publish(empty.id())).isInstanceOf(ChapterNotTranslatedException.class);
+
+        ChapterDetail c = chapter(2, 2);
+        pages.findByChapterIdOrderByPosition(c.id()).getFirst().setTextVi("Một");
+        assertThatThrownBy(() -> service.publish(c.id())).isInstanceOf(ChapterNotTranslatedException.class);
+        assertThat(scheduler.calls).isEmpty();
+    }
+
+    @Test
+    void publishSchedulesNotebook() {
+        ChapterDetail c = chapter(3, 2);
+        setTexts(c.id(), "Xong");
+
+        ChapterDetail published = service.publish(c.id());
+
+        assertThat(published.publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
+        assertThat(reload(c.id()).getPublishedAt()).isEqualTo(NOW);
+        assertThat(scheduler.calls).containsExactly(novel.getId() + ":3");
+    }
+
+    @Test
+    void publishWhileTranslatingIsBlocked() {
+        ChapterDetail c = chapter(1, 1);
+        setTexts(c.id(), "Xong");
+        reload(c.id()).setTranslationStatus(ChapterTranslationStatus.TRANSLATING);
+
+        assertThatThrownBy(() -> service.publish(c.id())).isInstanceOf(ChapterTranslationInProgressException.class);
+    }
+
+    @Test
+    void unpublishKeepsNotebook() {
+        ChapterDetail c = chapter(3, 1);
+        setTexts(c.id(), "Xong");
+        service.publish(c.id());
+        scheduler.calls.clear();
+
+        ChapterDetail draft = service.unpublish(c.id());
+
+        assertThat(draft.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+        assertThat(scheduler.calls).isEmpty();
+    }
+}

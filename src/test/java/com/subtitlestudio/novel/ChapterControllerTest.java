@@ -40,6 +40,36 @@ class ChapterControllerTest {
     @MockitoBean
     private ChapterService service;
 
+    @MockitoBean
+    private ChapterTranslationService translation;
+
+    @Test
+    void translatePublishUnpublish() throws Exception {
+        when(translation.start(9L)).thenReturn(DETAIL);
+        when(translation.publish(9L)).thenReturn(DETAIL);
+        when(translation.unpublish(9L)).thenReturn(DETAIL);
+
+        mvc.perform(post("/api/chapters/9/translate")).andExpect(status().isAccepted());
+        mvc.perform(post("/api/chapters/9/publish")).andExpect(status().isOk());
+        mvc.perform(post("/api/chapters/9/unpublish")).andExpect(status().isOk());
+    }
+
+    @Test
+    void translationErrorCodes() throws Exception {
+        when(translation.start(1L)).thenThrow(new ChapterHasNoPagesException(1));
+        when(translation.publish(1L)).thenThrow(new ChapterNotTranslatedException(1));
+        when(translation.start(2L)).thenThrow(new com.subtitlestudio.translate.GeminiNotConfiguredException("x"));
+        when(translation.start(3L)).thenThrow(new com.subtitlestudio.translate.UnknownProfileException("x"));
+
+        mvc.perform(post("/api/chapters/1/translate")).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("CHAPTER_HAS_NO_PAGES"));
+        mvc.perform(post("/api/chapters/1/publish")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHAPTER_NOT_TRANSLATED"));
+        mvc.perform(post("/api/chapters/2/translate")).andExpect(jsonPath("$.code").value("GEMINI_NOT_CONFIGURED"));
+        mvc.perform(post("/api/chapters/3/translate")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_PROFILE"));
+    }
+
     @Test
     void addsChapter() throws Exception {
         when(service.add(eq(3L), any())).thenReturn(DETAIL);

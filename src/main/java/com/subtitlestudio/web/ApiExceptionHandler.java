@@ -1,6 +1,8 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.novel.ChapterHasNoPagesException;
 import com.subtitlestudio.novel.ChapterNotFoundException;
+import com.subtitlestudio.novel.ChapterNotTranslatedException;
 import com.subtitlestudio.novel.ChapterTranslationInProgressException;
 import com.subtitlestudio.novel.DuplicateChapterNumberException;
 import com.subtitlestudio.novel.DuplicateNovelSlugException;
@@ -172,6 +174,16 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ChapterTranslationInProgressException.class)
     ProblemDetail chapterTranslationInProgress(ChapterTranslationInProgressException e) {
         return problem(HttpStatus.CONFLICT, "TRANSLATION_IN_PROGRESS", e.getMessage());
+    }
+
+    @ExceptionHandler(ChapterHasNoPagesException.class)
+    ProblemDetail chapterHasNoPages(ChapterHasNoPagesException e) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "CHAPTER_HAS_NO_PAGES", e.getMessage());
+    }
+
+    @ExceptionHandler(ChapterNotTranslatedException.class)
+    ProblemDetail chapterNotTranslated(ChapterNotTranslatedException e) {
+        return problem(HttpStatus.CONFLICT, "CHAPTER_NOT_TRANSLATED", e.getMessage());
     }
 
     @ExceptionHandler(PlaylistNotFoundException.class)

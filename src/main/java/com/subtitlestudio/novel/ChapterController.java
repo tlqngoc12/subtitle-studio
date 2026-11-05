@@ -22,9 +22,27 @@ import org.springframework.web.multipart.MultipartFile;
 public class ChapterController {
 
     private final ChapterService service;
+    private final ChapterTranslationService translation;
 
-    public ChapterController(ChapterService service) {
+    public ChapterController(ChapterService service, ChapterTranslationService translation) {
         this.service = service;
+        this.translation = translation;
+    }
+
+    @PostMapping("/api/chapters/{id}/translate")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ChapterDetail translate(@PathVariable long id) {
+        return translation.start(id);
+    }
+
+    @PostMapping("/api/chapters/{id}/publish")
+    public ChapterDetail publish(@PathVariable long id) {
+        return translation.publish(id);
+    }
+
+    @PostMapping("/api/chapters/{id}/unpublish")
+    public ChapterDetail unpublish(@PathVariable long id) {
+        return translation.unpublish(id);
     }
 
     @PostMapping("/api/novels/{novelId}/chapters")
