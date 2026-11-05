@@ -205,7 +205,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
         novel.setNotebookPendingChapterNo(chapterNo);
         Chapter chapter = chapters.findByNovelIdAndChapterNo(novelId, chapterNo).orElse(null);
         List<ChapterPage> ps = chapter == null ? List.of() : pages.findByChapterIdOrderByPosition(chapter.getId());
-        if (ps.isEmpty() || ps.stream().anyMatch(p -> p.getTextVi() == null || p.getTextVi().isBlank())) {
+        if (chapter == null || !ChapterText.complete(chapter, ps)) {
             failInTx(novel, "Chapter " + chapterNo + " has no complete translation to update the notebook from.");
             return null;
         }
@@ -214,7 +214,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
                 .map(n -> parse(n.getContentJson())).orElse(null);
         return new Job(profile(novel), old == null ? null : NotebookText.render(old, NotebookText.MAX_CHARS),
                 old == null ? NotebookContent.EMPTY : old,
-                String.join("\n\n", ps.stream().map(ChapterPage::getTextVi).toList()));
+                ChapterText.of(chapter, ps));
     }
 
     private void save(long novelId, int chapterNo, NotebookContent content) {

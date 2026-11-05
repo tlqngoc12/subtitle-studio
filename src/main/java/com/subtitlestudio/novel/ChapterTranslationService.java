@@ -109,8 +109,7 @@ public class ChapterTranslationService {
             if (c.getTranslationStatus() == ChapterTranslationStatus.TRANSLATING) {
                 throw new ChapterTranslationInProgressException(chapterId);
             }
-            List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(chapterId);
-            if (ps.isEmpty() || ps.stream().anyMatch(p -> p.getTextVi() == null || p.getTextVi().isBlank())) {
+            if (!ChapterText.complete(c, pages.findByChapterIdOrderByPosition(chapterId))) {
                 throw new ChapterNotTranslatedException(chapterId);
             }
             if (c.getPublishStatus() != ChapterPublishStatus.PUBLISHED) {
@@ -195,9 +194,8 @@ public class ChapterTranslationService {
     private String previousText(long novelId, int chapterNo) {
         for (Chapter prev : chapters.findByNovelIdAndChapterNoLessThanOrderByChapterNoDesc(novelId, chapterNo)) {
             List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(prev.getId());
-            if (!ps.isEmpty() && ps.stream().allMatch(p -> p.getTextVi() != null && !p.getTextVi().isBlank())) {
-                return tail(String.join("\n\n", ps.stream().map(ChapterPage::getTextVi).toList()),
-                        PREVIOUS_TEXT_CHARS);
+            if (ChapterText.complete(prev, ps)) {
+                return tail(ChapterText.of(prev, ps), PREVIOUS_TEXT_CHARS);
             }
         }
         return null;
@@ -218,6 +216,7 @@ public class ChapterTranslationService {
             for (int i = 0; i < ps.size(); i++) {
                 ps.get(i).setTextVi(texts.get(i + 1));
             }
+            c.setTextVi(null); // the new translation replaces the edited whole text
             c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
             c.setTranslationError(null);
             c.setTranslatedAt(clock.instant());

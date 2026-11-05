@@ -7,6 +7,6 @@ import java.util.List;
 public record ChapterDetail(long id, long novelId, String novelTitle, int chapterNo, String title,
                             ChapterTranslationStatus translationStatus, String translationError,
                             Instant translatedAt, boolean editedAfterTranslation,
-                            ChapterPublishStatus publishStatus, List<PageDto> pages, Long prevChapterId,
-                            Long nextChapterId) {
+                            ChapterPublishStatus publishStatus, List<PageDto> pages, String text,
+                            Long prevChapterId, Long nextChapterId) {
 }

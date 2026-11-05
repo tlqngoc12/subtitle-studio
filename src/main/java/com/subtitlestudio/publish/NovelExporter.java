@@ -2,7 +2,7 @@ package com.subtitlestudio.publish;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.novel.Chapter;
-import com.subtitlestudio.novel.ChapterPage;
+import com.subtitlestudio.novel.ChapterText;
 import com.subtitlestudio.novel.ChapterPageRepository;
 import com.subtitlestudio.novel.ChapterPublishStatus;
 import com.subtitlestudio.novel.ChapterRepository;
@@ -81,8 +81,7 @@ public class NovelExporter {
     }
 
     private List<String> images(Path dir, Novel n, Chapter c, String watermark) {
-        String text = String.join("\n\n", pages.findByChapterIdOrderByPosition(c.getId()).stream()
-                .map(ChapterPage::getTextVi).filter(t -> t != null && !t.isBlank()).toList());
+        String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
         List<Path> files = renderCache.imagesFor(c.getId(),
                 new RenderInput(n.getTitle(), c.getChapterNo(), c.getTitle(), text, watermark));
         List<String> urls = new ArrayList<>();

@@ -361,6 +361,36 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
+    void publishAcceptsWholeChapterText() {
+        ChapterDetail c = chapter(2, 2);
+        reload(c.id()).setTextVi("Cả chương");
+
+        assertThat(service.publish(c.id()).publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
+    }
+
+    @Test
+    void translatingReplacesTheWholeChapterText() {
+        ChapterDetail c = chapter(1, 1);
+        reload(c.id()).setTextVi("Bản sửa cũ");
+
+        service.start(c.id());
+
+        assertThat(reload(c.id()).getTextVi()).isNull();
+        assertThat(chapterService.get(c.id()).text()).startsWith("T1 ");
+    }
+
+    @Test
+    void previousTextUsesTheWholeChapterText() {
+        ChapterDetail one = chapter(1, 1);
+        reload(one.id()).setTextVi("Bản sửa chương một");
+        ChapterDetail two = chapter(2, 1);
+
+        service.start(two.id());
+
+        assertThat(translator.prompts.getFirst().previousText()).isEqualTo("Bản sửa chương một");
+    }
+
+    @Test
     void publishRequiresAllPagesTranslated() {
         ChapterDetail empty = chapter(1, 0);
         assertThatThrownBy(() -> service.publish(empty.id())).isInstanceOf(ChapterNotTranslatedException.class);

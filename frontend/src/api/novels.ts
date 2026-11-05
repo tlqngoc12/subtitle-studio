@@ -69,6 +69,8 @@ export interface ChapterDetail {
   editedAfterTranslation: boolean;
   publishStatus: ChapterPublishStatus;
   pages: PageDto[];
+  /** The whole chapter's text: the edited one, or the page texts joined with a blank line. */
+  text: string;
   prevChapterId: number | null;
   nextChapterId: number | null;
 }
@@ -149,7 +151,7 @@ export async function getChapter(id: number): Promise<ChapterDetail> {
 
 export async function updateChapter(
   id: number,
-  input: { chapterNo?: number; title?: string; pages?: { id: number; textVi: string }[] },
+  input: { chapterNo?: number; title?: string; pages?: { id: number; textVi: string }[]; text?: string },
 ): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${id}`, json('PUT', input))).json();
 }

@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
@@ -35,6 +36,11 @@ public class Chapter {
 
     @Column(length = 200)
     private String title;
+
+    /** The whole chapter edited in one box; null until then (see {@link ChapterText}). */
+    @Lob
+    @Column(name = "text_vi")
+    private String textVi;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "translation_status", length = 20, nullable = false)
@@ -97,6 +103,14 @@ public class Chapter {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getTextVi() {
+        return textVi;
+    }
+
+    public void setTextVi(String textVi) {
+        this.textVi = textVi;
     }
 
     public ChapterTranslationStatus getTranslationStatus() {

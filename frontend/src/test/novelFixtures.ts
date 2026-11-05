@@ -73,6 +73,7 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
       { id: 11, position: 1, mediaUrl: '/api/media/5', textVi: 'Trang một' },
       { id: 12, position: 2, mediaUrl: '/api/media/6', textVi: 'Trang hai' },
     ],
+    text: 'Trang một\n\nTrang hai',
     prevChapterId: null,
     nextChapterId: 10,
     ...over,

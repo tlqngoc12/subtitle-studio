@@ -2367,64 +2367,81 @@ a.tabs__tab {
   max-width: 100%;
 }
 
-.page-list {
+.chapter-pages {
   display: grid;
-  gap: 16px;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.chapter-pages .uploader {
+  margin-bottom: 0;
+}
+
+/* Draft chapter: the screenshots as a grid of thumbnails (drag to reorder, click to enlarge). */
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.page-row {
+.page-thumb {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 12px;
-  align-items: start;
-  padding: 12px;
+  gap: 6px;
+  padding: 6px;
   border: 1px solid var(--rule);
-  border-radius: var(--radius-frame);
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 
-.page-row:focus-within {
+.page-thumb:focus-within {
   border-color: var(--brand-2);
 }
 
-.page-row--dragging {
+.page-thumb--dragging {
   position: relative;
   z-index: 1;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
 }
 
-.page-row__side {
-  display: grid;
-  gap: 6px;
-  justify-items: center;
-}
-
-.page-row__number {
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.page-row__shot {
+.page-thumb__shot {
   padding: 0;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-control);
+  border: 0;
+  border-radius: 4px;
   background: none;
   cursor: zoom-in;
   overflow: hidden;
 }
 
-.page-row__shot img {
+.page-thumb__shot img {
   display: block;
   width: 100%;
-  max-height: 520px;
-  object-fit: contain;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  object-position: top;
 }
 
-.page-row__text textarea {
-  min-height: 260px;
+.page-thumb__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-thumb__number {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* The whole chapter's Vietnamese text in one box. */
+.chapter-text textarea {
+  min-height: 60vh;
+  line-height: 1.7;
+}
+
+.chapter-text textarea:focus {
+  border-color: var(--brand-2);
 }
 
 .chapter-save {
@@ -2439,14 +2456,6 @@ a.tabs__tab {
 }
 
 @media (max-width: 760px) {
-  .page-row {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .page-row__text {
-    grid-column: 1 / -1;
-  }
-
   .chapter-head__nav {
     margin-left: 0;
   }

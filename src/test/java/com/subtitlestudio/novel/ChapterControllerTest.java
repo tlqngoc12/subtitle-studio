@@ -32,7 +32,7 @@ class ChapterControllerTest {
 
     static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu",
             ChapterTranslationStatus.NONE, null, null, false, ChapterPublishStatus.DRAFT,
-            List.of(new PageDto(11, 1, "/api/media/5", null)), null, null);
+            List.of(new PageDto(11, 1, "/api/media/5", null)), "", null, null);
 
     @Autowired
     private MockMvc mvc;

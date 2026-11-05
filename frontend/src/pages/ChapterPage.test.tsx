@@ -42,23 +42,26 @@ async function loaded() {
   return screen.findByRole('heading', { name: 'Chapter 1: Mở đầu' });
 }
 
+const textBox = () => screen.getByLabelText('Chapter text');
+
 describe('ChapterPage', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('shows each page next to its translation', async () => {
+  it('edits the whole chapter in one box, with the screenshots apart', async () => {
     renderPage([get()]);
     await loaded();
 
-    expect(screen.getByLabelText('Page 1 translation')).toHaveValue('Trang một');
-    expect(screen.getByLabelText('Page 2 translation')).toHaveValue('Trang hai');
+    expect(textBox()).toHaveValue('Trang một\n\nTrang hai');
+    expect(screen.queryByLabelText('Page 1 translation')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enlarge page 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enlarge page 2' })).toBeInTheDocument();
     expect(screen.getByText('Translated')).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
   });
 
   it('uploads several screenshots', async () => {
     const calls = renderPage([
-      get({ pages: [] }),
+      get({ pages: [], text: '' }),
       {
         method: 'POST',
         path: '/api/chapters/9/pages',
@@ -76,7 +79,7 @@ describe('ChapterPage', () => {
       new File(['b'], 'p2.png', { type: 'image/png' }),
     ]);
 
-    expect(await screen.findByLabelText('Page 2 translation')).toHaveValue('');
+    expect(await screen.findByRole('button', { name: 'Enlarge page 2' })).toBeInTheDocument();
     const body = calls.find((c) => c.method === 'POST')!.body as FormData;
     expect(body.getAll('files')).toHaveLength(2);
   });
@@ -130,36 +133,36 @@ describe('ChapterPage', () => {
     await answerConfirm('Delete', 'Delete page 1?');
 
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true));
-    expect(screen.queryByLabelText('Page 2 translation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enlarge page 2' })).not.toBeInTheDocument();
   });
 
-  it('saves edited text', async () => {
+  it('saves the whole chapter text', async () => {
     const calls = renderPage([
       get(),
-      { method: 'PUT', path: '/api/chapters/9', status: 200, body: chapterDetail({ editedAfterTranslation: true }) },
+      {
+        method: 'PUT',
+        path: '/api/chapters/9',
+        status: 200,
+        body: chapterDetail({ text: 'Cả chương đã sửa', editedAfterTranslation: true }),
+      },
     ]);
     await loaded();
 
-    const box = screen.getByLabelText('Page 2 translation');
-    await user().clear(box);
-    await user().type(box, 'Sửa rồi');
+    await user().clear(textBox());
+    await user().type(textBox(), 'Cả chương đã sửa');
     await user().click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     const sent = JSON.parse(String(calls.find((c) => c.method === 'PUT')!.body));
-    expect(sent.pages).toEqual([
-      { id: 11, textVi: 'Trang một' },
-      { id: 12, textVi: 'Sửa rồi' },
-    ]);
-    expect(sent.chapterNo).toBe(1);
-    expect(sent.title).toBe('Mở đầu');
+    expect(sent).toEqual({ chapterNo: 1, title: 'Mở đầu', text: 'Cả chương đã sửa' });
+    await waitFor(() => expect(textBox()).toHaveValue('Cả chương đã sửa'));
   });
 
   it('asks before leaving with unsaved edits', async () => {
     renderPage([get()]);
     await loaded();
 
-    await user().type(screen.getByLabelText('Page 1 translation'), '!');
+    await user().type(textBox(), '!');
     await user().click(screen.getByRole('link', { name: 'Next chapter' }));
     await answerConfirm('Leave', 'Leave without saving?');
 
@@ -194,22 +197,16 @@ describe('ChapterPage', () => {
     renderPage(routes);
     await loaded();
 
-    expect(screen.getByLabelText('Page 1 translation')).toBeDisabled();
+    expect(textBox()).toBeDisabled();
     expect(screen.getByLabelText('Add page screenshots')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled();
     expect(screen.getByText('Translating…')).toBeInTheDocument();
 
-    routes[0] = get({
-      translationStatus: 'TRANSLATED',
-      pages: [
-        { id: 11, position: 1, mediaUrl: '/api/media/5', textVi: 'Mới một' },
-        { id: 12, position: 2, mediaUrl: '/api/media/6', textVi: 'Mới hai' },
-      ],
-    });
+    routes[0] = get({ translationStatus: 'TRANSLATED', text: 'Mới một\n\nMới hai' });
     await vi.advanceTimersByTimeAsync(3000);
 
-    await waitFor(() => expect(screen.getByLabelText('Page 1 translation')).toHaveValue('Mới một'));
-    expect(screen.getByLabelText('Page 1 translation')).toBeEnabled();
+    await waitFor(() => expect(textBox()).toHaveValue('Mới một\n\nMới hai'));
+    expect(textBox()).toBeEnabled();
   });
 
   it('shows why a translation failed', async () => {
@@ -248,24 +245,23 @@ describe('ChapterPage', () => {
     await loaded();
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeEnabled();
 
-    await user().type(screen.getByLabelText('Page 1 translation'), '!');
+    await user().type(textBox(), '!');
 
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeDisabled();
   });
 
-  it('only lets the text and title of a published chapter change', async () => {
+  it('shows only the text and title of a published chapter', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
     expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
-    expect(screen.getByLabelText('Page 1 translation')).toBeEnabled();
+    expect(textBox()).toBeEnabled();
     expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
-    expect(screen.getByLabelText('Chapter number')).toBeDisabled();
+    expect(screen.queryByLabelText('Chapter number')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Add page screenshots')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Pages' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Drag to reorder: page 1' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Delete page 1' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Enlarge page 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enlarge page 1' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
   });
 

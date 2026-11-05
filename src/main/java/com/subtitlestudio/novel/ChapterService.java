@@ -104,6 +104,13 @@ public class ChapterService {
                 }
             }
         }
+        if (request.text() != null) {
+            String text = request.text().isBlank() ? null : request.text();
+            if (!Objects.equals(text, c.getTextVi())) {
+                c.setTextVi(text);
+                textChanged = true;
+            }
+        }
         if (textChanged) {
             c.setEditedAfterTranslation(true);
         }
@@ -253,6 +260,7 @@ public class ChapterService {
         }
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
                 c.getTitle(), c.getTranslationStatus(), c.getTranslationError(), c.getTranslatedAt(),
-                c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()), prev, next);
+                c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
+                ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next);
     }
 }

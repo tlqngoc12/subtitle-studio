@@ -256,6 +256,45 @@ class ChapterServiceTest {
     }
 
     @Test
+    void wholeChapterTextIsSavedApartFromPages() {
+        ChapterDetail c = chapterWithPages(1, "a.png", "b.png");
+        List<Long> ids = c.pages().stream().map(PageDto::id).toList();
+        service.update(c.id(), new ChapterUpdateRequest(null, null,
+                List.of(new PageTextEdit(ids.get(0), "Một"), new PageTextEdit(ids.get(1), "Hai"))));
+        assertThat(service.get(c.id()).text()).isEqualTo("Một\n\nHai");
+        Chapter ch = chapters.findById(c.id()).orElseThrow();
+        ch.setEditedAfterTranslation(false);
+
+        ChapterDetail edited = service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Cả chương liền mạch"));
+
+        assertThat(edited.text()).isEqualTo("Cả chương liền mạch");
+        assertThat(edited.editedAfterTranslation()).isTrue();
+        assertThat(edited.pages()).extracting(PageDto::textVi).containsExactly("Một", "Hai");
+    }
+
+    @Test
+    void blankWholeTextFallsBackToPages() {
+        ChapterDetail c = chapterWithPages(1, "a.png");
+        long id = c.pages().getFirst().id();
+        service.update(c.id(), new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(id, "Một"))));
+        service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Sửa"));
+
+        ChapterDetail cleared = service.update(c.id(), new ChapterUpdateRequest(null, null, null, "   "));
+
+        assertThat(cleared.text()).isEqualTo("Một");
+    }
+
+    @Test
+    void editingPublishedWholeTextSchedulesNotebook() {
+        ChapterDetail c = chapterWithPages(5, "a.png");
+        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+
+        service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Bản sửa"));
+
+        assertThat(scheduler.calls).containsExactly(novel.getId() + ":5");
+    }
+
+    @Test
     void editingPublishedChapterTextSchedulesNotebook() {
         ChapterDetail c = chapterWithPages(4, "a.png");
         setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);

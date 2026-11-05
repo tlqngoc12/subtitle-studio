@@ -1,5 +1,5 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ArrowLeft, ChevronLeft, ChevronRight, Languages, Save, Send, Undo2 } from 'lucide-react';
 import { useEffect, useId, useState, type MouseEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -18,7 +18,7 @@ import {
   type PageDto,
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
-import { PageEditorRow } from '../components/novel/PageEditorRow';
+import { PageRow } from '../components/novel/PageRow';
 import { PageUploader } from '../components/novel/PageUploader';
 import { StatusBadges } from '../components/novel/StatusBadges';
 import { Tip } from '../components/Tip';
@@ -26,13 +26,10 @@ import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 
-type Drafts = Record<number, string>;
-
-function draftsOf(pages: PageDto[]): Drafts {
-  return Object.fromEntries(pages.map((p) => [p.id, p.textVi ?? '']));
-}
-
-/** Novels › chapter: page screenshots, their Vietnamese text side by side, Translate and Publish. */
+/**
+ * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
+ * in one box. Published: only the text and title, until Unpublish.
+ */
 export default function ChapterPage() {
   const params = useParams();
   const chapterId = Number(params.chapterId);
@@ -40,7 +37,7 @@ export default function ChapterPage() {
   const ids = useId();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
-  const [drafts, setDrafts] = useState<Drafts>({});
+  const [text, setText] = useState('');
   const [number, setNumber] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -51,7 +48,7 @@ export default function ChapterPage() {
   /** Takes the server's chapter as the new saved state (drops unsaved edits). */
   function load(c: ChapterDetail) {
     setChapter(c);
-    setDrafts(draftsOf(c.pages));
+    setText(c.text);
     setNumber(String(c.chapterNo));
     setTitle(c.title ?? '');
   }
@@ -72,7 +69,7 @@ export default function ChapterPage() {
     chapter !== null &&
     (number !== String(chapter.chapterNo) ||
       title !== (chapter.title ?? '') ||
-      chapter.pages.some((p) => (drafts[p.id] ?? '') !== (p.textVi ?? '')));
+      text !== chapter.text);
 
   useEffect(() => {
     if (!dirty) return;
@@ -152,7 +149,7 @@ export default function ChapterPage() {
         await updateChapter(chapterId, {
           chapterNo: Number(number),
           title: title.trim(),
-          pages: chapter.pages.map((p) => ({ id: p.id, textVi: drafts[p.id] ?? '' })),
+          text,
         }),
       ),
     );
@@ -164,7 +161,6 @@ export default function ChapterPage() {
     try {
       const pages = await uploadPages(chapterId, files);
       setChapter((c) => (c ? { ...c, pages } : c));
-      setDrafts((d) => ({ ...draftsOf(pages), ...d }));
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -277,11 +273,13 @@ export default function ChapterPage() {
       )}
 
       <div className="chapter-meta">
-        <div className="field">
-          <label htmlFor={`${ids}-no`}>Chapter number</label>
-          <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked || published}
-            onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
-        </div>
+        {!published && (
+          <div className="field">
+            <label htmlFor={`${ids}-no`}>Chapter number</label>
+            <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
+              onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
+          </div>
+        )}
         <div className="field">
           <label htmlFor={`${ids}-title`}>Chapter title (optional)</label>
           <input id={`${ids}-title`} type="text" maxLength={200} value={title} disabled={locked}
@@ -294,28 +292,33 @@ export default function ChapterPage() {
           This chapter is published: only the text can be edited. Unpublish to change pages or translate again.
         </p>
       ) : (
-        <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
+        <section className="chapter-pages" aria-labelledby={`${ids}-pages`}>
+          <h2 id={`${ids}-pages`} className="history__heading">Pages</h2>
+          <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={chapter.pages.map((p) => p.id)} strategy={rectSortingStrategy}>
+              <ol className="page-grid" aria-label="Pages">
+                {chapter.pages.map((p, i) => (
+                  <PageRow
+                    key={p.id}
+                    page={p}
+                    number={i + 1}
+                    locked={locked}
+                    onEnlarge={() => setEnlarged(i)}
+                    onDelete={() => void removePage(p, i + 1)}
+                  />
+                ))}
+              </ol>
+            </SortableContext>
+          </DndContext>
+        </section>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={chapter.pages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-          <ol className="page-list" aria-label="Pages">
-            {chapter.pages.map((p, i) => (
-              <PageEditorRow
-                key={p.id}
-                page={p}
-                number={i + 1}
-                text={drafts[p.id] ?? ''}
-                locked={locked}
-                fixedPages={published}
-                onText={(t) => setDrafts((d) => ({ ...d, [p.id]: t }))}
-                onEnlarge={() => setEnlarged(i)}
-                onDelete={() => void removePage(p, i + 1)}
-              />
-            ))}
-          </ol>
-        </SortableContext>
-      </DndContext>
+      <div className="field chapter-text">
+        <label htmlFor={`${ids}-text`}>Chapter text</label>
+        <textarea id={`${ids}-text`} rows={24} value={text} disabled={locked}
+          onChange={(e) => setText(e.target.value)} />
+      </div>
 
       <div className="chapter-save">
         <button className="button button--primary" type="button" onClick={() => void save()} disabled={locked || !dirty || !number}>

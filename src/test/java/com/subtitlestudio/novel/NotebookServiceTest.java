@@ -196,6 +196,17 @@ class NotebookServiceTest {
     }
 
     @Test
+    void updateReadsTheWholeChapterText() {
+        publishedChapter(1, "Trang một");
+        tx.executeWithoutResult(st -> chapters.findByNovelIdAndChapterNo(novelId, 1).orElseThrow()
+                .setTextVi("Bản sửa cả chương"));
+
+        service.scheduleUpdate(novelId, 1);
+
+        assertThat(updater.calls).containsExactly("1:Bản sửa cả chương");
+    }
+
+    @Test
     void updateUsesNotebookBeforeChapter() {
         publishedChapter(3, "Ba");
         publishedChapter(5, "Năm");
