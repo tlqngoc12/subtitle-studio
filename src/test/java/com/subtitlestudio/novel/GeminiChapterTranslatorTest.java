@@ -14,7 +14,11 @@ import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+@ExtendWith(OutputCaptureExtension.class)
 class GeminiChapterTranslatorTest {
 
     private static final String GOOD = "{\"pages\":[{\"page\":2,\"text\":\"Hai\"},{\"page\":1,\"text\":\"Một\"}]}";
@@ -94,6 +98,51 @@ class GeminiChapterTranslatorTest {
                 .isInstanceOfSatisfying(TranslationFailedException.class,
                         e -> assertThat(e.userMessage()).isEqualTo("Gemini free quota is used up, try again later."));
         assertThat(server.requests()).isEqualTo(1);
+    }
+
+    private static final byte[] IMG3 = "jpeg-three".getBytes(StandardCharsets.US_ASCII);
+
+    private static ChapterPrompt threePages() {
+        return new ChapterPrompt("Tình Yêu", 5, "Hồ sơ", null, null, null,
+                List.of(new PageImage(1, IMG1), new PageImage(2, IMG2), new PageImage(3, IMG3)));
+    }
+
+    @Test
+    void asksAgainOnlyForTheMissingPages() {
+        server.queueText("{\"pages\":[{\"page\":1,\"text\":\"Một\"},{\"page\":2,\"text\":\"Hai\"}]}");
+        server.queueText("{\"pages\":[{\"page\":3,\"text\":\"Ba\"}]}");
+
+        List<TranslatedPage> pages = translator(List.of()).translate(threePages());
+
+        assertThat(pages).containsExactly(new TranslatedPage(1, "Một"), new TranslatedPage(2, "Hai"),
+                new TranslatedPage(3, "Ba"));
+        assertThat(server.requests()).isEqualTo(2);
+        String retry = server.bodies().get(1);
+        assertThat(retry).contains("Page 3").contains(Base64.getEncoder().encodeToString(IMG3))
+                .doesNotContain("Page 1").doesNotContain(Base64.getEncoder().encodeToString(IMG1));
+    }
+
+    @Test
+    void failsWhenTheRetryIsStillIncomplete() {
+        server.queueText("{\"pages\":[{\"page\":1,\"text\":\"Một\"}]}");
+        server.queueText("{\"pages\":[{\"page\":2,\"text\":\"Hai\"}]}");
+
+        assertThatThrownBy(() -> translator(List.of()).translate(threePages()))
+                .isInstanceOfSatisfying(TranslationFailedException.class, e -> assertThat(e.userMessage())
+                        .isEqualTo("Gemini returned an incomplete translation (got 2 of 3 pages)."));
+        assertThat(server.requests()).isEqualTo(2);
+    }
+
+    @Test
+    void logsTheModelAndTheShapeOfAnIncompleteAnswerWithoutText(CapturedOutput output) {
+        server.queueText("{\"pages\":[{\"page\":1,\"text\":\"BÍ-MẬT-MỘT\"},{\"page\":2,\"text\":\"Hai\"}]}");
+        server.queueText("{\"pages\":[{\"page\":3,\"text\":\"Ba\"}]}");
+
+        translator(List.of()).translate(threePages());
+
+        assertThat(output).contains("gemini-test-flash").contains("missing [3]").contains("chars {1=10, 2=3}")
+                .contains("asking again for 1 page")
+                .doesNotContain("BÍ-MẬT-MỘT");
     }
 
     @Test

@@ -15,6 +15,9 @@ public final class FakeGeminiServer implements AutoCloseable {
     private final HttpServer server;
     private final AtomicInteger requests = new AtomicInteger();
     private final java.util.Map<String, Reply> perModel = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Replies used once each, in order, before the default reply. */
+    private final java.util.Queue<Reply> queued = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private final java.util.List<String> bodies = new java.util.concurrent.CopyOnWriteArrayList<>();
     private volatile int status = 200;
     private volatile String body = "{}";
     private volatile Duration delay = Duration.ZERO;
@@ -36,8 +39,14 @@ public final class FakeGeminiServer implements AutoCloseable {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+            bodies.add(lastBody);
             int replyStatus = status;
             String replyBody = body;
+            Reply next = queued.poll();
+            if (next != null) {
+                replyStatus = next.status();
+                replyBody = next.body();
+            }
             for (var entry : perModel.entrySet()) {
                 if (lastPath.contains("/models/" + entry.getKey() + ":")) {
                     replyStatus = entry.getValue().status();
@@ -61,10 +70,24 @@ public final class FakeGeminiServer implements AutoCloseable {
     }
 
     /** A successful generateContent reply whose text is {@code text}. */
-    public void replyText(String text, String finishReason) {
+    /** Queues a successful reply whose text is {@code text}; queued replies are used once, in order. */
+    public void queueText(String text) {
+        queued.add(new Reply(200, textBody(text, "STOP")));
+    }
+
+    /** Every request body received, in order. */
+    public java.util.List<String> bodies() {
+        return java.util.List.copyOf(bodies);
+    }
+
+    private static String textBody(String text, String finishReason) {
         String escaped = text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
-        reply(200, "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"" + escaped
-                + "\"}]},\"finishReason\":\"" + finishReason + "\"}]}");
+        return "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"" + escaped
+                + "\"}]},\"finishReason\":\"" + finishReason + "\"}]}";
+    }
+
+    public void replyText(String text, String finishReason) {
+        reply(200, textBody(text, finishReason));
     }
 
     public void reply(int status, String body) {

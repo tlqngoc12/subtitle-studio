@@ -31,12 +31,37 @@ class PageTextOutputTest {
     }
 
     @Test
-    void rejectsMissingExtraDuplicateOrBlankPages() {
+    void checkKeepsTheGoodPagesAndListsTheMissingOnes() {
+        PageTextOutput.Check check = PageTextOutput.check(SENT, List.of(new TranslatedPage(5, "Năm"),
+                new TranslatedPage(3, "Ba ba"), new TranslatedPage(9, "Lạ"), new TranslatedPage(3, "Trùng")));
+
+        assertThat(check.valid()).containsExactly(new TranslatedPage(3, "Ba ba"), new TranslatedPage(5, "Năm"));
+        assertThat(check.missing()).containsExactly(4);
+        assertThat(check.description())
+                .contains("returned [5, 3, 9, 3]")
+                .contains("missing [4]")
+                .contains("unexpected [9]")
+                .contains("duplicate [3]")
+                .contains("chars {3=5, 5=3}")
+                .doesNotContain("Ba ba").doesNotContain("Năm");
+    }
+
+    @Test
+    void checkCountsBlankPagesAsMissing() {
+        PageTextOutput.Check check = PageTextOutput.check(SENT, List.of(new TranslatedPage(3, "A"),
+                new TranslatedPage(4, "  "), new TranslatedPage(5, "C")));
+
+        assertThat(check.missing()).containsExactly(4);
+        assertThat(check.description()).contains("blank [4]");
+    }
+
+    @Test
+    void rejectsMissingDuplicateOrBlankPagesButIgnoresExtraOnes() {
         assertThat(messageOf(List.of(new TranslatedPage(3, "A"), new TranslatedPage(4, "B"))))
                 .isEqualTo("Gemini returned an incomplete translation (got 2 of 3 pages).");
-        assertThat(messageOf(List.of(new TranslatedPage(3, "A"), new TranslatedPage(4, "B"),
+        assertThat(PageTextOutput.validate(SENT, List.of(new TranslatedPage(3, "A"), new TranslatedPage(4, "B"),
                 new TranslatedPage(5, "C"), new TranslatedPage(6, "D"))))
-                .isEqualTo("Gemini returned an incomplete translation (got 3 of 3 pages).");
+                .extracting(TranslatedPage::page).containsExactly(3, 4, 5);
         assertThat(messageOf(List.of(new TranslatedPage(3, "A"), new TranslatedPage(3, "A"),
                 new TranslatedPage(5, "C"))))
                 .isEqualTo("Gemini returned an incomplete translation (got 2 of 3 pages).");

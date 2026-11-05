@@ -53,11 +53,34 @@ public class GeminiChapterTranslator implements ChapterTranslator {
         this.mapper = mapper;
     }
 
+    /**
+     * Sends the pages; when some come back missing (skipped, blank, wrongly numbered), asks once more for only those
+     * pages and keeps the good ones from the first answer.
+     */
     @Override
     public List<TranslatedPage> translate(ChapterPrompt prompt) {
+        PageTextOutput.Check first = ask(prompt, prompt.pages());
+        if (first.missing().isEmpty()) {
+            return first.valid();
+        }
+        log.warn("Chapter {}: asking again for {} {}", prompt.chapterNo(), first.missing().size(),
+                first.missing().size() == 1 ? "page" : "pages");
+        List<PageImage> missing = prompt.pages().stream().filter(p -> first.missing().contains(p.page())).toList();
+        PageTextOutput.Check second = ask(prompt, missing);
+        List<TranslatedPage> all = new ArrayList<>(first.valid());
+        all.addAll(second.valid());
+        all.sort(java.util.Comparator.comparingInt(TranslatedPage::page));
+        if (!second.missing().isEmpty()) {
+            throw PageTextOutput.incomplete(all.size(), prompt.pages().size());
+        }
+        return all;
+    }
+
+    /** One request for {@code pages}; logs the model and, when pages are missing, the answer's shape (no text). */
+    private PageTextOutput.Check ask(ChapterPrompt prompt, List<PageImage> pages) {
         List<Part> parts = new ArrayList<>();
         parts.add(Part.fromText(context(prompt)));
-        for (PageImage page : prompt.pages()) {
+        for (PageImage page : pages) {
             parts.add(Part.fromText("Page " + page.page()));
             parts.add(Part.fromBytes(page.jpeg(), "image/jpeg"));
         }
@@ -67,12 +90,19 @@ public class GeminiChapterTranslator implements ChapterTranslator {
             got = mapper.readValue(answer.text(), Answer.class);
         } catch (JsonProcessingException e) {
             log.warn("Gemini {} answer for {} pages is not the expected JSON ({} chars)", answer.model(),
-                    prompt.pages().size(), answer.text().length());
+                    pages.size(), answer.text().length());
             throw new TranslationFailedException("Gemini returned an answer that is not a translation.");
         }
-        List<TranslatedPage> valid = PageTextOutput.validate(prompt.pages(), got.pages());
-        log.info("Gemini {} translated {} pages of chapter {}", answer.model(), valid.size(), prompt.chapterNo());
-        return valid;
+        PageTextOutput.Check check = PageTextOutput.check(pages, got.pages());
+        if (check.missing().isEmpty()) {
+            log.info("Gemini {} translated {} pages of chapter {}", answer.model(), pages.size(),
+                    prompt.chapterNo());
+        } else {
+            // Answers vary between runs, so a rejected one is only diagnosable from this line (no novel text in it).
+            log.warn("Gemini {} returned an incomplete answer for {} pages of chapter {}: {}", answer.model(),
+                    pages.size(), prompt.chapterNo(), check.description());
+        }
+        return check;
     }
 
     private static String context(ChapterPrompt p) {
