@@ -36,7 +36,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       .getChapter(slug, Number(chapterNo))
       .then((c) => {
         setChapter(c);
-        window.scrollTo?.({ top: 0 });
+        area.current?.scrollIntoView?.({ block: 'start' });
       })
       .catch((e) => setError(errorMessage(e, { readOnly: true })));
   }, [source, slug, chapterNo]);

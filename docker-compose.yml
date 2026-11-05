@@ -35,6 +35,8 @@ services:
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       SUBTITLESTUDIO_PUBLISH_PROJECT: ${SUBTITLESTUDIO_PUBLISH_PROJECT:-}
       SUBTITLESTUDIO_PUBLISH_INDEXABLE: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:-false}
+      # Optional: watermark on public novel chapter images (empty = <project>.pages.dev).
+      SUBTITLESTUDIO_NOVEL_WATERMARK: ${SUBTITLESTUDIO_NOVEL_WATERMARK:-}
     ports:
       - "8080:8080"
     volumes:

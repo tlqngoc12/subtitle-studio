@@ -2525,6 +2525,8 @@ a.tabs__tab {
 
 .reader-page {
   max-width: 720px;
+  /* Opening a chapter scrolls here; keep the heading clear of the sticky top bar. */
+  scroll-margin-top: 80px;
 }
 
 .reader__head {

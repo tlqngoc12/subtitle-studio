@@ -132,6 +132,21 @@ Nút **Publish** (góc phải thanh đầu trang) xuất bản **chỉ đọc** 
 - Gắn tên miền riêng (tuỳ chọn): project → **Custom domains**.
 - Token chỉ nằm trong `.env` (không commit) và chỉ được truyền cho tiến trình `wrangler`; app không ghi token hay output của wrangler vào log.
 
+## Đăng tiểu thuyết (menu Novels)
+
+Menu **Novels** dùng để đăng tiểu thuyết dịch từ **ảnh chụp màn hình** từng trang (gốc tiếng Thái):
+
+1. **New novel**: tên, slug (dùng trong link public), bìa, tác giả gốc, giới thiệu, tag, trạng thái (Ongoing/Completed), credit người dịch, link bản gốc và **Translation profile** (một file `./data/prompts/<Tên>.md`, ghi rõ ngôn ngữ gốc, xưng hô, tên riêng; xem `_example.md`).
+2. **Add chapter** → kéo thả ảnh chụp của chương (một hay nhiều ảnh mỗi lần; xếp theo tên file, kéo để đổi thứ tự) → **Translate**. Gemini đọc chữ trong ảnh và dịch, chạy nền; chương dài được tự chia thành nhiều lượt (20 ảnh/lượt).
+3. Sửa bản dịch ngay cạnh ảnh gốc → **Save** → **Publish** chương. Chỉ chương **Published** lên trang public.
+4. Sau mỗi chương Published, app tự cập nhật **sổ tay truyện** (nhân vật, xưng hô, thuật ngữ, tóm tắt; xem ở tab **Notebook**) và gửi kèm khi dịch các chương sau, để bản dịch liền mạch. Tên riêng và xưng hô đã chốt không bao giờ bị xoá.
+5. Bấm **Publish** (góc phải) như bình thường: mỗi chương Published được **vẽ thành ảnh WebP có watermark** rồi đẩy lên trang public. Trang public **không có text chương**; trang đọc chặn bôi đen, chuột phải, giữ để lưu ảnh, phím tắt copy/lưu/in, in trang và làm mờ khi cửa sổ mất focus. Không chặn được chụp bằng thiết bị khác; watermark để truy nguồn.
+
+- Ảnh chụp gốc ở `./data/media/`; ảnh đã vẽ cho public ở `./data/novel-render/` (cache, xoá được, Publish sẽ vẽ lại).
+- `SUBTITLESTUDIO_NOVEL_WATERMARK` trong `.env`: chữ watermark (mặc định `<project>.pages.dev`).
+- Free tier Gemini có giới hạn request mỗi ngày: một bộ dài có thể phải dịch rải nhiều ngày; lỗi hết lượt hiện ở chương, bấm **Translate again** sau.
+- Cloudflare Pages Free cho tối đa 20.000 file/site; khoảng 300 trang gốc thành ~550 ảnh. Log cảnh báo khi gần chạm giới hạn.
+
 ## Dịch Vietsub tự động bằng Gemini
 
 Ở menu **Lấy Engsub**, chọn một **hồ sơ dịch** trong khung dán link rồi bấm **Lấy Engsub**: app lấy Engsub như cũ, sau đó gửi cho Gemini dịch sang tiếng Việt (giữ nguyên timecode). Vietsub dịch xong có nguồn **Gemini** và xem được như Vietsub tự upload.

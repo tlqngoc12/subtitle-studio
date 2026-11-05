@@ -10,6 +10,7 @@ Hướng dẫn khi làm việc trong repo này.
 - **Tiến độ:** [PROGRESS.md](PROGRESS.md). Đọc file này trước để biết task nào xong và task nào tiếp theo.
 - **Đã xong:** Phase 1 (lấy Engsub, xuất `.srt`) và Phase 2 (thêm Vietsub bằng URL + `.srt` đã dịch, xem video kèm Vietsub; spec [docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md](docs/superpowers/specs/2026-11-02-phase2-vietsub-design.md), plan [docs/superpowers/plans/2026-11-02-phase2-vietsub.md](docs/superpowers/plans/2026-11-02-phase2-vietsub.md)).
 - **Menu Profile** (EmiBonnie, Emi, Bonnie; khối tự do, ảnh ở `./data/media/`): spec [docs/superpowers/specs/2026-11-03-profiles-design.md](docs/superpowers/specs/2026-11-03-profiles-design.md), plan [docs/superpowers/plans/2026-11-03-profiles.md](docs/superpowers/plans/2026-11-03-profiles.md).
+- **Menu Novels** (đăng tiểu thuyết dịch từ ảnh chụp: upload ảnh theo chương → Gemini đọc + dịch Thái → Việt kèm **sổ tay truyện** tự cập nhật → sửa tay, Draft/Published → Publish vẽ chương thành ảnh WebP có watermark, trang đọc public chặn sao chép): spec [docs/superpowers/specs/2026-11-05-novels-design.md](docs/superpowers/specs/2026-11-05-novels-design.md), plan [docs/superpowers/plans/2026-11-05-novels.md](docs/superpowers/plans/2026-11-05-novels.md).
 - **Chưa làm** (chỉ làm khi được yêu cầu): Phase 3 (sửa trực tiếp, chế độ kiểm tra song ngữ), Phase 4 (engine dịch). Vietsub lưu ở bảng `vi_cue` với timing riêng; cột `cue.text_vi` vẫn để dành cho Phase 3.
 
 ## Lệnh
@@ -42,7 +43,9 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
   - `video`: entity, repository, `SubtitleService`, controller (T08–T09)
   - `web`: `@RestControllerAdvice` (T09)
   - `profile`: trang Profile: entity `T_*`, `ProfileBlockValidator`, `EmbedUrlResolver`, `MediaService` (ảnh), `ProfileService`, 2 controller
-  - `publish`: trang public: `SiteExporter` (JSON + ảnh theo allowlist), `PublicSiteBundle` (bản build public + `_redirects`/`_headers`/`robots.txt`), `WranglerClient`, `PublishService`, `PublishController`
+  - `novel`: menu Novels: entity `t_novel`/`t_chapter`/`t_chapter_page`/`t_novel_notebook`, `NovelService`, `ChapterService` (trang, `NaturalOrder`), `ChapterTranslationService` (dịch nền, chia lượt `ChapterBatches`), `GeminiChapterTranslator`, sổ tay (`NotebookService`, `NotebookMerger`, `NotebookText`, `GeminiNotebookUpdater`); `novel.render`: `NovelRenderer` (Java2D, font `fonts/Literata.ttf` OFL), `ImageEncoder` (WebP lossless qua `webp-imageio`, PNG dự phòng), `RenderCache` (`./data/novel-render/`)
+  - `translate`: `GeminiCaller` dùng chung cho mọi lần gọi Gemini (fallback khi 503, không thử lại khi 429, map lỗi sang `TranslationFailedException`)
+  - `publish`: trang public: `SiteExporter` (JSON + ảnh theo allowlist), `NovelExporter` (chương Published thành ảnh, JSON không có text chương), `PublicSiteBundle` (bản build public + `_redirects`/`_headers`/`robots.txt`), `WranglerClient`, `PublishService`, `PublishController`
 - `.gitignore` chỉ bỏ qua `/data/` ở gốc repo. Tạo thư mục mới thì kiểm tra `git check-ignore -v <file>` (đã mất 5 file `frontend/src/data/` vì quy tắc cũ `data/`); trước khi xoá worktree xem `git status --ignored`.
 - Bảng mới đặt tiền tố `T_` (bảng cũ `video`, `cue`, `vi_cue` giữ nguyên tên). Không đặt tên cột trùng từ khoá H2 (vd `value` → `item_value`).
 - Cấu hình đọc qua `SubtitleStudioProperties` (record, `@Validated`). Không dùng `@Value` rải rác.

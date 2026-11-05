@@ -19,6 +19,11 @@ Nội dung được gửi nguyên văn cho Gemini cùng phụ đề tiếng Anh.
 - Giữ nguyên tên người và tên phim: Emi, Bonnie, Fall For You.
 - Địa danh: ตลาดน้อย → Talad Noi.
 
+## Tiểu thuyết (menu Novels)
+- Hồ sơ cho một bộ tiểu thuyết nên ghi rõ **ngôn ngữ gốc** (vd "Ngôn ngữ gốc: tiếng Thái"), ngôi kể, văn phong của tác giả
+  và cách xưng hô cố định giữa các nhân vật chính. Những gì xuất hiện dần trong truyện (nhân vật mới, tâm lý, tóm tắt)
+  app tự ghi vào sổ tay truyện sau mỗi chương đã đăng, không cần thêm tay vào đây.
+
 ## Văn phong
 - Câu ngắn, tự nhiên như người Việt nói chuyện; không dịch từng chữ.
 - Giữ tiếng cười, cảm thán ("haha", "trời ơi") khi phù hợp.

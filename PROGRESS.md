@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-04
+> Cập nhật lần cuối: 2026-11-05
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -497,6 +497,14 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - **Làm theo TDD:** mỗi task viết test trước, chạy cho fail rồi mới viết code. Test chạy trên dummy data, không gọi mạng.
 - **Đã kiểm tra (T08):** app khởi động thật (`java -jar`) với H2 file mode, tạo được `subtitle-studio.mv.db`, wiring bean OK.
 
+### 2026-11-05: Menu Novels (đăng tiểu thuyết) ✅
+
+- Spec [2026-11-05-novels-design.md](docs/superpowers/specs/2026-11-05-novels-design.md), plan [2026-11-05-novels.md](docs/superpowers/plans/2026-11-05-novels.md); nhánh `feature/novels`, 15 task TDD.
+- Migration **V5** (`t_novel`, `t_chapter`, `t_chapter_page`, `t_novel_notebook`). Job dọn ảnh bỏ rơi giờ tính cả bìa và ảnh chụp chương là "đang dùng" (trước đó sẽ xoá chúng sau 24 giờ).
+- Gemini: tách `GeminiCaller` dùng chung (Vietsub, dịch chương, sổ tay). Dịch chương gửi ảnh JPEG đã thu nhỏ (cạnh dài ≤ 2.000px), `media_resolution` HIGH, 20 ảnh hoặc ~15 MB mỗi lượt, lượt sau nhận 2.000 ký tự cuối lượt trước.
+- Sổ tay: glossary/xưng hô chỉ thêm/sửa theo khoá (app gộp), nhân vật ≤ 30, tóm tắt ≤ 2.500 ký tự, 3 chương gần nhất; mỗi lần cập nhật là một phiên bản "after chapter N"; hàng đợi tuần tự mỗi bộ, chạy sau khi transaction commit.
+- Publish: `NovelExporter` vẽ chương bằng font Literata (OFL, file variable `fonts/Literata.ttf`), WebP lossless (~54 KB/trang mẫu), cache theo hash nội dung.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
@@ -523,4 +531,8 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 | `SUBTITLESTUDIO_PUBLISH_URL` (tuỳ chọn) | Public site | link hiện lấy từ tên project (`https://<project>.pages.dev`); khi Cloudflare thêm hậu tố (tên đã có người dùng) thì link trong app sai → cho phép đặt link thật |
 | Nhãn Manual/AI trên trang public | Public site | dữ liệu đã có `viSource`; thêm badge nhỏ ở Vietsub list nếu muốn khách thấy |
 | Review Public site (Minor): Publish có thể kẹt PUBLISHING nếu executor từ chối/`Error`; tắt app phải chờ Publish đang chạy; ảnh Profile bị bỏ vẫn hiện khung zoom rỗng; code quản trị nằm trong bundle public (không chạy); `_redirects` có thể thừa với SPA mode của Pages; chèn meta noindex chỉ khớp `<head>`; đường dẫn file trong bundle lấy từ URI (percent-encoding); `mvn spring-boot:run` không có `public-site/` → lỗi chung chung; wrangler nhận toàn bộ env của app | Public site | final review nhánh `public-site` |
+| Bulk import cả thư mục ảnh + Gemini đề xuất chia chương | Novels | người dùng chọn làm sau (upload theo chương trước) |
+| Sửa sổ tay truyện bằng tay | Novels | hiện chỉ đọc; tự cập nhật sau mỗi chương Published |
+| Tạo lại các phiên bản sổ tay sau chương N khi dịch lại/sửa chương N | Novels | hiện chỉ cảnh báo "built from an older text" ở tab Notebook |
+| Hàng đợi cập nhật sổ tay mất khi app khởi động lại | Novels | trạng thái thành FAILED "interrupted", bấm Retry chạy lại chương gần nhất |
 | Tự khắc phục khi Gemini trả thiếu/sai block | P4 | gợi ý: hỏi lại chỉ các id thiếu/sai (giữ block đúng, request nhỏ, ít tốn quota); xem log chẩn đoán 2026-11-04 trước |
