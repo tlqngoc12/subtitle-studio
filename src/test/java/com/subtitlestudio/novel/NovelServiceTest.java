@@ -32,7 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class,
     NovelServiceTest.Config.class})
 class NovelServiceTest {
 
@@ -210,7 +210,7 @@ class NovelServiceTest {
     }
 
     @Test
-    void deleteRemovesChaptersAndUnusedImages() {
+    void deleteRemovesChaptersAndUnusedImages() throws IOException {
         Media cover = mediaService.store("c.png", TestImages.png());
         Media page = mediaService.store("p.png", TestImages.png());
         NovelRequest v = valid();
@@ -221,6 +221,9 @@ class NovelServiceTest {
         pages.save(new ChapterPage(chapter, 1, page));
         em.flush();
         em.clear();
+        Path cached = dataDir.resolve("novel-render").resolve(String.valueOf(chapter.getId()));
+        Files.createDirectories(cached);
+        Files.writeString(cached.resolve("x.count"), "1");
 
         service.delete(d.id());
         em.flush();
@@ -230,5 +233,6 @@ class NovelServiceTest {
         assertThat(media.findById(cover.getId())).isEmpty();
         assertThat(media.findById(page.getId())).isEmpty();
         assertThatThrownBy(() -> service.get(d.id())).isInstanceOf(NovelNotFoundException.class);
+        assertThat(cached).doesNotExist();
     }
 }

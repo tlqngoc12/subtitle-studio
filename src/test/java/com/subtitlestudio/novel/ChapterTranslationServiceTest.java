@@ -37,7 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({ChapterTranslationService.class, ChapterService.class, MediaService.class, ImageSniffer.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterTranslationService.class, ChapterService.class, MediaService.class, ImageSniffer.class,
     PromptProfileStore.class, PageImagePreparer.class, ChapterTranslationServiceTest.Config.class})
 class ChapterTranslationServiceTest {
 

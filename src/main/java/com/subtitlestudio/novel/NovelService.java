@@ -1,5 +1,6 @@
 package com.subtitlestudio.novel;
 
+import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaRepository;
@@ -22,10 +23,12 @@ public class NovelService {
     private final MediaRepository media;
     private final MediaService mediaService;
     private final NovelValidator validator;
+    private final RenderCache renderCache;
     private final Clock clock;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                        NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService, NovelValidator validator, Clock clock) {
+                        NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
+                        NovelValidator validator, RenderCache renderCache, Clock clock) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -33,6 +36,7 @@ public class NovelService {
         this.media = media;
         this.mediaService = mediaService;
         this.validator = validator;
+        this.renderCache = renderCache;
         this.clock = clock;
     }
 
@@ -102,6 +106,7 @@ public class NovelService {
         novels.delete(n);
         novels.flush();
         mediaService.deleteIfUnreferenced(images);
+        cs.forEach(c -> renderCache.evict(c.getId()));
     }
 
     Novel find(long id) {

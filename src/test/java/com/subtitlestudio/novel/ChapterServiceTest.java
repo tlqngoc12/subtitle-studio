@@ -31,7 +31,7 @@ import org.springframework.util.unit.DataSize;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({ChapterService.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterService.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
 class ChapterServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
@@ -299,12 +299,16 @@ class ChapterServiceTest {
     }
 
     @Test
-    void deleteRemovesChapterAndPages() {
+    void deleteRemovesChapterAndPages() throws java.io.IOException {
         ChapterDetail c = chapterWithPages(1, "a.png");
+        Path cached = dataDir.resolve("novel-render").resolve(String.valueOf(c.id()));
+        java.nio.file.Files.createDirectories(cached);
+        java.nio.file.Files.writeString(cached.resolve("x.count"), "1");
 
         service.delete(c.id());
         em.flush();
 
+        assertThat(cached).doesNotExist();
         assertThatThrownBy(() -> service.get(c.id())).isInstanceOf(ChapterNotFoundException.class);
     }
 }

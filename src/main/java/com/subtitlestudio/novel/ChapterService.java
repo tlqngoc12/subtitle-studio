@@ -1,6 +1,7 @@
 package com.subtitlestudio.novel;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.ImageSniffer;
 import com.subtitlestudio.profile.ImageType;
@@ -33,18 +34,20 @@ public class ChapterService {
     private final MediaService mediaService;
     private final ImageSniffer sniffer;
     private final NotebookScheduler notebook;
+    private final RenderCache renderCache;
     private final long maxImageBytes;
     private final Clock clock;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           MediaService mediaService, ImageSniffer sniffer, NotebookScheduler notebook,
-                          SubtitleStudioProperties properties, Clock clock) {
+                          RenderCache renderCache, SubtitleStudioProperties properties, Clock clock) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.mediaService = mediaService;
         this.sniffer = sniffer;
         this.notebook = notebook;
+        this.renderCache = renderCache;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
         this.clock = clock;
     }
@@ -118,6 +121,7 @@ public class ChapterService {
         chapters.delete(c);
         chapters.flush();
         mediaService.deleteIfUnreferenced(images);
+        renderCache.evict(id);
     }
 
     /** Appends the screenshots after the existing pages, ordered by file name. */

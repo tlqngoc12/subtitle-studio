@@ -44,6 +44,17 @@ class PageImagePreparerTest {
     }
 
     @Test
+    void readsWebp() throws IOException {
+        BufferedImage src = ImageIO.read(new ByteArrayInputStream(TestImages.png(500, 300, false)));
+        Path file = dir.resolve("in.webp");
+        Files.write(file, com.subtitlestudio.novel.render.ImageEncoder.best().encode(src));
+
+        BufferedImage out = ImageIO.read(new ByteArrayInputStream(preparer.prepare(file)));
+
+        assertThat(out.getWidth()).isEqualTo(500);
+    }
+
+    @Test
     void transparentAreasBecomeWhite() throws IOException {
         BufferedImage out = prepare(TestImages.png(400, 400, true));
 

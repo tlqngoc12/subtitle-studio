@@ -64,6 +64,12 @@
             <artifactId>google-genai</artifactId>
             <version>1.78.0</version>
         </dependency>
+        <!-- WebP writer/reader for ImageIO (bundled libwebp for Windows, Linux, macOS): public chapter images -->
+        <dependency>
+            <groupId>com.github.usefulness</groupId>
+            <artifactId>webp-imageio</artifactId>
+            <version>0.10.0</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
