@@ -4,6 +4,7 @@ import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
 import HomePage from './pages/HomePage';
 import NovelNewPage from './pages/NovelNewPage';
+import NovelPage from './pages/NovelPage';
 import NovelsPage from './pages/NovelsPage';
 import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/profiles/:slug" element={<ProfilePage />} />
         <Route path="/novels" element={<NovelsPage />} />
         <Route path="/novels/new" element={<NovelNewPage />} />
+        <Route path="/novels/:id" element={<NovelPage />} />
       </Routes>
     </MotionConfig>
   );

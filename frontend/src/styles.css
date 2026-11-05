@@ -2172,3 +2172,125 @@ a.tabs__tab {
   font-weight: 700;
   color: var(--muted);
 }
+
+.novel-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-block: 8px 16px;
+}
+
+.novel-head__text {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.tabs__panel {
+  display: grid;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chapter-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chapter-list__item {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.chapter-list__item:hover {
+  border-color: var(--brand-2);
+}
+
+.chapter-list__open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 10px 14px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.chapter-list__title {
+  font-weight: 700;
+}
+
+.chapter-list__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chapter-list__error {
+  padding: 0 14px 10px;
+}
+
+.danger-zone {
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.notebook {
+  display: grid;
+  gap: 20px;
+}
+
+.notebook__version {
+  max-width: 260px;
+}
+
+.notebook__warning {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--brand-2);
+  background: var(--surface);
+}
+
+.notebook__section h3 {
+  margin: 0 0 8px;
+  font-size: var(--step-1);
+}
+
+.notebook__list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.notebook__entry dt {
+  font-weight: 700;
+}
+
+.notebook__entry dd {
+  margin: 2px 0 0;
+}
+
+.notebook__now {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.notebook__plain {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
