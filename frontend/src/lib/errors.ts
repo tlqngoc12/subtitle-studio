@@ -55,7 +55,29 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
         hint: 'Delete the uploaded Vietsub on the Vietsub page to translate with Gemini.',
       };
     case 'TRANSLATION_IN_PROGRESS':
-      return { title: 'This video is already being translated.' };
+      return { title: 'This is already being translated.', hint: 'Wait until the translation finishes.' };
+    case 'NOVEL_NOT_FOUND':
+      return { title: 'This novel no longer exists.', hint: 'It may have been deleted. Reload the page.' };
+    case 'CHAPTER_NOT_FOUND':
+      return { title: 'This chapter no longer exists.', hint: 'It may have been deleted. Reload the page.' };
+    case 'PAGE_NOT_FOUND':
+      return { title: 'This page no longer exists.', hint: 'Reload the page.' };
+    case 'INVALID_NOVEL':
+      return { title: 'Check the highlighted fields.' };
+    case 'INVALID_CHAPTER':
+      return { title: 'Check the chapter number and title.' };
+    case 'DUPLICATE_NOVEL_SLUG':
+      return { title: 'Another novel already uses this slug.' };
+    case 'DUPLICATE_CHAPTER_NUMBER':
+      return { title: 'This novel already has a chapter with that number.' };
+    case 'INVALID_PAGE_ORDER':
+      return { title: 'The pages changed meanwhile. They have been reloaded.' };
+    case 'CHAPTER_HAS_NO_PAGES':
+      return { title: 'Add page screenshots before translating.' };
+    case 'CHAPTER_NOT_TRANSLATED':
+      return { title: 'Every page needs a translation before publishing.' };
+    case 'NOTEBOOK_UPDATE_IN_PROGRESS':
+      return { title: 'The notebook is being updated.', hint: 'Try again when it is done.' };
     case 'PUBLISH_IN_PROGRESS':
       return { title: 'A publish is already running.' };
     case 'PUBLISH_NOT_CONFIGURED':

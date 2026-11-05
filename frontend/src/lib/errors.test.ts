@@ -19,6 +19,17 @@ describe('errorMessage', () => {
     ['INVALID_PLAYLIST', 'Check the playlist name and description.'],
     ['VIDEO_HAS_NO_VIETSUB', 'Only videos with Vietsub can be added to a playlist.'],
     ['INVALID_PLAYLIST_ORDER', 'The playlist changed meanwhile. It has been reloaded.'],
+    ['NOVEL_NOT_FOUND', 'This novel no longer exists.'],
+    ['CHAPTER_NOT_FOUND', 'This chapter no longer exists.'],
+    ['PAGE_NOT_FOUND', 'This page no longer exists.'],
+    ['INVALID_NOVEL', 'Check the highlighted fields.'],
+    ['INVALID_CHAPTER', 'Check the chapter number and title.'],
+    ['DUPLICATE_NOVEL_SLUG', 'Another novel already uses this slug.'],
+    ['DUPLICATE_CHAPTER_NUMBER', 'This novel already has a chapter with that number.'],
+    ['INVALID_PAGE_ORDER', 'The pages changed meanwhile. They have been reloaded.'],
+    ['CHAPTER_HAS_NO_PAGES', 'Add page screenshots before translating.'],
+    ['CHAPTER_NOT_TRANSLATED', 'Every page needs a translation before publishing.'],
+    ['NOTEBOOK_UPDATE_IN_PROGRESS', 'The notebook is being updated.'],
   ])('maps %s to an English message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
   });

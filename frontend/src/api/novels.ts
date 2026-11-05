@@ -1,0 +1,189 @@
+import { send } from './client';
+
+/** Novels API (spec section 6). Field names match the backend records. */
+
+export type NovelStatus = 'ONGOING' | 'COMPLETED';
+export type ChapterTranslationStatus = 'NONE' | 'TRANSLATING' | 'TRANSLATED' | 'FAILED';
+export type ChapterPublishStatus = 'DRAFT' | 'PUBLISHED';
+export type NotebookStatus = 'IDLE' | 'UPDATING' | 'FAILED';
+
+export interface NovelInput {
+  slug: string;
+  title: string;
+  coverMediaId: number | null;
+  originalAuthor: string | null;
+  description: string | null;
+  tags: string[];
+  novelStatus: NovelStatus;
+  translatorCredit: string | null;
+  sourceUrl: string | null;
+  promptProfile: string | null;
+}
+
+export interface NovelSummary {
+  id: number;
+  slug: string;
+  title: string;
+  coverUrl: string | null;
+  novelStatus: NovelStatus;
+  chapterCount: number;
+  publishedCount: number;
+  updatedAt: string;
+}
+
+export interface ChapterSummary {
+  id: number;
+  chapterNo: number;
+  title: string | null;
+  translationStatus: ChapterTranslationStatus;
+  translationError: string | null;
+  publishStatus: ChapterPublishStatus;
+  pageCount: number;
+}
+
+export interface NovelDetail extends Omit<NovelInput, 'tags'> {
+  id: number;
+  tags: string[];
+  coverUrl: string | null;
+  notebookStatus: NotebookStatus;
+  notebookError: string | null;
+  chapters: ChapterSummary[];
+}
+
+export interface PageDto {
+  id: number;
+  position: number;
+  mediaUrl: string;
+  textVi: string | null;
+}
+
+export interface ChapterDetail {
+  id: number;
+  novelId: number;
+  novelTitle: string;
+  chapterNo: number;
+  title: string | null;
+  translationStatus: ChapterTranslationStatus;
+  translationError: string | null;
+  translatedAt: string | null;
+  editedAfterTranslation: boolean;
+  publishStatus: ChapterPublishStatus;
+  pages: PageDto[];
+  prevChapterId: number | null;
+  nextChapterId: number | null;
+}
+
+export interface GlossaryEntry {
+  source: string;
+  target: string;
+  note: string | null;
+}
+
+export interface AddressingRule {
+  from: string;
+  to: string;
+  rule: string;
+}
+
+export interface NotebookCharacter {
+  name: string;
+  sourceName: string | null;
+  profile: string | null;
+  currentState: string | null;
+  lastUpdatedChapter: number;
+}
+
+export interface NotebookContent {
+  glossary: GlossaryEntry[];
+  addressing: AddressingRule[];
+  characters: NotebookCharacter[];
+  storySoFar: string;
+  recentChapters: { chapterNo: number; summary: string }[];
+}
+
+export interface NotebookView {
+  afterChapterNo: number | null;
+  content: NotebookContent | null;
+  versions: number[];
+  status: NotebookStatus;
+  error: string | null;
+  staleLaterVersions: boolean;
+}
+
+function json(method: string, body: unknown): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+export async function listNovels(): Promise<NovelSummary[]> {
+  return (await send('/api/novels')).json();
+}
+
+export async function getNovel(id: number): Promise<NovelDetail> {
+  return (await send(`/api/novels/${id}`)).json();
+}
+
+export async function createNovel(input: NovelInput): Promise<NovelDetail> {
+  return (await send('/api/novels', json('POST', input))).json();
+}
+
+export async function updateNovel(id: number, input: NovelInput): Promise<NovelDetail> {
+  return (await send(`/api/novels/${id}`, json('PUT', input))).json();
+}
+
+export async function deleteNovel(id: number): Promise<void> {
+  await send(`/api/novels/${id}`, { method: 'DELETE' });
+}
+
+export async function addChapter(novelId: number, input: { chapterNo?: number; title?: string }): Promise<ChapterDetail> {
+  return (await send(`/api/novels/${novelId}/chapters`, json('POST', input))).json();
+}
+
+export async function getChapter(id: number): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${id}`)).json();
+}
+
+export async function updateChapter(
+  id: number,
+  input: { chapterNo?: number; title?: string; pages?: { id: number; textVi: string }[] },
+): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${id}`, json('PUT', input))).json();
+}
+
+export async function deleteChapter(id: number): Promise<void> {
+  await send(`/api/chapters/${id}`, { method: 'DELETE' });
+}
+
+export async function uploadPages(id: number, files: File[]): Promise<PageDto[]> {
+  const form = new FormData();
+  files.forEach((f) => form.append('files', f));
+  return (await send(`/api/chapters/${id}/pages`, { method: 'POST', body: form })).json();
+}
+
+export async function reorderPages(id: number, pageIds: number[]): Promise<PageDto[]> {
+  return (await send(`/api/chapters/${id}/pages/order`, json('PUT', { pageIds }))).json();
+}
+
+export async function deletePage(id: number, pageId: number): Promise<void> {
+  await send(`/api/chapters/${id}/pages/${pageId}`, { method: 'DELETE' });
+}
+
+export async function translateChapter(id: number): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${id}/translate`, { method: 'POST' })).json();
+}
+
+export async function publishChapter(id: number): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${id}/publish`, { method: 'POST' })).json();
+}
+
+export async function unpublishChapter(id: number): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${id}/unpublish`, { method: 'POST' })).json();
+}
+
+export async function getNotebook(novelId: number, after?: number): Promise<NotebookView> {
+  const query = after === undefined ? '' : `?after=${after}`;
+  return (await send(`/api/novels/${novelId}/notebook${query}`)).json();
+}
+
+export async function retryNotebook(novelId: number): Promise<void> {
+  await send(`/api/novels/${novelId}/notebook/retry`, { method: 'POST' });
+}
