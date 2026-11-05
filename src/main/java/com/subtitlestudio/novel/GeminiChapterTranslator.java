@@ -1,0 +1,118 @@
+package com.subtitlestudio.novel;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.translate.GeminiCaller;
+import com.subtitlestudio.translate.TranslationFailedException;
+import com.google.genai.types.Content;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.MediaResolution;
+import com.google.genai.types.Part;
+import com.google.genai.types.Schema;
+import com.google.genai.types.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/** One Gemini request for a batch of chapter pages: screenshots in, {@code {pages: [{page, text}]}} out. */
+@Component
+public class GeminiChapterTranslator implements ChapterTranslator {
+
+    static final String SYSTEM_RULES = """
+            Bạn là người dịch tiểu thuyết sang tiếng Việt.
+            - Mỗi ảnh là một trang tiểu thuyết (thường là tiếng Thái), có nhãn "Page k" ngay trước ảnh. Đọc chữ trong \
+            từng ảnh theo đúng thứ tự trang rồi dịch sang tiếng Việt văn xuôi tự nhiên, giàu cảm xúc, đúng giọng nhân vật.
+            - Với mỗi ảnh trả đúng một phần tử có "page" bằng số k của ảnh đó; không gộp, không tách, không bỏ trang.
+            - Giữ ngắt đoạn của bản gốc (một dòng trống giữa các đoạn). Không thêm lời bình, chú thích hay tóm tắt.
+            - Bỏ qua chữ thuộc giao diện ứng dụng nếu có trong ảnh (thanh trạng thái, giờ, pin, nút bấm, số trang).
+            - Một câu bị cắt sang trang sau thì dịch sao cho mỗi trang khớp phần lời của nó.
+            - Hồ sơ dịch và sổ tay truyện bên dưới được ưu tiên về tên riêng, thuật ngữ và cách xưng hô.
+            - Chỉ trả về JSON theo schema, không giải thích.""";
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiChapterTranslator.class);
+
+    private record Answer(List<TranslatedPage> pages) {}
+
+    private final GeminiCaller caller;
+    private final SubtitleStudioProperties.Gemini settings;
+    private final ObjectMapper mapper;
+
+    @Autowired
+    public GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties properties, ObjectMapper mapper) {
+        this(caller, properties.gemini(), mapper);
+    }
+
+    GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties.Gemini settings, ObjectMapper mapper) {
+        this.caller = caller;
+        this.settings = settings;
+        this.mapper = mapper;
+    }
+
+    @Override
+    public List<TranslatedPage> translate(ChapterPrompt prompt) {
+        List<Part> parts = new ArrayList<>();
+        parts.add(Part.fromText(context(prompt)));
+        for (PageImage page : prompt.pages()) {
+            parts.add(Part.fromText("Page " + page.page()));
+            parts.add(Part.fromBytes(page.jpeg(), "image/jpeg"));
+        }
+        GeminiCaller.Answer answer = caller.generate(parts, config());
+        Answer got;
+        try {
+            got = mapper.readValue(answer.text(), Answer.class);
+        } catch (JsonProcessingException e) {
+            log.warn("Gemini {} answer for {} pages is not the expected JSON ({} chars)", answer.model(),
+                    prompt.pages().size(), answer.text().length());
+            throw new TranslationFailedException("Gemini returned an answer that is not a translation.");
+        }
+        List<TranslatedPage> valid = PageTextOutput.validate(prompt.pages(), got.pages());
+        log.info("Gemini {} translated {} pages of chapter {}", answer.model(), valid.size(), prompt.chapterNo());
+        return valid;
+    }
+
+    private static String context(ChapterPrompt p) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# Hồ sơ dịch\n").append(p.profile()).append("\n\n");
+        if (p.notebookText() != null) {
+            sb.append("# Sổ tay truyện\n").append(p.notebookText()).append("\n\n");
+        }
+        if (p.previousText() != null) {
+            sb.append("# Chương trước (bản dịch)\n").append(p.previousText()).append("\n\n");
+        }
+        if (p.carryOver() != null) {
+            sb.append("# Đoạn cuối lượt trước\n")
+                    .append("(Đây là phần dịch ngay trước các trang dưới đây trong cùng chương; dịch tiếp cho liền mạch.)\n")
+                    .append(p.carryOver()).append("\n\n");
+        }
+        sb.append("# Chương ").append(p.chapterNo()).append(": ").append(p.novelTitle()).append('\n')
+                .append("Các trang cần dịch ở dưới, mỗi ảnh có nhãn \"Page k\" ngay trước.");
+        return sb.toString();
+    }
+
+    private GenerateContentConfig config() {
+        Schema page = Schema.builder()
+                .type(Type.Known.OBJECT)
+                .properties(Map.of(
+                        "page", Schema.builder().type(Type.Known.INTEGER).build(),
+                        "text", Schema.builder().type(Type.Known.STRING).build()))
+                .required("page", "text")
+                .build();
+        Schema root = Schema.builder()
+                .type(Type.Known.OBJECT)
+                .properties(Map.of("pages", Schema.builder().type(Type.Known.ARRAY).items(page).build()))
+                .required("pages")
+                .build();
+        return GenerateContentConfig.builder()
+                .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
+                .responseMimeType("application/json")
+                .responseSchema(root)
+                .mediaResolution(MediaResolution.Known.MEDIA_RESOLUTION_HIGH)
+                .temperature((float) settings.temperature())
+                .build();
+    }
+}

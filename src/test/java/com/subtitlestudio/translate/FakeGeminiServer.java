@@ -10,7 +10,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** A local stand-in for the Gemini REST API: records the last request, replies with a canned response. */
-final class FakeGeminiServer implements AutoCloseable {
+public final class FakeGeminiServer implements AutoCloseable {
 
     private final HttpServer server;
     private final AtomicInteger requests = new AtomicInteger();
@@ -21,7 +21,7 @@ final class FakeGeminiServer implements AutoCloseable {
     private volatile String lastPath;
     private volatile String lastBody;
 
-    FakeGeminiServer() {
+    public FakeGeminiServer() {
         try {
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         } catch (IOException e) {
@@ -56,42 +56,42 @@ final class FakeGeminiServer implements AutoCloseable {
         server.start();
     }
 
-    String baseUrl() {
+    public String baseUrl() {
         return "http://127.0.0.1:" + server.getAddress().getPort() + "/";
     }
 
     /** A successful generateContent reply whose text is {@code text}. */
-    void replyText(String text, String finishReason) {
+    public void replyText(String text, String finishReason) {
         String escaped = text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
         reply(200, "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"" + escaped
                 + "\"}]},\"finishReason\":\"" + finishReason + "\"}]}");
     }
 
-    void reply(int status, String body) {
+    public void reply(int status, String body) {
         this.status = status;
         this.body = body;
     }
 
     /** A reply used only for requests to {@code model}; other models get the default reply. */
-    void replyForModel(String model, int status, String body) {
+    public void replyForModel(String model, int status, String body) {
         perModel.put(model, new Reply(status, body));
     }
 
     private record Reply(int status, String body) {}
 
-    void delay(Duration delay) {
+    public void delay(Duration delay) {
         this.delay = delay;
     }
 
-    int requests() {
+    public int requests() {
         return requests.get();
     }
 
-    String lastPath() {
+    public String lastPath() {
         return lastPath;
     }
 
-    String lastBody() {
+    public String lastBody() {
         return lastBody;
     }
 

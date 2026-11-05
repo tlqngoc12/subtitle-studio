@@ -4,20 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.subtitlestudio.config.SubtitleStudioProperties;
-import com.google.genai.Client;
-import com.google.genai.errors.ApiException;
-import com.google.genai.errors.GenAiIOException;
 import com.google.genai.types.Content;
-import com.google.genai.types.FinishReason;
 import com.google.genai.types.GenerateContentConfig;
-import com.google.genai.types.GenerateContentResponse;
-import com.google.genai.types.HttpOptions;
-import com.google.genai.types.HttpRetryOptions;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
-import java.io.InterruptedIOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Gemini translation with the official SDK: one request per video, structured JSON output
+ * Gemini translation (via {@link GeminiCaller}): one request per video, structured JSON output
  * ({@code [{id, text}]}), and no automatic retries so a quota error does not burn more of the free tier.
  */
 @Component
@@ -48,62 +39,33 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
 
     private final SubtitleStudioProperties.Gemini settings;
     private final ObjectMapper mapper;
-    private final String baseUrl;
+    private final GeminiCaller caller;
 
     @Autowired
-    public GeminiTranslatorImpl(SubtitleStudioProperties properties, ObjectMapper mapper) {
-        this(properties.gemini(), mapper, null);
+    public GeminiTranslatorImpl(SubtitleStudioProperties properties, ObjectMapper mapper, GeminiCaller caller) {
+        this.settings = properties.gemini();
+        this.mapper = mapper;
+        this.caller = caller;
     }
 
     /** {@code baseUrl} points the SDK at a fake server in tests; null means the real Gemini API. */
     GeminiTranslatorImpl(SubtitleStudioProperties.Gemini settings, ObjectMapper mapper, String baseUrl) {
         this.settings = settings;
         this.mapper = mapper;
-        this.baseUrl = baseUrl;
+        this.caller = new GeminiCaller(settings, baseUrl);
     }
 
     @Override
     public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines) {
-        GenerateContentResponse response = null;
-        String answeredBy = null;
-        String content = userContent(video, profile, lines);
-        GenerateContentConfig config = config();
-        try (Client client = client()) {
-            // The main model, then the fallbacks, as long as each one answers "overloaded" (503).
-            List<String> models = new ArrayList<>();
-            models.add(settings.model());
-            models.addAll(settings.fallbackModels());
-            for (int i = 0; response == null; i++) {
-                try {
-                    response = client.models.generateContent(models.get(i), content, config);
-                    answeredBy = models.get(i);
-                } catch (ApiException e) {
-                    if (e.code() != 503) {
-                        throw fromApi(e);
-                    }
-                    log.warn("Gemini model {} is overloaded (HTTP 503)", models.get(i));
-                    if (i == models.size() - 1) {
-                        throw new TranslationFailedException(
-                                "Gemini is busy right now (high demand), try again in a few minutes.");
-                    }
-                }
-            }
-        } catch (GenAiIOException e) {
-            throw causedByTimeout(e)
-                    ? new TranslationFailedException("Gemini did not respond in time.")
-                    : new TranslationFailedException("Could not translate: connection to Gemini failed.");
-        }
-
-        String text = textOrNull(response);
-        if (text == null || text.isBlank()) {
-            throw new TranslationFailedException("Gemini refused to translate this content.");
-        }
+        GeminiCaller.Answer answer = caller.generate(List.of(Part.fromText(userContent(video, profile, lines))),
+                config());
+        String answeredBy = answer.model();
         List<TranslatedLine> got;
         try {
-            got = mapper.readValue(text, LINES);
+            got = mapper.readValue(answer.text(), LINES);
         } catch (JsonProcessingException e) {
             log.warn("Gemini {} answer for {} lines is not the expected JSON ({} chars)", answeredBy, lines.size(),
-                    text.length());
+                    answer.text().length());
             throw TranslationOutput.invalid(0, lines.size());
         }
         // Answers vary between runs, so a rejected one is only diagnosable from this line (no subtitle text in it).
@@ -115,16 +77,6 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             log.warn("Gemini {} returned an invalid answer: {}", answeredBy, TranslationOutput.describe(lines, got));
             throw e;
         }
-    }
-
-    private Client client() {
-        HttpOptions.Builder http = HttpOptions.builder()
-                .timeout((int) settings.timeout().toMillis())
-                .retryOptions(HttpRetryOptions.builder().attempts(1));
-        if (baseUrl != null) {
-            http.baseUrl(baseUrl);
-        }
-        return Client.builder().apiKey(settings.apiKey()).httpOptions(http.build()).build();
     }
 
     private GenerateContentConfig config() {
@@ -153,39 +105,5 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    private TranslationFailedException fromApi(ApiException e) {
-        return switch (e.code()) {
-            case 429 -> new TranslationFailedException("Gemini free quota is used up, try again later.");
-            case 401, 403 -> new TranslationFailedException("GEMINI_API_KEY is not valid.");
-            default -> {
-                // Error text from the API may echo request details; keep it out of the message and the log.
-                log.warn("Gemini request failed with HTTP {}", e.code());
-                yield new TranslationFailedException("Could not translate: Gemini returned error " + e.code() + ".");
-            }
-        };
-    }
-
-    /** The answer text, or null when Gemini stopped for another reason than STOP (blocked, truncated...). */
-    private static String textOrNull(GenerateContentResponse response) {
-        FinishReason reason = response.finishReason();
-        if (reason != null && reason.knownEnum() != FinishReason.Known.STOP) {
-            return null;
-        }
-        try {
-            return response.text();
-        } catch (RuntimeException e) {
-            return null; // the SDK throws when the candidate has no content parts
-        }
-    }
-
-    private static boolean causedByTimeout(Throwable e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            if (t instanceof InterruptedIOException) {
-                return true;
-            }
-        }
-        return false;
     }
 }
