@@ -226,7 +226,8 @@ export default function ChapterPage() {
             {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
           </button>
           {chapter.publishStatus === 'PUBLISHED' ? (
-            <button className="button button--small" type="button" disabled={locked}
+            // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
+            <button className="button button--small" type="button" disabled={locked || dirty}
               onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
               <Undo2 className="icon" aria-hidden="true" />
               Unpublish

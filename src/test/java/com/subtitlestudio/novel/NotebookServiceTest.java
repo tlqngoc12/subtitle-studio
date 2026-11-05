@@ -296,6 +296,43 @@ class NotebookServiceTest {
     }
 
     @Test
+    void unexpectedErrorFailsInsteadOfStayingUpdating() {
+        publishedChapter(1, "Một");
+        updater.failure = new IllegalStateException("boom");
+
+        service.scheduleUpdate(novelId, 1);
+
+        assertThat(novel().getNotebookStatus()).isEqualTo(NotebookStatus.FAILED);
+        assertThat(novel().getNotebookError()).isEqualTo("Could not update the notebook: IllegalStateException.");
+        updater.failure = null;
+        service.retry(novelId);
+        assertThat(novel().getNotebookStatus()).isEqualTo(NotebookStatus.IDLE);
+    }
+
+    @Autowired
+    private PromptProfileStore profileStore;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    void withoutGeminiKeyNothingIsSent() {
+        publishedChapter(1, "Một");
+        SubtitleStudioProperties noKey = new SubtitleStudioProperties(
+                new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
+                new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3,
+                        List.of()),
+                new SubtitleStudioProperties.Publish("", "", "", false, "wrangler", Duration.ofMinutes(5)));
+        NotebookService off = new NotebookService(noKey, novels, chapters, pages, notebooks, updater, profileStore,
+                objectMapper, tx, Runnable::run, clock);
+
+        off.scheduleUpdate(novelId, 1);
+
+        assertThat(updater.calls).isEmpty();
+        assertThat(novel().getNotebookStatus()).isEqualTo(NotebookStatus.IDLE);
+    }
+
+    @Test
     void textBeforeReturnsNullWhenNone() {
         assertThat(service.textBefore(novelId, 1)).isNull();
     }

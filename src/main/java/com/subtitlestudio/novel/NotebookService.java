@@ -2,6 +2,7 @@ package com.subtitlestudio.novel;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.translate.PromptProfileStore;
 import com.subtitlestudio.translate.TranslationFailedException;
 import com.subtitlestudio.translate.UnknownProfileException;
@@ -36,6 +37,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
 
     private record Job(String profile, String notebookText, NotebookContent old, String chapterText) {}
 
+    private final SubtitleStudioProperties.Gemini gemini;
     private final NovelRepository novels;
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
@@ -49,10 +51,12 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
     /** Chapters waiting per novel; the head is running. Guarded by {@code this}. */
     private final Map<Long, Deque<Integer>> queues = new HashMap<>();
 
-    public NotebookService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
+    public NotebookService(SubtitleStudioProperties properties, NovelRepository novels, ChapterRepository chapters,
+                           ChapterPageRepository pages,
                            NovelNotebookRepository notebooks, NotebookUpdater updater, PromptProfileStore profiles,
                            ObjectMapper mapper, TransactionTemplate tx,
                            @Qualifier("translationExecutor") Executor executor, Clock clock) {
+        this.gemini = properties.gemini();
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -65,8 +69,12 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
         this.clock = clock;
     }
 
+    /** Without GEMINI_API_KEY nothing is sent anywhere: the notebook simply stays as it is. */
     @Override
     public void scheduleUpdate(long novelId, int chapterNo) {
+        if (!gemini.configured()) {
+            return;
+        }
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -180,6 +188,10 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
             fail(novelId, e.userMessage());
         } catch (InvalidNotebookUpdateException e) {
             fail(novelId, e.getMessage());
+        } catch (RuntimeException e) {
+            // Anything else must not leave the novel UPDATING (Retry would refuse until a restart).
+            log.warn("Notebook update of novel {} failed: {}", novelId, e.getClass().getName());
+            fail(novelId, "Could not update the notebook: " + e.getClass().getSimpleName() + ".");
         }
     }
 

@@ -243,6 +243,16 @@ describe('ChapterPage', () => {
     expect(within(screen.getByRole('region', { name: 'Chapter' })).getByText('Published')).toBeInTheDocument();
   });
 
+  it('does not let Unpublish drop unsaved edits', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeEnabled();
+
+    await user().type(screen.getByLabelText('Page 1 translation'), '!');
+
+    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeDisabled();
+  });
+
   it('links to the neighbouring chapters', async () => {
     renderPage([get({ prevChapterId: 8, nextChapterId: 10 })]);
     await loaded();

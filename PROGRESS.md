@@ -535,4 +535,5 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 | Sửa sổ tay truyện bằng tay | Novels | hiện chỉ đọc; tự cập nhật sau mỗi chương Published |
 | Tạo lại các phiên bản sổ tay sau chương N khi dịch lại/sửa chương N | Novels | hiện chỉ cảnh báo "built from an older text" ở tab Notebook |
 | Hàng đợi cập nhật sổ tay mất khi app khởi động lại | Novels | trạng thái thành FAILED "interrupted", bấm Retry chạy lại chương gần nhất |
+| Review Novels (Minor): tab Notebook không tự làm mới khi đang UPDATING (phải tải lại trang); xoá chương khi sổ tay của nó đang/chờ cập nhật vẫn tạo bản "after N" hoặc báo FAILED; khi sổ tay vượt 12.000 ký tự phần cắt cứng rơi vào Tóm tắt/Chương gần đây (nằm cuối); cập nhật chương N lỗi rồi chương N+1 thành công thì lỗi của N bị quên (không Retry được); chương đã Published lưu được với text rỗng | Novels | final review nhánh `feature/novels` |
 | Tự khắc phục khi Gemini trả thiếu/sai block | P4 | gợi ý: hỏi lại chỉ các id thiếu/sai (giữ block đúng, request nhỏ, ít tốn quota); xem log chẩn đoán 2026-11-04 trước |
