@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
+import ChapterPage from './pages/ChapterPage';
 import HomePage from './pages/HomePage';
 import NovelNewPage from './pages/NovelNewPage';
 import NovelPage from './pages/NovelPage';
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/novels" element={<NovelsPage />} />
         <Route path="/novels/new" element={<NovelNewPage />} />
         <Route path="/novels/:id" element={<NovelPage />} />
+        <Route path="/novels/:id/chapters/:chapterId" element={<ChapterPage />} />
       </Routes>
     </MotionConfig>
   );

@@ -2294,3 +2294,165 @@ a.tabs__tab {
   margin: 0;
   padding-left: 18px;
 }
+
+/* ---------- Novels: chapter page ---------- */
+
+.chapter-head {
+  display: grid;
+  gap: 12px;
+  margin-block: 8px 16px;
+}
+
+.chapter-head__title {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.chapter-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chapter-head__nav {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.chapter-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  gap: 12px;
+  max-width: 640px;
+  margin-bottom: 16px;
+}
+
+.uploader {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  margin-bottom: 16px;
+  padding: 20px;
+  border: 2px dashed var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  text-align: center;
+}
+
+.uploader--over {
+  border-color: var(--brand-2);
+}
+
+.uploader__icon {
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+}
+
+.uploader__label {
+  font-weight: 700;
+}
+
+.uploader__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.uploader__input {
+  max-width: 100%;
+}
+
+.page-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.page-row:focus-within {
+  border-color: var(--brand-2);
+}
+
+.page-row--dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.page-row__side {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.page-row__number {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.page-row__shot {
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: none;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.page-row__shot img {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+}
+
+.page-row__text textarea {
+  min-height: 260px;
+}
+
+.chapter-save {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 0;
+  background: var(--paper);
+}
+
+@media (max-width: 760px) {
+  .page-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .page-row__text {
+    grid-column: 1 / -1;
+  }
+
+  .chapter-head__nav {
+    margin-left: 0;
+  }
+
+  .chapter-head__nav .button--icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
