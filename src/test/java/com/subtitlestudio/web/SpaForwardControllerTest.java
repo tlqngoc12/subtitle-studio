@@ -29,6 +29,20 @@ class SpaForwardControllerTest {
                 .andExpect(forwardedUrl("/index.html"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/novels", "/novels/", "/novels/new", "/novels/3", "/novels/3/", "/novels/3/chapters/9",
+        "/novels/3/chapters/9/"})
+    void forwardsNovelRoutesToIndex(String path) throws Exception {
+        mvc.perform(get(path))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
+
+    @Test
+    void unknownNovelApiPathStillReturns404() throws Exception {
+        mvc.perform(get("/api/novels/x/y/z")).andExpect(status().isNotFound());
+    }
+
     @Test
     void unknownApiPathStillReturns404() throws Exception {
         mvc.perform(get("/api/khong-co")).andExpect(status().isNotFound());

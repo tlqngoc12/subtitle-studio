@@ -12,7 +12,9 @@ public class SpaForwardController {
 
     @GetMapping({"/vietsub", "/vietsub/", "/vietsub/{id}", "/vietsub/{id}/",
         "/vietsub/playlists/{id}", "/vietsub/playlists/{id}/",
-        "/profiles", "/profiles/", "/profiles/{slug}", "/profiles/{slug}/"})
+        "/profiles", "/profiles/", "/profiles/{slug}", "/profiles/{slug}/",
+        "/novels", "/novels/", "/novels/{id}", "/novels/{id}/",
+        "/novels/{id}/chapters/{chapterId}", "/novels/{id}/chapters/{chapterId}/"})
     public String spa() {
         return "forward:/index.html";
     }
