@@ -70,6 +70,8 @@ public class PublicSiteBundle {
         }
         sb.append("/assets/*\n").append(LONG_CACHE).append('\n');
         sb.append("/media/*\n").append(LONG_CACHE).append('\n');
+        // Chapter images are named by a hash of their content.
+        sb.append("/novels/*\n").append(LONG_CACHE).append('\n');
         // Data changes on every publish: guests must see it right away.
         sb.append("/data/*\n  Cache-Control: no-cache\n");
         return sb.toString();

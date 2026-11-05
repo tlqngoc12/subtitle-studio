@@ -43,6 +43,7 @@ class PublicSiteBundleTest {
         String headers = read("_headers");
         assertThat(headers).contains("/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n");
         assertThat(headers).contains("/media/*\n  Cache-Control: public, max-age=31536000, immutable\n");
+        assertThat(headers).contains("/novels/*\n  Cache-Control: public, max-age=31536000, immutable\n");
         assertThat(headers).contains("/data/*\n  Cache-Control: no-cache\n");
     }
 

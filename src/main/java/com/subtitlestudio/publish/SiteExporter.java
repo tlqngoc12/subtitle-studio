@@ -30,11 +30,13 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
  * Writes the public site's data (spec section 4) into a directory: allowlisted JSON plus the images the
- * profiles use. Everything is exported again on every publish.
+ * profiles and novels use, and the novels' drawn chapters ({@link NovelExporter}). Everything is exported again on
+ * every publish.
  */
 @Component
 public class SiteExporter {
@@ -50,10 +52,22 @@ public class SiteExporter {
     private final MediaRepository media;
     private final SubtitleStudioProperties properties;
     private final ObjectMapper mapper;
+    private final NovelExporter novels;
+    private final int fileWarning;
 
+    /** Cloudflare Pages Free allows 20,000 files per site; warn a little before. */
+    static final int FILE_WARNING = 18_000;
+
+    @Autowired
     public SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
                         ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
-                        ObjectMapper mapper) {
+                        ObjectMapper mapper, NovelExporter novels) {
+        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, FILE_WARNING);
+    }
+
+    SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
+                 ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
+                 ObjectMapper mapper, NovelExporter novels, int fileWarning) {
         this.subtitles = subtitles;
         this.vietsub = vietsub;
         this.playlists = playlists;
@@ -61,6 +75,8 @@ public class SiteExporter {
         this.media = media;
         this.properties = properties;
         this.mapper = mapper;
+        this.novels = novels;
+        this.fileWarning = fileWarning;
     }
 
     public record SiteInfo(Instant publishedAt, int year) {}
@@ -82,7 +98,21 @@ public class SiteExporter {
         }
 
         exportPlaylists(dir);
-        exportProfiles(dir);
+        Map<Long, Optional<String>> publicUrls = new HashMap<>();
+        exportProfiles(dir, publicUrls);
+        novels.export(dir, id -> publicUrl(id, dir, publicUrls), this::write);
+        warnAboutFileCount(dir);
+    }
+
+    private void warnAboutFileCount(Path dir) {
+        try (java.util.stream.Stream<Path> files = Files.walk(dir)) {
+            long count = files.filter(Files::isRegularFile).count();
+            if (count > fileWarning) {
+                log.warn("Public site has {} files; Cloudflare Pages Free allows 20,000.", count);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not count the public site's files", e);
+        }
     }
 
     private void exportPlaylists(Path dir) {
@@ -101,10 +131,9 @@ public class SiteExporter {
         write(dir.resolve("data/playlists.json"), summaries);
     }
 
-    private void exportProfiles(Path dir) {
+    private void exportProfiles(Path dir, Map<Long, Optional<String>> publicUrls) {
         List<ProfileSummary> list = profiles.list();
         write(dir.resolve("data/profiles.json"), list);
-        Map<Long, Optional<String>> publicUrls = new HashMap<>();
         for (ProfileSummary summary : list) {
             ProfileDto profile = profiles.get(summary.slug());
             List<BlockDto> blocks = profile.blocks().stream().map(b -> new BlockDto(b.id(), b.type(), b.title(),
