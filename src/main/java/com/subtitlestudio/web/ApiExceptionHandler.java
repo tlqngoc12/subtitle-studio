@@ -1,6 +1,12 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.novel.ChapterNotFoundException;
+import com.subtitlestudio.novel.ChapterTranslationInProgressException;
+import com.subtitlestudio.novel.DuplicateChapterNumberException;
 import com.subtitlestudio.novel.DuplicateNovelSlugException;
+import com.subtitlestudio.novel.InvalidChapterException;
+import com.subtitlestudio.novel.InvalidPageOrderException;
+import com.subtitlestudio.novel.PageNotFoundException;
 import com.subtitlestudio.novel.InvalidNovelException;
 import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.playlist.InvalidPlaylistException;
@@ -132,6 +138,40 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DuplicateNovelSlugException.class)
     ProblemDetail duplicateNovelSlug(DuplicateNovelSlugException e) {
         return problem(HttpStatus.CONFLICT, "DUPLICATE_NOVEL_SLUG", e.getMessage());
+    }
+
+    @ExceptionHandler(ChapterNotFoundException.class)
+    ProblemDetail chapterNotFound(ChapterNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "CHAPTER_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(PageNotFoundException.class)
+    ProblemDetail pageNotFound(PageNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "PAGE_NOT_FOUND", e.getMessage());
+    }
+
+    /** Same shape as INVALID_BLOCK: {@code errors} lists every rejected field. */
+    @ExceptionHandler(InvalidChapterException.class)
+    ProblemDetail invalidChapter(InvalidChapterException e) {
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_CHAPTER", e.getMessage());
+        pd.setProperty("errors", e.errors());
+        return pd;
+    }
+
+    @ExceptionHandler(DuplicateChapterNumberException.class)
+    ProblemDetail duplicateChapterNumber(DuplicateChapterNumberException e) {
+        return problem(HttpStatus.CONFLICT, "DUPLICATE_CHAPTER_NUMBER", e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPageOrderException.class)
+    ProblemDetail invalidPageOrder(InvalidPageOrderException e) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_PAGE_ORDER", e.getMessage());
+    }
+
+    /** Same code as a video's running translation: the frontend shows one message for both. */
+    @ExceptionHandler(ChapterTranslationInProgressException.class)
+    ProblemDetail chapterTranslationInProgress(ChapterTranslationInProgressException e) {
+        return problem(HttpStatus.CONFLICT, "TRANSLATION_IN_PROGRESS", e.getMessage());
     }
 
     @ExceptionHandler(PlaylistNotFoundException.class)
