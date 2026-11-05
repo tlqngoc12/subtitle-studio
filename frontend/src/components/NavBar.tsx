@@ -19,6 +19,8 @@ const VIETSUB_LIST: Section = {
 };
 const PROFILE: Section = { to: '/profiles', label: 'Profile', isCurrent: (p) => p === '/profiles' || p.startsWith('/profiles/') };
 
+const NOVELS: Section = { to: '/novels', label: 'Novels', isCurrent: (p) => p === '/novels' || p.startsWith('/novels/') };
+
 /** Guests only read: no Get Engsub, no Vietsub management. */
 const PUBLIC_SECTIONS: Section[] = [VIETSUB_LIST, PROFILE];
 
@@ -28,6 +30,7 @@ const ADMIN_SECTIONS: Section[] = [
   { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => /^\/vietsub(\/|\/playlists(\/.*)?)?$/.test(p) },
   VIETSUB_LIST,
   PROFILE,
+  NOVELS,
 ];
 
 /** Sticky top bar: app name (home link) and the main sections; the sections scroll sideways on narrow screens. */

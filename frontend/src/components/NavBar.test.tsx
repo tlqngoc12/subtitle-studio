@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavBar } from './NavBar';
@@ -42,6 +42,14 @@ describe('NavBar', () => {
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
     expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
     expect(within(nav).getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profiles');
+  });
+
+  it('lists Novels after Profile and marks it current on chapter pages', () => {
+    expect(currentAt('/novels/3/chapters/9')).toEqual(['Novels']);
+    cleanup();
+    expect(currentAt('/novels')).toEqual(['Novels']);
+    const links = within(screen.getAllByRole('navigation')[0]).getAllByRole('link').map((a) => a.textContent);
+    expect(links.indexOf('Novels')).toBe(links.indexOf('Profile') + 1);
   });
 
   it('links the app name to the home page', () => {

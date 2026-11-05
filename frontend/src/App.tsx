@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
 import HomePage from './pages/HomePage';
+import NovelNewPage from './pages/NovelNewPage';
+import NovelsPage from './pages/NovelsPage';
 import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -25,6 +27,8 @@ export default function App() {
         <Route path="/vietsub/:id" element={<WatchPage />} />
         <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
         <Route path="/profiles/:slug" element={<ProfilePage />} />
+        <Route path="/novels" element={<NovelsPage />} />
+        <Route path="/novels/new" element={<NovelNewPage />} />
       </Routes>
     </MotionConfig>
   );
