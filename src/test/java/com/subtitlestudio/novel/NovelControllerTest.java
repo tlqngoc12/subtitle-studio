@@ -42,6 +42,30 @@ class NovelControllerTest {
     @MockitoBean
     private NovelService service;
 
+    @MockitoBean
+    private NotebookService notebook;
+
+    @Test
+    void notebookViewAndRetry() throws Exception {
+        when(notebook.view(3L, 5)).thenReturn(new NotebookView(5, NotebookContent.EMPTY, List.of(2, 5),
+                NotebookStatus.IDLE, null, true));
+
+        mvc.perform(get("/api/novels/3/notebook").param("after", "5")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.afterChapterNo").value(5))
+                .andExpect(jsonPath("$.versions[1]").value(5))
+                .andExpect(jsonPath("$.staleLaterVersions").value(true));
+        mvc.perform(post("/api/novels/3/notebook/retry")).andExpect(status().isAccepted());
+        verify(notebook).retry(3L);
+    }
+
+    @Test
+    void retryWhileUpdatingIs409() throws Exception {
+        doThrow(new NotebookUpdateInProgressException(3)).when(notebook).retry(3L);
+
+        mvc.perform(post("/api/novels/3/notebook/retry")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOTEBOOK_UPDATE_IN_PROGRESS"));
+    }
+
     @Test
     void listsNovels() throws Exception {
         when(service.list()).thenReturn(List.of(new NovelSummary(3, "summer-love", "Tình Yêu Mùa Hạ", null,

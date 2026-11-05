@@ -10,6 +10,7 @@ import com.subtitlestudio.novel.InvalidChapterException;
 import com.subtitlestudio.novel.InvalidPageOrderException;
 import com.subtitlestudio.novel.PageNotFoundException;
 import com.subtitlestudio.novel.InvalidNovelException;
+import com.subtitlestudio.novel.NotebookUpdateInProgressException;
 import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.playlist.InvalidPlaylistException;
 import com.subtitlestudio.playlist.InvalidPlaylistOrderException;
@@ -184,6 +185,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ChapterNotTranslatedException.class)
     ProblemDetail chapterNotTranslated(ChapterNotTranslatedException e) {
         return problem(HttpStatus.CONFLICT, "CHAPTER_NOT_TRANSLATED", e.getMessage());
+    }
+
+    @ExceptionHandler(NotebookUpdateInProgressException.class)
+    ProblemDetail notebookUpdateInProgress(NotebookUpdateInProgressException e) {
+        return problem(HttpStatus.CONFLICT, "NOTEBOOK_UPDATE_IN_PROGRESS", e.getMessage());
     }
 
     @ExceptionHandler(PlaylistNotFoundException.class)
