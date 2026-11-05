@@ -503,6 +503,8 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - Migration **V5** (`t_novel`, `t_chapter`, `t_chapter_page`, `t_novel_notebook`). Job dọn ảnh bỏ rơi giờ tính cả bìa và ảnh chụp chương là "đang dùng" (trước đó sẽ xoá chúng sau 24 giờ).
 - Gemini: tách `GeminiCaller` dùng chung (Vietsub, dịch chương, sổ tay). Dịch chương gửi ảnh JPEG đã thu nhỏ (cạnh dài ≤ 2.000px), `media_resolution` HIGH, 20 ảnh hoặc ~15 MB mỗi lượt, lượt sau nhận 2.000 ký tự cuối lượt trước.
 - Sổ tay: glossary/xưng hô chỉ thêm/sửa theo khoá (app gộp), nhân vật ≤ 30, tóm tắt ≤ 2.500 ký tự, 3 chương gần nhất; mỗi lần cập nhật là một phiên bản "after chapter N"; hàng đợi tuần tự mỗi bộ, chạy sau khi transaction commit.
+- Review cuối (Opus): 0 Critical, 3 Important đã sửa (sổ tay kẹt UPDATING khi lỗi lạ; không gọi Gemini khi thiếu key; Unpublish không làm mất chỉnh sửa chưa lưu), 5 Minor vào Backlog.
+- Gemini fallback (503) giờ là `gemini-3.6-flash` → `gemini-3.5-flash-lite` → `gemini-3.5-flash`.
 - Publish: `NovelExporter` vẽ chương bằng font Literata (OFL, file variable `fonts/Literata.ttf`), WebP lossless (~54 KB/trang mẫu), cache theo hash nội dung.
 
 ## 9. Rủi ro đang theo dõi
