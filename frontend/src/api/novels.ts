@@ -35,6 +35,8 @@ export interface ChapterSummary {
   id: number;
   chapterNo: number;
   title: string | null;
+  /** Shown instead of "Chapter N" (e.g. "Ngoại truyện 1"). */
+  label: string | null;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
   publishStatus: ChapterPublishStatus;
@@ -63,6 +65,7 @@ export interface ChapterDetail {
   novelTitle: string;
   chapterNo: number;
   title: string | null;
+  label: string | null;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
   translatedAt: string | null;
@@ -151,7 +154,13 @@ export async function getChapter(id: number): Promise<ChapterDetail> {
 
 export async function updateChapter(
   id: number,
-  input: { chapterNo?: number; title?: string; pages?: { id: number; textVi: string }[]; text?: string },
+  input: {
+    chapterNo?: number;
+    label?: string;
+    title?: string;
+    pages?: { id: number; textVi: string }[];
+    text?: string;
+  },
 ): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${id}`, json('PUT', input))).json();
 }

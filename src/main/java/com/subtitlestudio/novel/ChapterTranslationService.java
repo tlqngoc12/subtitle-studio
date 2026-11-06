@@ -35,7 +35,7 @@ public class ChapterTranslationService {
     private static final Logger log = LoggerFactory.getLogger(ChapterTranslationService.class);
 
     /** What the background run needs, read in one transaction. */
-    private record Job(long novelId, int chapterNo, String novelTitle, String profile, String notebookText,
+    private record Job(long novelId, int chapterNo, String chapterLabel, String novelTitle, String profile, String notebookText,
                        String previousText, List<Long> pageIds, List<Long> mediaIds, Map<Integer, String> kept) {}
 
     private final SubtitleStudioProperties.Gemini gemini;
@@ -176,7 +176,8 @@ public class ChapterTranslationService {
             for (List<PageImage> batch : ChapterBatches.split(images, pagesPerRequest, ChapterBatches.MAX_BYTES)) {
                 List<TranslatedPage> got;
                 try {
-                    got = translator.translate(new ChapterPrompt(job.novelTitle(), job.chapterNo(), job.profile(),
+                    got = translator.translate(new ChapterPrompt(job.novelTitle(), job.chapterNo(), job.chapterLabel(),
+                            job.profile(),
                             job.notebookText(), job.previousText(), carryOver(texts, batch.getFirst().page()),
                             batch));
                 } catch (ChapterPartlyTranslatedException e) {
@@ -226,7 +227,7 @@ public class ChapterTranslationService {
                 kept.clear();
             }
         }
-        return new Job(n.getId(), c.getChapterNo(), n.getTitle(), profile,
+        return new Job(n.getId(), c.getChapterNo(), c.getLabel(), n.getTitle(), profile,
                 notebook.textBefore(n.getId(), c.getChapterNo()), previousText(n.getId(), c.getChapterNo()),
                 ps.stream().map(ChapterPage::getId).toList(), ps.stream().map(p -> p.getMedia().getId()).toList(),
                 kept);

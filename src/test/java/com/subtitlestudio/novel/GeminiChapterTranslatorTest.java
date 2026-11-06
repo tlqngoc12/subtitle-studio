@@ -70,6 +70,17 @@ class GeminiChapterTranslatorTest {
     }
 
     @Test
+    void namesTheChapterByItsLabel() {
+        server.replyText(GOOD, "STOP");
+        ChapterPrompt p = prompt(null, null, null);
+
+        translator(List.of()).translate(new ChapterPrompt(p.novelTitle(), 31, "Ngoại truyện 1", p.profile(), null,
+                null, null, p.pages()));
+
+        assertThat(server.lastBody()).contains("# Ngoại truyện 1: Tình Yêu Mùa Hạ").doesNotContain("Chương 31");
+    }
+
+    @Test
     void leavesOutEmptySections() {
         server.replyText(GOOD, "STOP");
 

@@ -8,5 +8,5 @@ public record PublicNovelDetail(String slug, String title, String coverUrl, Stri
                                 List<String> tags, NovelStatus novelStatus, String translatorCredit, String sourceUrl,
                                 List<PublicChapterRef> chapters) {
 
-    public record PublicChapterRef(int chapterNo, String title) {}
+    public record PublicChapterRef(int chapterNo, String title, String label) {}
 }

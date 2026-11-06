@@ -39,6 +39,7 @@ export default function ChapterPage() {
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [text, setText] = useState('');
   const [number, setNumber] = useState('');
+  const [label, setLabel] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,6 +51,7 @@ export default function ChapterPage() {
     setChapter(c);
     setText(c.text);
     setNumber(String(c.chapterNo));
+    setLabel(c.label ?? '');
     setTitle(c.title ?? '');
   }
 
@@ -68,6 +70,7 @@ export default function ChapterPage() {
   const dirty =
     chapter !== null &&
     (number !== String(chapter.chapterNo) ||
+      label !== (chapter.label ?? '') ||
       title !== (chapter.title ?? '') ||
       text !== chapter.text);
 
@@ -148,6 +151,7 @@ export default function ChapterPage() {
       load(
         await updateChapter(chapterId, {
           chapterNo: Number(number),
+          label: label.trim(),
           title: title.trim(),
           text,
         }),
@@ -215,7 +219,7 @@ export default function ChapterPage() {
 
       <section className="chapter-head" aria-label="Chapter">
         <div className="chapter-head__title">
-          <h1 className="masthead__name">{chapterLabel(chapter.chapterNo, chapter.title)}</h1>
+          <h1 className="masthead__name">{chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}</h1>
           <StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />
         </div>
         <div className="chapter-head__actions">
@@ -275,11 +279,20 @@ export default function ChapterPage() {
       <div className="chapter-meta">
         {!published && (
           <div className="field">
-            <label htmlFor={`${ids}-no`}>Chapter number</label>
+            <label htmlFor={`${ids}-no`}>Order</label>
             <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
+              aria-describedby={`${ids}-no-hint`}
               onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
+            <p className="field__hint" id={`${ids}-no-hint`}>Sorts the chapters and is the chapter's link number.</p>
           </div>
         )}
+        <div className="field">
+          <label htmlFor={`${ids}-label`}>Chapter label (optional)</label>
+          <input id={`${ids}-label`} type="text" maxLength={100} value={label} disabled={locked}
+            placeholder={`Chapter ${number || chapter.chapterNo}`} aria-describedby={`${ids}-label-hint`}
+            onChange={(e) => setLabel(e.target.value)} />
+          <p className="field__hint" id={`${ids}-label-hint`}>Shown instead of the number, e.g. Ngoại truyện 1, Special.</p>
+        </div>
         <div className="field">
           <label htmlFor={`${ids}-title`}>Chapter title (optional)</label>
           <input id={`${ids}-title`} type="text" maxLength={200} value={title} disabled={locked}

@@ -68,12 +68,12 @@ public class NovelExporter {
                 Integer next = i < published.size() - 1 ? published.get(i + 1).getChapterNo() : null;
                 List<String> images = images(dir, n, c, watermark);
                 write.accept(dir.resolve("data/novels/" + n.getSlug() + "/" + c.getChapterNo() + ".json"),
-                        new PublicChapterFile(c.getChapterNo(), c.getTitle(), prev, next, images));
+                        new PublicChapterFile(c.getChapterNo(), c.getTitle(), c.getLabel(), prev, next, images));
             }
             write.accept(dir.resolve("data/novels/" + n.getSlug() + ".json"), new PublicNovelDetail(n.getSlug(),
                     n.getTitle(), cover, n.getOriginalAuthor(), n.getDescription(), tags, n.getNovelStatus(),
                     n.getTranslatorCredit(), n.getSourceUrl(),
-                    published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle())).toList()));
+                    published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle(), c.getLabel())).toList()));
             summaries.add(new PublicNovelSummary(n.getSlug(), n.getTitle(), cover, n.getOriginalAuthor(), tags,
                     n.getNovelStatus(), published.size(), n.getUpdatedAt()));
         }
@@ -83,7 +83,7 @@ public class NovelExporter {
     private List<String> images(Path dir, Novel n, Chapter c, String watermark) {
         String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
         List<Path> files = renderCache.imagesFor(c.getId(),
-                new RenderInput(n.getTitle(), c.getChapterNo(), c.getTitle(), text, watermark));
+                new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark));
         List<String> urls = new ArrayList<>();
         Path target = dir.resolve("novels").resolve(n.getSlug());
         try {

@@ -23,7 +23,7 @@ class RenderCacheTest {
     }
 
     private static RenderInput input(String text) {
-        return new RenderInput("Tình Yêu", 1, null, text, "example.pages.dev");
+        return new RenderInput("Tình Yêu", 1, null, null, text, "example.pages.dev");
     }
 
     private List<Path> filesIn(long chapterId) throws IOException {

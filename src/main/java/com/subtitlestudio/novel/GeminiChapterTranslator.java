@@ -27,7 +27,8 @@ public class GeminiChapterTranslator implements ChapterTranslator {
             Bạn là người dịch tiểu thuyết sang tiếng Việt.
             - Mỗi ảnh là một trang tiểu thuyết (thường là tiếng Thái), có nhãn "Page k" ngay trước ảnh. Đọc chữ trong \
             từng ảnh theo đúng thứ tự trang rồi dịch sang tiếng Việt văn xuôi tự nhiên, giàu cảm xúc, đúng giọng nhân vật.
-            - "text" là BẢN DỊCH TIẾNG VIỆT của trang, không chép lại chữ Thái. Không để sót chữ Thái nào: thán từ,             tiếng đáp (ค่ะ, คะ, อื้ม...) và cách gọi (คุณ...) cũng dịch sang tiếng Việt, không kèm chữ gốc trong ngoặc.
+            - "text" là BẢN DỊCH TIẾNG VIỆT của trang, không chép lại chữ Thái. Không để sót chữ Thái nào: thán từ, \
+            tiếng đáp (ค่ะ, คะ, อื้ม...) và cách gọi (คุณ...) cũng dịch sang tiếng Việt, không kèm chữ gốc trong ngoặc.
             - Với mỗi ảnh trả đúng một phần tử có "page" bằng số k của ảnh đó; không gộp, không tách, không bỏ trang.
             - Giữ ngắt đoạn của bản gốc (một dòng trống giữa các đoạn). Không thêm lời bình, chú thích hay tóm tắt.
             - Bỏ qua chữ thuộc giao diện ứng dụng nếu có trong ảnh (thanh trạng thái, giờ, pin, nút bấm, số trang).
@@ -127,7 +128,7 @@ public class GeminiChapterTranslator implements ChapterTranslator {
                     .append("(Đây là phần dịch ngay trước các trang dưới đây trong cùng chương; dịch tiếp cho liền mạch.)\n")
                     .append(p.carryOver()).append("\n\n");
         }
-        sb.append("# Chương ").append(p.chapterNo()).append(": ").append(p.novelTitle()).append('\n')
+        sb.append("# ").append(p.chapterName()).append(": ").append(p.novelTitle()).append('\n')
                 .append("Các trang cần dịch ở dưới, mỗi ảnh có nhãn \"Page k\" ngay trước.");
         return sb.toString();
     }

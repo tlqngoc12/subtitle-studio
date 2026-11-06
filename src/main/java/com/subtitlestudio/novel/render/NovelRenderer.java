@@ -119,7 +119,7 @@ public class NovelRenderer {
 
         g.setColor(MUTED);
         g.setFont(small);
-        String footer = "Ch. " + input.chapterNo() + " · " + k + "/" + total;
+        String footer = footer(input, k, total);
         float w = new TextLayout(footer, small, g.getFontRenderContext()).getAdvance();
         g.drawString(footer, (size.width() - w) / 2f, size.height() - FOOTER / 2f);
         g.dispose();
@@ -159,9 +159,14 @@ public class NovelRenderer {
         return out;
     }
 
-    private static String heading(RenderInput input) {
+    static String heading(RenderInput input) {
         String t = input.chapterTitle() == null || input.chapterTitle().isBlank() ? "" : ": " + input.chapterTitle();
-        return nfc("Chương " + input.chapterNo() + t);
+        return nfc((input.hasLabel() ? input.chapterLabel().strip() : "Chương " + input.chapterNo()) + t);
+    }
+
+    static String footer(RenderInput input, int k, int total) {
+        String name = input.hasLabel() ? input.chapterLabel().strip() : "Ch. " + input.chapterNo();
+        return nfc(name + " · " + k + "/" + total);
     }
 
     /** Non-blank lines of the text; each line is one paragraph. */

@@ -29,7 +29,7 @@ const DETAIL: PublicNovelDetail = {
   sourceUrl: 'https://example.com/book',
   chapters: [
     { chapterNo: 1, title: 'Mở đầu' },
-    { chapterNo: 3, title: null },
+    { chapterNo: 3, title: null, label: 'Ngoại truyện 1' },
   ],
 };
 
@@ -82,7 +82,7 @@ describe('PublicNovelPage', () => {
     expect(original).toHaveAttribute('href', 'https://example.com/book');
     expect(original).toHaveAttribute('rel', 'noopener noreferrer');
     const chapters = within(screen.getByRole('list', { name: 'Chapters' })).getAllByRole('link');
-    expect(chapters.map((a) => a.textContent)).toEqual(['Chapter 1: Mở đầu', 'Chapter 3']);
+    expect(chapters.map((a) => a.textContent)).toEqual(['Chapter 1: Mở đầu', 'Ngoại truyện 1']);
     expect(chapters[1]).toHaveAttribute('href', '/novels/summer/3');
     expect(screen.getByRole('link', { name: 'Read chapter 1' })).toHaveAttribute('href', '/novels/summer/1');
   });

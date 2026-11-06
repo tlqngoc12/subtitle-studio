@@ -19,7 +19,7 @@ const NOVEL: PublicNovelDetail = {
   chapters: [
     { chapterNo: 1, title: 'Mở đầu' },
     { chapterNo: 3, title: 'Mưa' },
-    { chapterNo: 4, title: null },
+    { chapterNo: 4, title: null, label: 'Special' },
   ],
 };
 
@@ -27,6 +27,7 @@ function chapter(no: number, prev: number | null, next: number | null): PublicCh
   return {
     chapterNo: no,
     title: no === 3 ? 'Mưa' : null,
+    label: no === 4 ? 'Special' : null,
     prev,
     next,
     images: ['/novels/summer/h-1.webp', '/novels/summer/h-2.webp', '/novels/summer/h-3.webp'],
@@ -63,6 +64,14 @@ describe('ReaderPage', () => {
     expect(screen.getByRole('heading', { name: 'Chapter 3: Mưa' })).toBeInTheDocument();
   });
 
+  it('names a labelled chapter by its label', async () => {
+    renderAt('/novels/summer/4');
+
+    expect(await screen.findByRole('heading', { name: 'Special' })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: /^Special, page/ })).toHaveLength(3);
+    expect(screen.getAllByRole('option', { name: 'Special' }).length).toBeGreaterThan(0);
+  });
+
   it('links to the previous and next chapters', async () => {
     renderAt('/novels/summer/3');
 
@@ -84,7 +93,7 @@ describe('ReaderPage', () => {
 
     await userEvent.setup().selectOptions(screen.getByLabelText('Chapter'), '4');
 
-    expect(await screen.findAllByRole('img', { name: /Chapter 4, page/ })).toHaveLength(3);
+    expect(await screen.findAllByRole('img', { name: /^Special, page/ })).toHaveLength(3);
   });
 
   it('blocks the context menu on the pages', async () => {

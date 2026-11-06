@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(ApiExceptionHandler.class)
 class ChapterControllerTest {
 
-    static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu",
+    static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu", null,
             ChapterTranslationStatus.NONE, null, null, false, ChapterPublishStatus.DRAFT,
             List.of(new PageDto(11, 1, "/api/media/5", null)), "", null, null);
 

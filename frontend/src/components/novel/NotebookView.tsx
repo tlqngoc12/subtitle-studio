@@ -3,16 +3,20 @@ import { useEffect, useId, useState } from 'react';
 import { getNotebook, retryNotebook, type NotebookView as View } from '../../api/novels';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { EmptyState } from '../EmptyState';
+import { chapterName } from './ChapterList';
 
 /** The Notebook tab: the story notebook Gemini keeps after each published chapter (read only). */
 export function NotebookView({
   novelId,
   view,
   onView,
+  labels = {},
 }: {
   novelId: number;
   view: View | null;
   onView: (view: View) => void;
+  /** Chapter labels by chapter number, so "Recent chapters" names them like the chapter list. */
+  labels?: Record<number, string | null>;
 }) {
   const id = useId();
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -161,7 +165,7 @@ export function NotebookView({
         <ul className="notebook__plain">
           {c.recentChapters.map((r) => (
             <li key={r.chapterNo}>
-              <strong>Chapter {r.chapterNo}:</strong> {r.summary}
+              <strong>{chapterName(r.chapterNo, labels[r.chapterNo])}:</strong> {r.summary}
             </li>
           ))}
         </ul>

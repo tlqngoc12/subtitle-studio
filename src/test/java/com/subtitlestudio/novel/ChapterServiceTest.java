@@ -315,6 +315,29 @@ class ChapterServiceTest {
     }
 
     @Test
+    void labelIsSavedClearedAndLimited() {
+        ChapterDetail c = chapterWithPages(31, "a.png");
+
+        ChapterDetail labelled = service.update(c.id(), ChapterUpdateRequest.label("  Ngoại truyện 1 "));
+        assertThat(labelled.label()).isEqualTo("Ngoại truyện 1");
+        assertThat(labelled.chapterNo()).isEqualTo(31);
+        assertThat(service.update(c.id(), new ChapterUpdateRequest(null, "Tựa", null)).label())
+                .isEqualTo("Ngoại truyện 1");
+
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("  ")).label()).isNull();
+        assertThatThrownBy(() -> service.update(c.id(), ChapterUpdateRequest.label("x".repeat(101))))
+                .isInstanceOf(InvalidChapterException.class);
+    }
+
+    @Test
+    void publishedChapterAcceptsALabel() {
+        ChapterDetail c = chapterWithPages(5, "a.png");
+        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Special")).label()).isEqualTo("Special");
+    }
+
+    @Test
     void publishedChapterOnlyAcceptsTextAndTitle() {
         ChapterDetail c = chapterWithPages(3, "a.png", "b.png");
         setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);

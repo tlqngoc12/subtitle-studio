@@ -100,6 +100,9 @@ public class RenderCache {
                 String.valueOf(size.width()), String.valueOf(size.height()), String.valueOf(size.fontSize()),
                 String.valueOf(in.watermark()), String.valueOf(in.novelTitle()), String.valueOf(in.chapterNo()),
                 String.valueOf(in.chapterTitle()), String.valueOf(in.text()));
+        if (in.hasLabel()) {
+            key += "\u0000label:" + in.chapterLabel(); // unlabelled chapters keep their cached images
+        }
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest).substring(0, 16);

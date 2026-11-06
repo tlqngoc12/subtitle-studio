@@ -133,7 +133,8 @@ public class NovelService {
 
     NovelDetail detail(Novel n) {
         List<ChapterSummary> list = chapters.findByNovelIdOrderByChapterNo(n.getId()).stream()
-                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getTranslationStatus(),
+                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
+                        c.getTranslationStatus(),
                         c.getTranslationError(), c.getPublishStatus(), (int) pages.countByChapterId(c.getId())))
                 .toList();
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),

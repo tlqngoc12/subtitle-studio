@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChapterService {
 
     static final int MAX_TITLE = 200;
+    static final int MAX_LABEL = 100;
     private static final Set<ImageType> PAGE_TYPES = Set.of(ImageType.PNG, ImageType.JPEG, ImageType.WEBP);
 
     private final NovelRepository novels;
@@ -85,6 +86,9 @@ public class ChapterService {
         }
         if (request.title() != null) {
             c.setTitle(title);
+        }
+        if (request.label() != null) {
+            c.setLabel(label(request.label()));
         }
         boolean textChanged = false;
         if (request.pages() != null) {
@@ -238,6 +242,16 @@ public class ChapterService {
         return t;
     }
 
+    /** Stripped; blank means no label. */
+    private static String label(String label) {
+        String l = label.isBlank() ? null : label.strip();
+        if (l != null && l.length() > MAX_LABEL) {
+            throw new InvalidChapterException(
+                    List.of(new FieldError("label", "Use at most " + MAX_LABEL + " characters.")));
+        }
+        return l;
+    }
+
     private List<PageDto> pageDtos(long chapterId) {
         return pages.findByChapterIdOrderByPosition(chapterId).stream()
                 .map(p -> new PageDto(p.getId(), p.getPosition(), "/api/media/" + p.getMedia().getId(),
@@ -256,7 +270,7 @@ public class ChapterService {
             }
         }
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
-                c.getTitle(), c.getTranslationStatus(), c.getTranslationError(), c.getTranslatedAt(),
+                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next);
     }

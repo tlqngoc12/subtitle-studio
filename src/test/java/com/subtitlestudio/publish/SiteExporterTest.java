@@ -290,6 +290,9 @@ class SiteExporterTest {
             }
             for (int no = 1; no <= chapterCount; no++) {
                 Chapter c = new Chapter(n, no, "Tựa " + no, NOW);
+                if (no == 3) {
+                    c.setLabel("Ngoại truyện 1");
+                }
                 int chapterNo = no;
                 if (java.util.Arrays.stream(published).anyMatch(p -> p == chapterNo)) {
                     c.setPublishStatus(ChapterPublishStatus.PUBLISHED);
@@ -341,6 +344,9 @@ class SiteExporterTest {
         assertThat(three.get("prev").asInt()).isEqualTo(1);
         assertThat(three.get("next").isNull()).isTrue();
         assertThat(three.get("title").asText()).isEqualTo("Tựa 3");
+        assertThat(three.get("label").asText()).isEqualTo("Ngoại truyện 1");
+        assertThat(detail.get("chapters").get(1).get("label").asText()).isEqualTo("Ngoại truyện 1");
+        assertThat(detail.get("chapters").get(0).get("label").isNull()).isTrue();
         assertThat(out.resolve("data/novels/summer/2.json")).doesNotExist();
     }
 

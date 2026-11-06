@@ -16,6 +16,8 @@ export interface PublicNovelSummary {
 export interface PublicChapterRef {
   chapterNo: number;
   title: string | null;
+  /** Missing in files published before labels existed. */
+  label?: string | null;
 }
 
 export interface PublicNovelDetail {
@@ -35,6 +37,7 @@ export interface PublicNovelDetail {
 export interface PublicChapterFile {
   chapterNo: number;
   title: string | null;
+  label?: string | null;
   prev: number | null;
   next: number | null;
   images: string[];

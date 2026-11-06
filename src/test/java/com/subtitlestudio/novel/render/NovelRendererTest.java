@@ -20,11 +20,22 @@ class NovelRendererTest {
     private final ImageEncoder png = ImageEncoder.png();
 
     private static RenderInput input(String text) {
-        return new RenderInput("Tình Yêu Mùa Hạ", 3, "Mưa", text, "subtitle-studio-vn.pages.dev");
+        return new RenderInput("Tình Yêu Mùa Hạ", 3, null, "Mưa", text, "subtitle-studio-vn.pages.dev");
     }
 
     private static String text(int paragraphs) {
         return String.join("\n\n", java.util.Collections.nCopies(paragraphs, PARAGRAPH));
+    }
+
+    @Test
+    void headingAndFooterUseTheLabelWhenThereIsOne() {
+        RenderInput plain = new RenderInput("T", 3, null, "Mưa", "x", "w");
+        RenderInput special = new RenderInput("T", 31, "Ngoại truyện 1", "Mưa", "x", "w");
+
+        assertThat(NovelRenderer.heading(plain)).isEqualTo("Chương 3: Mưa");
+        assertThat(NovelRenderer.heading(special)).isEqualTo("Ngoại truyện 1: Mưa");
+        assertThat(NovelRenderer.footer(plain, 2, 5)).isEqualTo("Ch. 3 · 2/5");
+        assertThat(NovelRenderer.footer(special, 2, 5)).isEqualTo("Ngoại truyện 1 · 2/5");
     }
 
     @Test

@@ -154,7 +154,7 @@ describe('ChapterPage', () => {
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     const sent = JSON.parse(String(calls.find((c) => c.method === 'PUT')!.body));
-    expect(sent).toEqual({ chapterNo: 1, title: 'Mở đầu', text: 'Cả chương đã sửa' });
+    expect(sent).toEqual({ chapterNo: 1, label: '', title: 'Mở đầu', text: 'Cả chương đã sửa' });
     await waitFor(() => expect(textBox()).toHaveValue('Cả chương đã sửa'));
   });
 
@@ -257,7 +257,8 @@ describe('ChapterPage', () => {
     expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
     expect(textBox()).toBeEnabled();
     expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
-    expect(screen.queryByLabelText('Chapter number')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Chapter label (optional)')).toBeEnabled();
+    expect(screen.queryByLabelText('Order')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Add page screenshots')).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Pages' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
@@ -265,12 +266,35 @@ describe('ChapterPage', () => {
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
   });
 
+  it('saves a label shown instead of the chapter number', async () => {
+    const calls = renderPage([
+      get(),
+      {
+        method: 'PUT',
+        path: '/api/chapters/9',
+        status: 200,
+        body: chapterDetail({ chapterNo: 31, label: 'Ngoại truyện 1' }),
+      },
+    ]);
+    await loaded();
+
+    await user().clear(screen.getByLabelText('Order'));
+    await user().type(screen.getByLabelText('Order'), '31');
+    await user().type(screen.getByLabelText('Chapter label (optional)'), 'Ngoại truyện 1');
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+    const sent = JSON.parse(String(calls.find((c) => c.method === 'PUT')!.body));
+    expect(sent).toMatchObject({ chapterNo: 31, label: 'Ngoại truyện 1' });
+    expect(await screen.findByRole('heading', { name: 'Ngoại truyện 1: Mở đầu' })).toBeInTheDocument();
+  });
+
   it('keeps every control on a draft chapter', async () => {
     renderPage([get()]);
     await loaded();
 
     expect(screen.queryByText(/This chapter is published/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Chapter number')).toBeEnabled();
+    expect(screen.getByLabelText('Order')).toBeEnabled();
     expect(screen.getByLabelText('Add page screenshots')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Translate again' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Drag to reorder: page 1' })).toBeInTheDocument();

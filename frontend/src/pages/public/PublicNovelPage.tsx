@@ -1,7 +1,7 @@
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { chapterLabel } from '../../components/novel/ChapterList';
+import { chapterLabel, chapterName } from '../../components/novel/ChapterList';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail } from '../../data/novelTypes';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
@@ -83,7 +83,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
           <div className="novel-hero__actions">
             {first && (
               <Link className="button button--primary" to={`/novels/${novel.slug}/${first.chapterNo}`}>
-                Read chapter {first.chapterNo}
+                Read {first.label?.trim() ? chapterName(first.chapterNo, first.label) : `chapter ${first.chapterNo}`}
               </Link>
             )}
             {novel.sourceUrl && (
@@ -103,7 +103,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
         {novel.chapters.map((c) => (
           <li key={c.chapterNo} className="chapter-list__item">
             <Link className="chapter-list__open" to={`/novels/${novel.slug}/${c.chapterNo}`}>
-              {chapterLabel(c.chapterNo, c.title)}
+              {chapterLabel(c.chapterNo, c.title, c.label)}
             </Link>
           </li>
         ))}

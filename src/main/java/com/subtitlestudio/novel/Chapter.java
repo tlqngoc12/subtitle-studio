@@ -37,6 +37,10 @@ public class Chapter {
     @Column(length = 200)
     private String title;
 
+    /** Shown instead of "Chapter N" (e.g. "Ngoại truyện 1"); null = "Chapter N". */
+    @Column(length = 100)
+    private String label;
+
     /** The whole chapter edited in one box; null until then (see {@link ChapterText}). */
     @Lob
     @Column(name = "text_vi")
@@ -103,6 +107,14 @@ public class Chapter {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     public String getTextVi() {

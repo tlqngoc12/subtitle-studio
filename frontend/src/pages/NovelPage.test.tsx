@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch } from '../test/fakeFetch';
-import { chapterDetail, notebookView, novelDetail } from '../test/novelFixtures';
+import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../test/novelFixtures';
 import NovelPage from './NovelPage';
 
 function ChapterStub() {
@@ -120,11 +120,27 @@ describe('NovelPage', () => {
     expect(screen.getByRole('heading', { name: 'Glossary & addressing' })).toBeInTheDocument();
     expect(screen.getByText('Mai gọi Nam là anh, xưng em')).toBeInTheDocument();
     expect(screen.getByText('đang buồn')).toBeInTheDocument();
+    expect(screen.getByText('Chapter 5:')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Version'), '2');
 
     await waitFor(() => expect(calls.some((c) => c.path === '/api/novels/3/notebook?after=2')).toBe(true));
     expect(await screen.findByText('Notebook versions after chapter 2 were built from an older text.')).toBeInTheDocument();
+  });
+
+  it('names notebook chapters by their label', async () => {
+    const labelled = novelDetail({ chapters: [chapterSummary({ id: 20, chapterNo: 5, label: 'Ngoại truyện 1' })] });
+    fakeFetch([
+      { method: 'GET', path: '/api/novels/3', status: 200, body: labelled },
+      { method: 'GET', path: '/api/novels/3/notebook', status: 200, body: notebookView() },
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    await user.click(screen.getByRole('tab', { name: 'Notebook' }));
+
+    expect(await screen.findByText('Ngoại truyện 1:')).toBeInTheDocument();
   });
 
   it('shows a failed notebook update and retries it', async () => {

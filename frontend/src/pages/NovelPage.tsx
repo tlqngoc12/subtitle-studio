@@ -135,7 +135,8 @@ export default function NovelPage() {
             </Tabs.Content>
 
             <Tabs.Content value="notebook" className="tabs__panel">
-              <NotebookView novelId={novelId} view={notebook} onView={onNotebook} />
+              <NotebookView novelId={novelId} view={notebook} onView={onNotebook}
+                labels={Object.fromEntries(novel.chapters.map((c) => [c.chapterNo, c.label]))} />
             </Tabs.Content>
           </Tabs.Root>
         </>

@@ -1,7 +1,7 @@
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { chapterLabel } from '../../components/novel/ChapterList';
+import { chapterLabel, chapterName } from '../../components/novel/ChapterList';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
 import { useCopyGuard } from '../../lib/useCopyGuard';
@@ -79,14 +79,14 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       {chapter && (
         <>
           <header className="reader__head">
-            <h1 className="reader__title">{chapterLabel(chapter.chapterNo, chapter.title)}</h1>
+            <h1 className="reader__title">{chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}</h1>
             {novel && (
               <div className="field reader__select">
                 <label htmlFor={selectId}>Chapter</label>
                 <select id={selectId} value={chapter.chapterNo} onChange={(e) => navigate(to(Number(e.target.value)))}>
                   {novel.chapters.map((c) => (
                     <option key={c.chapterNo} value={c.chapterNo}>
-                      {chapterLabel(c.chapterNo, c.title)}
+                      {chapterLabel(c.chapterNo, c.title, c.label)}
                     </option>
                   ))}
                 </select>
@@ -100,7 +100,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                 key={src}
                 className="reader__page"
                 src={src}
-                alt={`Chapter ${chapter.chapterNo}, page ${i + 1} of ${chapter.images.length}`}
+                alt={`${chapterName(chapter.chapterNo, chapter.label)}, page ${i + 1} of ${chapter.images.length}`}
                 draggable={false}
                 loading="lazy"
               />
