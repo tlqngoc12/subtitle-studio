@@ -516,6 +516,12 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - `GeminiCaller`: **429 cũng chuyển sang model dự phòng** (quota tính riêng từng model; lúc `gemini-3.6-flash` hết quota thì `gemini-3.5-flash-lite` vẫn trả lời). Log `out of quota (HTTP 429): <metric, limit, model>, retry in …`. Mọi model đều 429 mà đều bảo chờ < 60 giây → "Gemini's per-minute limit was reached, try again in a minute."
 - Thử `media_resolution` trên 1 trang thật (flash-lite, chép nguyên văn chữ Thái): HIGH 1064 token ảnh, chuẩn nhất; MEDIUM 540, trả lời sai hẳn ("không có chữ Thái"); LOW 266, giống HIGH ~97% nhưng đọc sai tên nhân vật (พีรญา → พิรญา). **Giữ HIGH** vì giới hạn đang chạm là số request, không phải token.
 
+### 2026-11-06: Chặn bản dịch còn nguyên chữ Thái + nhãn chương ✅
+
+- **Sự cố:** khi `gemini-3.6-flash` hết quota, `gemini-3.5-flash-lite` dịch chương 7–16; chương 16 (14 trang) bị trả về nguyên chữ Thái và app lưu như bản dịch, chương 12/14/15 lọt vài chữ kiểu `ค่ะ (Dạ)`. Thứ tự fallback là 3.6-flash → 3.5-flash-lite → 3.5-flash; 429 của `gemini-3.5-flash` lại báo quota của `gemini-3.6-flash` (nghi dùng chung), nên khi 3.6 hết thì thực tế chỉ còn flash-lite. Quota ngày reset lúc 0h giờ Pacific (15h giờ VN mùa đông).
+- `PageTextOutput`: trang có **> 30% chữ cái là chữ Thái** bị coi là thiếu (log `untranslated [n]`, hỏi lại đúng trang đó); prompt thêm quy tắc "text là bản dịch tiếng Việt, không để sót chữ Thái kể cả thán từ/cách gọi".
+- **Nhãn chương** (Oracle **V7** `t_chapter.label`, ≤ 100 ký tự, sửa được cả khi Published): hiện thay "Chapter N" ở danh sách chương, trang chương, Notebook › Recent chapters, trang public (danh sách, nút Read, trang đọc), tiêu đề/chân ảnh vẽ và prompt Gemini. Số chương (ô **Order**) vẫn là thứ tự, số trong link public và khoá phiên bản sổ tay. Chương không nhãn giữ nguyên ảnh đã cache.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
