@@ -103,14 +103,14 @@ Trạng thái cập nhật sổ tay (cột trên `t_novel`): `notebook_status` (
 1. **System instruction cố định** (trong code): đọc chữ tiếng Thái trong từng ảnh theo đúng thứ tự trang, dịch sang tiếng Việt văn xuôi tự nhiên; mỗi ảnh đầu vào trả đúng một phần tử `page` tương ứng; giữ ngắt đoạn; không thêm lời bình, không tóm tắt, không bỏ đoạn; bỏ qua chữ giao diện app (thanh trạng thái, nút, số trang) nếu có; quy định trong hồ sơ và sổ tay được ưu tiên về tên riêng và xưng hô.
 2. **Hồ sơ `.md`** của bộ (nguyên văn).
 3. **Sổ tay** mới nhất có `after_chapter_no < N` (dạng văn bản dựng từ JSON), nếu có.
-4. **Toàn văn tiếng Việt chương liền trước** (chương có `chapter_no` lớn nhất < N mà có bản dịch, dù Draft hay Published), nếu có, giới hạn ~20.000 ký tự cuối.
+4. **Toàn văn tiếng Việt chương liền trước** (chương có `chapter_no` lớn nhất < N mà có bản dịch, dù Draft hay Published), nếu có, giới hạn ~20.000 ký tự cuối (2026-11-06: giảm còn 4.000 để bớt token).
 5. **Ảnh các trang** theo `position`, mỗi ảnh kèm nhãn `Page k`. Ảnh được thu nhỏ/nén lại (cạnh dài ≤ 2.000px, JPEG chất lượng ~85) trước khi gửi; `media_resolution` = high.
 
 **Chia lượt:** chương có > `pages-per-request` trang (mặc định **20**) được chia thành nhiều lượt liên tiếp. Lượt sau nhận thêm ~2.000 ký tự cuối bản dịch của lượt trước để nối câu. Tổng request inline > 20 MB thì gửi ảnh qua File API.
 
 **Đầu ra:** structured output, schema `{"pages": [{"page": integer, "text": string}]}`. **Kiểm tra** (sai → `FAILED`, không lưu gì): tập `page` bằng đúng tập trang đã gửi trong lượt; mọi `text` sau `strip()` không rỗng.
 
-**Thử lại:** 503 → chuyển lần lượt sang `fallback-models` (như dịch Vietsub); 429 → không thử lại, `FAILED` với "Gemini quota exceeded. Try again later.". Timeout mỗi lượt theo `subtitle-studio.gemini.timeout`.
+**Thử lại:** 503 → chuyển lần lượt sang `fallback-models` (như dịch Vietsub); 429 → không thử lại, `FAILED` với "Gemini quota exceeded. Try again later.". (2026-11-06: 429 cũng chuyển sang model dự phòng vì quota tính riêng từng model; trang đã dịch được lưu lại, Translate again chỉ dịch trang còn thiếu; sửa chương đã đăng không cập nhật sổ tay.) Timeout mỗi lượt theo `subtitle-studio.gemini.timeout`.
 
 **Thành công:** ghi `text_vi` cho mọi trang trong một transaction, `TRANSLATED`, `translated_at`, `edited_after_translation = 'N'`. `publish_status` giữ nguyên (chương Published dịch lại vẫn Published, và sổ tay "sau chương N" được tạo lại như mục 5).
 

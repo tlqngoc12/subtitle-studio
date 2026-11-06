@@ -507,6 +507,15 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - Gemini fallback (503) giờ là `gemini-3.6-flash` → `gemini-3.5-flash-lite` → `gemini-3.5-flash`.
 - Publish: `NovelExporter` vẽ chương bằng font Literata (OFL, file variable `fonts/Literata.ttf`), WebP lossless (~54 KB/trang mẫu), cache theo hash nội dung.
 
+### 2026-11-06: Bớt tốn quota Gemini free ✅
+
+- **Nguyên nhân hết quota:** free tier giới hạn **20 request/ngày cho mỗi model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`), đếm request chứ không đếm token. Log ngày 05/11: 7 request dịch nhưng **9 request sổ tay** (chương 2 bốn lần, chương 3 ba lần, do mỗi lần lưu chữ chương đã đăng là chạy lại sổ tay); chương 6 dịch xong 7–8/9 trang rồi lượt hỏi lại gặp 429 thì bỏ cả chương.
+- Sửa chữ chương đã Published **không cập nhật sổ tay nữa**; sổ tay chỉ chạy 1 lần lúc Publish.
+- Trang đã dịch được **lưu ngay cả khi lượt sau lỗi** (`ChapterPartlyTranslatedException`); chương FAILED bấm Translate again **chỉ gửi trang còn thiếu chữ** (giữ số trang, carry-over lấy từ các trang trước). Chương FAILED mà mọi trang đã có chữ thì dịch lại cả chương.
+- Chương trước gửi kèm giảm từ 20.000 xuống **4.000 ký tự** cuối.
+- `GeminiCaller`: **429 cũng chuyển sang model dự phòng** (quota tính riêng từng model; lúc `gemini-3.6-flash` hết quota thì `gemini-3.5-flash-lite` vẫn trả lời). Log `out of quota (HTTP 429): <metric, limit, model>, retry in …`. Mọi model đều 429 mà đều bảo chờ < 60 giây → "Gemini's per-minute limit was reached, try again in a minute."
+- Thử `media_resolution` trên 1 trang thật (flash-lite, chép nguyên văn chữ Thái): HIGH 1064 token ảnh, chuẩn nhất; MEDIUM 540, trả lời sai hẳn ("không có chữ Thái"); LOW 266, giống HIGH ~97% nhưng đọc sai tên nhân vật (พีรญา → พิรญา). **Giữ HIGH** vì giới hạn đang chạm là số request, không phải token.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
