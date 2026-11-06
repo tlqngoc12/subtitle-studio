@@ -91,13 +91,13 @@ class GeminiChapterTranslatorTest {
     }
 
     @Test
-    void quotaErrorIsNotRetried() {
+    void quotaErrorOnEveryModelFails() {
         server.reply(429, "{}");
 
         assertThatThrownBy(() -> translator(List.of("gemini-lite")).translate(prompt(null, null, null)))
                 .isInstanceOfSatisfying(TranslationFailedException.class,
                         e -> assertThat(e.userMessage()).isEqualTo("Gemini free quota is used up, try again later."));
-        assertThat(server.requests()).isEqualTo(1);
+        assertThat(server.requests()).isEqualTo(2);
     }
 
     private static final byte[] IMG3 = "jpeg-three".getBytes(StandardCharsets.US_ASCII);
@@ -128,9 +128,24 @@ class GeminiChapterTranslatorTest {
         server.queueText("{\"pages\":[{\"page\":2,\"text\":\"Hai\"}]}");
 
         assertThatThrownBy(() -> translator(List.of()).translate(threePages()))
-                .isInstanceOfSatisfying(TranslationFailedException.class, e -> assertThat(e.userMessage())
-                        .isEqualTo("Gemini returned an incomplete translation (got 2 of 3 pages)."));
+                .isInstanceOfSatisfying(ChapterPartlyTranslatedException.class, e -> {
+                    assertThat(e.userMessage())
+                            .isEqualTo("Gemini returned an incomplete translation (got 2 of 3 pages).");
+                    assertThat(e.done()).containsExactly(new TranslatedPage(1, "Một"), new TranslatedPage(2, "Hai"));
+                });
         assertThat(server.requests()).isEqualTo(2);
+    }
+
+    @Test
+    void keepsTheGoodPagesWhenAskingAgainFails() {
+        server.queueText("{\"pages\":[{\"page\":1,\"text\":\"Một\"},{\"page\":2,\"text\":\"Hai\"}]}");
+        server.reply(429, "{}");
+
+        assertThatThrownBy(() -> translator(List.of()).translate(threePages()))
+                .isInstanceOfSatisfying(ChapterPartlyTranslatedException.class, e -> {
+                    assertThat(e.userMessage()).isEqualTo("Gemini free quota is used up, try again later.");
+                    assertThat(e.done()).containsExactly(new TranslatedPage(1, "Một"), new TranslatedPage(2, "Hai"));
+                });
     }
 
     @Test

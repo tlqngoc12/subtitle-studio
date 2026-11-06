@@ -127,14 +127,55 @@ class GeminiTranslatorImplTest {
         assertThat(server.requests()).isEqualTo(2);
     }
 
+    /** The shape of a real free-tier 429 message (the SDK keeps only error.message). */
+    private static String quota429(String model, String retry) {
+        String message = "You exceeded your current quota, please check your plan and billing details.\\n"
+                + "* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, "
+                + "limit: 20, model: " + model + "\\nPlease retry in " + retry + ".";
+        return "{\"error\":{\"code\":429,\"message\":\"" + message + "\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
+    }
+
     @Test
-    void quotaErrorDoesNotTryOtherModels() {
-        server.replyForModel("gemini-test-flash", 429, "{\"error\":{\"code\":429,\"message\":\"quota\",\"status\":\"RESOURCE_EXHAUSTED\"}}");
+    void quotaErrorTriesTheNextModel() {
+        // Free-tier quotas are counted per model: another model may still have some left.
+        server.replyForModel("gemini-test-flash", 429, quota429("gemini-test-flash", "20h5m3s"));
         server.replyText(GOOD, "STOP");
+
+        List<TranslatedLine> out = translator(Duration.ofSeconds(10), List.of("gemini-test-lite"))
+                .translate(VIDEO, PROFILE, LINES);
+
+        assertThat(out).hasSize(2);
+        assertThat(server.requests()).isEqualTo(2);
+        assertThat(server.lastPath()).endsWith("/models/gemini-test-lite:generateContent");
+    }
+
+    @Test
+    void reportsQuotaWhenEveryModelIsOutOfQuota() {
+        server.reply(429, quota429("m", "20h5m3s"));
 
         assertThatThrownBy(() -> translator(Duration.ofSeconds(10), List.of("gemini-test-lite")).translate(VIDEO, PROFILE, LINES))
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini free quota is used up, try again later."));
-        assertThat(server.requests()).isEqualTo(1);
+        assertThat(server.requests()).isEqualTo(2);
+    }
+
+    @Test
+    void reportsThePerMinuteLimitWhenEveryModelAsksToWaitUnderAMinute() {
+        server.reply(429, quota429("m", "33.5s"));
+
+        assertThatThrownBy(() -> translator(Duration.ofSeconds(10), List.of("gemini-test-lite")).translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e))
+                        .isEqualTo("Gemini's per-minute limit was reached, try again in a minute."));
+    }
+
+    @Test
+    void logsWhichQuotaRanOut(CapturedOutput output) {
+        server.reply(429, quota429("gemini-test-flash", "33.5s"));
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES));
+
+        assertThat(output).contains("Gemini model gemini-test-flash is out of quota (HTTP 429)")
+                .contains("generate_content_free_tier_requests").contains("limit: 20").contains("retry in 33.5s")
+                .doesNotContain("billing details");
     }
 
     @Test

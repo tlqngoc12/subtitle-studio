@@ -33,20 +33,18 @@ public class ChapterService {
     private final ChapterPageRepository pages;
     private final MediaService mediaService;
     private final ImageSniffer sniffer;
-    private final NotebookScheduler notebook;
     private final RenderCache renderCache;
     private final long maxImageBytes;
     private final Clock clock;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                          MediaService mediaService, ImageSniffer sniffer, NotebookScheduler notebook,
-                          RenderCache renderCache, SubtitleStudioProperties properties, Clock clock) {
+                          MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
+                          SubtitleStudioProperties properties, Clock clock) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.mediaService = mediaService;
         this.sniffer = sniffer;
-        this.notebook = notebook;
         this.renderCache = renderCache;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
         this.clock = clock;
@@ -115,9 +113,8 @@ public class ChapterService {
             c.setEditedAfterTranslation(true);
         }
         touch(c);
-        if (textChanged && c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
-            notebook.scheduleUpdate(c.getNovel().getId(), c.getChapterNo());
-        }
+        // No notebook update here: it runs once, at Publish. Re-reading the chapter after every fix spent the
+        // free Gemini quota on typo corrections.
         return detail(c);
     }
 

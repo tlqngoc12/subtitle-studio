@@ -51,11 +51,18 @@ class ChapterTranslationServiceTest {
         final List<ChapterPrompt> prompts = new ArrayList<>();
         int length = 3_000;
         int failOnCall = -1;
+        /** With {@link #failOnCall}: that call fails after translating this many of its pages (-1 = none). */
+        int partlyDone = -1;
         Runnable beforeReturn;
 
         @Override
         public List<TranslatedPage> translate(ChapterPrompt prompt) {
             prompts.add(prompt);
+            if (prompts.size() == failOnCall && partlyDone >= 0) {
+                throw new ChapterPartlyTranslatedException("Gemini free quota is used up, try again later.",
+                        prompt.pages().stream().limit(partlyDone)
+                                .map(p -> new TranslatedPage(p.page(), pad("T" + p.page() + " "))).toList());
+            }
             if (prompts.size() == failOnCall) {
                 throw new TranslationFailedException(
                         "Gemini is busy right now (high demand), try again in a few minutes.");
@@ -187,6 +194,7 @@ class ChapterTranslationServiceTest {
         translator.prompts.clear();
         translator.length = 3_000;
         translator.failOnCall = -1;
+        translator.partlyDone = -1;
         translator.beforeReturn = null;
         scheduler.calls.clear();
         notebookSource.asked.clear();
@@ -289,18 +297,18 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
-    void previousTextIsTail20000() {
+    void previousTextIsTail4000() {
         ChapterDetail one = chapter(1, 1);
-        setTexts(one.id(), "a".repeat(5_000) + "b".repeat(20_000));
+        setTexts(one.id(), "a".repeat(5_000) + "b".repeat(4_000));
         ChapterDetail two = chapter(2, 1);
 
         service.start(two.id());
 
-        assertThat(translator.prompts.getFirst().previousText()).isEqualTo("b".repeat(20_000));
+        assertThat(translator.prompts.getFirst().previousText()).isEqualTo("b".repeat(4_000));
     }
 
     @Test
-    void failureKeepsOldText() {
+    void failureKeepsTheBatchesAlreadyTranslatedAndOldTextOfTheRest() {
         ChapterDetail c = chapter(1, 25);
         setTexts(c.id(), "cũ");
         translator.failOnCall = 2;
@@ -311,8 +319,48 @@ class ChapterTranslationServiceTest {
         assertThat(failed.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
         assertThat(failed.getTranslationError())
                 .isEqualTo("Gemini is busy right now (high demand), try again in a few minutes.");
+        List<ChapterPage> after = pages.findByChapterIdOrderByPosition(c.id());
+        assertThat(after.subList(0, 20)).extracting(ChapterPage::getTextVi).allMatch(t -> t.startsWith("T"));
+        assertThat(after.subList(20, 25)).extracting(ChapterPage::getTextVi).containsOnly("cũ");
+    }
+
+    @Test
+    void partlyTranslatedPagesAreSavedAndTranslateAgainSendsOnlyTheRest() {
+        ChapterDetail c = chapter(1, 3);
+        translator.failOnCall = 1;
+        translator.partlyDone = 2;
+
+        service.start(c.id());
+
+        Chapter failed = reload(c.id());
+        assertThat(failed.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(failed.getTranslationError()).isEqualTo("Gemini free quota is used up, try again later. "
+                + "2 of 3 pages are translated; Translate again does only the missing ones.");
         assertThat(pages.findByChapterIdOrderByPosition(c.id())).extracting(ChapterPage::getTextVi)
-                .containsOnly("cũ");
+                .satisfiesExactly(t -> assertThat(t).startsWith("T1 "), t -> assertThat(t).startsWith("T2 "),
+                        t -> assertThat(t).isNull());
+
+        service.start(c.id());
+
+        ChapterPrompt again = translator.prompts.getLast();
+        assertThat(again.pages()).extracting(PageImage::page).containsExactly(3);
+        assertThat(again.carryOver()).hasSize(2_000).endsWith("x");
+        assertThat(reload(c.id()).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(pages.findByChapterIdOrderByPosition(c.id())).extracting(ChapterPage::getTextVi)
+                .satisfiesExactly(t -> assertThat(t).startsWith("T1 "), t -> assertThat(t).startsWith("T2 "),
+                        t -> assertThat(t).startsWith("T3 "));
+    }
+
+    @Test
+    void translatedChapterIsTranslatedWhole() {
+        ChapterDetail c = chapter(1, 3);
+        setTexts(c.id(), "cũ");
+        reload(c.id()).setTranslationStatus(ChapterTranslationStatus.FAILED);
+        chapters.flush();
+
+        service.start(c.id());
+
+        assertThat(translator.prompts.getFirst().pages()).extracting(PageImage::page).containsExactly(1, 2, 3);
     }
 
     @Test

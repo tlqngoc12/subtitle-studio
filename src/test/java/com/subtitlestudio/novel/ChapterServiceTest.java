@@ -285,24 +285,15 @@ class ChapterServiceTest {
     }
 
     @Test
-    void editingPublishedWholeTextSchedulesNotebook() {
-        ChapterDetail c = chapterWithPages(5, "a.png");
-        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
-
-        service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Bản sửa"));
-
-        assertThat(scheduler.calls).containsExactly(novel.getId() + ":5");
-    }
-
-    @Test
-    void editingPublishedChapterTextSchedulesNotebook() {
+    void editingPublishedTextDoesNotUpdateTheNotebook() {
         ChapterDetail c = chapterWithPages(4, "a.png");
         setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
 
         service.update(c.id(), new ChapterUpdateRequest(null, null,
                 List.of(new PageTextEdit(c.pages().getFirst().id(), "Mới"))));
+        service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Bản sửa"));
 
-        assertThat(scheduler.calls).containsExactly(novel.getId() + ":4");
+        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test
@@ -344,7 +335,7 @@ class ChapterServiceTest {
         assertThat(edited.title()).isEqualTo("Tựa mới");
         assertThat(edited.pages().getFirst().textVi()).isEqualTo("Sửa chữ");
         assertThat(edited.pages()).extracting(PageDto::id).containsExactlyElementsOf(ids);
-        assertThat(scheduler.calls).containsExactly(novel.getId() + ":3");
+        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test

@@ -55,7 +55,8 @@ public class GeminiChapterTranslator implements ChapterTranslator {
 
     /**
      * Sends the pages; when some come back missing (skipped, blank, wrongly numbered), asks once more for only those
-     * pages and keeps the good ones from the first answer.
+     * pages and keeps the good ones from the first answer. When that second request fails or is still incomplete,
+     * the pages translated so far travel in a {@link ChapterPartlyTranslatedException} so they can be saved.
      */
     @Override
     public List<TranslatedPage> translate(ChapterPrompt prompt) {
@@ -66,12 +67,18 @@ public class GeminiChapterTranslator implements ChapterTranslator {
         log.warn("Chapter {}: asking again for {} {}", prompt.chapterNo(), first.missing().size(),
                 first.missing().size() == 1 ? "page" : "pages");
         List<PageImage> missing = prompt.pages().stream().filter(p -> first.missing().contains(p.page())).toList();
-        PageTextOutput.Check second = ask(prompt, missing);
+        PageTextOutput.Check second;
+        try {
+            second = ask(prompt, missing);
+        } catch (TranslationFailedException e) {
+            throw new ChapterPartlyTranslatedException(e.userMessage(), first.valid());
+        }
         List<TranslatedPage> all = new ArrayList<>(first.valid());
         all.addAll(second.valid());
         all.sort(java.util.Comparator.comparingInt(TranslatedPage::page));
         if (!second.missing().isEmpty()) {
-            throw PageTextOutput.incomplete(all.size(), prompt.pages().size());
+            throw new ChapterPartlyTranslatedException(
+                    PageTextOutput.incomplete(all.size(), prompt.pages().size()).userMessage(), all);
         }
         return all;
     }
