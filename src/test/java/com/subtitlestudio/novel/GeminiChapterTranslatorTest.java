@@ -64,6 +64,12 @@ class GeminiChapterTranslatorTest {
     }
 
     @Test
+    void rulesForbidCopyingTheThaiText() {
+        assertThat(GeminiChapterTranslator.SYSTEM_RULES).contains("không chép lại chữ Thái")
+                .contains("Không để sót chữ Thái");
+    }
+
+    @Test
     void leavesOutEmptySections() {
         server.replyText(GOOD, "STOP");
 

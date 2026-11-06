@@ -18,6 +18,9 @@ final class PageTextOutput {
      */
     record Check(List<TranslatedPage> valid, List<Integer> missing, String description) {}
 
+    /** Above this share of Thai letters a page was copied, not translated (a few kept Thai words are fine). */
+    static final double MAX_THAI_SHARE = 0.3;
+
     private PageTextOutput() {
     }
 
@@ -29,6 +32,7 @@ final class PageTextOutput {
         List<Integer> unexpected = new ArrayList<>();
         List<Integer> duplicate = new ArrayList<>();
         List<Integer> blank = new ArrayList<>();
+        List<Integer> untranslated = new ArrayList<>();
         Set<Integer> seen = new java.util.HashSet<>();
         for (TranslatedPage p : answer) {
             if (p == null) {
@@ -41,6 +45,8 @@ final class PageTextOutput {
                 duplicate.add(p.page());
             } else if (p.text() == null || p.text().isBlank()) {
                 blank.add(p.page());
+            } else if (thaiShare(p.text()) > MAX_THAI_SHARE) {
+                untranslated.add(p.page());
             } else {
                 valid.put(p.page(), p.text().strip());
             }
@@ -62,10 +68,22 @@ final class PageTextOutput {
         if (!blank.isEmpty()) {
             d.append(", blank ").append(blank);
         }
+        if (!untranslated.isEmpty()) {
+            d.append(", untranslated ").append(untranslated);
+        }
         d.append(", chars ").append(chars);
         List<TranslatedPage> pages = valid.entrySet().stream()
                 .map(e -> new TranslatedPage(e.getKey(), e.getValue())).toList();
         return new Check(pages, missing, d.toString());
+    }
+
+    /** The share of Thai letters among all letters of {@code text}. */
+    static double thaiShare(String text) {
+        long letters = text.codePoints().filter(Character::isLetter).count();
+        long thai = text.codePoints()
+                .filter(c -> Character.isLetter(c) && Character.UnicodeScript.of(c) == Character.UnicodeScript.THAI)
+                .count();
+        return letters == 0 ? 0 : (double) thai / letters;
     }
 
     /** Every page sent must come back usable; extra pages are ignored. */

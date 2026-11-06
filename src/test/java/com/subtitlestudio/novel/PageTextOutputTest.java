@@ -47,6 +47,18 @@ class PageTextOutputTest {
     }
 
     @Test
+    void checkCountsUntranslatedThaiPagesAsMissing() {
+        PageTextOutput.Check check = PageTextOutput.check(SENT, List.of(
+                new TranslatedPage(3, "เสียงกรีดร้องของนาฬิกาปลุกยังคงทำงานได้ตรงเวลา"),
+                new TranslatedPage(4, "“Đừng có มาทะลึ่ง (hỗn láo) nha, chuyện này để sau.”"),
+                new TranslatedPage(5, "Năm")));
+
+        assertThat(check.valid()).extracting(TranslatedPage::page).containsExactly(4, 5);
+        assertThat(check.missing()).containsExactly(3);
+        assertThat(check.description()).contains("untranslated [3]").doesNotContain("เสียง");
+    }
+
+    @Test
     void checkCountsBlankPagesAsMissing() {
         PageTextOutput.Check check = PageTextOutput.check(SENT, List.of(new TranslatedPage(3, "A"),
                 new TranslatedPage(4, "  "), new TranslatedPage(5, "C")));
