@@ -308,7 +308,7 @@ img {
 
 .result {
   /* Leave room for the sticky top bar when the panel is scrolled into view. */
-  scroll-margin-top: 88px;
+  scroll-margin-top: calc(var(--topbar-h, 56px) + 32px);
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
   gap: 28px;
@@ -2807,7 +2807,7 @@ a.tabs__tab {
 .reader-page {
   max-width: 960px;
   /* Opening a chapter scrolls here; keep the heading clear of the sticky top bar. */
-  scroll-margin-top: 80px;
+  scroll-margin-top: calc(var(--topbar-h, 56px) + 24px);
 }
 
 /* Breadcrumbs: Novels > title > current page. Long labels are cut with an ellipsis. */
@@ -2856,7 +2856,7 @@ a.breadcrumbs__label:hover {
 /* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
 .reader-bar {
   position: sticky;
-  top: 56px;
+  top: var(--topbar-h, 56px);
   z-index: 9;
   margin-block: 8px;
   transition: transform 0.2s ease-out, visibility 0s;
