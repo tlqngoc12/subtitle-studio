@@ -565,6 +565,18 @@ Plan: [docs/superpowers/plans/2026-11-09-novel-reader-polish.md](docs/superpower
 - **Lưu trong trình duyệt (`localStorage`, luôn try/catch):** vị trí đọc `novel-progress:<slug>` và danh sách đã đọc `novel-read:<slug>` (trang truyện có `Đọc tiếp: ...`, `Đọc từ đầu`, dấu Check và badge `Đang đọc`; chương đã gỡ thì về `Bắt đầu đọc`); chế độ đêm `reader-night` (mặc định theo theme tối, nút `Chế độ đêm` ghi đè); cỡ chữ `reader-width` (600/760/900 px, nút `A−`/`A+`).
 - Kiểm thử: `mvn test -Dskip.npm`, `vitest`, `tsc -b --noEmit` đều qua.
 
+### 2026-11-09: Thanh đọc rộng, ảnh chương liền mạch và chỉnh nhỏ (10 mục) ✅ (đã merge vào main, deploy local)
+
+Plan: [docs/superpowers/plans/2026-11-09-reader-bar-wide-and-polish.md](docs/superpowers/plans/2026-11-09-reader-bar-wide-and-polish.md). Không đổi API hay schema.
+
+- **Thanh đọc (public):** rộng bằng cột ảnh (`var(--reader-width)` nay đặt ở `<main>` để thanh và ảnh cùng theo A−/A+); bên trái nút `←` (`Về trang truyện`) cùng tên truyện (đậm, một dòng) và tên chương (`Chương N` hoặc nhãn, không kèm tiêu đề); bên phải `‹ › Mục lục Cài đặt`.
+- **`NovelRenderer` `VERSION` 4 → cần Publish lại các chương đã đăng:** bỏ chữ chân trang `Ch. N · k/n`; trang 2+ chỉ chừa lề mỏng (`TOP` -6, `BOTTOM` 0; chữ cách mép khoảng 12 px) nên các ảnh nối liền thành một dải; dòng chữ không bao giờ bị cắt ở mép ảnh. Trang 1 giữ tiêu đề.
+- **Banner nổi bật:** ngày `Cập nhật` dạng `dd/MM/yyyy`; mỗi bìa là link tới trang truyện (tên truy cập là tên truyện); hai nút `‹` / `›` (`Truyện trước` / `Truyện sau`) cạnh bộ đếm, đổi truyện và khởi động lại bộ hẹn 6 giây.
+- **Breadcrumbs** đẹp hơn (chữ nhỏ, phân cách `ChevronRight` mảnh, mục hiện tại đậm, link chuyển cam khi hover/focus, mục khác co lại trước).
+- **Toast:** nút đóng ở góc trên phải (sonner 2.0.8 không có tuỳ chọn vị trí nên dùng CSS).
+- **Trang truyện (public):** danh sách chương là một hộp viền liền, hàng gọn (40 px), từ 760 px và hơn 12 chương thì chia hai cột (CSS columns: đọc xuống hết cột trái rồi sang cột phải). Có mô tả thì hiện hai tab `Giới thiệu` | `Danh sách chương`, mặc định mở `Danh sách chương`; URL chỉ ghi tab còn lại (`?tab=intro`). Không có mô tả thì không có tab.
+- **Admin:** Number, Chapter label, Chapter title trên một hàng (tự xuống dòng khi hẹp); khoảng cách giữa thanh Search/Filter và đường kẻ trên của danh sách Manage Vietsub.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
