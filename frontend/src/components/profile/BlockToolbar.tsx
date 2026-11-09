@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react';
 import { IconButton } from '../ui/IconButton';
+import './BlockToolbar.css';
 
 /** Edit-mode tools of one block. */
 export function BlockToolbar({

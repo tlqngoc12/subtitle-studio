@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { uploadMedia } from '../../api/profiles';
 import { errorMessage } from '../../lib/errors';
+import './ImagePicker.css';
 
 export interface PickedImage {
   mediaId: number;

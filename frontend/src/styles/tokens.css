@@ -1,0 +1,108 @@
+/* Subtitle Studio. One bold element: the dark "video frame" where the link reads like a subtitle line.
+   Everything else is a quiet, light working sheet. */
+
+/* Breakpoints. Media queries cannot read custom properties, so these three widths are a convention:
+   write exactly these values and nothing else.
+
+   | Name   | Width  | Use                                                                           |
+   |--------|--------|-------------------------------------------------------------------------------|
+   | small  | 520px  | Narrow phones: tighter gutters, controls stack, long labels shrink            |
+   | medium | 760px  | Phones and small tablets: single column, 44px tap targets, video first        |
+   | large  | 1024px | Reserved for wide-desktop layouts; nothing uses it yet (no new layouts here)  |
+
+   Rules that adapt downwards use max-width at 520 or 760. A rule that only exists for wide screens uses
+   min-width (the public chapter list's two columns at 760). scripts/check-css-split.mjs rejects any other value. */
+
+:root {
+  --paper: #eef1f4;
+  --surface: #ffffff;
+  --ink: #1b2430;
+  --muted: #5b6675;
+  --rule: #d3d9e0;
+  /* Brand: orange for primary actions and the subtitle-style accent, orchid for "you are here". Both are
+     light, so text on them is always the dark --on-brand (white on orange would be about 2:1). */
+  --brand: #f39a42;
+  --brand-2: #d9a1d9;
+  --on-brand: #1b2430;
+  --caption: var(--brand);
+  --danger: #b42318;
+  --danger-bg: #fdecea;
+  --focus: #2f6fd6;
+  /* Darker twins of the brand colours for text and meaningful icons on the light surfaces
+     (--brand itself stays a background: orange on white is only about 2:1). Checked by contrast.test.ts. */
+  --brand-ink: #a35509;
+  --brand-2-ink: #9b569b;
+  /* Border of inputs, selects and the search box (>= 3:1 on --surface and --paper); --rule stays for decoration. */
+  --field-border: #778291;
+  --hover: color-mix(in srgb, var(--brand-2) 14%, transparent);
+  /* Only floating layers (tooltip, dialog, menus, popovers) cast a shadow; a dragged item gets the lighter one. */
+  --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.12);
+  --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.16);
+
+  /* Spacing scale, 4 px based. Every margin, padding and gap uses one of these (off-scale values round to the
+     nearest step). Kept as plain px: 0, 1px hairlines, -1px overlaps, widths/heights, min-height touch targets,
+     sticky/absolute offsets, and clamp()/calc() such as --gutter. */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font: 'Be Vietnam Pro', 'Noto Sans Thai', system-ui, sans-serif;
+  /* Modular scale, ratio 1.25 */
+  --step--1: 0.8rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.563rem;
+  --step-3: 1.953rem;
+
+  --radius-frame: 14px;
+  --radius-control: 8px;
+  --gutter: clamp(16px, 4vw, 40px);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #151b23;
+    --surface: #1d2530;
+    --ink: #e6ebf1;
+    --muted: #9aa6b4;
+    --rule: #2e3846;
+    --danger: #ff8a80;
+    --danger-bg: #3a1f1f;
+    --focus: #7aa7f0;
+    --brand-ink: var(--brand);
+    --brand-2-ink: var(--brand-2);
+    --field-border: #6b7a8c;
+    --hover: color-mix(in srgb, var(--brand-2) 16%, transparent);
+    --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
+    --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #151b23;
+  --surface: #1d2530;
+  --ink: #e6ebf1;
+  --muted: #9aa6b4;
+  --rule: #2e3846;
+  --danger: #ff8a80;
+  --danger-bg: #3a1f1f;
+  --focus: #7aa7f0;
+  --brand-ink: var(--brand);
+  --brand-2-ink: var(--brand-2);
+  --field-border: #6b7a8c;
+  --hover: color-mix(in srgb, var(--brand-2) 16%, transparent);
+  --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
+  --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}

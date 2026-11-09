@@ -47,6 +47,7 @@ import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { IconLink } from '../components/ui/IconButton';
+import './ChapterPage.css';
 
 /** Unsaved edits are saved by themselves this often (3 minutes). */
 export const AUTO_SAVE_MS = 180_000;

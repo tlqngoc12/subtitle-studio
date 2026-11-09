@@ -1,0 +1,13 @@
+.novel-card__cover {
+  width: 72px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+
+.novel-card__cover--empty {
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  color: var(--muted);
+}

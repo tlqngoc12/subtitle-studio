@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import './PageHeader.css';
 
 /**
  * The page title block. With `actions` the text and the actions sit in one row (`masthead--row`).

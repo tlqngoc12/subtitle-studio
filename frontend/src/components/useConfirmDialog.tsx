@@ -1,5 +1,6 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { useCallback, useRef, useState, type ReactElement } from 'react';
+import './useConfirmDialog.css';
 
 export interface ConfirmOptions {
   title: string;

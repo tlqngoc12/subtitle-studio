@@ -1,0 +1,24 @@
+.peditor {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 2px solid var(--brand);
+  border-radius: var(--radius-frame);
+}
+
+.peditor__kind {
+  margin: 0;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.peditor__actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}

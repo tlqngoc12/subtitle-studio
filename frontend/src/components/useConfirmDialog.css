@@ -1,0 +1,74 @@
+/* ---------- Confirm dialog (Radix AlertDialog, useConfirmDialog) ---------- */
+.confirm__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.45);
+  animation: confirm-fade 120ms ease-out;
+}
+
+.confirm {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 41;
+  width: min(92vw, 420px);
+  transform: translate(-50%, -50%);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-overlay);
+  animation: confirm-pop 140ms ease-out;
+}
+
+.confirm__title {
+  margin: 0;
+  font-size: var(--step-1);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.confirm__description {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+}
+
+.confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* Solid red: the confirming button of a destructive action. */
+.button--danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--paper);
+}
+
+.button--danger-solid:hover {
+  filter: brightness(1.08);
+}
+
+@keyframes confirm-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes confirm-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm__overlay,
+  .confirm {
+    animation: none;
+  }
+}

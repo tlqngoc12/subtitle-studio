@@ -1,0 +1,7 @@
+/* Public Novels home: heading row of a section with a link on the right. */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

@@ -2,8 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { Breadcrumbs } from './Breadcrumbs';
+import { css } from '../test/css';
 
-const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 describe('Breadcrumbs', () => {
   it('links every crumb but the last, which is the current page', () => {

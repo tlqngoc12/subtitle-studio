@@ -1,0 +1,105 @@
+/* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
+.reader-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.reader-bar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.reader-bar__left,
+.reader-bar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reader-bar__left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.reader-bar__right {
+  flex: none;
+}
+
+.reader-bar__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.reader-bar__novel,
+.reader-bar__chapter {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-bar__novel {
+  font-weight: 700;
+}
+
+.reader-bar__chapter {
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.reader-pop {
+  display: grid;
+  gap: var(--space-3);
+  width: min(300px, calc(100vw - 32px));
+  padding: var(--space-3);
+}
+
+.reader-settings__size {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.reader-toc {
+  max-height: min(420px, 60vh);
+  padding: var(--space-2);
+}
+
+.reader-toc__list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.reader-toc__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
+  border-radius: var(--radius-control);
+}
+
+.reader-toc__item:hover {
+  background: var(--paper);
+}
+
+.reader-toc__link {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.reader-toc__link--current {
+  font-weight: 700;
+}
+
+@media print {
+  .reader-bar {
+    display: none !important;
+  }
+}

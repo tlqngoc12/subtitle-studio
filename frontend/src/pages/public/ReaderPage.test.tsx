@@ -7,8 +7,8 @@ import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
 import { expectTooltip } from '../../test/tooltip';
 import ReaderPage from './ReaderPage';
+import { css } from '../../test/css';
 
-const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 /** Pretends the page was scrolled to `y` and tells the listeners. */
 function scrollTo(y: number) {

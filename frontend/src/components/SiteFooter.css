@@ -1,0 +1,14 @@
+/* ---------- Public site footer ---------- */
+.site-footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter) var(--space-10);
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-align: center;
+}
+
+.site-footer p {
+  margin: 0;
+}

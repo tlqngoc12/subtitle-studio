@@ -27,6 +27,7 @@ import {
   saveWidth,
   type ReaderWidth,
 } from "./readerPrefs";
+import './ReaderPage.css';
 
 /**
  * The public chapter reader: breadcrumbs, the controls in the top bar (previous, next, contents, settings), the chapter as drawn

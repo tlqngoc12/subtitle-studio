@@ -26,6 +26,7 @@ import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { expandMotion, rowMotion } from '../lib/motion';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
+import './ProfilePage.css';
 
 type OpenForm = { mode: 'edit'; id: number } | { mode: 'add'; type: BlockType } | null;
 

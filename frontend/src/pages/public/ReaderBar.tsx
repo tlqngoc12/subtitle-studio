@@ -23,6 +23,7 @@ import {
 } from "./readerPrefs";
 import { IconButton, IconLink } from '../../components/ui/IconButton';
 import { PopoverPanel } from '../../components/ui/PopoverPanel';
+import './ReaderBar.css';
 
 /** Attribute that marks a popover whose keys (the arrows) belong to it, not to chapter navigation. */
 export const OWN_KEYS = "data-own-keys";

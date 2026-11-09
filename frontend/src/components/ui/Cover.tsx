@@ -1,4 +1,5 @@
 import { BookOpen } from 'lucide-react';
+import './Cover.css';
 
 /** A novel cover image, or the empty placeholder with a book icon when there is none. */
 export function Cover({

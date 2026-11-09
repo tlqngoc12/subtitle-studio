@@ -8,6 +8,7 @@ import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Cover } from '../components/ui/Cover';
+import './public/NovelCard.css';
 
 export const STATUS_LABEL: Record<NovelStatus, string> = { ONGOING: 'Ongoing', COMPLETED: 'Completed' };
 

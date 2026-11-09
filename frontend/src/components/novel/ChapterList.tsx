@@ -7,6 +7,7 @@ import { Tip } from '../Tip';
 import type { ChapterSummary } from '../../api/novels';
 import { EmptyState } from '../EmptyState';
 import { StatusBadges } from './StatusBadges';
+import './ChapterList.css';
 
 /** The chapter's label ("Ngoại truyện 1"), or "Chapter N". */
 export function chapterName(chapterNo: number, label?: string | null): string {

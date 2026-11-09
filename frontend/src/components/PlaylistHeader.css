@@ -1,0 +1,128 @@
+/* Playlist cards stacked vertically. */
+.plcards {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.plcard {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  padding: var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.plcard__cover {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.plcard__cover--empty {
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+}
+
+.plcard__body {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.plcard__name {
+  margin: 0;
+  font-size: var(--step-2);
+}
+
+.plcard__description {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.plcard__name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.plcard__name a:hover {
+  text-decoration: underline;
+}
+
+/* A card in the Playlists tab: compact, and the name's link covers the whole card. */
+.plcard--link {
+  position: relative;
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  transition: border-color 120ms ease-out;
+}
+
+.plcard--link:hover {
+  border-color: var(--brand);
+}
+
+.plcard--link:has(.plcard__name a:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.plcard--link .plcard__name {
+  font-size: var(--step-1);
+}
+
+.plcard--link .plcard__name a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.plcard--link .plcard__name a:focus-visible {
+  outline: none;
+}
+
+/* Play all stays its own target above the card link. */
+.plcard__play {
+  position: relative;
+  z-index: 1;
+}
+
+.plcard__preview {
+  margin: 0;
+  padding-left: 1.4em;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.plcard__preview li {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plcard--link {
+    transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .plcard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* In the Playlists tab the cards stay compact on phones: small cover on the left. */
+  .plcards .plcard {
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .plcards .plcard__name {
+    font-size: var(--step-1);
+  }
+}

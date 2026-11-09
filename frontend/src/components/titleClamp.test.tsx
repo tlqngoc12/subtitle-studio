@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { detail, vsVideo } from '../test/playlistFixtures';
 import { PlaylistHeader } from './PlaylistHeader';
 import { PlaylistPanel } from './PlaylistPanel';
+import { css } from '../test/css';
 
-const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 const LONG = 'Một tiêu đề video rất dài '.repeat(12) + 'EP.12';
 const PL = detail(4, 'VLOG', [vsVideo('aaaaaaaaaaa', LONG)]);
 

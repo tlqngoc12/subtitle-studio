@@ -15,6 +15,8 @@ import {
   useDocumentTitle,
 } from "./publicNames";
 import { Cover } from '../../components/ui/Cover';
+import './PublicNovelPage.css';
+import '../../components/novel/ChapterList.css';
 
 /** A novel's public page: cover, the eight fields (description as plain text) and its published chapters. */
 export default function PublicNovelPage({ source }: { source: NovelSource }) {

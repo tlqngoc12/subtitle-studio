@@ -6,6 +6,7 @@ import { EmptyState } from '../EmptyState';
 import { chapterName } from './ChapterList';
 import { Alert } from '../ui/Alert';
 import { LoadingText } from '../ui/LoadingText';
+import './NotebookView.css';
 
 /** The Notebook tab: the story notebook Gemini keeps after each published chapter (read only). */
 export function NotebookView({

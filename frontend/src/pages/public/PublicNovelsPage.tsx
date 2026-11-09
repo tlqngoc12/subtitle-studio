@@ -10,6 +10,7 @@ import { NovelCard } from './NovelCard';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
+import './PublicNovelsPage.css';
 
 const FEATURED = 5;
 const LATEST = 6;

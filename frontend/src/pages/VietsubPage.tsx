@@ -14,6 +14,7 @@ import { withVietsub } from '../lib/vietsub';
 import { Alert } from '../components/ui/Alert';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SearchBar } from '../components/ui/SearchBar';
+import './VietsubPage.css';
 
 export default function VietsubPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();

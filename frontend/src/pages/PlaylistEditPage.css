@@ -1,0 +1,55 @@
+/* Playlist editor: header actions and sortable rows. */
+.plhead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.plhead__actions,
+.plhead__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.plhead__form-actions {
+  align-self: end;
+}
+
+.plitem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface);
+}
+
+.plitem--dragging {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-drag);
+}
+
+.plitem__index {
+  flex: none;
+  min-width: 1.6em;
+  text-align: right;
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.plitem__handle {
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.plitem--dragging .plitem__handle {
+  cursor: grabbing;
+}
+
+.plitem__video {
+  flex: 1;
+  min-width: 0;
+  cursor: default;
+}

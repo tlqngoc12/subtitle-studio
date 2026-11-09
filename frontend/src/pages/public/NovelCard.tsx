@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { PUBLIC_STATUS_LABEL, publicChapterProgress } from './publicNames';
 import { Cover } from '../../components/ui/Cover';
+import './NovelCard.css';
 
 /** The small card of a novel: cover, title, status and `x/y chương`. A grid item (`<li>`). */
 export function NovelCard({ novel }: { novel: PublicNovelSummary }) {

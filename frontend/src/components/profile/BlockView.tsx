@@ -6,6 +6,7 @@ import 'yet-another-react-lightbox/styles.css';
 import type { BlockType, ProfileBlock, ProfileItem } from '../../api/profiles';
 import { Tip } from '../Tip';
 import { BrandIcon } from './BrandIcon';
+import './BlockView.css';
 
 /** Shown before a block's title so each kind of content is recognisable at a glance. */
 const TYPE_ICONS: Record<BlockType, LucideIcon> = {

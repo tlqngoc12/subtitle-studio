@@ -6,6 +6,7 @@ import { pillTransition } from '../lib/motion';
 import { useTopbarHeight } from '../lib/useTopbarHeight';
 import { PublishButton } from './PublishButton';
 import { useTopbarSlot } from './TopbarSlot';
+import './NavBar.css';
 
 interface Section {
   to: string;

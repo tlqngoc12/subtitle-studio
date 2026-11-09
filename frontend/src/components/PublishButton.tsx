@@ -5,6 +5,7 @@ import { getPublishStatus, startPublish, type PublishStatus } from '../api/publi
 import { errorMessage } from '../lib/errors';
 import { Tip } from './Tip';
 import { useConfirmDialog } from './useConfirmDialog';
+import './PublishButton.css';
 
 const NOT_CONFIGURED_TIP = 'Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and SUBTITLESTUDIO_PUBLISH_PROJECT in .env';
 

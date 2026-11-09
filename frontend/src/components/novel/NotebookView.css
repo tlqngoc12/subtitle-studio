@@ -1,0 +1,46 @@
+.notebook {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.notebook__version {
+  max-width: 260px;
+}
+
+.notebook__warning {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--brand-2);
+  background: var(--surface);
+}
+
+.notebook__section h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--step-1);
+}
+
+.notebook__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.notebook__entry dt {
+  font-weight: 700;
+}
+
+.notebook__entry dd {
+  margin: var(--space-0-5) 0 0;
+}
+
+.notebook__now {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.notebook__plain {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+}

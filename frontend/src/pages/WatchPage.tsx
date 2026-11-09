@@ -13,6 +13,7 @@ import { usePlaylistMode } from '../lib/usePlaylistMode';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
 import { Alert } from '../components/ui/Alert';
 import { PageHeader } from '../components/ui/PageHeader';
+import './WatchPage.css';
 
 /**
  * The end result of the workflow: the YouTube video playing with its Vietsub. With `?playlist=` it also shows

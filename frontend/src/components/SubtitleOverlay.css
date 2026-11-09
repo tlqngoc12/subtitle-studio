@@ -1,0 +1,28 @@
+.overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Above YouTube's control bar and progress bar, which appear on hover/pause. */
+  bottom: 14%;
+  display: flex;
+  justify-content: center;
+  padding: 0 5%;
+  pointer-events: none;
+}
+
+/* Sized like YouTube's default captions: ~1.9% of the player width (about 20px in a 1040px
+   player, about 36px fullscreen at 1920px), regular weight, 75% black box. */
+.overlay__line {
+  margin: 0;
+  max-width: 90%;
+  padding: 0.1em 0.4em;
+  border-radius: 2px;
+  background: rgb(8 8 8 / 0.75);
+  color: #fff;
+  font-size: clamp(12px, 1.9cqw, 40px);
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

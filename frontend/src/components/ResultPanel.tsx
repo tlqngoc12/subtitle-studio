@@ -4,6 +4,7 @@ import { formatDuration } from '../lib/format';
 import { CueTable } from './CueTable';
 import { VietsubStatus } from './VietsubStatus';
 import { LoadingText } from './ui/LoadingText';
+import './ResultPanel.css';
 
 interface Props {
   video: VideoDto;

@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { IconButton } from '../ui/IconButton';
+import './ItemListEditor.css';
 
 /** Editable list of GALLERY / LINKS / FACTS entries: add, remove, move up and down. */
 export function ItemListEditor<T extends { key: number }>({

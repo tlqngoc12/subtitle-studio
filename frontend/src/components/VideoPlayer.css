@@ -1,0 +1,87 @@
+/* The frame stays dark in both themes: it is the video. Fullscreen applies to this frame,
+   so the overlay stays visible (YouTube's own fullscreen button is disabled). */
+.player {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  container-type: inline-size;
+  overflow: hidden;
+  background: #000;
+  border-radius: var(--radius-frame);
+}
+
+.player:fullscreen {
+  border-radius: 0;
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+}
+
+/* iPhone Safari has no Fullscreen API for this frame: it fills the viewport instead (above the top bar),
+   so the Vietsub overlay stays on the video. dvh follows Safari's collapsing address bar. */
+.player--filled {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+html.player-filled-open,
+html.player-filled-open body {
+  overflow: hidden;
+}
+
+.player__video,
+.player__video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.player__error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--space-6);
+  color: #e6ebf1;
+  text-align: center;
+}
+
+/* Fullscreen button where YouTube puts its own (bottom-right). Always visible but faint: the
+   frame never gets :hover while the pointer is over the cross-origin YouTube iframe, so a
+   hover-only button would stay hidden during playback. */
+.player__fs {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.player__fs:hover,
+.player__fs:focus-visible {
+  opacity: 1;
+}
+
+.player__fs svg {
+  width: 24px;
+  height: 24px;
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import './SiteFooter.css';
 
 /** Public site footer: credit and the year of the last publish (from data/site.json; this year if unavailable). */
 export function SiteFooter() {

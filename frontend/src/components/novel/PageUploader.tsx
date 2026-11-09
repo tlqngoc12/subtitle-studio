@@ -1,5 +1,6 @@
 import { ImagePlus } from 'lucide-react';
 import { useId, useState, type DragEvent } from 'react';
+import './PageUploader.css';
 
 /** Drop zone and file input for one or many page screenshots (PNG, JPEG, WebP). */
 export function PageUploader({

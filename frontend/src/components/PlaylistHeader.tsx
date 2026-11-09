@@ -2,6 +2,7 @@ import { ListVideo, Play } from 'lucide-react';
 import { Link } from 'react-router';
 import { videoCountLabel } from '../api/playlists';
 import type { PublicPlaylistDetail } from '../data/types';
+import './PlaylistHeader.css';
 
 interface Props {
   playlist: PublicPlaylistDetail;

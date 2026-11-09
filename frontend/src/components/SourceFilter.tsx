@@ -2,6 +2,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { ListFilter } from 'lucide-react';
 import { useState } from 'react';
 import { PopoverPanel } from './ui/PopoverPanel';
+import './SourceFilter.css';
 
 export type Source = 'ai' | 'manual';
 

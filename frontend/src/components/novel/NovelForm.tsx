@@ -4,6 +4,7 @@ import { getNovelProfiles, type NovelDetail, type NovelInput, type NovelStatus }
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImagePicker, type PickedImage } from '../profile/ImagePicker';
 import { Alert } from '../ui/Alert';
+import './NovelForm.css';
 
 /** "Tình Yêu Mùa Hạ" → "tinh-yeu-mua-ha": no accents, lowercase, single hyphens. */
 export function slugify(text: string): string {

@@ -15,6 +15,7 @@ import { Tip } from './Tip';
 import { Alert } from './ui/Alert';
 import { LoadingText } from './ui/LoadingText';
 import { PopoverPanel } from './ui/PopoverPanel';
+import './SaveToPlaylist.css';
 
 /**
  * "Save to playlist" like YouTube: an icon button opening a popover with one checkbox per playlist. Ticking adds

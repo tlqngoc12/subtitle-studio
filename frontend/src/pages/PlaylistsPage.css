@@ -1,0 +1,12 @@
+/* Stands in for the cover of an empty playlist; same box as a row thumbnail. */
+.playlist-cover-empty {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 96px;
+  height: 54px;
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+}

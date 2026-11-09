@@ -20,6 +20,7 @@ import { rowMotion } from '../lib/motion';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
+import './PlaylistsPage.css';
 
 function toSummary(d: PlaylistDetail): PlaylistSummary {
   return {

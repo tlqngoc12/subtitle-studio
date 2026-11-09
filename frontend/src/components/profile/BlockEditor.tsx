@@ -5,6 +5,7 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImagePicker, type PickedImage } from './ImagePicker';
 import { ItemListEditor } from './ItemListEditor';
 import { Alert } from '../ui/Alert';
+import './BlockEditor.css';
 
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   TEXT: 'Text',

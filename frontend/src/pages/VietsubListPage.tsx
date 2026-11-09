@@ -16,6 +16,7 @@ import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SearchBar } from '../components/ui/SearchBar';
+import './VietsubListPage.css';
 
 /** A row of a video list; `position` is the video's number in the open playlist (null in All videos). */
 interface Entry {

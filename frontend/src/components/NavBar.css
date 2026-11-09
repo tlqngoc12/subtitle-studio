@@ -1,0 +1,121 @@
+/* ---------- Navigation (Phase 2) ---------- */
+
+/* Sticky top bar: app name + sections. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.topbar__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.topbar {
+  transition: transform 0.2s ease-out, visibility 0s;
+}
+
+/* The chapter reader slides the whole bar away while scrolling down. */
+.topbar--hidden {
+  transform: translateY(-100%);
+  visibility: hidden;
+  transition: transform 0.2s ease-out, visibility 0s 0.2s;
+}
+
+/* A page's own controls (the reader) fill this instead of the logo and the menu. */
+.topbar__slot {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar__slot:empty {
+  display: none;
+}
+
+.topbar__brand {
+  flex: none;
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+/* One row; on narrow screens the sections scroll sideways instead of wrapping. */
+.nav {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  /* overflow clips vertically too: leave room for the focus ring. */
+  padding: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+@media (max-width: 760px) {
+  /* Only part of the row fits: fade the right edge so it reads as scrollable. */
+  .nav {
+    mask-image: linear-gradient(to right, #000 82%, transparent);
+  }
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav__link {
+  flex: none;
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nav__link:hover {
+  color: var(--ink);
+}
+
+.nav__link {
+  position: relative;
+  isolation: isolate;
+}
+
+.nav__link[aria-current='page'] {
+  color: var(--on-brand);
+}
+
+/* The sliding "you are here" pill (motion layoutId), drawn behind the link text. */
+.nav__pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+}
+
+.nav__pill {
+  background: var(--brand-2);
+}
+
+@media (max-width: 760px) {
+  .nav__link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar,
+  .topbar--hidden {
+    transition: none;
+  }
+}

@@ -28,6 +28,7 @@ import {
 import { readProgress } from "./readerPrefs";
 import { Cover } from '../../components/ui/Cover';
 import { IconButton, IconLink } from '../../components/ui/IconButton';
+import './FeaturedNovels.css';
 
 const ADVANCE_MS = 6000;
 const pad = (n: number) => String(n).padStart(2, "0");

@@ -22,6 +22,7 @@ import { STATUS_LABEL } from './NovelsPage';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { Cover } from '../components/ui/Cover';
+import './NovelPage.css';
 
 /** Novels › one novel: Chapters | Details | Notebook. The novel is loaded once for every tab. */
 export default function NovelPage() {

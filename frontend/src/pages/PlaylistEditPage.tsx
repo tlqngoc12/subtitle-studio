@@ -36,6 +36,7 @@ import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
+import './PlaylistEditPage.css';
 
 /** Vietsub › Playlists › one playlist: rename, reorder (drag and drop or ↑ ↓), remove videos, delete. */
 export default function PlaylistEditPage() {

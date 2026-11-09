@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import './SearchBar.css';
 
 /** The search field of the Vietsub lists: a search icon, the input, and a clear button while there is text. */
 export function SearchBar({
