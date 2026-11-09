@@ -28,7 +28,7 @@ function luminance(hex: string): number {
 
 function ratio(tokens: Record<string, string>, fg: string, bg: string): number {
   const a = luminance(resolve(tokens, fg));
-  const b = luminance(resolve(tokens, bg));
+  const b = luminance(bg.startsWith('#') ? bg : resolve(tokens, bg));
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
@@ -47,7 +47,18 @@ describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens)
     ['--field-border', '--paper', 3],
     ['--field-border', '--surface', 3],
     ['--on-brand', '--brand', 4.5],
+    // The keyboard focus ring (orchid) and the orchid link-hover text.
+    ['--focus', '--paper', 3],
+    ['--focus', '--surface', 3],
+    ['--brand-2-ink', '--paper', 4.5],
+    ['--brand-2-ink', '--surface', 4.5],
+    // The search box and URL field sit on the always-dark video frame, whose focus ring is --brand-2.
+    ['--brand-2', '#1b2430', 3],
   ])('%s on %s is at least %s:1', (fg, bg, min) => {
     expect(ratio(tokens, fg, bg)).toBeGreaterThanOrEqual(min);
   });
+});
+
+it('no stylesheet hard-codes a focus outline colour', () => {
+  expect(css).not.toMatch(/outline(-color)?:[^;]*#[0-9a-f]{3,8}/i);
 });

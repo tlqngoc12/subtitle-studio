@@ -19,7 +19,7 @@
 .chapter-list__item--dragging {
   position: relative;
   z-index: 1;
-  border-color: var(--brand);
+  border-color: var(--brand-2);
   box-shadow: var(--shadow-drag);
 }
 

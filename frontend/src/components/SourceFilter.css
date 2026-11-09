@@ -1,12 +1,13 @@
 .filter-button {
   flex: none;
-  border: 1px solid var(--field-border);
+  border: 1px solid var(--brand);
   border-radius: 999px;
   white-space: nowrap;
 }
 
+.filter-button:hover,
 .filter-button--active {
-  border-color: var(--brand);
+  border-color: var(--brand-2);
 }
 
 .filter-menu {

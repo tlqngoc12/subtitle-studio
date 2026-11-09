@@ -27,11 +27,11 @@
   --caption: var(--brand);
   --danger: #b42318;
   --danger-bg: #fdecea;
-  --focus: #2f6fd6;
+  --focus: var(--brand-2-ink);
   /* Darker twins of the brand colours for text and meaningful icons on the light surfaces
      (--brand itself stays a background: orange on white is only about 2:1). Checked by contrast.test.ts. */
   --brand-ink: #a35509;
-  --brand-2-ink: #9b569b;
+  --brand-2-ink: #965296;
   /* Border of inputs, selects and the search box (>= 3:1 on --surface and --paper); --rule stays for decoration. */
   --field-border: #778291;
   --hover: color-mix(in srgb, var(--brand-2) 14%, transparent);
@@ -78,7 +78,7 @@
     --rule: #2e3846;
     --danger: #ff8a80;
     --danger-bg: #3a1f1f;
-    --focus: #7aa7f0;
+    --focus: var(--brand-2);
     --brand-ink: var(--brand);
     --brand-2-ink: var(--brand-2);
     --field-border: #6b7a8c;
@@ -97,7 +97,7 @@
   --rule: #2e3846;
   --danger: #ff8a80;
   --danger-bg: #3a1f1f;
-  --focus: #7aa7f0;
+  --focus: var(--brand-2);
   --brand-ink: var(--brand);
   --brand-2-ink: var(--brand-2);
   --field-border: #6b7a8c;

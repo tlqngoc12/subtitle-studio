@@ -42,8 +42,8 @@
 }
 
 .frame__input:focus-visible {
-  /* The frame is always dark: the light-on-dark focus blue (as in dark mode). */
-  outline-color: #7aa7f0;
+  /* The frame is always dark: the orchid ring (7.5:1 on #1b2430), as in dark mode. */
+  outline-color: var(--brand-2);
 }
 
 /* A video scrubber along the bottom edge; it runs while subtitles are being fetched. */
@@ -114,7 +114,7 @@
 }
 
 .frame__select:focus-visible {
-  outline-color: #7aa7f0;
+  outline-color: var(--brand-2);
 }
 
 @media (max-width: 760px) {
