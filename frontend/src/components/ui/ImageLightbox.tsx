@@ -76,6 +76,12 @@ export function ImageLightbox({
               alt={image.alt || `Ảnh ${at + 1}/${count}`}
             />
           )}
+          {image?.alt && (
+            // The image's alt already carries the description for screen readers; this is for everyone else (touch).
+            <p className="lightbox__caption" aria-hidden="true">
+              {image.alt}
+            </p>
+          )}
           <div className="lightbox__bar">
             {count > 1 && (
               <div className="lightbox__nav">

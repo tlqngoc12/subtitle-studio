@@ -40,6 +40,13 @@
   object-fit: contain;
 }
 
+.lightbox__caption {
+  max-width: 90vw;
+  margin: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 .lightbox__bar {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

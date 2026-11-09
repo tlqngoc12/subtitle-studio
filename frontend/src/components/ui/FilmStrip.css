@@ -1,0 +1,117 @@
+/* FilmStrip: a full-bleed row of same-height images at their natural width. No card, border or shadow. */
+.filmstrip {
+  position: relative;
+  /* Break out of .page to the viewport edges. 100vw includes a classic scrollbar, so the body clips that sliver
+     (below) instead of growing a horizontal scrollbar. */
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+body:has(.filmstrip) {
+  overflow-x: clip;
+}
+
+.filmstrip__row {
+  display: flex;
+  gap: var(--space-3);
+  padding-inline: var(--gutter);
+  overflow-x: auto;
+  scroll-padding-inline: var(--gutter);
+  scroll-snap-type: x mandatory;
+  /* Scrollable and swipeable, but no visible bar. */
+  scrollbar-width: none;
+}
+
+.filmstrip__row::-webkit-scrollbar {
+  display: none;
+}
+
+.filmstrip__item {
+  position: relative;
+  flex: none;
+  height: clamp(120px, 18vw, 220px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+.filmstrip__item:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+.filmstrip__art {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 100%;
+  border-radius: var(--radius-control);
+}
+
+/* The empty placeholder has no image to take a width from. */
+.filmstrip__art.novel-card__cover--empty {
+  display: grid;
+  aspect-ratio: 3 / 2;
+}
+
+.filmstrip__bar {
+  position: absolute;
+  inset: auto 0 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-3);
+  background: rgb(0 0 0 / 0.65);
+  color: var(--on-frame);
+  font-size: var(--step--1);
+  line-height: 1.35;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+  pointer-events: none;
+}
+
+.filmstrip__item:hover .filmstrip__bar {
+  opacity: 1;
+}
+
+.filmstrip__item:focus-visible .filmstrip__bar {
+  opacity: 1;
+}
+
+/* The arrows are a pointer-device aid; touch swipes. */
+.filmstrip__arrow {
+  position: absolute;
+  top: 50%;
+  display: none;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: var(--surface);
+}
+
+.filmstrip__arrow--prev {
+  left: var(--space-3);
+}
+
+.filmstrip__arrow--next {
+  right: var(--space-3);
+}
+
+@media (hover: hover) {
+  .filmstrip:hover .filmstrip__arrow,
+  .filmstrip:focus-within .filmstrip__arrow {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filmstrip__bar {
+    transition: none;
+  }
+}

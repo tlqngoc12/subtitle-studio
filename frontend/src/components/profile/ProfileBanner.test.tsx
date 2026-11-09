@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import type { BannerImage } from '../../api/profiles';
-import { css } from '../../test/css';
 import { ProfileBanner } from './ProfileBanner';
 
 const IMAGES: BannerImage[] = [
@@ -27,13 +26,11 @@ describe('ProfileBanner', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('is a region of fanned images, centred, with the carousel controls', () => {
+  it('is a region holding one button per image', () => {
     renderBanner();
 
     const region = screen.getByRole('region', { name: 'Ảnh banner' });
     expect(within(region).getAllByRole('button', { name: /^(Fan meeting|Ảnh 2\/3|Backstage)$/ })).toHaveLength(3);
-    expect(within(region).getByText('01 / 03')).toBeInTheDocument();
-    expect(within(region).getByRole('button', { name: 'Ảnh sau' })).toBeInTheDocument();
   });
 
   it('uses the alt text as the image alt and the item name', () => {
@@ -72,6 +69,32 @@ describe('ProfileBanner', () => {
     expect(within(dialog).getByRole('img', { name: 'Fan meeting' })).toBeInTheDocument();
   });
 
+  it('opens the lightbox at the right index and shows the description under the image', async () => {
+    const user = userEvent.setup();
+    renderBanner();
+
+    await user.click(screen.getByRole('button', { name: 'Backstage' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('3 / 3')).toBeInTheDocument();
+    expect(within(dialog).getByText('Backstage', { selector: '.lightbox__caption' })).toBeInTheDocument();
+  });
+
+  it('shows no caption in the lightbox for an undescribed image', async () => {
+    const user = userEvent.setup();
+    renderBanner();
+
+    await user.click(screen.getByRole('button', { name: 'Ảnh 2/3' }));
+
+    expect(screen.getByRole('dialog').querySelector('.lightbox__caption')).toBeNull();
+  });
+
+  it('does not touch the Novels banner (FanCarousel in cover mode)', () => {
+    renderBanner();
+
+    expect(document.querySelector('.fan')).toBeNull();
+  });
+
   it('names an undescribed image in the lightbox "Ảnh k/n"', async () => {
     const user = userEvent.setup();
     renderBanner();
@@ -93,11 +116,10 @@ describe('ProfileBanner', () => {
     expect(opened).toHaveFocus();
   });
 
-  it('shows a single image without controls, and still opens it', async () => {
+  it('shows a single image and still opens it', async () => {
     const user = userEvent.setup();
     renderBanner([IMAGES[0]]);
 
-    expect(screen.queryByRole('button', { name: 'Ảnh sau' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Fan meeting' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
@@ -107,30 +129,5 @@ describe('ProfileBanner', () => {
 
     expect(container.querySelectorAll('.novel-card__cover--empty')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Lost' })).toBeInTheDocument();
-  });
-
-  it('fans the images in natural mode, whole and uncropped', () => {
-    renderBanner();
-
-    expect(screen.getByRole('region', { name: 'Ảnh banner' })).toHaveClass('fan--natural');
-    const block = css.match(/\.pbanner\s*\{[^}]*\}/)?.[0] ?? '';
-    expect(block).not.toMatch(/--fan-ratio|--fan-width:\s*220px|--fan-height/);
-  });
-
-  describe('style', () => {
-    it('is a flat surface with a 1px rule border and the frame radius, using theme tokens only', () => {
-      const block = css.match(/\.pbanner\s*\{[^}]*\}/)?.[0] ?? '';
-
-      expect(block).toMatch(/background:\s*var\(--surface\)/);
-      expect(block).toMatch(/border:\s*1px solid var\(--rule\)/);
-      expect(block).toMatch(/border-radius:\s*var\(--radius-frame\)/);
-      expect(block).not.toMatch(/gradient|box-shadow|#[0-9a-f]{3,6}\b|rgb\(/i);
-    });
-
-    it('puts no shadow on the images', () => {
-      const own = css.slice(css.indexOf('.pbanner {'), css.indexOf('.pbanner {') + 600);
-
-      expect(own).not.toMatch(/shadow/);
-    });
   });
 });
