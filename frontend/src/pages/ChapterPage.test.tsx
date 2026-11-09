@@ -53,6 +53,14 @@ describe('ChapterPage', () => {
   beforeEach(() => vi.mocked(toast.success).mockClear());
   afterEach(() => vi.useRealTimers());
 
+  it('has a text-only Save button', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save.querySelector('svg')).toBeNull();
+  });
+
   it('edits the whole chapter in one box, with the screenshots apart', async () => {
     renderPage([get()]);
     await loaded();

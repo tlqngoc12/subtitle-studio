@@ -9,7 +9,6 @@ import {
   Languages,
   RotateCcw,
   RotateCw,
-  Save,
   Send,
   TriangleAlert,
   Undo2,
@@ -456,7 +455,6 @@ export default function ChapterPage() {
 
       <div className="chapter-save">
         <button className="button button--primary" type="button" onClick={() => void save()} disabled={locked || !dirty || !number}>
-          <Save className="icon" aria-hidden="true" />
           Save
         </button>
         {dirty && <span className="muted">Unsaved changes</span>}

@@ -514,6 +514,12 @@ describe('VietsubEditPage', () => {
     const saved: VideoDto = { ...video, viSource: 'MANUAL', viUpdatedAt: '2026-11-09T12:00:00Z' };
     const saveButton = () => screen.getByRole('button', { name: 'Save' });
 
+    it('has a text-only Save button', async () => {
+      await renderEditor();
+
+      expect(saveButton().querySelector('svg')).toBeNull();
+    });
+
     it('keeps Save disabled until something changes, and disables it again for an empty or over-long line', async () => {
       await renderEditor();
       const user = userEvent.setup();
