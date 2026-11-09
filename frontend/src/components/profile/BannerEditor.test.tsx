@@ -418,6 +418,13 @@ describe('BannerEditor', () => {
     });
   });
 
+  it('shows each thumbnail whole: natural ratio, never cropped', () => {
+    const shot = css.match(/\.banner-thumb__shot\s*\{([^}]*)\}/)?.[1] ?? '';
+
+    expect(shot).toMatch(/height:\s*auto/);
+    expect(shot).not.toMatch(/object-fit:\s*cover|aspect-ratio:\s*\d/);
+  });
+
   it('uses tokens and the 4px spacing scale only', () => {
     const own = css.slice(css.indexOf('.banner-editor {'), css.indexOf('.banner-editor {') + 3000);
 

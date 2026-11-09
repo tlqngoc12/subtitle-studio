@@ -51,8 +51,8 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                   className={v.id === highlightId ? 'history__item history__item--new' : 'history__item'}
                   aria-busy={busy}
                 >
-                  {/* The row (up to the action buttons) opens the watch page, like the Vietsub list. */}
-                  <Link className="history__open history__open--row" to={`/vietsub/${v.id}`}>
+                  {/* The row (up to the action buttons) opens the Vietsub editor. */}
+                  <Link className="history__open history__open--row" to={`/vietsub/${v.id}/edit`}>
                     <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                     <span className="history__text">
                       <span className="history__title">{v.title}</span>

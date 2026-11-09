@@ -51,6 +51,11 @@ public class ViCueEntity {
         this.text = text;
     }
 
+    /** The live editor changes the text only; timing stays as stored. */
+    public void setText(String text) {
+        this.text = text;
+    }
+
     public ViCue toViCue() {
         return new ViCue(startMs, endMs, text);
     }

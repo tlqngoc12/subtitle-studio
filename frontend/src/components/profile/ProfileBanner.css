@@ -1,12 +1,8 @@
 /* The fanned banner under a profile title: a flat surface framed like the Novels featured banner. The fan itself
-   (FanCarousel) centres in it; --fan-* size the images. */
+   (FanCarousel, fit="natural") centres in it and shows each wide image whole. */
 .pbanner {
-  --fan-width: 220px;
-  --fan-width-narrow: 200px;
-  --fan-ratio: 4 / 5;
-  --fan-height: 320px;
   display: grid;
-  justify-items: center;
+  justify-items: stretch;
   max-width: 760px;
   margin-bottom: var(--space-5);
   padding: var(--space-6) var(--space-4);

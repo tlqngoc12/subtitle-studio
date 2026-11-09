@@ -40,9 +40,9 @@ const none = video('NONE0000001', 'Chưa có Vietsub', 0, null);
 const older = video('OLDER000001', 'Video cũ hơn', 5, '2026-11-02T10:00:00Z');
 const newer = video(ID, 'Học Spring Boot', 7, '2026-11-02T11:00:00Z');
 
-function WatchStub() {
+function EditStub() {
   const { id } = useParams();
-  return <p>watch {id}</p>;
+  return <p>edit {id}</p>;
 }
 
 function Location() {
@@ -57,7 +57,7 @@ function renderPage(entry = '/vietsub') {
       <AppToaster />
       <Routes>
         <Route path="/vietsub" element={<><VietsubPage /><Location /></>} />
-        <Route path="/vietsub/:id" element={<WatchStub />} />
+        <Route path="/vietsub/:id/edit" element={<EditStub />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -136,21 +136,21 @@ describe('VietsubPage', () => {
     expect(within(list).queryByText('Uploaded')).not.toBeInTheDocument();
   });
 
-  it('opens the watch page from the thumbnail or title of a row, like the Vietsub list', async () => {
+  it('opens the Vietsub editor from the thumbnail or title of a row', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer, older] }]);
     renderPage();
     const list = await loadedRegion('Manage Vietsub');
     const items = within(list).getAllByRole('listitem');
 
     const row = within(items[0]).getByRole('link', { name: /^Học Spring Boot/ });
-    expect(row).toHaveAttribute('href', `/vietsub/${ID}`);
+    expect(row).toHaveAttribute('href', `/vietsub/${ID}/edit`);
     expect(row.querySelector('img')).not.toBeNull();
     expect(row).toHaveClass('history__open--row'); // stretches to the action buttons, so the whole row shows a pointer
-    expect(within(items[1]).getByRole('link', { name: /^Video cũ hơn/ })).toHaveAttribute('href', '/vietsub/OLDER000001');
+    expect(within(items[1]).getByRole('link', { name: /^Video cũ hơn/ })).toHaveAttribute('href', '/vietsub/OLDER000001/edit');
 
     await userEvent.setup().click(row);
 
-    expect(await screen.findByText(`watch ${ID}`)).toBeInTheDocument();
+    expect(await screen.findByText(`edit ${ID}`)).toBeInTheDocument();
   });
 
   it('invites the user when no video has Vietsub', async () => {

@@ -11,6 +11,7 @@ import NovelsPage from './pages/NovelsPage';
 import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import ProfilePage from './pages/ProfilePage';
+import VietsubEditPage from './pages/VietsubEditPage';
 import VietsubListPage from './pages/VietsubListPage';
 import VietsubPage from './pages/VietsubPage';
 import WatchPage from './pages/WatchPage';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/vietsub/list" element={<VietsubListPage />} />
           <Route path="/vietsub/playlists" element={<PlaylistsPage />} />
           <Route path="/vietsub/playlists/:playlistId" element={<PlaylistEditPage />} />
+          <Route path="/vietsub/:id/edit" element={<VietsubEditPage />} />
           <Route path="/vietsub/:id" element={<WatchPage />} />
           <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
           <Route path="/profiles/:slug" element={<ProfilePage />} />

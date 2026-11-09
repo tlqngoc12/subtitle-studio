@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ViCue } from '../api/client';
-import { findActiveCue } from './findActiveCue';
+import { findActiveCue, findActiveIndex } from './findActiveCue';
 
 const cues: ViCue[] = [
   { startMs: 0, endMs: 1_000, text: 'a' },
@@ -40,5 +40,16 @@ describe('findActiveCue', () => {
 
   it('returns null for an empty list', () => {
     expect(findActiveCue([], 0)).toBeNull();
+  });
+});
+
+describe('findActiveIndex', () => {
+  it('returns the index of the cue showing at the time, or -1', () => {
+    expect(findActiveIndex(cues, 0)).toBe(0);
+    expect(findActiveIndex(cues, 1_000)).toBe(1);
+    expect(findActiveIndex(cues, 2_500)).toBe(-1);
+    expect(findActiveIndex(cues, 3_999)).toBe(2);
+    expect(findActiveIndex(cues, 4_000)).toBe(-1);
+    expect(findActiveIndex([], 10)).toBe(-1);
   });
 });
