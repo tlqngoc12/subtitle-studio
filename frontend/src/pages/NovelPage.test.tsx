@@ -1,11 +1,14 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { toast } from 'sonner';
+import { describe, expect, it, vi } from 'vitest';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch } from '../test/fakeFetch';
 import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../test/novelFixtures';
 import NovelPage from './NovelPage';
+
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
 
 function ChapterStub() {
   const { chapterId } = useParams();
@@ -86,6 +89,7 @@ describe('NovelPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByRole('heading', { name: 'Mới' })).toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith('Novel saved');
     const sent = JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string);
     expect(sent).toMatchObject({ title: 'Mới', slug: 'summer-love', tags: ['romance', 'BL'] });
   });

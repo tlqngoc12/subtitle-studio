@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Info,
   Languages,
   RotateCcw,
   RotateCw,
@@ -13,8 +14,9 @@ import {
   TriangleAlert,
   Undo2,
 } from 'lucide-react';
-import { useEffect, useId, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/plugins/captions.css';
@@ -42,6 +44,9 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+
+/** Unsaved edits are saved by themselves this often (3 minutes). */
+export const AUTO_SAVE_MS = 180_000;
 
 /**
  * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
@@ -97,6 +102,32 @@ export default function ChapterPage() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  // Save is allowed only for a loaded, edited chapter that is not busy/translating and has a Number.
+  const canSave = dirty && !translating && !busy && number !== '';
+  const saveRef = useRef<(auto: boolean) => Promise<void>>(async () => {});
+  const canSaveRef = useRef(canSave);
+  canSaveRef.current = canSave;
+
+  // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 's') return;
+      e.preventDefault();
+      if (canSaveRef.current) void saveRef.current(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // One timer while there are savable unsaved changes; the browser-side checks repeat at fire time.
+  useEffect(() => {
+    if (!canSave) return;
+    const id = window.setInterval(() => {
+      if (canSaveRef.current) void saveRef.current(true);
+    }, AUTO_SAVE_MS);
+    return () => window.clearInterval(id);
+  }, [canSave]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -172,9 +203,9 @@ export default function ChapterPage() {
     await run(async () => load(await translateChapter(chapterId)));
   }
 
-  async function save() {
+  async function save(auto = false) {
     if (!chapter) return;
-    await run(async () =>
+    await run(async () => {
       load(
         await updateChapter(chapterId, {
           chapterNo: Number(number),
@@ -182,9 +213,11 @@ export default function ChapterPage() {
           title: title.trim(),
           text,
         }),
-      ),
-    );
+      );
+      toast.success(auto ? 'Auto-saved' : 'Chapter saved');
+    });
   }
+  saveRef.current = save;
 
   async function upload(files: File[]) {
     setUploading(true);
@@ -318,21 +351,34 @@ export default function ChapterPage() {
       )}
 
       <div className="chapter-meta">
-        {!published && (
-          <div className="field">
-            <label htmlFor={`${ids}-no`}>Order</label>
-            <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
-              aria-describedby={`${ids}-no-hint`}
-              onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
-            <p className="field__hint" id={`${ids}-no-hint`}>Sorts the chapters and is the chapter's link number.</p>
+        <div className="chapter-meta__row">
+          {!published && (
+            <div className="field chapter-meta__number">
+              <div className="field__label-row">
+                <label htmlFor={`${ids}-no`}>Number</label>
+                <Tip label="The chapter's link number. Drag chapters in the list to change the reading order.">
+                  <button className="info-button" type="button" aria-label="About Number">
+                    <Info className="icon" aria-hidden="true" />
+                  </button>
+                </Tip>
+              </div>
+              <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
+                onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
+            </div>
+          )}
+          <div className="field chapter-meta__label">
+            <div className="field__label-row">
+              <label htmlFor={`${ids}-label`}>Chapter label (optional)</label>
+              <Tip label="Shown instead of the number, e.g. Ngoại truyện 1, Special.">
+                <button className="info-button" type="button" aria-label="About Chapter label">
+                  <Info className="icon" aria-hidden="true" />
+                </button>
+              </Tip>
+            </div>
+            <input id={`${ids}-label`} type="text" maxLength={100} value={label} disabled={locked}
+              placeholder={`Chapter ${number || chapter.chapterNo}`}
+              onChange={(e) => setLabel(e.target.value)} />
           </div>
-        )}
-        <div className="field">
-          <label htmlFor={`${ids}-label`}>Chapter label (optional)</label>
-          <input id={`${ids}-label`} type="text" maxLength={100} value={label} disabled={locked}
-            placeholder={`Chapter ${number || chapter.chapterNo}`} aria-describedby={`${ids}-label-hint`}
-            onChange={(e) => setLabel(e.target.value)} />
-          <p className="field__hint" id={`${ids}-label-hint`}>Shown instead of the number, e.g. Ngoại truyện 1, Special.</p>
         </div>
         <div className="field">
           <label htmlFor={`${ids}-title`}>Chapter title (optional)</label>

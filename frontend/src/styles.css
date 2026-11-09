@@ -2325,10 +2325,47 @@ a.tabs__tab {
 
 .chapter-meta {
   display: grid;
-  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
   gap: 12px;
   max-width: 640px;
   margin-bottom: 16px;
+}
+
+.chapter-meta__row {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.chapter-meta__row > .chapter-meta__label:only-child {
+  grid-column: 1 / -1;
+}
+
+.field__label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.info-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--brand-2);
+  cursor: pointer;
+}
+
+.info-button:hover,
+.info-button:focus-visible {
+  color: var(--brand);
+}
+
+.info-button .icon {
+  width: 16px;
+  height: 16px;
 }
 
 .uploader {

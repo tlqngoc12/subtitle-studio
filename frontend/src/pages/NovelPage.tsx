@@ -2,6 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { ArrowLeft, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { toast } from 'sonner';
 import {
   addChapter,
   deleteNovel,
@@ -124,7 +125,10 @@ export default function NovelPage() {
                 initial={novel}
                 submitLabel="Save"
                 pendingLabel="Saving…"
-                onSubmit={async (input) => setNovel(await updateNovel(novelId, input))}
+                onSubmit={async (input) => {
+                  setNovel(await updateNovel(novelId, input));
+                  toast.success('Novel saved');
+                }}
               />
               <div className="danger-zone">
                 <button className="button button--danger" type="button" onClick={remove}>

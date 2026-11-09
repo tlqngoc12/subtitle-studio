@@ -1,13 +1,16 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
+import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterDetail } from '../api/novels';
 import { AppToaster } from '../components/AppToaster';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { chapterDetail } from '../test/novelFixtures';
-import ChapterPage from './ChapterPage';
+import ChapterPage, { AUTO_SAVE_MS } from './ChapterPage';
+
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
 
 /** Chapter 9 is the page under test; any other id stands for "navigated to another chapter". */
 function ChapterRoute() {
@@ -45,6 +48,7 @@ async function loaded() {
 const textBox = () => screen.getByLabelText('Chapter text');
 
 describe('ChapterPage', () => {
+  beforeEach(() => vi.mocked(toast.success).mockClear());
   afterEach(() => vi.useRealTimers());
 
   it('edits the whole chapter in one box, with the screenshots apart', async () => {
@@ -258,7 +262,7 @@ describe('ChapterPage', () => {
     expect(textBox()).toBeEnabled();
     expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
     expect(screen.getByLabelText('Chapter label (optional)')).toBeEnabled();
-    expect(screen.queryByLabelText('Order')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Add page screenshots')).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Pages' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
@@ -278,8 +282,8 @@ describe('ChapterPage', () => {
     ]);
     await loaded();
 
-    await user().clear(screen.getByLabelText('Order'));
-    await user().type(screen.getByLabelText('Order'), '31');
+    await user().clear(screen.getByLabelText('Number'));
+    await user().type(screen.getByLabelText('Number'), '31');
     await user().type(screen.getByLabelText('Chapter label (optional)'), 'Ngoại truyện 1');
     await user().click(screen.getByRole('button', { name: 'Save' }));
 
@@ -294,7 +298,7 @@ describe('ChapterPage', () => {
     await loaded();
 
     expect(screen.queryByText(/This chapter is published/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Order')).toBeEnabled();
+    expect(screen.getByLabelText('Number')).toBeEnabled();
     expect(screen.getByLabelText('Add page screenshots')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Translate again' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Drag to reorder: page 1' })).toBeInTheDocument();
@@ -421,5 +425,107 @@ describe('ChapterPage', () => {
       await u.click(screen.getByRole('button', { name: 'Copy source' }));
       expect(writeText).toHaveBeenCalledWith('สวัสดี');
     });
+  });
+});
+
+describe('ChapterPage save shortcuts and auto-save', () => {
+  const put: FakeRoute = { method: 'PUT', path: '/api/chapters/9', status: 200, body: chapterDetail({ text: 'x' }) };
+  const puts = (calls: { method: string }[]) => calls.filter((c) => c.method === 'PUT');
+  beforeEach(() => vi.mocked(toast.success).mockClear());
+  afterEach(() => vi.useRealTimers());
+
+  const edit = (value = 'đã sửa') => fireEvent.change(textBox(), { target: { value } });
+  const ctrlS = (init: KeyboardEventInit = { key: 's', ctrlKey: true }) => {
+    const e = new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true });
+    act(() => {
+      document.dispatchEvent(e);
+    });
+    return e;
+  };
+
+  it('shows a Chapter saved toast after Save', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    edit();
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Chapter saved'));
+  });
+
+  it('saves on Ctrl+S and Cmd+S with changes, preventing the browser dialog', async () => {
+    const calls = renderPage([get(), put]);
+    await loaded();
+    edit();
+    const e = ctrlS();
+    expect(e.defaultPrevented).toBe(true);
+    await waitFor(() => expect(puts(calls)).toHaveLength(1));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Chapter saved'));
+    edit('again');
+    const e2 = ctrlS({ key: 's', metaKey: true });
+    expect(e2.defaultPrevented).toBe(true);
+    await waitFor(() => expect(puts(calls)).toHaveLength(2));
+  });
+
+  it('does nothing on Ctrl+S without changes', async () => {
+    const calls = renderPage([get(), put]);
+    await loaded();
+    const e = ctrlS();
+    expect(e.defaultPrevented).toBe(true);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(puts(calls)).toHaveLength(0);
+  });
+
+  it('auto-saves after 3 minutes of unsaved changes with an Auto-saved toast', async () => {
+    const calls = renderPage([get(), put]);
+    await loaded();
+    vi.useFakeTimers();
+    edit();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS - 1000));
+    expect(puts(calls)).toHaveLength(0);
+    await act(() => vi.advanceTimersByTimeAsync(1000));
+    vi.useRealTimers();
+    await waitFor(() => expect(puts(calls)).toHaveLength(1));
+    expect(toast.success).toHaveBeenCalledWith('Auto-saved');
+    expect(toast.success).not.toHaveBeenCalledWith('Chapter saved');
+  });
+
+  it('never auto-saves a clean chapter', async () => {
+    const calls = renderPage([get(), put]);
+    await loaded();
+    vi.useFakeTimers();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS * 2));
+    expect(puts(calls)).toHaveLength(0);
+  });
+
+  it('sends no request while the chapter is TRANSLATING', async () => {
+    const calls = renderPage([get({ translationStatus: 'TRANSLATING' }), put]);
+    await screen.findByRole('heading', { level: 1 });
+    vi.useFakeTimers();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS * 2));
+    expect(puts(calls)).toHaveLength(0);
+    ctrlS();
+    expect(puts(calls)).toHaveLength(0);
+  });
+
+  it('sends no request when the Number is empty', async () => {
+    const calls = renderPage([get(), put]);
+    await loaded();
+    fireEvent.change(screen.getByLabelText('Number'), { target: { value: '' } });
+    vi.useFakeTimers();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS * 2));
+    ctrlS();
+    expect(puts(calls)).toHaveLength(0);
+  });
+
+  it('explains Number and Chapter label with info tooltips instead of hint lines', async () => {
+    renderPage([get()]);
+    await loaded();
+    expect(screen.getByLabelText('Number')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Order')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sorts the chapters/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Shown instead of the number/)).not.toBeInTheDocument();
+    const info = screen.getByRole('button', { name: 'About Number' });
+    await user().hover(info);
+    expect((await screen.findAllByText(/Drag chapters in the list to change the reading order\./)).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'About Chapter label' })).toBeInTheDocument();
   });
 });
