@@ -652,6 +652,27 @@ a.history__open {
   gap: var(--space-5);
 }
 
+.topbar {
+  transition: transform 0.2s ease-out, visibility 0s;
+}
+
+/* The chapter reader slides the whole bar away while scrolling down. */
+.topbar--hidden {
+  transform: translateY(-100%);
+  visibility: hidden;
+  transition: transform 0.2s ease-out, visibility 0s 0.2s;
+}
+
+/* A page's own controls (the reader) fill this instead of the logo and the menu. */
+.topbar__slot {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar__slot:empty {
+  display: none;
+}
+
 .topbar__brand {
   flex: none;
   color: var(--ink);
@@ -2974,17 +2995,8 @@ a.breadcrumbs__label:hover {
 
 /* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
 .reader-bar {
-  position: sticky;
-  top: var(--topbar-h, 56px);
-  z-index: 9;
-  margin-block: var(--space-2);
-  transition: transform 0.2s ease-out, visibility 0s;
-}
-
-.reader-bar--hidden {
-  transform: translateY(calc(-100% - 12px));
-  visibility: hidden;
-  transition: transform 0.2s ease-out, visibility 0s 0.2s;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .reader-bar__inner {
@@ -2992,14 +3004,6 @@ a.breadcrumbs__label:hover {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  /* As wide as the page images; A-/A+ change --reader-width on the page column. */
-  max-width: var(--reader-width, 600px);
-  margin-inline: auto;
-  padding: var(--space-2) var(--space-2);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  backdrop-filter: blur(8px);
 }
 
 .reader-bar__left,
@@ -3226,8 +3230,8 @@ a.breadcrumbs__label:hover {
     transition: none;
   }
 
-  .reader-bar,
-  .reader-bar--hidden {
+  .topbar,
+  .topbar--hidden {
     transition: none;
   }
 }

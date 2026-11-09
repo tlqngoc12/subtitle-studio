@@ -5,6 +5,7 @@ import { useSite } from '../data/SiteContext';
 import { pillTransition } from '../lib/motion';
 import { useTopbarHeight } from '../lib/useTopbarHeight';
 import { PublishButton } from './PublishButton';
+import { useTopbarSlot } from './TopbarSlot';
 
 interface Section {
   to: string;
@@ -34,13 +35,17 @@ const ADMIN_SECTIONS: Section[] = [
   NOVELS,
 ];
 
-/** Sticky top bar: app name (home link) and the main sections; the sections scroll sideways on narrow screens. */
+/**
+ * Sticky top bar: app name (home link) and the main sections; the sections scroll sideways on narrow screens.
+ * A page can replace those with its own controls through {@link useTopbarSlot} and slide the whole bar away.
+ */
 export function NavBar() {
   const { pathname } = useLocation();
   const { readOnly, homePath } = useSite();
   const sections = readOnly ? PUBLIC_SECTIONS : ADMIN_SECTIONS;
   const navRef = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLElement>(null);
+  const { setTarget, active, hidden } = useTopbarSlot();
   useTopbarHeight(barRef);
 
   // On a phone only part of the row fits: bring the current section into view.
@@ -48,24 +53,30 @@ export function NavBar() {
     navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }, [pathname]);
   return (
-    <header className="topbar" ref={barRef}>
+    <header className={hidden ? 'topbar topbar--hidden' : 'topbar'} ref={barRef}>
       <div className="topbar__inner">
-        <Link className="topbar__brand" to={homePath}>
-          Subtitle Studio
-        </Link>
-        <nav className="nav" aria-label="Main" ref={navRef}>
-          {sections.map((s) => {
-            const current = s.isCurrent(pathname);
-            return (
-              <Link key={s.to} className="nav__link" to={s.to} aria-current={current ? 'page' : undefined}>
-                {/* One pill shared by all links: it slides to the section just opened. */}
-                {current && <motion.span layoutId="nav-pill" className="nav__pill" transition={pillTransition} />}
-                <span className="nav__label">{s.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        {!readOnly && <PublishButton />}
+        {/* A page (the chapter reader) may fill the slot; it then replaces the logo and the menu. */}
+        <div className="topbar__slot" ref={setTarget} />
+        {!active && (
+          <>
+            <Link className="topbar__brand" to={homePath}>
+              Subtitle Studio
+            </Link>
+            <nav className="nav" aria-label="Main" ref={navRef}>
+              {sections.map((s) => {
+                const current = s.isCurrent(pathname);
+                return (
+                  <Link key={s.to} className="nav__link" to={s.to} aria-current={current ? 'page' : undefined}>
+                    {/* One pill shared by all links: it slides to the section just opened. */}
+                    {current && <motion.span layoutId="nav-pill" className="nav__pill" transition={pillTransition} />}
+                    <span className="nav__label">{s.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+            {!readOnly && <PublishButton />}
+          </>
+        )}
       </div>
     </header>
   );

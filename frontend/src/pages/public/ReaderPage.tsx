@@ -27,7 +27,7 @@ import {
 } from "./readerPrefs";
 
 /**
- * The public chapter reader: breadcrumbs, a sticky icon bar (previous, next, contents, settings), the chapter as drawn
+ * The public chapter reader: breadcrumbs, the controls in the top bar (previous, next, contents, settings), the chapter as drawn
  * images (no text on the page), previous/next buttons at the end and the copy guards of {@link useCopyGuard}.
  * Copy is Vietnamese.
  */
@@ -129,6 +129,22 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       style={{ "--reader-width": `${width}px` } as CSSProperties}
     >
       <Breadcrumbs items={crumbs} />
+      <ReaderBar
+        slug={slug}
+        novelTitle={novel?.title ?? ""}
+        chapterName={publicChapterName(
+          chapter?.chapterNo ?? Number(chapterNo),
+          chapter?.label,
+        )}
+        prev={prev}
+        next={next}
+        chapters={novel?.chapters ?? []}
+        currentNo={chapter?.chapterNo ?? Number(chapterNo)}
+        night={night}
+        onToggleNight={toggleNight}
+        width={width}
+        onStepWidth={stepWidth}
+      />
       {failed && (
         <div className="alert" role="alert">
           <p className="alert__title">{PUBLIC_ERROR_TITLE}</p>
@@ -138,19 +154,6 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       {chapter && (
         <>
           <h1 className="visually-hidden">{current}</h1>
-          <ReaderBar
-            slug={slug}
-            novelTitle={novel?.title ?? ""}
-            chapterName={publicChapterName(chapter.chapterNo, chapter.label)}
-            prev={prev}
-            next={next}
-            chapters={novel?.chapters ?? []}
-            currentNo={chapter.chapterNo}
-            night={night}
-            onToggleNight={toggleNight}
-            width={width}
-            onStepWidth={stepWidth}
-          />
           <div
             className={[
               "reader",

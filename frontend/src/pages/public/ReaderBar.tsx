@@ -9,9 +9,11 @@ import {
   Settings,
   Sun,
 } from "lucide-react";
-import { useEffect, useRef, useState, type FocusEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { Tip } from "../../components/Tip";
+import { useTopbarSlot } from "../../components/TopbarSlot";
 import type { PublicChapterRef } from "../../data/novelTypes";
 import { useHideOnScroll } from "../../lib/useHideOnScroll";
 import { publicChapterLabel } from "./publicNames";
@@ -40,8 +42,10 @@ interface Props {
 }
 
 /**
- * The sticky icon bar of the reader: previous, next, table of contents, settings. It slides away while the page
- * scrolls down and returns on scrolling up, near the top, while a popover is open and while keyboard focus is in it.
+ * The reader's controls: back link with the novel and chapter name, then previous, next, table of contents, settings.
+ * They are portaled into the site top bar, which they take over from the logo and the menu; the whole top bar slides
+ * away while the page scrolls down and returns on scrolling up, near the top, while a popover is open and while
+ * keyboard focus is in the controls. Without a top bar (isolated renders) they render in place.
  */
 export function ReaderBar({
   slug,
@@ -60,6 +64,17 @@ export function ReaderBar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [focusIn, setFocusIn] = useState(false);
   const hidden = useHideOnScroll(tocOpen || settingsOpen || focusIn);
+  const { target, setActive, setHidden } = useTopbarSlot();
+
+  // Claim the top bar while mounted; hand it back (menu again, not slid away) on leaving.
+  useLayoutEffect(() => {
+    setActive(true);
+    return () => {
+      setActive(false);
+      setHidden(false);
+    };
+  }, [setActive, setHidden]);
+  useEffect(() => setHidden(hidden), [hidden, setHidden]);
   const to = (no: number) => `/novels/${slug}/${no}`;
 
   function onFocus(e: FocusEvent<HTMLElement>) {
@@ -98,9 +113,9 @@ export function ReaderBar({
   );
 
   const widthStep = READER_WIDTHS.indexOf(width);
-  return (
+  const bar = (
     <nav
-      className={hidden ? "reader-bar reader-bar--hidden" : "reader-bar"}
+      className="reader-bar"
       aria-label="Chuyển chương"
       onFocus={onFocus}
       onBlur={onBlur}
@@ -219,6 +234,7 @@ export function ReaderBar({
       </div>
     </nav>
   );
+  return target ? createPortal(bar, target) : bar;
 }
 
 function ChapterToc({

@@ -189,17 +189,13 @@ describe('ReaderPage', () => {
     expect(bar().querySelector('.reader-bar__chapter')?.textContent).toBe('Special');
   });
 
-  it('makes the bar as wide as the pages (var(--reader-width)) and lays its text out on the left', async () => {
+  it('lays the bar text out on the left with ellipsis, and A-/A+ resize the page column', async () => {
     const { container } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
-    const inner = /\.reader-bar__inner\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
-    expect(inner).toMatch(/max-width:\s*var\(--reader-width/);
-    expect(inner).not.toMatch(/fit-content/);
     expect(/\.reader-bar__text\s*\{[^}]*min-width:\s*0/.test(css)).toBe(true);
     expect(/\.reader-bar__novel,\s*\.reader-bar__chapter\s*\{[^}]*text-overflow:\s*ellipsis/.test(css)).toBe(true);
-    // --reader-width lives on the page column that holds both the bar and the images, so A-/A+ move them together.
-    const column = bar().closest('.reader-page') as HTMLElement;
+    const column = container.querySelector('.reader-page') as HTMLElement;
     expect(column.style.getPropertyValue('--reader-width')).toBe('600px');
     expect(column.contains(container.querySelector('.reader'))).toBe(true);
     await openSettings();
@@ -274,65 +270,7 @@ describe('ReaderPage', () => {
     });
   });
 
-  describe('hiding on scroll', () => {
-    const hidden = () => bar().classList.contains('reader-bar--hidden');
-
-    it('hides after scrolling down past the bar and returns on scrolling up', async () => {
-      renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-      expect(hidden()).toBe(false);
-
-      scrollTo(40); // down, but still near the top
-      expect(hidden()).toBe(false);
-      scrollTo(400);
-      expect(hidden()).toBe(true);
-      scrollTo(300);
-      expect(hidden()).toBe(false);
-      scrollTo(700);
-      expect(hidden()).toBe(true);
-      scrollTo(20); // back at the top
-      expect(hidden()).toBe(false);
-    });
-
-    it('stays visible while a popover is open', async () => {
-      const user = userEvent.setup();
-      renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-
-      await openSettings(user);
-      scrollTo(900);
-      expect(hidden()).toBe(false);
-      await user.keyboard('{Escape}');
-      await waitFor(() => expect(screen.queryByRole('button', { name: 'Chế độ đêm' })).not.toBeInTheDocument());
-      act(() => (document.activeElement as HTMLElement).blur()); // Radix gives the focus back to the button
-      scrollTo(1000);
-      expect(hidden()).toBe(true);
-    });
-
-    it('stays visible while focus is inside the bar', async () => {
-      renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-      const next = within(bar()).getByRole('link', { name: 'Chương sau' });
-
-      scrollTo(500);
-      expect(hidden()).toBe(true);
-      // Tab to it like a keyboard user (a mouse click does not pin the bar).
-      const user = userEvent.setup();
-      for (let i = 0; i < 12 && document.activeElement !== next; i++) await user.tab();
-      expect(next).toHaveFocus();
-      expect(hidden()).toBe(false);
-      scrollTo(800);
-      expect(hidden()).toBe(false);
-      act(() => next.blur());
-      expect(hidden()).toBe(true);
-    });
-
-    it('does not slide with prefers-reduced-motion', () => {
-      const reduced = /@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*?\.reader-bar[^{]*\{([^}]*)\}/.exec(css)?.[1] ?? '';
-      expect(reduced).toMatch(/transition:\s*none/);
-      expect(/\.reader-bar\s*\{[^}]*transition:/.test(css)).toBe(true);
-    });
-  });
+  // Hiding on scroll moved with the controls into the top bar: see ReaderTopbar.test.tsx.
 
   it('ends a chapter with Chương trước and Chương sau as two buttons of the same style', async () => {
     renderAt('/novels/summer/3');
@@ -430,7 +368,8 @@ describe('ReaderPage', () => {
   it('falls back to a plain novel crumb before the novel is loaded', async () => {
     renderAt('/novels/summer/3', { ...source, getNovel: () => new Promise(() => {}) });
 
-    expect(await screen.findByRole('link', { name: 'Về trang truyện' })).toHaveAttribute('href', '/novels/summer');
+    const crumbs = await screen.findByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).getByRole('link', { name: 'Về trang truyện' })).toHaveAttribute('href', '/novels/summer');
   });
 
   it('shows the print note in Vietnamese', async () => {
