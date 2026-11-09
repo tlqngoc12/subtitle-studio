@@ -492,6 +492,14 @@ Spec: [docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md](docs/sup
 - **Lưu ý:** app dùng `BrowserRouter` (không có `useBlocker`) nên hộp xác nhận chỉ bắt **click vào link**; nút Back của trình duyệt không bị chặn. Trang tải video trước rồi mới tải các dòng, nên nếu Vietsub đổi giữa hai lần tải thì lần lưu bị từ chối (409) thay vì ghi đè bản mới.
 - Kiểm thử: `mvn test -Dskip.npm`, `vitest`, `tsc -b --noEmit`, `npm run build`, `npm run build:public` đều qua.
 
+### 2026-11-09: Banner Profile dạng FilmStrip một ảnh, trình sửa Vietsub bám theo dòng đang chiếu ✅ (đã merge vào main, deploy local)
+
+Thay thế phần mô tả banner Profile và bảng dòng của hai mục ngay trên. Không đổi API hay schema.
+
+- **Banner Profile = `FilmStrip`:** mỗi lần hiện **một ảnh rộng hết khung**; vuốt hoặc `‹ ›` chuyển đúng một slide; dấu chấm bên dưới (chấm hiện tại màu tím orchid, có vòng `--brand-2-ink` để đạt 3:1); mô tả hiện khi hover/focus; lightbox cũng hiện mô tả. Không tự chuyển. Banner Novels vẫn dùng `FanCarousel`. Đã bỏ prop `fit="natural"`.
+- **Trình sửa Vietsub** (`/vietsub/:id/edit`): bảng chỉ còn hai cột `#` + Text. Dòng được tô là dòng đang chiếu tại thời điểm hiện tại, hoặc dòng gần nhất ngay trước đó (kể cả khi đang ở khoảng trống giữa hai dòng). Khi **tua** (lùi, hoặc nhảy hơn 1,5 giây) hoặc bấm nút `#`, bảng cuộn tới dòng đó và đặt con trỏ ở cuối text; phát bình thường chỉ tô dòng. Giới hạn đã biết: nút Back của trình duyệt không bị chặn khi còn sửa chưa lưu (`BrowserRouter`).
+- **Trạng thái deploy:** nhánh `feature/novel-page-checks` đã merge vào `main` và deploy local (migration V10 chạy khi app khởi động). Image cũ để quay lại: `subtitle-studio:pre-filmstrip-slides`. **Public site cần Publish again** mới có banner, trailer và các thay đổi giao diện công khai.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
