@@ -30,6 +30,7 @@ export function chapterSummary(over: Partial<ChapterSummary> = {}): ChapterSumma
     translationError: null,
     publishStatus: 'PUBLISHED',
     pageCount: 3,
+    suspectPages: 0,
     ...over,
   };
 }
@@ -72,8 +73,8 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     editedAfterTranslation: false,
     publishStatus: 'DRAFT',
     pages: [
-      { id: 11, position: 1, mediaUrl: '/api/media/5', textVi: 'Trang một' },
-      { id: 12, position: 2, mediaUrl: '/api/media/6', textVi: 'Trang hai' },
+      { id: 11, position: 1, mediaUrl: '/api/media/5', textVi: 'Trang một', source: null, landscape: false, suspect: false },
+      { id: 12, position: 2, mediaUrl: '/api/media/6', textVi: 'Trang hai', source: null, landscape: false, suspect: false },
     ],
     text: 'Trang một\n\nTrang hai',
     prevChapterId: null,

@@ -1,21 +1,38 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { ArrowLeft, ChevronLeft, ChevronRight, Languages, Save, Send, Undo2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Languages,
+  RotateCcw,
+  RotateCw,
+  Save,
+  Send,
+  TriangleAlert,
+  Undo2,
+} from 'lucide-react';
 import { useEffect, useId, useState, type MouseEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import Lightbox from 'yet-another-react-lightbox';
+import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import 'yet-another-react-lightbox/plugins/captions.css';
 import 'yet-another-react-lightbox/styles.css';
 import {
   deletePage,
   getChapter,
   publishChapter,
   reorderPages,
+  rotatePage,
+  rotatePages,
   translateChapter,
   unpublishChapter,
   updateChapter,
   uploadPages,
   type ChapterDetail,
   type PageDto,
+  type RotateDirection,
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { PageRow } from '../components/novel/PageRow';
@@ -131,9 +148,19 @@ export default function ChapterPage() {
   const locked = translating || busy;
   // Published: the notebook was built from this chapter, so only its text and title change (Unpublish to do more).
   const published = chapter.publishStatus === 'PUBLISHED';
+  const suspectNumbers = chapter.pages.flatMap((p, i) => (p.suspect ? [i + 1] : []));
 
   async function translate() {
     if (!chapter) return;
+    const landscape = chapter.pages.filter((p) => p.landscape).length;
+    if (landscape > 0) {
+      const ok = await confirm({
+        title: 'Landscape pages',
+        description: `${landscape} page(s) are landscape — Gemini reads sideways text poorly. Translate anyway?`,
+        confirmLabel: 'Translate anyway',
+      });
+      if (!ok) return;
+    }
     if (chapter.editedAfterTranslation || dirty) {
       const ok = await confirm({
         title: 'Translate this chapter again?',
@@ -191,6 +218,20 @@ export default function ChapterPage() {
     const to = chapter.pages.findIndex((p) => p.id === over.id);
     if (from < 0 || to < 0) return;
     void reorder(arrayMove(chapter.pages, from, to));
+  }
+
+  async function rotate(page: PageDto, direction: RotateDirection) {
+    await run(async () => {
+      const pages = await rotatePage(chapterId, page.id, direction);
+      setChapter((c) => (c ? { ...c, pages } : c));
+    });
+  }
+
+  async function rotateAll(direction: RotateDirection) {
+    await run(async () => {
+      const pages = await rotatePages(chapterId, direction);
+      setChapter((c) => (c ? { ...c, pages } : c));
+    });
   }
 
   async function removePage(page: PageDto, n: number) {
@@ -308,6 +349,18 @@ export default function ChapterPage() {
         <section className="chapter-pages" aria-labelledby={`${ids}-pages`}>
           <h2 id={`${ids}-pages`} className="history__heading">Pages</h2>
           <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
+          {chapter.pages.length > 0 && (
+            <div className="chapter-pages__rotate">
+              <button className="button button--small" type="button" disabled={locked} onClick={() => void rotateAll('LEFT')}>
+                <RotateCcw className="icon" aria-hidden="true" />
+                Rotate all left
+              </button>
+              <button className="button button--small" type="button" disabled={locked} onClick={() => void rotateAll('RIGHT')}>
+                <RotateCw className="icon" aria-hidden="true" />
+                Rotate all right
+              </button>
+            </div>
+          )}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={chapter.pages.map((p) => p.id)} strategy={rectSortingStrategy}>
               <ol className="page-grid" aria-label="Pages">
@@ -318,6 +371,7 @@ export default function ChapterPage() {
                     number={i + 1}
                     locked={locked}
                     onEnlarge={() => setEnlarged(i)}
+                    onRotate={(d) => void rotate(p, d)}
                     onDelete={() => void removePage(p, i + 1)}
                   />
                 ))}
@@ -325,6 +379,23 @@ export default function ChapterPage() {
             </SortableContext>
           </DndContext>
         </section>
+      )}
+
+      {suspectNumbers.length > 0 && (
+        <p className="chapter-warning">
+          <TriangleAlert className="icon" aria-hidden="true" />
+          {suspectNumbers.length === 1 ? 'Page ' : 'Pages '}
+          {suspectNumbers.map((n, i) => (
+            <span key={n}>
+              <button className="chapter-warning__page" type="button" aria-label={`Show page ${n}`}
+                onClick={() => setEnlarged(n - 1)}>
+                {n}
+              </button>
+              {i < suspectNumbers.length - 1 ? ', ' : ''}
+            </span>
+          ))}
+          {' may be incomplete'}
+        </p>
       )}
 
       <div className="field chapter-text">
@@ -345,8 +416,30 @@ export default function ChapterPage() {
         open={enlarged !== null}
         index={enlarged ?? 0}
         close={() => setEnlarged(null)}
-        slides={chapter.pages.map((p, i) => ({ src: p.mediaUrl, alt: `Page ${i + 1}` }))}
+        plugins={[Captions]}
+        captions={{ descriptionMaxLines: 12 }}
+        toolbar={{ buttons: [<CopySourceButton key="copy-source" sources={chapter.pages.map((p) => p.source)} />, 'close'] }}
+        slides={chapter.pages.map((p, i) => ({
+          src: p.mediaUrl,
+          alt: `Page ${i + 1}`,
+          title: `Page ${i + 1}`,
+          description: p.source ? `Source read by AI:
+${p.source}` : undefined,
+        }))}
       />
     </main>
+  );
+}
+
+/** Lightbox toolbar button: copies the Thai text Gemini read from the slide on screen; hidden when there is none. */
+function CopySourceButton({ sources }: { sources: (string | null)[] }) {
+  const { state } = useLightboxState();
+  const source = sources[state.currentIndex];
+  if (!source) return null;
+  return (
+    <button className="yarl__button" type="button" aria-label="Copy source"
+      onClick={() => void navigator.clipboard.writeText(source)}>
+      <Copy className="icon" aria-hidden="true" />
+    </button>
   );
 }

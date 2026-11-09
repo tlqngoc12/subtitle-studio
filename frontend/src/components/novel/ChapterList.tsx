@@ -1,5 +1,6 @@
 import { FileText } from 'lucide-react';
 import { Link } from 'react-router';
+import { Tip } from '../Tip';
 import type { ChapterSummary } from '../../api/novels';
 import { EmptyState } from '../EmptyState';
 import { StatusBadges } from './StatusBadges';
@@ -31,6 +32,14 @@ export function ChapterList({ novelId, chapters }: { novelId: number; chapters: 
               <span className="meta">
                 {c.pageCount} {c.pageCount === 1 ? 'page' : 'pages'}
               </span>
+              {c.suspectPages > 0 && (
+                <Tip label={`${c.suspectPages} page(s) may be incomplete`}>
+                  <span className="badge badge--progress" tabIndex={0}
+                    aria-label={`${c.suspectPages} page(s) may be incomplete`}>
+                    ⚠ {c.suspectPages}
+                  </span>
+                </Tip>
+              )}
             </span>
           </Link>
           {c.translationStatus === 'FAILED' && c.translationError && (

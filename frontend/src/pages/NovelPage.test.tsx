@@ -183,4 +183,18 @@ describe('NovelPage', () => {
 
     expect(await screen.findByText('The notebook fills in after you publish the first chapter.')).toBeInTheDocument();
   });
+
+  it('chapter list shows ⚠ 2 for suspectPages 2', async () => {
+    fakeFetch([
+      {
+        ...getNovel,
+        body: novelDetail({ chapters: [chapterSummary({ suspectPages: 2 }), chapterSummary({ id: 10, chapterNo: 2 })] }),
+      },
+    ]);
+    renderPage();
+
+    const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
+    expect(within(rows[0]).getByText('⚠ 2')).toHaveAccessibleName('2 page(s) may be incomplete');
+    expect(within(rows[1]).queryByText(/⚠/)).not.toBeInTheDocument();
+  });
 });

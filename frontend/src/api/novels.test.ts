@@ -9,6 +9,8 @@ import {
   publishChapter,
   reorderPages,
   retryNotebook,
+  rotatePage,
+  rotatePages,
   translateChapter,
   updateChapter,
   uploadPages,
@@ -91,5 +93,20 @@ describe('novels API', () => {
 
   it('fixtures match the backend shape', () => {
     expect(novelDetail().chapters[0].publishStatus).toBe('PUBLISHED');
+  });
+
+  it('rotates one page or all pages', async () => {
+    const calls = fakeFetch([
+      { method: 'POST', path: '/api/chapters/1/pages/5/rotate', status: 200, body: [] },
+      { method: 'POST', path: '/api/chapters/1/pages/rotate', status: 200, body: [] },
+    ]);
+
+    await rotatePage(1, 5, 'RIGHT');
+    await rotatePages(1, 'LEFT');
+
+    expect(calls[0].path).toBe('/api/chapters/1/pages/5/rotate');
+    expect(JSON.parse(calls[0].body as string)).toEqual({ direction: 'RIGHT' });
+    expect(calls[1].path).toBe('/api/chapters/1/pages/rotate');
+    expect(JSON.parse(calls[1].body as string)).toEqual({ direction: 'LEFT' });
   });
 });

@@ -67,8 +67,8 @@ describe('ChapterPage', () => {
         path: '/api/chapters/9/pages',
         status: 201,
         body: [
-          { id: 21, position: 1, mediaUrl: '/api/media/21', textVi: null },
-          { id: 22, position: 2, mediaUrl: '/api/media/22', textVi: null },
+          { id: 21, position: 1, mediaUrl: '/api/media/21', textVi: null, source: null, landscape: false, suspect: false },
+          { id: 22, position: 2, mediaUrl: '/api/media/22', textVi: null, source: null, landscape: false, suspect: false },
         ],
       },
     ]);
@@ -307,5 +307,119 @@ describe('ChapterPage', () => {
 
     expect(screen.getByRole('link', { name: 'Previous chapter' })).toHaveAttribute('href', '/novels/3/chapters/8');
     expect(screen.getByRole('link', { name: 'Next chapter' })).toHaveAttribute('href', '/novels/3/chapters/10');
+  });
+
+  describe('page checks', () => {
+    const rotated = [
+      { id: 11, position: 1, mediaUrl: '/api/media/15', textVi: 'Trang một', source: null, landscape: false, suspect: false },
+      { id: 12, position: 2, mediaUrl: '/api/media/6', textVi: 'Trang hai', source: null, landscape: false, suspect: false },
+    ];
+    const landscapePages = [
+      { id: 11, position: 1, mediaUrl: '/api/media/5', textVi: 'Trang một', source: null, landscape: true, suspect: false },
+      { id: 12, position: 2, mediaUrl: '/api/media/6', textVi: 'Trang hai', source: null, landscape: false, suspect: false },
+    ];
+
+    it('rotate right calls rotatePage and shows returned pages', async () => {
+      const calls = renderPage([
+        get(),
+        { method: 'POST', path: '/api/chapters/9/pages/11/rotate', status: 200, body: rotated },
+      ]);
+      await loaded();
+
+      await user().click(screen.getByRole('button', { name: 'Rotate page 1 right' }));
+
+      await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/pages/11/rotate')).toBe(true));
+      expect(JSON.parse(String(calls.find((c) => c.path.endsWith('/rotate'))!.body))).toEqual({ direction: 'RIGHT' });
+      await waitFor(() =>
+        expect(document.querySelector('img[src="/api/media/15"]')).not.toBeNull(),
+      );
+    });
+
+    it('rotate all left calls rotatePages', async () => {
+      const calls = renderPage([
+        get(),
+        { method: 'POST', path: '/api/chapters/9/pages/rotate', status: 200, body: rotated },
+      ]);
+      await loaded();
+
+      await user().click(screen.getByRole('button', { name: 'Rotate all left' }));
+
+      await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/pages/rotate')).toBe(true));
+      expect(JSON.parse(String(calls.find((c) => c.path.endsWith('/pages/rotate'))!.body))).toEqual({ direction: 'LEFT' });
+    });
+
+    it('landscape page asks before translating; cancel does not call translateChapter', async () => {
+      const calls = renderPage([
+        get({ pages: landscapePages }),
+        { method: 'POST', path: '/api/chapters/9/translate', status: 202, body: chapterDetail({ translationStatus: 'TRANSLATING' }) },
+      ]);
+      await loaded();
+
+      await user().click(screen.getByRole('button', { name: 'Translate again' }));
+      const dialog = await screen.findByRole('alertdialog');
+      expect(dialog).toHaveAccessibleName('Landscape pages');
+      expect(dialog).toHaveTextContent('1 page(s) are landscape — Gemini reads sideways text poorly. Translate anyway?');
+      await user().click(within(dialog).getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+
+      expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(false);
+
+      await user().click(screen.getByRole('button', { name: 'Translate again' }));
+      await answerConfirm('Translate anyway', 'Landscape pages');
+      await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(true));
+    });
+
+    it('suspect pages show warning line "Pages 2, 3 may be incomplete"', async () => {
+      const pages = [
+        { ...landscapePages[1], id: 10, position: 1, landscape: false },
+        { ...landscapePages[1], suspect: true },
+        { ...landscapePages[1], id: 13, position: 3, suspect: true },
+      ];
+      renderPage([get({ pages })]);
+      await loaded();
+
+      expect(
+        screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === 'Pages 2, 3 may be incomplete'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Show page 3' })).toBeInTheDocument();
+    });
+
+    it('says "Page 4 may be incomplete" for a single page, also on a published chapter', async () => {
+      const pages = [{ ...landscapePages[1], suspect: true }];
+      renderPage([get({ pages, publishStatus: 'PUBLISHED' })]);
+      await loaded();
+
+      expect(
+        screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === 'Page 1 may be incomplete'),
+      ).toBeInTheDocument();
+    });
+
+    it('badges Landscape and May be incomplete render', async () => {
+      const pages = [
+        { ...landscapePages[0] },
+        { ...landscapePages[1], suspect: true },
+      ];
+      renderPage([get({ pages })]);
+      await loaded();
+
+      expect(screen.getByText('Landscape')).toBeInTheDocument();
+      expect(screen.getByText('May be incomplete')).toBeInTheDocument();
+    });
+
+    it('shows the AI source in the lightbox and copies it', async () => {
+      const u = user();
+      // user-event installs its own clipboard on setup, so replace it afterwards.
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      const pages = [{ ...landscapePages[1], source: 'สวัสดี' }];
+      renderPage([get({ pages })]);
+      await loaded();
+
+      await u.click(screen.getByRole('button', { name: 'Enlarge page 1' }));
+
+      expect((await screen.findAllByText(/Source read by AI:/))[0]).toHaveTextContent('สวัสดี');
+      await u.click(screen.getByRole('button', { name: 'Copy source' }));
+      expect(writeText).toHaveBeenCalledWith('สวัสดี');
+    });
   });
 });

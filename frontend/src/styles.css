@@ -2638,3 +2638,43 @@ a.tabs__tab {
   border-radius: var(--radius-control);
   background: var(--surface);
 }
+
+/* Page checks: badges under a thumbnail, the "may be incomplete" line, and the lightbox's AI source caption. */
+.page-thumb__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chapter-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--brand-2);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+}
+
+.chapter-warning__page {
+  padding: 0 6px;
+  border: 1px solid var(--brand-2);
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chapter-pages__rotate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.yarl__slide_description {
+  white-space: pre-line;
+}

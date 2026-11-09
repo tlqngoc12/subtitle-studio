@@ -41,6 +41,8 @@ export interface ChapterSummary {
   translationError: string | null;
   publishStatus: ChapterPublishStatus;
   pageCount: number;
+  /** Pages whose translation looks much shorter than the Thai text read from the image. */
+  suspectPages: number;
 }
 
 export interface NovelDetail extends Omit<NovelInput, 'tags'> {
@@ -57,7 +59,15 @@ export interface PageDto {
   position: number;
   mediaUrl: string;
   textVi: string | null;
+  /** The Thai text Gemini read from the image; null when unknown. */
+  source: string | null;
+  /** The photo is wider than tall (probably sideways). */
+  landscape: boolean;
+  /** The translation is much shorter than its source. */
+  suspect: boolean;
 }
+
+export type RotateDirection = 'LEFT' | 'RIGHT';
 
 export interface ChapterDetail {
   id: number;
@@ -181,6 +191,14 @@ export async function reorderPages(id: number, pageIds: number[]): Promise<PageD
 
 export async function deletePage(id: number, pageId: number): Promise<void> {
   await send(`/api/chapters/${id}/pages/${pageId}`, { method: 'DELETE' });
+}
+
+export async function rotatePage(id: number, pageId: number, direction: RotateDirection): Promise<PageDto[]> {
+  return (await send(`/api/chapters/${id}/pages/${pageId}/rotate`, json('POST', { direction }))).json();
+}
+
+export async function rotatePages(id: number, direction: RotateDirection): Promise<PageDto[]> {
+  return (await send(`/api/chapters/${id}/pages/rotate`, json('POST', { direction }))).json();
 }
 
 export async function translateChapter(id: number): Promise<ChapterDetail> {
