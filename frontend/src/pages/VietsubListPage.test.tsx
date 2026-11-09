@@ -91,12 +91,13 @@ describe('VietsubListPage', () => {
     expect(within(list).queryByLabelText(/Replace Vietsub/)).not.toBeInTheDocument();
   });
 
-  it('points to the Vietsub page when nothing has Vietsub yet', async () => {
+  it('has no Add Vietsub link when nothing has Vietsub yet', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none] }]);
     renderPage();
 
     expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Add Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(screen.queryByRole('link', { name: 'Add Vietsub' })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent('Add Vietsub');
   });
 
   describe('pagination', () => {

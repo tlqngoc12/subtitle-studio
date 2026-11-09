@@ -36,7 +36,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
         <EmptyState icon={SearchX}>No videos match your search.</EmptyState>
       ) : videos.length === 0 ? (
         <EmptyState icon={FilePlus}>
-          No videos with Vietsub yet. Paste a YouTube link and choose an .srt file above to start.
+          No videos with Vietsub yet.
         </EmptyState>
       ) : (
         <ul className="history__list" key={listKey}>

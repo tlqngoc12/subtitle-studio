@@ -86,7 +86,7 @@ export default function WatchPage() {
 
       {video && video.viCueCount === 0 && (
         <p className="muted">
-          This video has no Vietsub yet.{!readOnly && <> <Link to="/vietsub">Add Vietsub</Link></>}
+          This video has no Vietsub yet.
         </p>
       )}
 

@@ -74,35 +74,19 @@ const titles = (list: HTMLElement) =>
 
 const srtFile = () => new File(['1\n00:00:01,000 --> 00:00:02,000\nXin chào\n'], 'vi.srt', { type: 'application/x-subrip' });
 
-async function fillForm(url: string, file?: File) {
-  const user = userEvent.setup();
-  if (url) await user.type(screen.getByLabelText('YouTube link'), url);
-  if (file) await user.upload(screen.getByLabelText('Vietsub file (.srt)'), file);
-  await user.click(screen.getByRole('button', { name: 'Add Vietsub' }));
-  return user;
-}
-
 describe('VietsubPage', () => {
 
-  it('explains the page in one short sentence', async () => {
+  it('has no way to add a Vietsub from this page', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
     renderPage();
 
-    expect(
-      screen.getByText('Add a Vietnamese .srt (same timing) to a YouTube video and watch it with Vietsub.'),
-    ).toBeInTheDocument();
     expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
-  });
-
-  it('shows the chosen .srt file name', async () => {
-    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
-    renderPage();
-    expect(screen.getByText('No file chosen')).toBeInTheDocument();
-
-    await userEvent.setup().upload(screen.getByLabelText('Vietsub file (.srt)'), srtFile());
-
-    expect(screen.getByText('vi.srt')).toBeInTheDocument();
-    expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('YouTube link')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Vietsub file (.srt)')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add Vietsub' })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/Add Vietsub|Add a Vietnamese|YouTube link/);
+    // The lede describes managing, not adding.
+    expect(screen.getByText('Replace, download or delete the Vietsub of your videos.')).toBeInTheDocument();
   });
 
   it('shows the nav with Vietsub as current page', async () => {
@@ -172,58 +156,6 @@ describe('VietsubPage', () => {
     expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
   });
 
-  it('adds Vietsub and opens the player', async () => {
-    const calls = fakeFetch([
-      { method: 'GET', path: '/api/videos', status: 200, body: [] },
-      { method: 'POST', path: '/api/vietsub', status: 200, body: newer },
-    ]);
-    renderPage();
-
-    await fillForm(`https://youtu.be/${ID}`, srtFile());
-
-    expect(await screen.findByText(`watch ${ID}`)).toBeInTheDocument();
-    const post = calls.find((c) => c.method === 'POST')!;
-    const form = post.body as FormData;
-    expect(form.get('url')).toBe(`https://youtu.be/${ID}`);
-    expect((form.get('file') as File).name).toBe('vi.srt');
-  });
-
-  it('disables the button while adding', async () => {
-    const delay = new Promise<void>(() => {});
-    fakeFetch([
-      { method: 'GET', path: '/api/videos', status: 200, body: [] },
-      { method: 'POST', path: '/api/vietsub', status: 200, body: newer, delay },
-    ]);
-    renderPage();
-
-    await fillForm(`https://youtu.be/${ID}`, srtFile());
-
-    expect(screen.getByRole('button', { name: 'Adding…' })).toBeDisabled();
-  });
-
-  it('does not submit without both url and file', async () => {
-    const calls = fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
-    renderPage();
-
-    await fillForm(`https://youtu.be/${ID}`);
-
-    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
-  });
-
-  it('shows the INVALID_SRT error with server detail', async () => {
-    fakeFetch([
-      { method: 'GET', path: '/api/videos', status: 200, body: [] },
-      { method: 'POST', path: '/api/vietsub', status: 400, body: problem(400, 'INVALID_SRT', 'Block 3 is longer than 1000 characters') },
-    ]);
-    renderPage();
-
-    await fillForm(`https://youtu.be/${ID}`, srtFile());
-
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Could not read the .srt file');
-    expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
-  });
-
   it('offers Download, Replace, Delete and Save to playlist for each video', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
@@ -287,23 +219,41 @@ describe('VietsubPage', () => {
       expect(await screen.findByText('No videos match your search.')).toBeInTheDocument();
     });
 
-    it('filters by source with the All, AI and Manual chips', async () => {
+    const filterButton = (name: string | RegExp) => screen.getByRole('button', { name });
+
+    it('filters by source from one Filter button', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld, aiNew] }]);
       renderPage();
       const list = await loadedRegion('Manage Vietsub');
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'AI' }));
+      // No All / AI / Manual tab buttons any more, just one button next to the search box.
+      expect(filterButton('Filter')).toHaveTextContent('Filter');
+      expect(screen.queryByRole('group', { name: 'Filter by source' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'AI' })).not.toBeInTheDocument();
+
+      await user.click(filterButton('Filter'));
+      const menu = await screen.findByRole('radiogroup', { name: 'Filter by source' });
+      expect(within(menu).getAllByRole('radio').map((r) => r.textContent)).toEqual(['All', 'AI', 'Manual']);
+      expect(within(menu).getByRole('radio', { name: 'All' })).toBeChecked();
+
+      await user.click(within(menu).getByRole('radio', { name: 'AI' }));
       await waitFor(() => expect(names(list)).toEqual(['AI mới', 'AI cũ']));
-      expect(screen.getByRole('button', { name: 'AI' })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByLabelText('search')).toHaveTextContent('?source=ai');
+      expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument(); // picking closes it
+      expect(filterButton('Filter: AI')).toHaveClass('filter-button--active');
 
-      await user.click(screen.getByRole('button', { name: 'Manual' }));
+      await user.click(filterButton('Filter: AI'));
+      expect(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'AI' })).toBeChecked();
+      await user.click(within(screen.getByRole('radiogroup')).getByRole('radio', { name: 'Manual' }));
       await waitFor(() => expect(names(list)).toEqual(['Café sáng']));
+      expect(filterButton('Filter: Manual')).toBeInTheDocument();
 
-      await user.click(screen.getByRole('button', { name: 'All' }));
+      await user.click(filterButton('Filter: Manual'));
+      await user.click(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'All' }));
       await waitFor(() => expect(names(list)).toHaveLength(3));
       expect(screen.getByLabelText('search')).toHaveTextContent('');
+      expect(filterButton('Filter')).not.toHaveClass('filter-button--active');
     });
 
     it('restores the search and the filter from the URL', async () => {
@@ -312,7 +262,9 @@ describe('VietsubPage', () => {
 
       expect(await screen.findByText('No videos match your search.')).toBeInTheDocument();
       expect(screen.getByRole('searchbox', { name: 'Search videos' })).toHaveValue('x');
-      expect(screen.getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+      expect(filterButton('Filter: Manual')).toHaveClass('filter-button--active');
+      await userEvent.setup().click(filterButton('Filter: Manual'));
+      expect(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'Manual' })).toBeChecked();
     });
 
     it('paginates after filtering', async () => {
@@ -361,14 +313,16 @@ describe('VietsubPage', () => {
   it('shows no success toast when replacing fails', async () => {
     fakeFetch([
       { method: 'GET', path: '/api/videos', status: 200, body: [newer] },
-      { method: 'POST', path: '/api/vietsub', status: 400, body: problem(400, 'INVALID_SRT', 'No subtitle blocks found') },
+      { method: 'POST', path: '/api/vietsub', status: 400, body: problem(400, 'INVALID_SRT', 'Block 3 is longer than 1000 characters') },
     ]);
     renderPage();
     const list = await loadedRegion('Manage Vietsub');
 
     await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Could not read the .srt file');
+    expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
     expect(screen.queryByText(/Vietsub replaced/)).not.toBeInTheDocument();
   });
 

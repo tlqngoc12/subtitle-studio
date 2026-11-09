@@ -183,8 +183,6 @@ export default function VietsubListPage() {
 
 /** Every video with Vietsub, newest Vietsub first (loaded by the page). */
 function AllVideosTab({ query, videos, error }: { query: string; videos: PublicVideo[] | null; error: ErrorMessage | null }) {
-  const { readOnly } = useSite();
-
   return (
     <>
       {error && (
@@ -199,7 +197,7 @@ function AllVideosTab({ query, videos, error }: { query: string; videos: PublicV
         linkFor={(e) => `/vietsub/${e.video.id}`}
         empty={
           <EmptyState icon={ListVideo}>
-            No videos with Vietsub yet.{!readOnly && <> <Link to="/vietsub">Add Vietsub</Link></>}
+            No videos with Vietsub yet.
           </EmptyState>
         }
       />

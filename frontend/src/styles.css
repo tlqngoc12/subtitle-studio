@@ -714,33 +714,6 @@ a.history__open {
   font: inherit;
 }
 
-.filepick {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  min-height: 42px;
-}
-
-.filepick__button {
-  flex: none;
-  cursor: pointer;
-}
-
-/* The hidden input keeps keyboard focus; show it on the visible button. */
-.filepick input:focus-visible + .filepick__button {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.filepick__name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--step--1);
-}
-
 @media (max-width: 760px) {
   .vsform {
     grid-template-columns: 1fr;
@@ -1618,6 +1591,67 @@ p.vietsub-status,
   flex: 1;
   min-width: 0;
   cursor: default;
+}
+
+/* Manage Vietsub: search box and the Filter button on one row. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar .searchbar {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-button {
+  flex: none;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.filter-button--active {
+  border-color: var(--brand);
+}
+
+.filter-menu {
+  z-index: 40;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.16);
+  animation: tip-in 120ms ease-out;
+}
+
+.filter-menu__list {
+  display: grid;
+  gap: 2px;
+}
+
+.filter-menu__option {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-menu__option:hover {
+  background: var(--paper);
+}
+
+.filter-menu__option[aria-checked='true'] {
+  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
+  font-weight: 700;
 }
 
 /* Vietsub list: search, playlist chips, YouTube-like playlist header, numbered rows. */
