@@ -99,6 +99,8 @@ describe('VietsubPage', () => {
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('aria-current', 'page');
     expect(within(nav).getByRole('link', { name: 'Get Engsub' })).toHaveAttribute('href', '/');
     const tabs = screen.getByRole('navigation', { name: 'Vietsub' });
+    expect(tabs.parentElement).toHaveClass('tabs');
+    expect(tabs.nextElementSibling).toHaveClass('tabs__body');
     expect(within(tabs).getByRole('link', { name: 'Videos' })).toHaveAttribute('aria-current', 'page');
     expect(within(tabs).getByRole('link', { name: 'Playlists' })).toHaveAttribute('href', '/vietsub/playlists');
     // Same underline tabs as the Vietsub list page (not the pill style of the profile tabs).

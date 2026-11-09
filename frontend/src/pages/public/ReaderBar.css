@@ -61,16 +61,94 @@
   gap: var(--space-2);
 }
 
-.reader-toc {
-  max-height: min(420px, 60vh);
+/* Table of contents: a right-side drawer (Radix Dialog) over a dimmed page. */
+.drawer__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.4);
+  animation: drawer-fade-in 160ms ease-out;
+}
+
+.drawer__overlay[data-state='closed'] {
+  animation: drawer-fade-out 160ms ease-in;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 85vw);
+  height: 100dvh;
+  background: var(--surface);
+  color: var(--ink);
+  border-left: 1px solid var(--rule);
+  box-shadow: var(--shadow-overlay);
+  animation: drawer-in 200ms ease-out;
+}
+
+.drawer[data-state='closed'] {
+  animation: drawer-out 160ms ease-in;
+}
+
+.drawer__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.drawer__title {
+  margin: 0;
+  font-size: var(--step-1);
+  line-height: 1.3;
+}
+
+/* The list scrolls on its own, with a thin themed scrollbar that stays visible. */
+.drawer__body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: var(--space-2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-2) var(--paper);
 }
 
 .reader-toc__list {
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes drawer-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 .reader-toc__item {
@@ -94,8 +172,19 @@
   overflow-wrap: anywhere;
 }
 
+.reader-toc__item--current {
+  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
+}
+
 .reader-toc__link--current {
   font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .drawer__overlay {
+    animation: none !important;
+  }
 }
 
 @media print {

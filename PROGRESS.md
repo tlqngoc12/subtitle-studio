@@ -599,6 +599,16 @@ Plan: [docs/superpowers/plans/2026-11-09-ui-components-and-css-split.md](docs/su
 - **Kiểm tra:** `node frontend/scripts/check-css-split.mjs <commit-trước-khi-tách>` so từng luật (selector, khai báo, @media) của `styles.css` cũ với mọi file `.css` hiện tại: báo thiếu, trùng, luật mới ngoài danh sách chủ ý (`INTENDED` trong script) và breakpoint lạ; thoát mã 1 nếu có vấn đề. Commit trước khi tách: `a171382`.
 - Test đọc CSS dùng `src/test/css.ts` (gộp mọi `src/**/*.css`, tokens trước). `vite.config.ts` chỉ xử lý các import `?raw` của CSS, nên `import './X.css'` trong component vẫn rỗng khi chạy test jsdom.
 
+### 2026-11-09: Vai trò màu cam/tím, mục lục dạng ngăn kéo, nút cuối chương ở hai góc ✅ (chưa merge, chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-09-brand-colours-and-reader-drawer.md](docs/superpowers/plans/2026-11-09-brand-colours-and-reader-drawer.md). Nhánh `feature/novel-page-checks`. Chỉ đổi frontend; thêm `@radix-ui/react-dialog@1.3.1`.
+
+- **Vai trò màu:** cam = hành động/nhấn (nút chính, viền nút phụ, link); tím = trạng thái/đang chọn/hover. Nút phụ (`.button--small`, `.button--icon`, `.filter-button`, `.pager__link`, nút trang trong cảnh báo chương) viền cam, hover viền tím; nút disabled giữ viền `--rule`. Link thường (`a:not([class])`) màu `--brand-ink`, gạch chân, hover `--brand-2-ink`.
+- **Focus ring:** `--focus` = `--brand-2-ink` (sáng) / `--brand-2` (tối), bỏ màu xanh; khung video tối dùng `--brand-2` (7.5:1). `--brand-2-ink` sáng đổi `#9b569b` → `#965296` để chữ hover đạt 4.5:1. `contrast.test.ts` kiểm `--focus` ≥ 3:1 và cấm màu focus hard-code; `brandRoles.test.ts` kiểm viền nút phụ, link, khoảng cách tab.
+- **Tab:** khoảng cách thanh tab → nội dung còn 12px (`.tabs` gap `--space-3`, bỏ padding-top của `.tabs__panel`; tab dạng link trong `.page` kéo lên bằng margin âm).
+- **Mục lục** (`ReaderBar`): Radix Dialog dạng ngăn kéo bên phải (`min(360px, 85vw)`, cao `100dvh`, overlay mờ, thân cuộn riêng có thanh cuộn mảnh), trượt vào/ra (tắt khi `prefers-reduced-motion`). Esc, ✕, bấm overlay đều đóng; focus trả về nút `Mục lục`. Khi mở, focus rơi vào ngăn kéo (không vào nút ✕, vì tooltip của ✕ sẽ nuốt lần Esc đầu).
+- **Cuối chương:** `Chương trước` góc trái, `Chương sau` góc phải của cột đọc (`--reader-width`), cả hai là nút cam `button--primary`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

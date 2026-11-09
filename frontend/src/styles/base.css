@@ -38,6 +38,16 @@ img {
   color: var(--muted);
 }
 
+/* Plain links (no component class): orange ink, underlined, orchid on hover. */
+a:not([class]) {
+  color: var(--brand-ink);
+  text-decoration: underline;
+}
+
+a:not([class]):hover {
+  color: var(--brand-2-ink);
+}
+
 /* ---------- Page ---------- */
 .page {
   max-width: 1120px;
@@ -93,7 +103,7 @@ img {
   font-size: var(--step--1);
   background: transparent;
   color: var(--ink);
-  border-color: var(--rule);
+  border-color: var(--brand);
 }
 
 .button--small:hover:not(:disabled) {
@@ -106,11 +116,17 @@ img {
   padding: 0;
   background: transparent;
   color: var(--ink);
-  border-color: var(--rule);
+  border-color: var(--brand);
 }
 
 .button--icon:hover:not(:disabled) {
   border-color: var(--brand-2);
+}
+
+/* Secondary buttons: orange border at rest, orchid on hover; a disabled one drops to the neutral rule. */
+.button--small:disabled,
+.button--icon:disabled {
+  border-color: var(--rule);
 }
 
 /* lucide-react icons: stroke and fill come from the component; only the size is set here. */
@@ -134,7 +150,16 @@ img {
   color: var(--danger);
 }
 
-.button--danger:hover:not(:disabled) {
+.button--danger:hover:not(:disabled),
+.button--small.button--danger:hover:not(:disabled),
+.button--icon.button--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Red is reserved for delete and errors, so the small and icon variants show it at rest too (not the orange of other secondary buttons). */
+.button--small.button--danger:not(:disabled),
+.button--icon.button--danger:not(:disabled) {
   border-color: var(--danger);
 }
 
@@ -242,7 +267,7 @@ img {
 /* Vietsub list tabs (Radix Tabs): Playlists | All videos. The open tab is marked in orchid ("you are here"). */
 .tabs {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-3);
 }
 
 .tabs__list {
@@ -266,6 +291,12 @@ img {
 
 .tabs__tab:hover {
   color: var(--ink);
+}
+
+/* Below a tab bar the page content keeps the usual section rhythm. */
+.tabs__body {
+  display: grid;
+  gap: var(--space-8);
 }
 
 /* Radix Tabs mark the open tab with data-state; the Vietsub page's link tabs with aria-current. */
@@ -382,7 +413,6 @@ a.tabs__tab {
 .tabs__panel {
   display: grid;
   gap: var(--space-4);
-  padding-top: var(--space-4);
 }
 
 .badges {
@@ -419,7 +449,7 @@ a.tabs__tab {
 }
 
 .reader-settings .button[aria-pressed='true'] {
-  border-color: var(--brand);
+  border-color: var(--brand-2);
 }
 
 .reader-settings__size .button {

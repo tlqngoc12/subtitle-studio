@@ -101,33 +101,33 @@ export default function VietsubPage() {
     <main className="page">
       {confirmDialog}
       <PageHeader title="Vietsub" lede="Replace, download or delete the Vietsub of your videos." />
-      <VietsubTabs />
+      <VietsubTabs>
+        {error && (
+          <Alert title={error.title} hint={error.hint} />
+        )}
 
-      {error && (
-        <Alert title={error.title} hint={error.hint} />
-      )}
-
-      <VietsubList
-        videos={pager.items}
-        busyId={busyId}
-        highlightId={highlightId}
-        listKey={pager.page}
-        filtered={query.trim() !== '' || source !== null}
-        toolbar={
-          <div className="toolbar">
-            <SearchBar
-              value={query}
-              onChange={(v) => setFilter('q', v)}
-              label="Search videos"
-              onClear={() => setFilter('q', null)}
-            />
-            <SourceFilter value={source} onChange={(v) => setFilter('source', v)} />
-          </div>
-        }
-        onReplace={handleReplace}
-        onDelete={handleDelete}
-        footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
-      />
+        <VietsubList
+          videos={pager.items}
+          busyId={busyId}
+          highlightId={highlightId}
+          listKey={pager.page}
+          filtered={query.trim() !== '' || source !== null}
+          toolbar={
+            <div className="toolbar">
+              <SearchBar
+                value={query}
+                onChange={(v) => setFilter('q', v)}
+                label="Search videos"
+                onClear={() => setFilter('q', null)}
+              />
+              <SourceFilter value={source} onChange={(v) => setFilter('source', v)} />
+            </div>
+          }
+          onReplace={handleReplace}
+          onDelete={handleDelete}
+          footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
+        />
+      </VietsubTabs>
     </main>
   );
 }

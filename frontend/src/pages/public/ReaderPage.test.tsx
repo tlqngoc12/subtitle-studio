@@ -16,6 +16,13 @@ function scrollTo(y: number) {
   fireEvent.scroll(window);
 }
 
+/** Body of the first CSS rule whose selector is exactly `selector` (string search; no regex escapes). */
+function ruleBody(selector: string): string {
+  const at = css.indexOf(`${selector} {`);
+  if (at < 0) throw new Error(`no rule for ${selector}`);
+  return css.slice(css.indexOf('{', at) + 1, css.indexOf('}', at));
+}
+
 const bar = () => screen.getByRole('navigation', { name: 'Chuyển chương' });
 
 async function openSettings(user = userEvent.setup()) {
@@ -255,6 +262,89 @@ describe('ReaderPage', () => {
       await waitFor(() => expect(screen.queryByRole('list', { name: 'Danh sách chương' })).not.toBeInTheDocument());
     });
 
+    it('is a labelled modal dialog drawer with its own scrolling body, closed by the close button', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+      const trigger = screen.getByRole('button', { name: 'Mục lục' });
+      await user.click(trigger);
+      const drawer = await screen.findByRole('dialog', { name: 'Mục lục' });
+      expect(within(drawer).getByRole('heading', { name: 'Mục lục' })).toBeInTheDocument();
+      expect(drawer).toHaveAttribute('data-own-keys');
+      const body = drawer.querySelector('.drawer__body') as HTMLElement;
+      expect(body).not.toBeNull();
+      expect(within(body).getByRole('list', { name: 'Danh sách chương' })).toBeInTheDocument();
+      expect(within(drawer).getByRole('button', { name: 'Đóng' })).toBeInTheDocument();
+      // The page behind is inert for assistive tech while the drawer is open.
+      expect(screen.queryByRole('navigation', { name: 'Chuyển chương' })).toBeNull();
+
+      await user.click(within(drawer).getByRole('button', { name: 'Đóng' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(trigger).toHaveFocus();
+    });
+
+    it('closes with Escape and returns focus to the contents button', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      const trigger = screen.getByRole('button', { name: 'Mục lục' });
+
+      await user.click(trigger);
+      await screen.findByRole('dialog', { name: 'Mục lục' });
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(trigger).toHaveFocus();
+    });
+
+    it('closes when the dimmed overlay is clicked', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await user.click(screen.getByRole('button', { name: 'Mục lục' }));
+      await screen.findByRole('dialog', { name: 'Mục lục' });
+
+      await user.click(document.querySelector('.drawer__overlay') as HTMLElement);
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByRole('button', { name: 'Mục lục' })).toHaveFocus();
+    });
+
+    it('traps focus inside the drawer', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await user.click(screen.getByRole('button', { name: 'Mục lục' }));
+      const drawer = await screen.findByRole('dialog', { name: 'Mục lục' });
+
+      for (let i = 0; i < 12; i++) {
+        await user.tab();
+        expect(drawer.contains(document.activeElement)).toBe(true);
+      }
+    });
+
+    it('styles a full-height right-side drawer with its own visible scrollbar, no animation for reduced motion', () => {
+      const drawer = ruleBody('.drawer');
+      expect(drawer).toContain('position: fixed');
+      expect(drawer).toContain('right: 0');
+      expect(drawer).toContain('height: 100dvh');
+      expect(drawer).toContain('width: min(360px, 85vw)');
+      expect(drawer).toContain('background: var(--surface)');
+      expect(drawer).toContain('border-left: 1px solid');
+      expect(drawer).toContain('box-shadow: var(--shadow-overlay)');
+      expect(ruleBody('.drawer__overlay')).toContain('rgb(0 0 0 / 0.4)');
+      const body = ruleBody('.drawer__body');
+      expect(body).toContain('overflow-y: auto');
+      expect(body).toContain('scrollbar-width: thin');
+      expect(body).toContain('scrollbar-color:');
+      expect(css).toContain('@keyframes drawer-in');
+      expect(css).toContain('translateX(100%)');
+      const reduced = css.slice(css.indexOf('prefers-reduced-motion: reduce', css.indexOf('.reader-toc__item--current')));
+      expect(reduced.slice(0, 120)).toContain('animation: none');
+    });
+
     it('does not turn the arrow keys into chapter changes while focus is in the list', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
@@ -265,14 +355,14 @@ describe('ReaderPage', () => {
       within(list).getByRole('link', { name: 'Special' }).focus();
       await user.keyboard('{ArrowRight}{ArrowLeft}');
 
-      expect(screen.getAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
-      expect(screen.queryByRole('img', { name: /^Special, trang/ })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('img', { name: /Chương 3, trang/, hidden: true })).toHaveLength(3);
+      expect(screen.queryByRole('img', { name: /^Special, trang/, hidden: true })).not.toBeInTheDocument();
     });
   });
 
   // Hiding on scroll moved with the controls into the top bar: see ReaderTopbar.test.tsx.
 
-  it('ends a chapter with Chương trước and Chương sau as two buttons of the same style', async () => {
+  it('ends a chapter with Chương trước and Chương sau as orange primary buttons in the two corners', async () => {
     renderAt('/novels/summer/3');
 
     const end = await screen.findByRole('region', { name: 'Hết chương' });
@@ -282,8 +372,13 @@ describe('ReaderPage', () => {
     expect(next).toHaveAttribute('href', '/novels/summer/4');
     // Same style; only next carries its column modifier.
     expect(prev.className).toBe(next.className.replace(' reader__end-button--next', ''));
-    expect(prev).toHaveClass('button');
-    expect(prev).not.toHaveClass('button--primary');
+    expect(prev).toHaveClass('button', 'button--primary');
+    expect(next).toHaveClass('button', 'button--primary');
+    expect(ruleBody('.reader__end')).toContain('max-width: var(--reader-width');
+    expect(ruleBody('.reader__end-nav .reader__end-button')).toContain('justify-self: start');
+    const nextCorner = ruleBody('.reader__end-nav .reader__end-button--next');
+    expect(nextCorner).toContain('grid-column: 2');
+    expect(nextCorner).toContain('justify-self: end');
     expect(next).not.toHaveTextContent('Special'); // no big next-chapter card
     expect(end.querySelector('.reader__next-card')).toBeNull();
     // prev left, next right
@@ -300,6 +395,14 @@ describe('ReaderPage', () => {
     const nextRule = /\.reader__end-button--next\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(nextRule).toMatch(/grid-column:\s*2/);
     expect(nextRule).toMatch(/justify-self:\s*end/);
+  });
+
+  it('leaves the right corner empty when there is no next chapter', async () => {
+    renderAt('/novels/summer/4');
+
+    const end = await screen.findByRole('region', { name: 'Hết chương' });
+    expect(end.querySelectorAll('.reader__end-nav > *')).toHaveLength(1);
+    expect(within(end).getByRole('link', { name: /Chương trước/ })).toHaveClass('button--primary');
   });
 
   it('ends the last chapter with a "read everything" box', async () => {
