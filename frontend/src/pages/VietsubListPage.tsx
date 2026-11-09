@@ -283,7 +283,7 @@ function VideoSection({
                   {e.position !== null && <span className="vlist__index">{e.position}</span>}
                   <img src={v.thumbnailUrl} alt="" width={160} height={90} loading="lazy" />
                   <span className="history__text">
-                    <span className="history__title">{v.title}</span>
+                    <span className="history__title title-clamp">{v.title}</span>
                     <span className="history__sub">
                       {v.channel && (
                         <span className="meta">

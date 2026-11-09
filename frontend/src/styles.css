@@ -482,6 +482,18 @@ img {
   white-space: nowrap;
 }
 
+/* A video title in a public playlist view: wraps (even inside a long word) and stops at two lines. */
+.title-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
 /* .history__open is a <button> on the Phase 1 page and a <Link> on the Vietsub page. */
 a.history__open {
   text-decoration: none;
@@ -1786,9 +1798,7 @@ a.tabs__tab {
 }
 
 .plcard__preview li {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1937,10 +1947,7 @@ a.tabs__tab {
 }
 
 .plpanel__title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  min-width: 0;
   font-size: var(--step--1);
   font-weight: 700;
 }

@@ -397,6 +397,17 @@ describe('VietsubListPage', () => {
   });
 });
 
+describe('VietsubListPage titles', () => {
+  it('a long video title wraps and clamps instead of overflowing', async () => {
+    const long = video('LONG0000001', 'Tiêu đề rất dài '.repeat(20), 5, '2026-11-02T10:00:00Z');
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [long] }]);
+    renderPage();
+
+    const list = await loadedRegion('Vietsub list');
+    expect(within(list).getByText(/^Tiêu đề rất dài/)).toHaveClass('title-clamp');
+  });
+});
+
 describe('VietsubListPage on the public site', () => {
   function renderPublic(source: Parameters<typeof publicSite>[0]) {
     return render(
