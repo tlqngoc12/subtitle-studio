@@ -1,0 +1,54 @@
+import { describe, expect, it } from 'vitest';
+
+const css = Object.values(import.meta.glob('./styles.css', { query: '?raw', import: 'default', eager: true })).join('');
+
+function block(selector: string): Record<string, string> {
+  const start = css.indexOf(`${selector} {`);
+  if (start < 0) throw new Error(`no ${selector} block`);
+  const body = css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start));
+  const tokens: Record<string, string> = {};
+  for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) tokens[m[1]] = m[2].trim();
+  return tokens;
+}
+
+const light = block(':root');
+const dark = { ...light, ...block(":root[data-theme='dark']") };
+
+function resolve(tokens: Record<string, string>, name: string): string {
+  const value = tokens[name];
+  if (value === undefined) throw new Error(`missing token ${name}`);
+  const ref = /^var\((--[\w-]+)\)$/.exec(value);
+  return ref ? resolve(tokens, ref[1]) : value;
+}
+
+function luminance(hex: string): number {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error(`not a 6-digit hex: ${hex}`);
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function ratio(tokens: Record<string, string>, fg: string, bg: string): number {
+  const a = luminance(resolve(tokens, fg));
+  const b = luminance(resolve(tokens, bg));
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+const themes = { light, dark };
+
+describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens) => {
+  it.each([
+    ['--ink', '--paper', 4.5],
+    ['--ink', '--surface', 4.5],
+    ['--muted', '--paper', 4.5],
+    ['--muted', '--surface', 4.5],
+    ['--brand-ink', '--paper', 4.5],
+    ['--brand-ink', '--surface', 4.5],
+    ['--brand-2-ink', '--paper', 3],
+    ['--brand-2-ink', '--surface', 3],
+    ['--field-border', '--paper', 3],
+    ['--field-border', '--surface', 3],
+    ['--on-brand', '--brand', 4.5],
+  ])('%s on %s is at least %s:1', (fg, bg, min) => {
+    expect(ratio(tokens, fg, bg)).toBeGreaterThanOrEqual(min);
+  });
+});
