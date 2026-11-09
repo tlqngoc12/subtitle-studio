@@ -40,6 +40,23 @@ describe('colour roles in CSS', () => {
     }
   });
 
+  it('delete buttons (small and icon) are red at rest and on hover, never orange', () => {
+    const rest = rule('.button--small.button--danger:not(:disabled),\n.button--icon.button--danger:not(:disabled)');
+    expect(rest).toContain('var(--danger)');
+    expect(rest).not.toContain('var(--brand');
+    const hover = rule(
+      '.button--danger:hover:not(:disabled),\n.button--small.button--danger:hover:not(:disabled),\n.button--icon.button--danger:hover:not(:disabled)',
+    );
+    expect(hover).toContain('border-color: var(--danger)');
+    expect(hover).toContain('background: var(--danger-bg)');
+    expect(hover).not.toContain('var(--brand');
+  });
+
+  it('the negative-margin tab hack is gone', () => {
+    expect(css).not.toContain('.page > .tabs__list');
+    expect(css).not.toMatch(/margin-bottom:\s*calc\(var\(--space-3\)\s*-/);
+  });
+
   it('plain links are orange ink, underlined, and orchid ink on hover', () => {
     expect(rule('a:not([class])')).toMatch(/color:\s*var\(--brand-ink\)/);
     expect(rule('a:not([class])')).toMatch(/text-decoration:\s*underline/);

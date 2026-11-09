@@ -150,7 +150,16 @@ a:not([class]):hover {
   color: var(--danger);
 }
 
-.button--danger:hover:not(:disabled) {
+.button--danger:hover:not(:disabled),
+.button--small.button--danger:hover:not(:disabled),
+.button--icon.button--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Red is reserved for delete and errors, so the small and icon variants show it at rest too (not the orange of other secondary buttons). */
+.button--small.button--danger:not(:disabled),
+.button--icon.button--danger:not(:disabled) {
   border-color: var(--danger);
 }
 
@@ -284,9 +293,10 @@ a:not([class]):hover {
   color: var(--ink);
 }
 
-/* Link tabs sit straight in the page grid (gap --space-8): pull the content up to the same 12px as .tabs. */
-.page > .tabs__list {
-  margin-bottom: calc(var(--space-3) - var(--space-8));
+/* Below a tab bar the page content keeps the usual section rhythm. */
+.tabs__body {
+  display: grid;
+  gap: var(--space-8);
 }
 
 /* Radix Tabs mark the open tab with data-state; the Vietsub page's link tabs with aria-current. */

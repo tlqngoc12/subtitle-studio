@@ -121,114 +121,114 @@ export default function ProfilePage() {
   return (
     <main className="page">
       {confirmDialog}
-      <ProfileTabs profiles={profiles} current={slug} />
+      <ProfileTabs profiles={profiles} current={slug}>
+        {error && (
+          <Alert title={error.message.title} hint={error.message.hint}>
+            {error.notFound && <Link to="/profiles/emibonnie">Back to EmiBonnie</Link>}
+          </Alert>
+        )}
 
-      {error && (
-        <Alert title={error.message.title} hint={error.message.hint}>
-          {error.notFound && <Link to="/profiles/emibonnie">Back to EmiBonnie</Link>}
-        </Alert>
-      )}
+        {profile === null && !error && <LoadingText>Loading profile…</LoadingText>}
 
-      {profile === null && !error && <LoadingText>Loading profile…</LoadingText>}
-
-      {profile && (
-        <>
-          <header className="masthead pmasthead">
-            <h1 className="masthead__name">{profile.displayName}</h1>
-            {readOnly ? null : editing ? (
-              <button type="button" className="button button--primary" onClick={stopEditing}>
-                <Check className="icon" aria-hidden="true" />
-                Done
-              </button>
-            ) : (
-              <button type="button" className="button button--small" onClick={() => setEditing(true)}>
-                <Pencil className="icon" aria-hidden="true" />
-                Edit
-              </button>
-            )}
-          </header>
-
-          {actionError && (
-            <Alert title={actionError.title} hint={actionError.hint} />
-          )}
-
-          <div className="pblocks">
-            {profile.blocks.length === 0 && !formOpen && (
-              readOnly ? (
-                <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
-              ) : (
-                <EmptyState icon={SquarePlus}>
-                  This profile has no content yet.{editing ? ' Use Add block below to start.' : ' Choose Edit to add the first block.'}
-                </EmptyState>
-              )
-            )}
-            <AnimatePresence initial={false}>
-              {profile.blocks.map((b, i) => (
-                // One motion wrapper per block: it glides on Move up/down and collapses on Delete.
-                <motion.div key={b.id} className="pblock-wrap" {...rowMotion}>
-                  {form?.mode === 'edit' && form.id === b.id ? (
-                    <motion.div {...expandMotion}>
-                      <BlockEditor type={b.type} initial={b} onSave={saveEdit(b.id)} onCancel={() => setForm(null)} />
-                    </motion.div>
-                  ) : (
-                    <>
-                      {editing && (
-                        <BlockToolbar
-                          first={i === 0}
-                          last={i === profile.blocks.length - 1}
-                          disabled={formOpen}
-                          onEdit={() => setForm({ mode: 'edit', id: b.id })}
-                          onMove={(d) => move(b.id, d)}
-                          onDelete={() => remove(b.id)}
-                        />
-                      )}
-                      <BlockView block={b} />
-                    </>
-                  )}
-                </motion.div>
-              ))}
-
-              {form?.mode === 'add' && (
-                <motion.div key="new-block" {...expandMotion}>
-                  <BlockEditor type={form.type} onSave={saveNew} onCancel={() => setForm(null)} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {editing && (
-              <div className="padd">
-                <button
-                  type="button"
-                  className="button button--small"
-                  aria-expanded={choosingType}
-                  disabled={formOpen}
-                  onClick={() => setChoosingType((v) => !v)}
-                >
-                  <Plus className="icon" aria-hidden="true" />
-                  Add block
+        {profile && (
+          <>
+            <header className="masthead pmasthead">
+              <h1 className="masthead__name">{profile.displayName}</h1>
+              {readOnly ? null : editing ? (
+                <button type="button" className="button button--primary" onClick={stopEditing}>
+                  <Check className="icon" aria-hidden="true" />
+                  Done
                 </button>
-                {choosingType && !formOpen && (
-                  <div className="padd__types" role="group" aria-label="Choose block type">
-                    {TYPES.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        className="button button--small"
-                        onClick={() => {
-                          setChoosingType(false);
-                          setForm({ mode: 'add', type: t });
-                        }}
-                      >
-                        {BLOCK_TYPE_LABELS[t]}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ) : (
+                <button type="button" className="button button--small" onClick={() => setEditing(true)}>
+                  <Pencil className="icon" aria-hidden="true" />
+                  Edit
+                </button>
+              )}
+            </header>
+
+            {actionError && (
+              <Alert title={actionError.title} hint={actionError.hint} />
             )}
-          </div>
-        </>
-      )}
+
+            <div className="pblocks">
+              {profile.blocks.length === 0 && !formOpen && (
+                readOnly ? (
+                  <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
+                ) : (
+                  <EmptyState icon={SquarePlus}>
+                    This profile has no content yet.{editing ? ' Use Add block below to start.' : ' Choose Edit to add the first block.'}
+                  </EmptyState>
+                )
+              )}
+              <AnimatePresence initial={false}>
+                {profile.blocks.map((b, i) => (
+                  // One motion wrapper per block: it glides on Move up/down and collapses on Delete.
+                  <motion.div key={b.id} className="pblock-wrap" {...rowMotion}>
+                    {form?.mode === 'edit' && form.id === b.id ? (
+                      <motion.div {...expandMotion}>
+                        <BlockEditor type={b.type} initial={b} onSave={saveEdit(b.id)} onCancel={() => setForm(null)} />
+                      </motion.div>
+                    ) : (
+                      <>
+                        {editing && (
+                          <BlockToolbar
+                            first={i === 0}
+                            last={i === profile.blocks.length - 1}
+                            disabled={formOpen}
+                            onEdit={() => setForm({ mode: 'edit', id: b.id })}
+                            onMove={(d) => move(b.id, d)}
+                            onDelete={() => remove(b.id)}
+                          />
+                        )}
+                        <BlockView block={b} />
+                      </>
+                    )}
+                  </motion.div>
+                ))}
+
+                {form?.mode === 'add' && (
+                  <motion.div key="new-block" {...expandMotion}>
+                    <BlockEditor type={form.type} onSave={saveNew} onCancel={() => setForm(null)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {editing && (
+                <div className="padd">
+                  <button
+                    type="button"
+                    className="button button--small"
+                    aria-expanded={choosingType}
+                    disabled={formOpen}
+                    onClick={() => setChoosingType((v) => !v)}
+                  >
+                    <Plus className="icon" aria-hidden="true" />
+                    Add block
+                  </button>
+                  {choosingType && !formOpen && (
+                    <div className="padd__types" role="group" aria-label="Choose block type">
+                      {TYPES.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className="button button--small"
+                          onClick={() => {
+                            setChoosingType(false);
+                            setForm({ mode: 'add', type: t });
+                          }}
+                        >
+                          {BLOCK_TYPE_LABELS[t]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </ProfileTabs>
     </main>
   );
 }

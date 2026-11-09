@@ -47,6 +47,9 @@ describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens)
     ['--field-border', '--paper', 3],
     ['--field-border', '--surface', 3],
     ['--on-brand', '--brand', 4.5],
+    // Delete buttons keep a red border at rest.
+    ['--danger', '--paper', 3],
+    ['--danger', '--surface', 3],
     // The keyboard focus ring (orchid) and the orchid link-hover text.
     ['--focus', '--paper', 3],
     ['--focus', '--surface', 3],

@@ -137,91 +137,92 @@ export default function PlaylistEditPage() {
   return (
     <main className="page">
       {confirmDialog}
-      <VietsubTabs />
-      <Link className="back-link" to="/vietsub/playlists">
-        <ArrowLeft className="icon icon--sm" aria-hidden="true" />
-        Back to Playlists
-      </Link>
+      <VietsubTabs>
+        <Link className="back-link" to="/vietsub/playlists">
+          <ArrowLeft className="icon icon--sm" aria-hidden="true" />
+          Back to Playlists
+        </Link>
 
-      {error && (
-        <Alert title={error.title} hint={notFound ? undefined : error.hint} />
-      )}
+        {error && (
+          <Alert title={error.title} hint={notFound ? undefined : error.hint} />
+        )}
 
-      {playlist && (
-        <header className="masthead plhead">
-          {editing ? (
-            <DetailsForm
-              playlist={playlist}
-              onCancel={() => setEditing(false)}
-              onSaved={(p) => {
-                setPlaylist(p);
-                setEditing(false);
-              }}
-            />
-          ) : (
-            <>
-              <h1 className="masthead__name">{playlist.name}</h1>
-              {playlist.description && <p className="masthead__lede">{playlist.description}</p>}
-              <p className="muted">{videoCountLabel(playlist.videos.length)}</p>
-              <div className="plhead__actions">
-                {playlist.videos.length > 0 && (
-                  <Link
-                    className="button button--primary"
-                    to={`/vietsub/${playlist.videos[0].id}?playlist=${playlist.id}`}
-                    state={{ autoplay: true }}
-                  >
-                    <Play className="icon" aria-hidden="true" />
-                    Play all
-                  </Link>
-                )}
-                <button className="button" type="button" onClick={() => setEditing(true)}>
-                  <Pencil className="icon" aria-hidden="true" />
-                  Edit details
-                </button>
-              </div>
-            </>
-          )}
-        </header>
-      )}
+        {playlist && (
+          <header className="masthead plhead">
+            {editing ? (
+              <DetailsForm
+                playlist={playlist}
+                onCancel={() => setEditing(false)}
+                onSaved={(p) => {
+                  setPlaylist(p);
+                  setEditing(false);
+                }}
+              />
+            ) : (
+              <>
+                <h1 className="masthead__name">{playlist.name}</h1>
+                {playlist.description && <p className="masthead__lede">{playlist.description}</p>}
+                <p className="muted">{videoCountLabel(playlist.videos.length)}</p>
+                <div className="plhead__actions">
+                  {playlist.videos.length > 0 && (
+                    <Link
+                      className="button button--primary"
+                      to={`/vietsub/${playlist.videos[0].id}?playlist=${playlist.id}`}
+                      state={{ autoplay: true }}
+                    >
+                      <Play className="icon" aria-hidden="true" />
+                      Play all
+                    </Link>
+                  )}
+                  <button className="button" type="button" onClick={() => setEditing(true)}>
+                    <Pencil className="icon" aria-hidden="true" />
+                    Edit details
+                  </button>
+                </div>
+              </>
+            )}
+          </header>
+        )}
 
-      {!notFound && (
-        <section className="history" aria-label="Videos in this playlist" aria-busy={saving}>
-          <h2 className="history__heading">Videos</h2>
-          {playlist === null ? (
-            <LoadingText>Loading…</LoadingText>
-          ) : playlist.videos.length === 0 ? (
-            <EmptyState icon={ListPlus}>Use Save to playlist in the Videos tab to add videos.</EmptyState>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={playlist.videos.map((v) => v.id)} strategy={verticalListSortingStrategy}>
-                <ol className="history__list plitems">
-                  {playlist.videos.map((v, i) => (
-                    <SortableRow
-                      key={v.id}
-                      video={v}
-                      index={i}
-                      count={playlist.videos.length}
-                      disabled={saving}
-                      onMove={(by) => move(i, by)}
-                      onRemove={() => remove(v)}
-                    />
-                  ))}
-                </ol>
-              </SortableContext>
-            </DndContext>
-          )}
-        </section>
-      )}
+        {!notFound && (
+          <section className="history" aria-label="Videos in this playlist" aria-busy={saving}>
+            <h2 className="history__heading">Videos</h2>
+            {playlist === null ? (
+              <LoadingText>Loading…</LoadingText>
+            ) : playlist.videos.length === 0 ? (
+              <EmptyState icon={ListPlus}>Use Save to playlist in the Videos tab to add videos.</EmptyState>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={playlist.videos.map((v) => v.id)} strategy={verticalListSortingStrategy}>
+                  <ol className="history__list plitems">
+                    {playlist.videos.map((v, i) => (
+                      <SortableRow
+                        key={v.id}
+                        video={v}
+                        index={i}
+                        count={playlist.videos.length}
+                        disabled={saving}
+                        onMove={(by) => move(i, by)}
+                        onRemove={() => remove(v)}
+                      />
+                    ))}
+                  </ol>
+                </SortableContext>
+              </DndContext>
+            )}
+          </section>
+        )}
 
-      {/* Destructive, so kept away from Play all / Edit details. */}
-      {playlist && !editing && (
-        <div className="danger-zone">
-          <button className="button button--danger" type="button" onClick={handleDelete}>
-            <Trash2 className="icon" aria-hidden="true" />
-            Delete playlist
-          </button>
-        </div>
-      )}
+        {/* Destructive, so kept away from Play all / Edit details. */}
+        {playlist && !editing && (
+          <div className="danger-zone">
+            <button className="button button--danger" type="button" onClick={handleDelete}>
+              <Trash2 className="icon" aria-hidden="true" />
+              Delete playlist
+            </button>
+          </div>
+        )}
+      </VietsubTabs>
     </main>
   );
 }

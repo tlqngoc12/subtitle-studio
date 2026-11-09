@@ -77,71 +77,71 @@ export default function PlaylistsPage() {
     <main className="page">
       {confirmDialog}
       <PageHeader title="Vietsub" lede="Group videos with Vietsub into playlists and choose their order." />
-      <VietsubTabs />
+      <VietsubTabs>
+        <NewPlaylistForm onCreated={(d) => setPlaylists((list) => [toSummary(d), ...(list ?? [])])} />
 
-      <NewPlaylistForm onCreated={(d) => setPlaylists((list) => [toSummary(d), ...(list ?? [])])} />
-
-      {error && (
-        <Alert title={error.title} hint={error.hint} />
-      )}
-
-      <section className="history" aria-label="Playlists">
-        <h2 className="history__heading">Playlists</h2>
-        {playlists === null ? (
-          <LoadingText>Loading list…</LoadingText>
-        ) : playlists.length === 0 ? (
-          <EmptyState icon={ListMusic}>
-            No playlists yet. Create one above, then use Save to playlist in the Videos tab.
-          </EmptyState>
-        ) : (
-          <ul className="history__list">
-            <AnimatePresence initial={false}>
-              {playlists.map((p) => (
-                <motion.li key={p.id} {...rowMotion} className="history__item" aria-busy={busyId === p.id}>
-                  <Link className="history__open history__open--row" to={`/vietsub/playlists/${p.id}`}>
-                    {p.thumbnailUrl ? (
-                      <img src={p.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
-                    ) : (
-                      <span className="playlist-cover-empty" aria-hidden="true">
-                        <ListVideo className="icon" />
-                      </span>
-                    )}
-                    <span className="history__text">
-                      <span className="history__title">{p.name}</span>
-                      <span className="history__sub">
-                        <span className="meta">{videoCountLabel(p.videoCount)}</span>
-                        <span className="meta">Updated {formatDate(p.updatedAt)}</span>
-                      </span>
-                    </span>
-                  </Link>
-                  <span className="history__actions">
-                    <Tip label="Edit playlist">
-                      <Link
-                        className="button button--icon"
-                        to={`/vietsub/playlists/${p.id}`}
-                        aria-label={`Edit playlist: ${p.name}`}
-                      >
-                        <Pencil className="icon" aria-hidden="true" />
-                      </Link>
-                    </Tip>
-                    <Tip label="Delete playlist">
-                      <button
-                        className="button button--icon button--danger"
-                        type="button"
-                        disabled={busyId === p.id}
-                        onClick={() => handleDelete(p)}
-                        aria-label={`Delete playlist: ${p.name}`}
-                      >
-                        <Trash2 className="icon" aria-hidden="true" />
-                      </button>
-                    </Tip>
-                  </span>
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
+        {error && (
+          <Alert title={error.title} hint={error.hint} />
         )}
-      </section>
+
+        <section className="history" aria-label="Playlists">
+          <h2 className="history__heading">Playlists</h2>
+          {playlists === null ? (
+            <LoadingText>Loading list…</LoadingText>
+          ) : playlists.length === 0 ? (
+            <EmptyState icon={ListMusic}>
+              No playlists yet. Create one above, then use Save to playlist in the Videos tab.
+            </EmptyState>
+          ) : (
+            <ul className="history__list">
+              <AnimatePresence initial={false}>
+                {playlists.map((p) => (
+                  <motion.li key={p.id} {...rowMotion} className="history__item" aria-busy={busyId === p.id}>
+                    <Link className="history__open history__open--row" to={`/vietsub/playlists/${p.id}`}>
+                      {p.thumbnailUrl ? (
+                        <img src={p.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
+                      ) : (
+                        <span className="playlist-cover-empty" aria-hidden="true">
+                          <ListVideo className="icon" />
+                        </span>
+                      )}
+                      <span className="history__text">
+                        <span className="history__title">{p.name}</span>
+                        <span className="history__sub">
+                          <span className="meta">{videoCountLabel(p.videoCount)}</span>
+                          <span className="meta">Updated {formatDate(p.updatedAt)}</span>
+                        </span>
+                      </span>
+                    </Link>
+                    <span className="history__actions">
+                      <Tip label="Edit playlist">
+                        <Link
+                          className="button button--icon"
+                          to={`/vietsub/playlists/${p.id}`}
+                          aria-label={`Edit playlist: ${p.name}`}
+                        >
+                          <Pencil className="icon" aria-hidden="true" />
+                        </Link>
+                      </Tip>
+                      <Tip label="Delete playlist">
+                        <button
+                          className="button button--icon button--danger"
+                          type="button"
+                          disabled={busyId === p.id}
+                          onClick={() => handleDelete(p)}
+                          aria-label={`Delete playlist: ${p.name}`}
+                        >
+                          <Trash2 className="icon" aria-hidden="true" />
+                        </button>
+                      </Tip>
+                    </span>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+          )}
+        </section>
+      </VietsubTabs>
     </main>
   );
 }

@@ -57,6 +57,9 @@ describe('ProfilePage', () => {
     expect(await within(tabs).findByRole('link', { name: 'EmiBonnie' })).toHaveAttribute('aria-current', 'page');
     // Same underline tabs as the Vietsub pages.
     expect(tabs).toHaveClass('tabs__list');
+    // The bar and its content share one .tabs container (no negative-margin hack).
+    expect(tabs.parentElement).toHaveClass('tabs');
+    expect(tabs.nextElementSibling).toHaveClass('tabs__body');
     expect(within(tabs).getByRole('link', { name: 'Emi' })).toHaveClass('tabs__tab');
 
     await userEvent.click(within(tabs).getByRole('link', { name: 'Emi' }));
