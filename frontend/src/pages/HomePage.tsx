@@ -20,6 +20,8 @@ import { VideoList } from '../components/VideoList';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { usePagination } from '../lib/usePagination';
 import { useTranslationPolling } from '../lib/useTranslationPolling';
+import { Alert } from '../components/ui/Alert';
+import { PageHeader } from '../components/ui/PageHeader';
 
 interface Current {
   video: VideoDto;
@@ -187,10 +189,10 @@ export default function HomePage() {
   return (
     <main className="page">
       {confirmDialog}
-      <header className="masthead">
-        <h1 className="masthead__name">Subtitle Studio</h1>
-        <p className="masthead__lede">Paste a YouTube link to get cleaned-up English subtitles, then download the .srt file to translate.</p>
-      </header>
+      <PageHeader
+        title="Subtitle Studio"
+        lede="Paste a YouTube link to get cleaned-up English subtitles, then download the .srt file to translate."
+      />
 
       <UrlForm
         pending={pending}
@@ -202,10 +204,7 @@ export default function HomePage() {
       />
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
 
       {current && (

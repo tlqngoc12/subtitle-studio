@@ -4,6 +4,10 @@ import { Link } from 'react-router';
 import { listNovels, type NovelStatus, type NovelSummary } from '../api/novels';
 import { EmptyState } from '../components/EmptyState';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Cover } from '../components/ui/Cover';
 
 export const STATUS_LABEL: Record<NovelStatus, string> = { ONGOING: 'Ongoing', COMPLETED: 'Completed' };
 
@@ -27,27 +31,24 @@ export default function NovelsPage() {
 
   return (
     <main className="page">
-      <header className="masthead masthead--row">
-        <div>
-          <h1 className="masthead__name">Novels</h1>
-          <p className="masthead__lede">Translate novels from page screenshots and publish them chapter by chapter.</p>
-        </div>
-        <Link className="button button--primary" to="/novels/new">
-          <Plus className="icon" aria-hidden="true" />
-          New novel
-        </Link>
-      </header>
+      <PageHeader
+        title="Novels"
+        lede="Translate novels from page screenshots and publish them chapter by chapter."
+        actions={
+          <Link className="button button--primary" to="/novels/new">
+            <Plus className="icon" aria-hidden="true" />
+            New novel
+          </Link>
+        }
+      />
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
 
       <section className="history" aria-label="Novels">
         {novels === null ? (
-          <p className="muted">Loading list…</p>
+          <LoadingText>Loading list…</LoadingText>
         ) : novels.length === 0 ? (
           <EmptyState icon={BookOpen}>No novels yet. Choose New novel to add the first one.</EmptyState>
         ) : (
@@ -55,13 +56,7 @@ export default function NovelsPage() {
             {novels.map((n) => (
               <li key={n.id}>
                 <Link className="novel-card" to={`/novels/${n.id}`}>
-                  {n.coverUrl ? (
-                    <img className="novel-card__cover" src={n.coverUrl} alt="" loading="lazy" />
-                  ) : (
-                    <span className="novel-card__cover novel-card__cover--empty" aria-hidden="true">
-                      <BookOpen className="icon" />
-                    </span>
-                  )}
+                  <Cover src={n.coverUrl} lazy />
                   <span className="novel-card__body">
                     <span className="novel-card__title">{n.title}</span>
                     <span className="badge badge--info">{STATUS_LABEL[n.novelStatus]}</span>

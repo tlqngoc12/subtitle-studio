@@ -11,6 +11,8 @@ import { findActiveCue } from '../lib/findActiveCue';
 import { isTyping } from '../lib/keyboard';
 import { usePlaylistMode } from '../lib/usePlaylistMode';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
+import { Alert } from '../components/ui/Alert';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /**
  * The end result of the workflow: the YouTube video playing with its Vietsub. With `?playlist=` it also shows
@@ -71,17 +73,11 @@ export default function WatchPage() {
       </Link>
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
 
       {video && (
-        <header className="masthead masthead--watch">
-          <h1 className="masthead__name">{video.title}</h1>
-          {video.channel && <p className="masthead__lede">{video.channel}</p>}
-        </header>
+        <PageHeader className="masthead--watch" title={video.title} lede={video.channel} />
       )}
 
       {video && video.viCueCount === 0 && (

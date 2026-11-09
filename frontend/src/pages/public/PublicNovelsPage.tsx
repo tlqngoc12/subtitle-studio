@@ -8,6 +8,8 @@ import { errorMessage } from '../../lib/errors';
 import FeaturedNovels from './FeaturedNovels';
 import { NovelCard } from './NovelCard';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
+import { Alert } from '../../components/ui/Alert';
+import { LoadingText } from '../../components/ui/LoadingText';
 
 const FEATURED = 5;
 const LATEST = 6;
@@ -38,13 +40,10 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
     <main className="page">
       <h1 className="visually-hidden">Truyện</h1>
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
       {sorted === null ? (
-        <p className="muted">Đang tải…</p>
+        <LoadingText>Đang tải…</LoadingText>
       ) : sorted.length === 0 ? (
         <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
       ) : (

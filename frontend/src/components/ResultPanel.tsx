@@ -3,6 +3,7 @@ import { srtUrl, type CueDto, type SkipReason, type VideoDto } from '../api/clie
 import { formatDuration } from '../lib/format';
 import { CueTable } from './CueTable';
 import { VietsubStatus } from './VietsubStatus';
+import { LoadingText } from './ui/LoadingText';
 
 interface Props {
   video: VideoDto;
@@ -48,7 +49,7 @@ export function ResultPanel({ video, cues, profile, skipReason, onTranslate, ref
         </a>
       </div>
       <div className="result__preview">
-        {cues === null ? <p className="muted">Loading preview…</p> : <CueTable cues={cues} />}
+        {cues === null ? <LoadingText>Loading preview…</LoadingText> : <CueTable cues={cues} />}
       </div>
     </section>
   );

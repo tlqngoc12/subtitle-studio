@@ -7,6 +7,9 @@ import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
 import { NovelCard } from './NovelCard';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
+import { Alert } from '../../components/ui/Alert';
+import { LoadingText } from '../../components/ui/LoadingText';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 /** `/novels/all`: every public novel as the small cards of the home page, newest update first. */
 export default function PublicAllNovelsPage({ source }: { source: NovelSource }) {
@@ -29,17 +32,12 @@ export default function PublicAllNovelsPage({ source }: { source: NovelSource })
   return (
     <main className="page">
       <Breadcrumbs items={[{ label: 'Novels', to: '/novels' }, { label: 'Tất cả truyện' }]} />
-      <header className="masthead">
-        <h1 className="masthead__name">Tất cả truyện</h1>
-      </header>
+      <PageHeader title="Tất cả truyện" />
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
       {sorted === null ? (
-        <p className="muted">Đang tải…</p>
+        <LoadingText>Đang tải…</LoadingText>
       ) : sorted.length === 0 ? (
         <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
       ) : (

@@ -1,17 +1,20 @@
 import * as Tabs from "@radix-ui/react-tabs";
-import { BookOpen, Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import type { NovelSource } from "../../data/novelSource";
 import type { PublicNovelDetail } from "../../data/novelTypes";
 import { readProgress, readReadChapters } from "./readerPrefs";
+import { Alert } from '../../components/ui/Alert';
+import { LoadingText } from '../../components/ui/LoadingText';
 import {
   PUBLIC_ERROR_TITLE,
   PUBLIC_STATUS_LABEL,
   publicChapterLabel,
   useDocumentTitle,
 } from "./publicNames";
+import { Cover } from '../../components/ui/Cover';
 
 /** A novel's public page: cover, the eight fields (description as plain text) and its published chapters. */
 export default function PublicNovelPage({ source }: { source: NovelSource }) {
@@ -33,17 +36,16 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   if (failed) {
     return (
       <main className="page">
-        <div className="alert" role="alert">
-          <p className="alert__title">{PUBLIC_ERROR_TITLE}</p>
+        <Alert title={PUBLIC_ERROR_TITLE}>
           <Link to="/novels">Về danh sách truyện</Link>
-        </div>
+        </Alert>
       </main>
     );
   }
   if (!novel) {
     return (
       <main className="page">
-        <p className="muted">Đang tải truyện…</p>
+        <LoadingText>Đang tải truyện…</LoadingText>
       </main>
     );
   }
@@ -106,16 +108,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
         items={[{ label: "Novels", to: "/novels" }, { label: novel.title }]}
       />
       <header className="novel-hero">
-        {novel.coverUrl ? (
-          <img className="novel-hero__cover" src={novel.coverUrl} alt="" />
-        ) : (
-          <span
-            className="novel-hero__cover novel-card__cover--empty"
-            aria-hidden="true"
-          >
-            <BookOpen className="icon" />
-          </span>
-        )}
+        <Cover src={novel.coverUrl} className="novel-hero__cover" />
         <div className="novel-hero__text">
           <h1 className="masthead__name">{novel.title}</h1>
           <dl className="novel-facts">

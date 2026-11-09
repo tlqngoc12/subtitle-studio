@@ -1530,21 +1530,25 @@ p.vietsub-status,
   color: var(--muted);
 }
 
-/* "Save to playlist" popover (Radix Popover). */
-.saveto {
+/* Shared look of the Radix popovers (PopoverPanel): save-to-playlist, source filter, reader settings and contents. */
+.popover {
   z-index: 40;
-  display: grid;
-  gap: var(--space-3);
-  width: min(280px, calc(100vw - 32px));
-  max-height: min(420px, 70vh);
-  overflow-y: auto;
-  padding: var(--space-4);
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
   box-shadow: var(--shadow-overlay);
   animation: tip-in 120ms ease-out;
+}
+
+/* "Save to playlist" popover (Radix Popover). */
+.saveto {
+  display: grid;
+  gap: var(--space-3);
+  width: min(280px, calc(100vw - 32px));
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  padding: var(--space-4);
 }
 
 .saveto__title {
@@ -1684,15 +1688,8 @@ p.vietsub-status,
 }
 
 .filter-menu {
-  z-index: 40;
   min-width: 160px;
   padding: var(--space-2);
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-frame);
-  box-shadow: var(--shadow-overlay);
-  animation: tip-in 120ms ease-out;
 }
 
 .filter-menu__list {
@@ -2214,6 +2211,8 @@ a.tabs__tab {
 }
 
 .novel-card__title {
+  margin: 0;
+  font-size: inherit;
   display: -webkit-box;
   overflow: hidden;
   font-weight: 700;
@@ -3049,17 +3048,10 @@ a.breadcrumbs__label:hover {
 }
 
 .reader-pop {
-  z-index: 40;
   display: grid;
   gap: var(--space-3);
   width: min(300px, calc(100vw - 32px));
   padding: var(--space-3);
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-frame);
-  box-shadow: var(--shadow-overlay);
-  animation: tip-in 120ms ease-out;
 }
 
 .reader-settings .button[aria-pressed='true'] {
@@ -3121,14 +3113,20 @@ a.breadcrumbs__label:hover {
 }
 
 .reader__end-nav {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
 }
 
 .reader__end-button {
+  justify-self: start;
   min-width: 140px;
   min-height: 44px;
+}
+
+.reader__end-button--next {
+  grid-column: 2;
+  justify-self: end;
 }
 
 .reader__done {

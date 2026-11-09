@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { createNovel } from '../api/novels';
 import { NovelForm } from '../components/novel/NovelForm';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /** Novels › New novel. */
 export default function NovelNewPage() {
@@ -12,9 +13,7 @@ export default function NovelNewPage() {
         <ArrowLeft className="icon" aria-hidden="true" />
         Novels
       </Link>
-      <header className="masthead">
-        <h1 className="masthead__name">New novel</h1>
-      </header>
+      <PageHeader title="New novel" />
       <NovelForm
         submitLabel="Create novel"
         pendingLabel="Creating…"

@@ -1,6 +1,5 @@
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { toast } from 'sonner';
-import { Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { deleteVietsub, replaceVietsub, listVideos, type VideoDto } from '../api/client';
@@ -12,6 +11,9 @@ import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { matchesSearch } from '../lib/search';
 import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
+import { Alert } from '../components/ui/Alert';
+import { PageHeader } from '../components/ui/PageHeader';
+import { SearchBar } from '../components/ui/SearchBar';
 
 export default function VietsubPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -97,17 +99,11 @@ export default function VietsubPage() {
   return (
     <main className="page">
       {confirmDialog}
-      <header className="masthead">
-        <h1 className="masthead__name">Vietsub</h1>
-        <p className="masthead__lede">Replace, download or delete the Vietsub of your videos.</p>
-      </header>
+      <PageHeader title="Vietsub" lede="Replace, download or delete the Vietsub of your videos." />
       <VietsubTabs />
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
 
       <VietsubList
@@ -118,22 +114,12 @@ export default function VietsubPage() {
         filtered={query.trim() !== '' || source !== null}
         toolbar={
           <div className="toolbar">
-            <div className="searchbar">
-              <Search className="icon searchbar__icon" aria-hidden="true" />
-              <input
-                type="search"
-                className="searchbar__input"
-                placeholder="Search videos"
-                aria-label="Search videos"
-                value={query}
-                onChange={(e) => setFilter('q', e.target.value)}
-              />
-              {query && (
-                <button className="button button--icon searchbar__clear" type="button" aria-label="Clear search" onClick={() => setFilter('q', null)}>
-                  <X className="icon" aria-hidden="true" />
-                </button>
-              )}
-            </div>
+            <SearchBar
+              value={query}
+              onChange={(v) => setFilter('q', v)}
+              label="Search videos"
+              onClear={() => setFilter('q', null)}
+            />
             <SourceFilter value={source} onChange={(v) => setFilter('source', v)} />
           </div>
         }

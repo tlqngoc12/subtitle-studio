@@ -1,6 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import { ListFilter } from 'lucide-react';
 import { useState } from 'react';
+import { PopoverPanel } from './ui/PopoverPanel';
 
 export type Source = 'ai' | 'manual';
 
@@ -25,27 +26,25 @@ export function SourceFilter({ value, onChange }: { value: Source | null; onChan
           {value === null ? 'Filter' : `Filter: ${current.label}`}
         </button>
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content className="filter-menu" side="bottom" align="end" sideOffset={6} collisionPadding={8}>
-          <div role="radiogroup" aria-label="Filter by source" className="filter-menu__list">
-            {CHOICES.map((c) => (
-              <button
-                key={c.label}
-                className="filter-menu__option"
-                type="button"
-                role="radio"
-                aria-checked={c.value === value}
-                onClick={() => {
-                  onChange(c.value);
-                  setOpen(false);
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
+      <PopoverPanel className="filter-menu">
+        <div role="radiogroup" aria-label="Filter by source" className="filter-menu__list">
+          {CHOICES.map((c) => (
+            <button
+              key={c.label}
+              className="filter-menu__option"
+              type="button"
+              role="radio"
+              aria-checked={c.value === value}
+              onClick={() => {
+                onChange(c.value);
+                setOpen(false);
+              }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </PopoverPanel>
     </Popover.Root>
   );
 }

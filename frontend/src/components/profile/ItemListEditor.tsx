@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { Tip } from '../Tip';
+import { IconButton } from '../ui/IconButton';
 
 /** Editable list of GALLERY / LINKS / FACTS entries: add, remove, move up and down. */
 export function ItemListEditor<T extends { key: number }>({
@@ -42,38 +42,18 @@ export function ItemListEditor<T extends { key: number }>({
             )}
           </div>
           <div className="items__tools">
-            <Tip label={`Move ${noun} up`}>
-              <button
-                type="button"
-                className="button button--icon"
-                aria-label={`Move ${noun} up`}
-                disabled={i === 0}
-                onClick={() => swap(row.key, -1)}
-              >
-                <ArrowUp className="icon" aria-hidden="true" />
-              </button>
-            </Tip>
-            <Tip label={`Move ${noun} down`}>
-              <button
-                type="button"
-                className="button button--icon"
-                aria-label={`Move ${noun} down`}
-                disabled={i === rows.length - 1}
-                onClick={() => swap(row.key, 1)}
-              >
-                <ArrowDown className="icon" aria-hidden="true" />
-              </button>
-            </Tip>
-            <Tip label={`Delete ${noun}`}>
-              <button
-                type="button"
-                className="button button--icon"
-                aria-label={`Delete ${noun}`}
-                onClick={() => onChange((prev) => prev.filter((r) => r.key !== row.key))}
-              >
-                <X className="icon" aria-hidden="true" />
-              </button>
-            </Tip>
+            <IconButton label={`Move ${noun} up`} icon={ArrowUp} disabled={i === 0} onClick={() => swap(row.key, -1)} />
+            <IconButton
+              label={`Move ${noun} down`}
+              icon={ArrowDown}
+              disabled={i === rows.length - 1}
+              onClick={() => swap(row.key, 1)}
+            />
+            <IconButton
+              label={`Delete ${noun}`}
+              icon={X}
+              onClick={() => onChange((prev) => prev.filter((r) => r.key !== row.key))}
+            />
           </div>
         </fieldset>
       ))}

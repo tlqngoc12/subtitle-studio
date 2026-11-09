@@ -7,6 +7,7 @@ import { rowMotion } from '../lib/motion';
 import { EmptyState } from './EmptyState';
 import { SaveToPlaylist } from './SaveToPlaylist';
 import { Tip } from './Tip';
+import { LoadingText } from './ui/LoadingText';
 
 interface Props {
   videos: VideoDto[] | null;
@@ -31,7 +32,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
       <h2 className="history__heading">Manage Vietsub</h2>
       {toolbar}
       {videos === null ? (
-        <p className="muted">Loading list…</p>
+        <LoadingText>Loading list…</LoadingText>
       ) : videos.length === 0 && filtered ? (
         <EmptyState icon={SearchX}>No videos match your search.</EmptyState>
       ) : videos.length === 0 ? (

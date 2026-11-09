@@ -34,6 +34,8 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
 
 /** Vietsub › Playlists › one playlist: rename, reorder (drag and drop or ↑ ↓), remove videos, delete. */
 export default function PlaylistEditPage() {
@@ -141,10 +143,7 @@ export default function PlaylistEditPage() {
       </Link>
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && !notFound && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={notFound ? undefined : error.hint} />
       )}
 
       {playlist && (
@@ -188,7 +187,7 @@ export default function PlaylistEditPage() {
         <section className="history" aria-label="Videos in this playlist" aria-busy={saving}>
           <h2 className="history__heading">Videos</h2>
           {playlist === null ? (
-            <p className="muted">Loading…</p>
+            <LoadingText>Loading…</LoadingText>
           ) : playlist.videos.length === 0 ? (
             <EmptyState icon={ListPlus}>Use Save to playlist in the Videos tab to add videos.</EmptyState>
           ) : (
@@ -392,9 +391,7 @@ function DetailsForm({
         </button>
       </span>
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-        </div>
+        <Alert title={error.title} />
       )}
     </form>
   );

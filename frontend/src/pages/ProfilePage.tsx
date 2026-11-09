@@ -24,6 +24,8 @@ import { ProfileTabs } from '../components/profile/ProfileTabs';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { expandMotion, rowMotion } from '../lib/motion';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
 
 type OpenForm = { mode: 'edit'; id: number } | { mode: 'add'; type: BlockType } | null;
 
@@ -121,14 +123,12 @@ export default function ProfilePage() {
       <ProfileTabs profiles={profiles} current={slug} />
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.message.title}</p>
-          {error.message.hint && <p className="alert__hint">{error.message.hint}</p>}
+        <Alert title={error.message.title} hint={error.message.hint}>
           {error.notFound && <Link to="/profiles/emibonnie">Back to EmiBonnie</Link>}
-        </div>
+        </Alert>
       )}
 
-      {profile === null && !error && <p className="muted">Loading profile…</p>}
+      {profile === null && !error && <LoadingText>Loading profile…</LoadingText>}
 
       {profile && (
         <>
@@ -148,10 +148,7 @@ export default function ProfilePage() {
           </header>
 
           {actionError && (
-            <div className="alert" role="alert">
-              <p className="alert__title">{actionError.title}</p>
-              {actionError.hint && <p className="alert__hint">{actionError.hint}</p>}
-            </div>
+            <Alert title={actionError.title} hint={actionError.hint} />
           )}
 
           <div className="pblocks">

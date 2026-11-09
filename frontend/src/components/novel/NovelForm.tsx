@@ -3,6 +3,7 @@ import { ApiError, type FieldError } from '../../api/client';
 import { getNovelProfiles, type NovelDetail, type NovelInput, type NovelStatus } from '../../api/novels';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImagePicker, type PickedImage } from '../profile/ImagePicker';
+import { Alert } from '../ui/Alert';
 
 /** "Tình Yêu Mùa Hạ" → "tinh-yeu-mua-ha": no accents, lowercase, single hyphens. */
 export function slugify(text: string): string {
@@ -243,10 +244,7 @@ export function NovelForm({
         ),
       })}
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
       <button className="button button--primary" type="submit" disabled={pending || coverBusy || !title.trim()}>
         {pending ? pendingLabel : submitLabel}

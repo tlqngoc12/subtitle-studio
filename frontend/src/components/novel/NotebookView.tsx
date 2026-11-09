@@ -4,6 +4,8 @@ import { getNotebook, retryNotebook, type NotebookView as View } from '../../api
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { EmptyState } from '../EmptyState';
 import { chapterName } from './ChapterList';
+import { Alert } from '../ui/Alert';
+import { LoadingText } from '../ui/LoadingText';
 
 /** The Notebook tab: the story notebook Gemini keeps after each published chapter (read only). */
 export function NotebookView({
@@ -54,26 +56,21 @@ export function NotebookView({
 
   if (error) {
     return (
-      <div className="alert" role="alert">
-        <p className="alert__title">{error.title}</p>
-        {error.hint && <p className="alert__hint">{error.hint}</p>}
-      </div>
+      <Alert title={error.title} hint={error.hint} />
     );
   }
-  if (!view) return <p className="muted">Loading notebook…</p>;
+  if (!view) return <LoadingText>Loading notebook…</LoadingText>;
 
   const status = (
     <>
       {view.status === 'UPDATING' && <p className="badge badge--progress">Updating notebook…</p>}
       {view.status === 'FAILED' && (
-        <div className="alert" role="alert">
-          <p className="alert__title">The last notebook update failed.</p>
-          {view.error && <p className="alert__hint">{view.error}</p>}
+        <Alert title="The last notebook update failed." hint={view.error}>
           <button className="button button--small" type="button" onClick={retry} disabled={retrying}>
             <RotateCcw className="icon" aria-hidden="true" />
             Retry notebook update
           </button>
-        </div>
+        </Alert>
       )}
     </>
   );

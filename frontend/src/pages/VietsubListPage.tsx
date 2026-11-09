@@ -1,5 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowLeft, Clock, ListVideo, Search, SearchX, Tv, X } from 'lucide-react';
+import { ArrowLeft, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { EmptyState } from '../components/EmptyState';
@@ -12,6 +12,10 @@ import { formatDuration } from '../lib/format';
 import { matchesSearch } from '../lib/search';
 import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
+import { PageHeader } from '../components/ui/PageHeader';
+import { SearchBar } from '../components/ui/SearchBar';
 
 /** A row of a video list; `position` is the video's number in the open playlist (null in All videos). */
 interface Entry {
@@ -113,10 +117,7 @@ export default function VietsubListPage() {
 
   return (
     <main className="page">
-      <header className="masthead">
-        <h1 className="masthead__name">Vietsub list</h1>
-        <p className="masthead__lede">Choose a video to watch with Vietsub.</p>
-      </header>
+      <PageHeader title="Vietsub list" lede="Choose a video to watch with Vietsub." />
 
       {active && (
         <Link className="back-link" to={backToPlaylists}>
@@ -125,25 +126,10 @@ export default function VietsubListPage() {
         </Link>
       )}
 
-      <div className="searchbar">
-        <Search className="icon searchbar__icon" aria-hidden="true" />
-        <input
-          type="search"
-          className="searchbar__input"
-          placeholder={searchLabel}
-          aria-label={searchLabel}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {query && (
-          <button className="button button--icon searchbar__clear" type="button" aria-label="Clear search" onClick={() => setQuery('')}>
-            <X className="icon" aria-hidden="true" />
-          </button>
-        )}
-      </div>
+      <SearchBar value={query} onChange={setQuery} label={searchLabel} onClear={() => setQuery('')} />
 
       {waitingForPlaylist ? (
-        <p className="muted">Loading playlist…</p>
+        <LoadingText>Loading playlist…</LoadingText>
       ) : active ? (
         <>
           <PlaylistHeader playlist={active} />
@@ -186,10 +172,7 @@ function AllVideosTab({ query, videos, error }: { query: string; videos: PublicV
   return (
     <>
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
       <VideoSection
         entries={videos?.map((video) => ({ video, position: null })) ?? null}
@@ -227,7 +210,7 @@ function PlaylistsTab({ query, playlists }: { query: string; playlists: PublicPl
   return (
     <section className="plcards" aria-label="Playlists">
       {pager.items === null ? (
-        <p className="muted">Loading playlists…</p>
+        <LoadingText>Loading playlists…</LoadingText>
       ) : pager.items.length === 0 ? (
         query.trim() ? (
           <EmptyState icon={SearchX}>No playlists match "{query}".</EmptyState>
@@ -267,7 +250,7 @@ function VideoSection({
   return (
     <section className="history" aria-label="Vietsub list">
       {pager.items === null ? (
-        <p className="muted">Loading list…</p>
+        <LoadingText>Loading list…</LoadingText>
       ) : pager.items.length === 0 ? (
         query.trim() ? <EmptyState icon={SearchX}>No videos match "{query}".</EmptyState> : empty
       ) : (
