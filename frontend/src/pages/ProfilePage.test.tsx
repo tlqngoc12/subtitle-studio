@@ -288,6 +288,17 @@ describe('ProfilePage banner', () => {
     expect(screen.queryByRole('heading', { name: 'Banner' })).not.toBeInTheDocument();
   });
 
+  it('keeps the profile name as a visually hidden h1 and shows no visible heading with it', async () => {
+    fakeFetch([LIST, EMIBONNIE]);
+    renderAt('/profiles');
+
+    const title = await screen.findByRole('heading', { level: 1, name: 'EmiBonnie' });
+    expect(title).toHaveClass('visually-hidden');
+    const visible = screen.getAllByRole('heading').filter((h) => !h.classList.contains('visually-hidden'));
+    expect(visible.some((h) => h.textContent === 'EmiBonnie')).toBe(false);
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  });
+
   it('shows the banner under the profile title and above the blocks', async () => {
     fakeFetch([LIST, page(IMAGES)]);
     renderAt('/profiles/emibonnie');
