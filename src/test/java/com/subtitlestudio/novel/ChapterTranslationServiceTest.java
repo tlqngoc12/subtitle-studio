@@ -578,6 +578,20 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
+    void runThatNoModelAnsweredKeepsTheStoredModel() {
+        ChapterDetail c = chapter(1, 2);
+        Chapter stored = reload(c.id());
+        stored.setTranslationModel("old-model");
+        pages.flush();
+        translator.modelByCall = null; // the translator never reports a model
+
+        service.start(c.id());
+
+        assertThat(reload(c.id()).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(reload(c.id()).getTranslationModel()).isEqualTo("old-model");
+    }
+
+    @Test
     void translatingAgainReplacesAStaleSourceEvenWhenGeminiSendsNone() {
         ChapterDetail c = chapter(1, 1);
         ChapterPage only = pages.findByChapterIdOrderByPosition(c.id()).getFirst();

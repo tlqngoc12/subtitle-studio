@@ -294,7 +294,9 @@ public class ChapterTranslationService {
             c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
             c.setTranslationError(null);
             c.setTranslatedAt(clock.instant());
-            c.setTranslationModel(model);
+            if (model != null) {
+                c.setTranslationModel(model);
+            }
             c.setEditedAfterTranslation(false);
             c.touch(clock.instant());
             c.getNovel().touch(clock.instant());
