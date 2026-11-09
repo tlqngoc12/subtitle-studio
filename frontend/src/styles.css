@@ -1337,6 +1337,14 @@ p.vietsub-status,
   color: var(--brand-2);
 }
 
+/* The close button sits in the top-right corner (sonner puts it top-left; 2.0.8 has no option for the side). */
+[data-sonner-toast].toast [data-close-button] {
+  right: 0;
+  left: auto;
+  top: 0;
+  transform: translate(35%, -35%);
+}
+
 [data-sonner-toast][data-type='success'].toast {
   border-left-color: var(--brand);
 }
@@ -1598,6 +1606,7 @@ p.vietsub-status,
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 14px;
 }
 
 .toolbar .searchbar {
@@ -2284,6 +2293,10 @@ a.tabs__tab {
   gap: 12px;
 }
 
+.featured__controls .button--icon {
+  flex: none;
+}
+
 .featured__counter {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -2474,6 +2487,47 @@ a.tabs__tab {
   align-items: center;
 }
 
+/* Public novel page: one bordered box of compact rows with thin dividers; two columns on wide screens for long lists. */
+.chapter-list--public {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.chapter-list--public .chapter-list__item {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  /* The divider is a shadow, so the last row of each column (clipped by the box) has none. */
+  box-shadow: 0 1px 0 var(--rule);
+  break-inside: avoid;
+}
+
+.chapter-list--public .chapter-list__item:hover {
+  background: var(--hover, color-mix(in srgb, var(--brand-2) 12%, transparent));
+}
+
+.chapter-list--public .chapter-list__row {
+  padding: 0 12px 0 0;
+}
+
+.chapter-list--public .chapter-list__open {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: var(--step--1);
+}
+
+@media (min-width: 760px) {
+  .chapter-list--columns {
+    display: block;
+    column-count: 2;
+    column-gap: 0;
+    column-rule: 1px solid var(--rule);
+  }
+}
+
 .chapter-list__error {
   padding: 0 14px 10px;
 }
@@ -2558,20 +2612,35 @@ a.tabs__tab {
 }
 
 .chapter-meta {
-  display: grid;
-  gap: 12px;
-  max-width: 640px;
   margin-bottom: 16px;
 }
 
+/* Number, label and title on one row; the title takes the rest and wraps to its own line on narrow screens. */
 .chapter-meta__row {
-  display: grid;
-  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.chapter-meta__row > .chapter-meta__label:only-child {
-  grid-column: 1 / -1;
+.chapter-meta__number {
+  flex: 0 0 110px;
+  min-width: 0;
+}
+
+.chapter-meta__label {
+  flex: 0 0 220px;
+  min-width: 0;
+}
+
+.chapter-meta__title {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .chapter-meta__label {
+    flex: 1 1 0;
+  }
 }
 
 .field__label-row {
@@ -2814,23 +2883,24 @@ a.tabs__tab {
 .breadcrumbs__list {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin: 0;
+  gap: 6px;
+  margin: 4px 0 16px;
   padding: 0;
   list-style: none;
   color: var(--muted);
   font-size: var(--step--1);
 }
 
+/* Narrow screens: the links shrink (and are cut) first, the current item keeps its room. */
 .breadcrumbs__item {
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 0 100 auto;
 }
 
 .breadcrumbs__item--current {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .breadcrumbs__label {
@@ -2843,14 +2913,26 @@ a.tabs__tab {
   text-decoration: none;
 }
 
+a.breadcrumbs__label:hover,
+a.breadcrumbs__label:focus-visible {
+  color: var(--brand);
+}
+
 a.breadcrumbs__label:hover {
-  color: var(--ink);
   text-decoration: underline;
 }
 
 .breadcrumbs__sep {
   display: flex;
   flex: none;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.breadcrumbs__sep .icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.5;
 }
 
 /* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
@@ -2870,15 +2952,55 @@ a.breadcrumbs__label:hover {
 
 .reader-bar__inner {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  width: fit-content;
+  /* As wide as the page images; A-/A+ change --reader-width on the page column. */
+  max-width: var(--reader-width, 600px);
   margin-inline: auto;
   padding: 6px 8px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   border: 1px solid var(--rule);
   border-radius: 999px;
   backdrop-filter: blur(8px);
+}
+
+.reader-bar__left,
+.reader-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reader-bar__left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.reader-bar__right {
+  flex: none;
+}
+
+.reader-bar__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.reader-bar__novel,
+.reader-bar__chapter {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-bar__novel {
+  font-weight: 700;
+}
+
+.reader-bar__chapter {
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
 .reader-bar .button--icon {

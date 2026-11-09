@@ -393,11 +393,11 @@ export default function ChapterPage() {
               placeholder={`Chapter ${number || chapter.chapterNo}`}
               onChange={(e) => setLabel(e.target.value)} />
           </div>
-        </div>
-        <div className="field">
-          <label htmlFor={`${ids}-title`}>Chapter title (optional)</label>
-          <input id={`${ids}-title`} type="text" maxLength={200} value={title} disabled={locked}
-            onChange={(e) => setTitle(e.target.value)} />
+          <div className="field chapter-meta__title">
+            <label htmlFor={`${ids}-title`}>Chapter title (optional)</label>
+            <input id={`${ids}-title`} type="text" maxLength={200} value={title} disabled={locked}
+              onChange={(e) => setTitle(e.target.value)} />
+          </div>
         </div>
       </div>
 

@@ -24,23 +24,27 @@ import java.util.List;
 /**
  * Draws a chapter's Vietnamese text as page images for the public site (spec section 7): reading font, title on the
  * first page, lines broken with {@link LineBreakMeasurer} (a word longer than the line is broken inside), a faint
- * diagonal watermark and a footer {@code Ch. N · k/n}. Same input, same pixels.
+ * diagonal watermark. Pages carry no footer and only a slim margin top and bottom (pages 2+), so consecutive images
+ * read as one continuous strip. Same input, same pixels.
  */
 public class NovelRenderer {
 
     /** Bump when the drawing changes so cached images are redrawn. */
-    static final int VERSION = 3;
+    static final int VERSION = 4;
     static final int MARGIN = 64;
-    /** Top margin of pages 2+; the first page keeps {@link #FIRST_TOP} for the heading. */
-    static final int TOP = 56;
+    /**
+     * Top of the first line box on pages 2+; the first page keeps {@link #FIRST_TOP} for the heading. A line box
+     * has about 18 px of built-in leading above the glyphs, so a slightly negative value leaves ~12 px of paper.
+     */
+    static final int TOP = -6;
     static final int FIRST_TOP = 110;
-    static final int FOOTER = 64;
+    /** Bottom margin of every page (the line box has its own leading below the glyphs); a line that does not fit moves to the next page whole. */
+    static final int BOTTOM = 0;
     static final double LINE_SPACING = 1.7;
     static final float WATERMARK_ALPHA = 0.06f;
 
     private static final Color PAPER = new Color(0xFB, 0xF8, 0xF1);
     private static final Color INK = new Color(0x22, 0x22, 0x22);
-    private static final Color MUTED = new Color(0x8A, 0x84, 0x7A);
 
     private final SubtitleStudioProperties.Novel.Render size;
     private final Font body;
@@ -67,7 +71,7 @@ public class NovelRenderer {
     public List<BufferedImage> render(RenderInput input) {
         FontRenderContext frc = new FontRenderContext(new AffineTransform(), true, true);
         float wrap = size.width() - 2f * MARGIN;
-        float bottom = size.height() - FOOTER;
+        float bottom = size.height() - BOTTOM;
         float lineHeight = (float) (size.fontSize() * LINE_SPACING);
 
         List<List<Line>> pages = new ArrayList<>();
@@ -105,14 +109,14 @@ public class NovelRenderer {
 
         List<BufferedImage> images = new ArrayList<>();
         for (int k = 0; k < pages.size(); k++) {
-            images.add(draw(pages.get(k), input, k + 1, pages.size()));
+            images.add(draw(pages.get(k), input));
         }
         return images;
     }
 
     private record Line(TextLayout layout, float baseline) {}
 
-    private BufferedImage draw(List<Line> lines, RenderInput input, int k, int total) {
+    private BufferedImage draw(List<Line> lines, RenderInput input) {
         BufferedImage img = new BufferedImage(size.width(), size.height(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -128,13 +132,6 @@ public class NovelRenderer {
             line.layout().draw(g, MARGIN, line.baseline());
         }
 
-        g.setColor(MUTED);
-        g.setFont(small);
-        String footer = footer(input, k, total);
-        TextLayout layout = new TextLayout(footer, small, g.getFontRenderContext());
-        // Centre the text's visible height (ascent to baseline) in the footer band.
-        float baseline = size.height() - FOOTER / 2f + (layout.getAscent() - layout.getDescent()) / 2f;
-        g.drawString(footer, (size.width() - layout.getAdvance()) / 2f, baseline);
         g.dispose();
         return img;
     }
@@ -175,11 +172,6 @@ public class NovelRenderer {
     static String heading(RenderInput input) {
         String t = input.chapterTitle() == null || input.chapterTitle().isBlank() ? "" : ": " + input.chapterTitle();
         return nfc((input.hasLabel() ? input.chapterLabel().strip() : "Chương " + input.chapterNo()) + t);
-    }
-
-    static String footer(RenderInput input, int k, int total) {
-        String name = input.hasLabel() ? input.chapterLabel().strip() : "Ch. " + input.chapterNo();
-        return nfc(name + " · " + k + "/" + total);
     }
 
     /** Lines of the text, each non-empty one a paragraph and each empty one a blank line; leading/trailing blanks dropped. */

@@ -1,10 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
 import PublicNovelPage from './PublicNovelPage';
 import PublicNovelsPage from './PublicNovelsPage';
+
+const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 const SUMMARY: PublicNovelSummary = {
   slug: 'summer',
@@ -87,16 +90,28 @@ describe('PublicNovelsPage', () => {
   });
 });
 
+function Where() {
+  const l = useLocation();
+  return <p data-testid="where">{l.pathname + l.search}</p>;
+}
+
 describe('PublicNovelPage', () => {
-  function renderPage(s = source()) {
+  function renderPage(s = source(), path = '/novels/summer') {
     render(
-      <MemoryRouter initialEntries={['/novels/summer']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/novels/:slug" element={<PublicNovelPage source={s} />} />
         </Routes>
+        <Where />
       </MemoryRouter>,
     );
   }
+
+  const noDescription = () => source({ getNovel: async () => ({ ...DETAIL, description: null }) });
+  const MANY: PublicNovelDetail = {
+    ...DETAIL,
+    chapters: Array.from({ length: 13 }, (_, i) => ({ chapterNo: i + 1, title: `C${i + 1}` })),
+  };
 
   it('shows the novel details and its published chapters', async () => {
     renderPage();
@@ -106,7 +121,6 @@ describe('PublicNovelPage', () => {
     expect(screen.getByText('Hoàn thành')).toBeInTheDocument();
     expect(screen.getByText('BL')).toBeInTheDocument();
     expect(screen.getByText('Dịch: @byZenQN')).toBeInTheDocument();
-    expect(screen.getByText('Một mùa hè đáng nhớ.')).toBeInTheDocument();
     const original = screen.getByRole('link', { name: 'Truyện gốc' });
     expect(original).toHaveAttribute('href', 'https://example.com/book');
     expect(original).toHaveAttribute('rel', 'noopener noreferrer');
@@ -124,8 +138,97 @@ describe('PublicNovelPage', () => {
     expect(screen.getByText('Trạng thái')).toBeInTheDocument();
     expect(screen.getByText('Bản dịch')).toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Thể loại' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Danh sách chương' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Giới thiệu' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Danh sách chương' })).toBeInTheDocument();
     expect(document.title).toBe('Tình Yêu Mùa Hạ');
+  });
+
+  it('has two tabs when there is a description: Giới thiệu first, Danh sách chương selected by default', async () => {
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent)).toEqual(['Giới thiệu', 'Danh sách chương']);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
+    expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('list', { name: 'Danh sách chương' })).toBeInTheDocument();
+    expect(screen.queryByText('Một mùa hè đáng nhớ.')).not.toBeInTheDocument();
+  });
+
+  it('opens the description with ?tab=intro and keeps the line breaks', async () => {
+    const s = source({ getNovel: async () => ({ ...DETAIL, description: 'Dòng 1\nDòng 2' }) });
+    renderPage(s, '/novels/summer?tab=intro');
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    expect(screen.getByRole('tab', { name: 'Giới thiệu' })).toHaveAttribute('aria-selected', 'true');
+    const text = screen.getByText(/Dòng 1/);
+    expect(text.textContent).toBe('Dòng 1\nDòng 2');
+    expect(text).toHaveClass('novel-description');
+    expect(/\.novel-description\s*\{[^}]*white-space:\s*pre-line/.test(css)).toBe(true);
+    expect(screen.queryByRole('list', { name: 'Danh sách chương' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the selected tab in the URL: ?tab=intro for Giới thiệu, no parameter for the chapter list', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/novels\/summer$/);
+
+    await user.click(screen.getByRole('tab', { name: 'Giới thiệu' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/novels/summer?tab=intro');
+    expect(screen.getByText('Một mùa hè đáng nhớ.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Danh sách chương' }));
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/novels\/summer$/);
+    expect(screen.getByRole('list', { name: 'Danh sách chương' })).toBeInTheDocument();
+  });
+
+  it('falls back to the chapter list for an unknown tab value', async () => {
+    renderPage(source(), '/novels/summer?tab=whatever');
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    expect(screen.getByRole('tab', { name: 'Danh sách chương' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('has no tabs without a description, just the chapter list under its heading', async () => {
+    renderPage(noDescription(), '/novels/summer?tab=intro');
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Danh sách chương' })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Danh sách chương' })).toBeInTheDocument();
+  });
+
+  it('shows the chapters in one bordered box of compact rows', async () => {
+    renderPage();
+
+    const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+    expect(list).toHaveClass('chapter-list', 'chapter-list--public');
+    expect(list).not.toHaveClass('chapter-list--columns');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    const box = /\.chapter-list--public\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(box).toMatch(/border:\s*1px solid var\(--rule\)/);
+    expect(box).toMatch(/border-radius:/);
+    expect(box).toMatch(/gap:\s*0/);
+    expect(/\.chapter-list--public \.chapter-list__open\s*\{[^}]*min-height:\s*40px/.test(css)).toBe(true);
+  });
+
+  it('uses two columns on wide screens only for more than 12 chapters, reading down the first column first', async () => {
+    renderPage(source({ getNovel: async () => MANY }));
+
+    const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+    expect(list).toHaveClass('chapter-list--columns');
+    // DOM order stays ascending; CSS columns fill the first column top to bottom, then the second.
+    expect(within(list).getAllByRole('link').map((a) => a.textContent)).toEqual(
+      MANY.chapters.map((c) => `Chương ${c.chapterNo}: C${c.chapterNo}`),
+    );
+    expect(css).toMatch(/@media \(min-width: 760px\)\s*\{\s*\.chapter-list--columns\s*\{[^}]*column-count:\s*2/);
+  });
+
+  it('keeps one column for exactly 12 chapters', async () => {
+    renderPage(source({ getNovel: async () => ({ ...MANY, chapters: MANY.chapters.slice(0, 12) }) }));
+
+    expect(await screen.findByRole('list', { name: 'Danh sách chương' })).not.toHaveClass('chapter-list--columns');
   });
 
   it('shows Novels > novel title as a breadcrumb', async () => {

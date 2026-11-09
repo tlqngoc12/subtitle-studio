@@ -86,15 +86,15 @@ describe('FeaturedNovels', () => {
     const facts = within(banner).getByRole('list', { name: 'Thông tin' });
     expect(facts).toHaveTextContent('Chương2/5');
     expect(facts).toHaveTextContent('Tác giảผู้เขียน');
-    expect(facts).toHaveTextContent('Cập nhật05-11-2026');
+    expect(facts).toHaveTextContent('Cập nhật05/11/2026');
     expect(within(banner).getByRole('link', { name: 'Đọc từ đầu' })).toHaveAttribute('href', '/novels/a/1');
   });
 
-  it('shows the update date in Vietnam time, as dd-MM-yyyy', async () => {
+  it('shows the update date in Vietnam time, as dd/MM/yyyy', async () => {
     // 22:30 UTC on 20 Oct is already 21 Oct in Vietnam.
     await renderBanner([NOVELS[1]]);
 
-    expect(screen.getByRole('list', { name: 'Thông tin' })).toHaveTextContent('Cập nhật21-10-2026');
+    expect(screen.getByRole('list', { name: 'Thông tin' })).toHaveTextContent('Cập nhật21/10/2026');
     expect(screen.getByText('Hoàn thành')).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe('FeaturedNovels', () => {
 
     const facts = screen.getByRole('list', { name: 'Thông tin' });
     expect(facts).not.toHaveTextContent('Tác giả');
-    expect(facts).toHaveTextContent('Cập nhật03-09-2026');
+    expect(facts).toHaveTextContent('Cập nhật03/09/2026');
   });
 
   it('offers Đọc tiếp with the stored chapter, else Đọc từ đầu', async () => {
@@ -137,30 +137,54 @@ describe('FeaturedNovels', () => {
     await expectTooltip(info, 'Thông tin truyện');
   });
 
-  it('fans the covers, counts them and selects a neighbour on click', async () => {
-    const user = userEvent.setup();
+  it('fans the covers as links to their own novel pages, named by the title', async () => {
     await renderBanner();
 
     expect(counter()).toBe('01 / 03');
-    const covers = screen.getAllByRole('button', { name: /^Xem: / });
-    expect(covers).toHaveLength(3);
+    const banner = screen.getByRole('region', { name: 'Truyện nổi bật' });
+    const covers = ['a', 'b', 'c'].map((slug) => within(banner).getByRole('link', { name: `Truyện ${slug}` }));
+    covers.forEach((c, i) => expect(c).toHaveAttribute('href', `/novels/${['a', 'b', 'c'][i]}`));
     expect(covers[0]).toHaveAttribute('aria-current', 'true');
     expect(covers[0].style.getPropertyValue('--o')).toBe('0');
     expect(covers[1].style.getPropertyValue('--o')).toBe('1');
     expect(covers[2].style.getPropertyValue('--o')).toBe('-1');
+    // Clicking a cover leaves the banner for that novel's page: the current novel does not change here.
+    expect(screen.queryByRole('button', { name: /^Xem: / })).not.toBeInTheDocument();
+  });
 
-    await user.click(covers[1]);
+  it('browses with the small previous and next buttons, which have tooltips and wrap around', async () => {
+    const user = userEvent.setup();
+    await renderBanner();
+    const prev = screen.getByRole('button', { name: 'Truyện trước' });
+    const next = screen.getByRole('button', { name: 'Truyện sau' });
+    for (const el of [prev, next]) expect(el.querySelector('svg')).not.toBeNull();
+    await expectTooltip(prev, 'Truyện trước');
+    await expectTooltip(next, 'Truyện sau');
+
+    await user.click(next);
     expect(counter()).toBe('02 / 03');
     expect(screen.getByRole('heading', { name: 'Truyện b' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Đọc từ đầu' })).toHaveAttribute('href', '/novels/b/1');
+    await user.click(prev);
+    await user.click(prev);
+    expect(counter()).toBe('03 / 03');
+    await user.click(next);
+    expect(counter()).toBe('01 / 03');
+  });
+
+  it('has no previous/next buttons for a single novel', async () => {
+    await renderBanner([NOVELS[0]]);
+
+    expect(screen.queryByRole('button', { name: 'Truyện trước' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Truyện sau' })).not.toBeInTheDocument();
   });
 
   it('uses the empty-cover placeholder for a novel without a cover', async () => {
     await renderBanner();
 
-    const placeholder = screen.getByRole('button', { name: 'Xem: Truyện c' }).querySelector('.novel-card__cover--empty');
+    const placeholder = screen.getByRole('link', { name: 'Truyện c' }).querySelector('.novel-card__cover--empty');
     expect(placeholder).not.toBeNull();
-    expect(screen.getByRole('button', { name: 'Xem: Truyện a' }).querySelector('img')).toHaveAttribute('src', '/media/a.png');
+    expect(screen.getByRole('link', { name: 'Truyện a' }).querySelector('img')).toHaveAttribute('src', '/media/a.png');
   });
 
   it('puts the current cover blurred behind the banner', async () => {
@@ -190,6 +214,20 @@ describe('FeaturedNovels', () => {
       await tick(6000);
       await tick(6000);
       expect(counter()).toBe('01 / 03');
+    });
+
+    it('restarts the 6 second timer when previous or next is pressed', async () => {
+      await renderBanner();
+
+      await tick(4000);
+      fireEvent.click(screen.getByRole('button', { name: 'Truyện sau' }));
+      expect(counter()).toBe('02 / 03');
+      await tick(5999);
+      expect(counter()).toBe('02 / 03');
+      await tick(1);
+      expect(counter()).toBe('03 / 03');
+      fireEvent.click(screen.getByRole('button', { name: 'Truyện trước' }));
+      expect(counter()).toBe('02 / 03');
     });
 
     it('stops with the pause button and resumes with the same button', async () => {

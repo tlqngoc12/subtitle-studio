@@ -42,9 +42,9 @@ const VIETNAM_DATE = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 });
 
-/** `dd-MM-yyyy` in Vietnam time (the site's readers). */
+/** `dd/MM/yyyy` in Vietnam time (the site's readers). */
 export function publicDate(iso: string): string {
-  return VIETNAM_DATE.format(new Date(iso)).replaceAll('/', '-');
+  return VIETNAM_DATE.format(new Date(iso));
 }
 
 /** What guests see for any load error, whatever the cause. */

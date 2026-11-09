@@ -70,8 +70,8 @@ describe('PublicNovelsPage (home)', () => {
     expect(within(banner).getByText('01 / 05')).toBeInTheDocument();
     // The covers are in newest-first order: 8, 7, 6, 5, 4.
     expect(
-      within(banner).getAllByRole('button', { name: /^Xem: / }).map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['Xem: Truyện 8', 'Xem: Truyện 7', 'Xem: Truyện 6', 'Xem: Truyện 5', 'Xem: Truyện 4']);
+      within(banner).getAllByRole('link', { name: /^Truyện \d$/ }).map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['Truyện 8', 'Truyện 7', 'Truyện 6', 'Truyện 5', 'Truyện 4']);
   });
 
   it('lists the 6 latest under Mới cập nhật with x/y chương and a link to all', async () => {
