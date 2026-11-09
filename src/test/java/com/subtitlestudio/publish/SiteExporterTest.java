@@ -99,6 +99,9 @@ class SiteExporterTest {
     private com.subtitlestudio.profile.ProfileService profiles;
 
     @Autowired
+    private com.subtitlestudio.profile.ProfileBannerService bannerService;
+
+    @Autowired
     private MediaService mediaService;
 
     @Autowired
@@ -140,7 +143,7 @@ class SiteExporterTest {
 
     @AfterEach
     void cleanUp() {
-        for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_block_item", "t_profile_block", "t_media",
+        for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
                 "vi_cue", "cue", "video")) {
             jdbc.update("delete from " + table);
         }
@@ -251,6 +254,33 @@ class SiteExporterTest {
         assertThat(out.resolve("media/" + used.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + unused.getStorageKey() + ".png")).doesNotExist();
         assertThat(readJson("data/profiles.json").get(0).get("slug").asText()).isEqualTo("emibonnie");
+    }
+
+    @Test
+    void exportsBannerImagesWithPublicUrlsAndNoMediaId() throws IOException {
+        Media first = mediaService.store("a.png", PNG);
+        Media second = mediaService.store("b.png", PNG);
+        Media gone = mediaService.store("c.png", PNG);
+        Media unused = mediaService.store("d.png", PNG);
+        bannerService.add("emi", new com.subtitlestudio.profile.BannerImageRequest(first.getId(), "Fan meeting"));
+        bannerService.add("emi", new com.subtitlestudio.profile.BannerImageRequest(second.getId(), null));
+        bannerService.add("emi", new com.subtitlestudio.profile.BannerImageRequest(gone.getId(), "Lost"));
+        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".png"));
+
+        exporter.export(out, NOW);
+
+        com.fasterxml.jackson.databind.JsonNode banner = readJson("data/profiles/emi.json").get("banner");
+        assertThat(banner).hasSize(3);
+        assertThat(banner.get(0).get("mediaUrl").asText()).isEqualTo("/media/" + first.getStorageKey() + ".png");
+        assertThat(banner.get(0).get("altText").asText()).isEqualTo("Fan meeting");
+        assertThat(banner.get(1).get("altText").isNull()).isTrue();
+        assertThat(banner.get(2).get("mediaUrl").isNull()).isTrue();
+        assertThat(banner.get(0).has("mediaId")).isFalse();
+        assertThat(read("data/profiles/emi.json")).doesNotContain("/api/media/");
+        assertThat(out.resolve("media/" + first.getStorageKey() + ".png")).exists();
+        assertThat(out.resolve("media/" + second.getStorageKey() + ".png")).exists();
+        assertThat(out.resolve("media/" + unused.getStorageKey() + ".png")).doesNotExist();
+        assertThat(readJson("data/profiles/bonnie.json").get("banner")).isEmpty();
     }
 
     @Test

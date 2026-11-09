@@ -5,6 +5,7 @@ import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.playlist.PlaylistDetail;
 import com.subtitlestudio.playlist.PlaylistService;
 import com.subtitlestudio.playlist.PlaylistSummary;
+import com.subtitlestudio.profile.BannerImageDto;
 import com.subtitlestudio.profile.BlockDto;
 import com.subtitlestudio.profile.ImageType;
 import com.subtitlestudio.profile.ItemDto;
@@ -140,8 +141,10 @@ public class SiteExporter {
                     b.body(), b.mediaId(), publicUrl(b.mediaId(), dir, publicUrls), b.caption(), b.embedUrl(),
                     b.items().stream().map(i -> new ItemDto(i.label(), i.value(), i.mediaId(),
                             publicUrl(i.mediaId(), dir, publicUrls))).toList())).toList();
+            List<BannerImageDto> banner = profile.banner().stream().map(i -> new BannerImageDto(i.id(), null,
+                    publicUrl(i.mediaId(), dir, publicUrls), i.altText())).toList();
             write(dir.resolve("data/profiles/" + profile.slug() + ".json"),
-                    new ProfileDto(profile.slug(), profile.displayName(), profile.updatedAt(), blocks));
+                    new ProfileDto(profile.slug(), profile.displayName(), profile.updatedAt(), blocks, banner));
         }
     }
 

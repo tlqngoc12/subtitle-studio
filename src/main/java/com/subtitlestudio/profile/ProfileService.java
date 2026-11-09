@@ -17,15 +17,17 @@ public class ProfileService {
 
     private final ProfileRepository profiles;
     private final ProfileBlockRepository blocks;
+    private final ProfileBannerImageRepository banner;
     private final MediaRepository media;
     private final MediaService mediaService;
     private final ProfileBlockValidator validator;
     private final Clock clock;
 
-    public ProfileService(ProfileRepository profiles, ProfileBlockRepository blocks, MediaRepository media,
-                          MediaService mediaService, ProfileBlockValidator validator, Clock clock) {
+    public ProfileService(ProfileRepository profiles, ProfileBlockRepository blocks,
+                          ProfileBannerImageRepository banner, MediaRepository media, MediaService mediaService, ProfileBlockValidator validator, Clock clock) {
         this.profiles = profiles;
         this.blocks = blocks;
+        this.banner = banner;
         this.media = media;
         this.mediaService = mediaService;
         this.validator = validator;
@@ -45,7 +47,8 @@ public class ProfileService {
         List<BlockDto> dtos = blocks.findByProfileOrderByPositionAscIdAsc(profile).stream()
                 .map(ProfileService::toDto)
                 .toList();
-        return new ProfileDto(profile.getSlug(), profile.getDisplayName(), profile.getUpdatedAt(), dtos);
+        return new ProfileDto(profile.getSlug(), profile.getDisplayName(), profile.getUpdatedAt(), dtos,
+                ProfileBannerService.toDtos(banner.findByProfileOrderByPositionAscIdAsc(profile)));
     }
 
     public BlockDto addBlock(String slug, BlockRequest request) {

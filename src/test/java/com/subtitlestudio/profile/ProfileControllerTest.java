@@ -59,10 +59,13 @@ class ProfileControllerTest {
     @Test
     void getsProfileWithBlocks() throws Exception {
         when(service.get("emi")).thenReturn(
-                new ProfileDto("emi", "Emi", Instant.parse("2026-11-03T10:00:00Z"), List.of(LINKS)));
+                new ProfileDto("emi", "Emi", Instant.parse("2026-11-03T10:00:00Z"), List.of(LINKS),
+                        List.of(new BannerImageDto(4, null, "/api/media/7", "Alt"))));
 
         mvc.perform(get("/api/profiles/emi")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.blocks[0].id").value(12))
+                .andExpect(jsonPath("$.banner[0].mediaUrl").value("/api/media/7"))
+                .andExpect(jsonPath("$.banner[0].altText").value("Alt"))
                 .andExpect(jsonPath("$.blocks[0].type").value("LINKS"))
                 .andExpect(jsonPath("$.blocks[0].items[0].value").value("https://instagram.com/x"));
     }
