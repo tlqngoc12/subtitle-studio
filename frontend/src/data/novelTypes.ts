@@ -10,6 +10,10 @@ export interface PublicNovelSummary {
   tags: string[];
   novelStatus: NovelStatus;
   publishedCount: number;
+  /** Every chapter of the novel, drafts included (the y of "x/y chương"). Missing in files published earlier. */
+  totalChapters?: number;
+  /** When the latest published chapter went out; null or missing without one. Falls back to `updatedAt`. */
+  lastPublishedAt?: string | null;
   updatedAt: string;
 }
 

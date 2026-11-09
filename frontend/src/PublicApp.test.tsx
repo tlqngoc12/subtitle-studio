@@ -93,6 +93,13 @@ describe('PublicApp', () => {
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 
+  it('novelsAllIsItsOwnPageNotANovel', async () => {
+    renderAt('/novels/all');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tất cả truyện' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('readerOpensAChapter', async () => {
     renderAt('/novels/abc/2');
 

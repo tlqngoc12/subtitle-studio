@@ -20,6 +20,33 @@ export function publicChapterCount(count: number): string {
   return `${count} chương`;
 }
 
+/** The "x/y" of a novel: published chapters over all chapters (older files without the total show x/x). */
+export function publicChapterProgress(n: { publishedCount: number; totalChapters?: number }): string {
+  return `${n.publishedCount}/${n.totalChapters ?? n.publishedCount}`;
+}
+
+/** When a novel last got a chapter: the latest published chapter, else the novel's own update time. */
+export function latestUpdate(n: { lastPublishedAt?: string | null; updatedAt: string }): string {
+  return n.lastPublishedAt ?? n.updatedAt;
+}
+
+/** Newest first by {@link latestUpdate}. */
+export function byLatestUpdate<T extends { lastPublishedAt?: string | null; updatedAt: string }>(novels: T[]): T[] {
+  return [...novels].sort((a, b) => Date.parse(latestUpdate(b)) - Date.parse(latestUpdate(a)));
+}
+
+const VIETNAM_DATE = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
+/** `dd-MM-yyyy` in Vietnam time (the site's readers). */
+export function publicDate(iso: string): string {
+  return VIETNAM_DATE.format(new Date(iso)).replaceAll('/', '-');
+}
+
 /** What guests see for any load error, whatever the cause. */
 export const PUBLIC_ERROR_TITLE = 'Không tải được. Vui lòng thử lại sau.';
 
