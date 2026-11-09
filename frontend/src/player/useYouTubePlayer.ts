@@ -137,5 +137,13 @@ export function useYouTubePlayer(
     return () => clearInterval(timer);
   }, [state]);
 
-  return { currentMs, state: stateFor === videoId ? state : 'loading', error };
+  /** Jumps to the given millisecond (no-op until the player is ready) and shows the new time without waiting for the next poll. */
+  const seekTo = useCallback((ms: number) => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    player.seekTo(ms / 1000, true);
+    setCurrentMs(ms);
+  }, []);
+
+  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo };
 }

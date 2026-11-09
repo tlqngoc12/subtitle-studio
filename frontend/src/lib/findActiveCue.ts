@@ -1,10 +1,10 @@
 import type { ViCue } from '../api/client';
 
 /**
- * Returns the cue shown at `ms` (start inclusive, end exclusive), or null.
+ * Returns the index of the cue shown at `ms` (start inclusive, end exclusive), or -1.
  * `cues` must be sorted by startMs. When cues overlap, the latest-starting one wins.
  */
-export function findActiveCue(cues: ViCue[], ms: number): ViCue | null {
+export function findActiveIndex(cues: readonly { startMs: number; endMs: number }[], ms: number): number {
   // Binary search: last index whose startMs <= ms.
   let lo = 0;
   let hi = cues.length - 1;
@@ -20,7 +20,13 @@ export function findActiveCue(cues: ViCue[], ms: number): ViCue | null {
   }
   // Walk back for an earlier, longer cue that still covers ms.
   for (let i = last; i >= 0; i--) {
-    if (ms < cues[i].endMs) return cues[i];
+    if (ms < cues[i].endMs) return i;
   }
-  return null;
+  return -1;
+}
+
+/** The cue shown at `ms`, or null. See {@link findActiveIndex}. */
+export function findActiveCue(cues: ViCue[], ms: number): ViCue | null {
+  const i = findActiveIndex(cues, ms);
+  return i < 0 ? null : cues[i];
 }

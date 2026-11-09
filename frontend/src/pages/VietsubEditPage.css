@@ -1,0 +1,39 @@
+/* Vietsub editor: the player stays in view while the lines scroll beside or below it. */
+.vedit {
+  max-width: 1440px;
+}
+
+.vedit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.vedit__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* Stacked layout: the player sticks under the top bar; the table gets the rest of the screen. */
+.vedit__player {
+  position: sticky;
+  top: var(--topbar-h, 56px);
+  z-index: 2;
+  padding-bottom: var(--space-2);
+  background: var(--paper);
+}
+
+.vedit__body {
+  --cue-table-max: max(240px, calc(100dvh - var(--topbar-h, 56px) - 100vw * 9 / 16 - var(--space-16)));
+}
+
+@media (min-width: 1024px) {
+  .vedit__body {
+    grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+    /* Table: as tall as the viewport minus the top bar and the header. */
+    --cue-table-max: calc(100dvh - var(--topbar-h, 56px) - 160px);
+  }
+}

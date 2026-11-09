@@ -1,0 +1,135 @@
+/* The editable Vietsub lines. The table scrolls inside its own box so the video can stay in view. */
+.cue-table {
+  overflow: auto;
+  max-height: var(--cue-table-max, 60dvh);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.cue-table__grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cue-table__grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+  text-align: left;
+}
+
+.cue-row td {
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+/* "You are here": orchid bar on the left and a tint, plus aria-current on the row. */
+.cue-row td:first-child {
+  border-left: 4px solid transparent;
+}
+
+.cue-row--active {
+  background: var(--hover);
+}
+
+.cue-row--active td:first-child {
+  border-left-color: var(--brand-2);
+}
+
+.cue-row__num {
+  width: 1%;
+}
+
+/* Number button: orange outline like the other small buttons, orchid on hover. */
+.cue-row__seek {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--brand-ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.cue-row__seek:hover {
+  border-color: var(--brand-2);
+}
+
+.cue-row__seek:focus-visible,
+.cue-row__input:focus-visible,
+.cue-row__dot:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cue-row__time {
+  width: 1%;
+  padding-top: var(--space-2);
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--step--1);
+  white-space: nowrap;
+}
+
+.cue-row__text {
+  position: relative;
+}
+
+.cue-row__input {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.4;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+}
+
+.cue-row__input[readonly] {
+  border-color: var(--rule);
+  color: var(--muted);
+}
+
+/* Small orange dot: this line differs from the saved text. */
+.cue-row__dot {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.cue-row__input:has(+ .cue-row__dot) {
+  padding-right: var(--space-5);
+}
+
+@media (max-width: 520px) {
+  /* Phones: the end time goes, the start time stays. */
+  .cue-row__time--end {
+    display: none;
+  }
+
+  .cue-row td,
+  .cue-table__grid th {
+    padding-inline: var(--space-2);
+  }
+}
