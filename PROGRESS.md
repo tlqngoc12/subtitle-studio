@@ -609,6 +609,14 @@ Plan: [docs/superpowers/plans/2026-11-09-brand-colours-and-reader-drawer.md](doc
 - **Mục lục** (`ReaderBar`): Radix Dialog dạng ngăn kéo bên phải (`min(360px, 85vw)`, cao `100dvh`, overlay mờ, thân cuộn riêng có thanh cuộn mảnh), trượt vào/ra (tắt khi `prefers-reduced-motion`). Esc, ✕, bấm overlay đều đóng; focus trả về nút `Mục lục`. Khi mở, focus rơi vào ngăn kéo (không vào nút ✕, vì tooltip của ✕ sẽ nuốt lần Esc đầu).
 - **Cuối chương:** `Chương trước` góc trái, `Chương sau` góc phải của cột đọc (`--reader-width`), cả hai là nút cam `button--primary`.
 
+### 2026-11-09: Bảng màu ấm (sáng A, tối C) ✅ (chưa merge, chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-09-warm-palette.md](docs/superpowers/plans/2026-11-09-warm-palette.md). Nhánh `feature/novel-page-checks`. Chỉ đổi frontend, không thêm package.
+
+- **Token:** nền ấm `#F7F3EE` + mực tím sẫm `#221C26` (sáng); nền tím tối `#16121B`/`#211B28` (tối); thêm `--brand-hover`, `--frame`, `--on-frame`. Nút chính hover đổi nền sang `--brand-hover`.
+- **Khung video:** `UrlForm.css` và `VideoPlayer.css` dùng `--frame`/`--on-frame` thay hex.
+- **Test:** `contrast.test.ts` kiểm `--ink` ≥ 7:1 (AAA), chữ phụ/brand-ink/danger ≥ 4.5:1, viền ô nhập/focus ≥ 3:1, `--on-brand` trên `--brand-hover`, `--on-frame` 7:1. `--danger` và `--hover` giữ nguyên (đạt).
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

@@ -36,27 +36,28 @@ const themes = { light, dark };
 
 describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens) => {
   it.each([
-    ['--ink', '--paper', 4.5],
-    ['--ink', '--surface', 4.5],
+    // Body text: AAA.
+    ['--ink', '--paper', 7],
+    ['--ink', '--surface', 7],
     ['--muted', '--paper', 4.5],
     ['--muted', '--surface', 4.5],
     ['--brand-ink', '--paper', 4.5],
     ['--brand-ink', '--surface', 4.5],
-    ['--brand-2-ink', '--paper', 3],
-    ['--brand-2-ink', '--surface', 3],
-    ['--field-border', '--paper', 3],
-    ['--field-border', '--surface', 3],
-    ['--on-brand', '--brand', 4.5],
-    // Delete buttons keep a red border at rest.
-    ['--danger', '--paper', 3],
-    ['--danger', '--surface', 3],
-    // The keyboard focus ring (orchid) and the orchid link-hover text.
-    ['--focus', '--paper', 3],
-    ['--focus', '--surface', 3],
     ['--brand-2-ink', '--paper', 4.5],
     ['--brand-2-ink', '--surface', 4.5],
+    ['--on-brand', '--brand', 4.5],
+    ['--on-brand', '--brand-hover', 4.5],
+    ['--field-border', '--paper', 3],
+    ['--field-border', '--surface', 3],
+    // Delete buttons keep a red border at rest; --danger is also used as text.
+    ['--danger', '--paper', 4.5],
+    ['--danger', '--surface', 4.5],
+    // The keyboard focus ring (orchid).
+    ['--focus', '--paper', 3],
+    ['--focus', '--surface', 3],
     // The search box and URL field sit on the always-dark video frame, whose focus ring is --brand-2.
-    ['--brand-2', '#1b2430', 3],
+    ['--brand-2', '--frame', 3],
+    ['--on-frame', '--frame', 7],
   ])('%s on %s is at least %s:1', (fg, bg, min) => {
     expect(ratio(tokens, fg, bg)).toBeGreaterThanOrEqual(min);
   });

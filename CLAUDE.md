@@ -78,6 +78,9 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
   |---|---|
   | Hành động và nhấn: nền nút chính, **viền nút phụ**, link, điểm nhấn | Cam: `--brand` cho nền/viền; `--brand-ink` cho chữ và link trên nền sáng |
   | Trạng thái, "đang ở đây/đang chọn", hover: pill menu, gạch chân tab, chương đang đọc, viền nút khi hover | Tím: `--brand-2`; `--brand-2-ink` cho chữ/icon cần ≥ 3:1 |
+  | Bảng màu ấm (2026-11-09) | Sáng: `--paper` #F7F3EE, `--surface` #FFF, `--ink` #221C26 (tím sẫm), `--muted` #5E5666, `--rule` #E3DCD3, `--field-border` #8B8178, `--brand-ink` #A35509, `--brand-2-ink` #8E4F8E. Tối: `--paper` #16121B, `--surface` #211B28, `--ink` #EEE8F3, `--muted` #A9A1B4, `--rule` #342C3E, `--field-border` #776D84, `--brand` #F5A25A; `--brand-ink`/`--brand-2-ink` = màu nền tương ứng |
+  | Nút chính khi hover | Nền `--brand-hover` (sáng #E8862C, tối #F8B47A); không đổ tím, không `filter: brightness` |
+  | Khung video tối (`UrlForm`, `VideoPlayer`) | `--frame` #221C26 + `--on-frame` #EEE8F3, giống nhau ở hai giao diện; focus `--brand-2` (≥ 3:1). Không hard-code hex; ngoại lệ chỉ `#000`/`#fff` cho shadow, mask, lớp phủ phụ đề |
   | Focus bàn phím | `--focus` (tím, ≥ 3:1 trên `--paper`/`--surface`; trên khung video tối dùng `--brand-2`) |
   | Một phần tử | Một màu thương hiệu mỗi lúc: cam khi đứng yên, tím khi hover hoặc đang chọn, không dùng cả hai |
 
