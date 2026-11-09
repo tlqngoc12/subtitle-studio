@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
@@ -55,8 +55,12 @@ function renderAt(path: string, s: NovelSource = source) {
   );
 }
 
+beforeEach(() => localStorage.clear());
 afterEach(() => {
   document.title = '';
+  document.documentElement.removeAttribute('data-theme');
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('ReaderPage', () => {
@@ -236,5 +240,134 @@ describe('ReaderPage', () => {
     images[0].dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
+  });
+});
+
+describe('ReaderPage preferences', () => {
+  const reader = (container: HTMLElement) => container.querySelector('.reader') as HTMLElement;
+
+  it('stores the reading position and the chapters opened', async () => {
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    expect(JSON.parse(localStorage.getItem('novel-progress:summer')!)).toEqual({ chapterNo: 3 });
+    expect(JSON.parse(localStorage.getItem('novel-read:summer')!)).toEqual([3]);
+
+    await userEvent.setup().selectOptions(screen.getByLabelText('Danh sách chương'), '4');
+    await screen.findAllByRole('img', { name: /^Special, trang/ });
+
+    expect(JSON.parse(localStorage.getItem('novel-progress:summer')!)).toEqual({ chapterNo: 4 });
+    expect(JSON.parse(localStorage.getItem('novel-read:summer')!)).toEqual([3, 4]);
+  });
+
+  it('renders with defaults when localStorage throws', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const user = userEvent.setup();
+    const { container } = renderAt('/novels/summer/3');
+
+    expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
+    expect(reader(container)).toHaveAttribute('data-width', '600');
+    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'false');
+    await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
+    await user.click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
+    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
+    expect(reader(container)).toHaveAttribute('data-width', '760');
+  });
+
+  it('toggles night mode, flips aria-pressed and the reader class, and remembers it', async () => {
+    const user = userEvent.setup();
+    const { container, unmount } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const toggle = screen.getByRole('button', { name: 'Chế độ đêm' });
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(reader(container)).not.toHaveClass('reader--night');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(reader(container)).toHaveClass('reader--night');
+    expect(localStorage.getItem('reader-night')).toBe('on');
+
+    unmount();
+    const again = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(reader(again.container)).toHaveClass('reader--night');
+    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
+    expect(localStorage.getItem('reader-night')).toBe('off');
+    expect(reader(again.container)).not.toHaveClass('reader--night');
+  });
+
+  it('defaults to night mode when the theme is dark, and a stored choice overrides it', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const dark = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(reader(dark.container)).toHaveClass('reader--night');
+    dark.unmount();
+
+    localStorage.setItem('reader-night', 'off');
+    const overridden = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(reader(overridden.container)).not.toHaveClass('reader--night');
+  });
+
+  it('follows the OS dark setting when no theme is forced', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    expect(reader(container)).toHaveClass('reader--night');
+  });
+
+  it('keeps the night filter when the window is inactive', async () => {
+    localStorage.setItem('reader-night', 'on');
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    fireEvent(window, new Event('blur'));
+
+    expect(reader(container)).toHaveClass('reader--night');
+    expect(reader(container)).toHaveClass('reader--hidden');
+  });
+
+  it('steps the width 600 / 760 / 900, disables the buttons at the ends and remembers it', async () => {
+    const user = userEvent.setup();
+    const { container, unmount } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const smaller = screen.getByRole('button', { name: 'Chữ nhỏ hơn' });
+    const larger = screen.getByRole('button', { name: 'Chữ lớn hơn' });
+
+    expect(reader(container)).toHaveAttribute('data-width', '600');
+    expect(smaller).toBeDisabled();
+    expect(larger).toBeEnabled();
+
+    await user.click(larger);
+    expect(reader(container)).toHaveAttribute('data-width', '760');
+    expect(smaller).toBeEnabled();
+    await user.click(larger);
+    expect(reader(container)).toHaveAttribute('data-width', '900');
+    expect(larger).toBeDisabled();
+    expect(localStorage.getItem('reader-width')).toBe('900');
+
+    await user.click(smaller);
+    expect(reader(container)).toHaveAttribute('data-width', '760');
+
+    unmount();
+    const again = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(reader(again.container)).toHaveAttribute('data-width', '760');
+  });
+
+  it('keeps the preference buttons outside the copy-guarded reader', async () => {
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    expect(reader(container).contains(screen.getByRole('button', { name: 'Chế độ đêm' }))).toBe(false);
+    expect(reader(container).contains(screen.getByRole('button', { name: 'Chữ lớn hơn' }))).toBe(false);
   });
 });

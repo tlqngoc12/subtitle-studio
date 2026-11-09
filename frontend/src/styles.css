@@ -2592,7 +2592,7 @@ a.tabs__tab {
 }
 
 .reader-page {
-  max-width: 720px;
+  max-width: 960px;
   /* Opening a chapter scrolls here; keep the heading clear of the sticky top bar. */
   scroll-margin-top: 80px;
 }
@@ -2727,7 +2727,7 @@ a.tabs__tab {
   position: relative;
   display: grid;
   gap: 0;
-  max-width: 600px;
+  max-width: var(--reader-width, 600px);
   margin-inline: auto;
   user-select: none;
   -webkit-user-select: none;
@@ -2764,12 +2764,45 @@ a.tabs__tab {
   filter: blur(24px);
 }
 
+/* Night mode: invert the paper to dark and turn the hues back, so the text is light on dark. */
+.reader--night .reader__page {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+
+.reader--night.reader--hidden .reader__page {
+  filter: invert(0.88) hue-rotate(180deg) blur(24px);
+}
+
+/* Night mode / text size buttons, above the pages (outside the copy-guarded .reader). */
+.reader__display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.reader__display .button[aria-pressed='true'] {
+  border-color: var(--brand);
+}
+
+/* Chapters already read on the novel page. */
+.chapter-list__item--read .chapter-list__open {
+  color: var(--muted);
+}
+
+.chapter-list__check {
+  flex: none;
+  color: var(--brand-2);
+}
+
 .reader-print-note {
   display: none;
 }
 
 @media print {
   .reader,
+  .reader__display,
   .reader__toolbar,
   .reader__end {
     display: none !important;

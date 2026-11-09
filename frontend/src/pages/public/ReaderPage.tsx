@@ -1,10 +1,20 @@
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Moon, Sun } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
 import { useCopyGuard } from '../../lib/useCopyGuard';
 import { PUBLIC_ERROR_TITLE, publicChapterLabel, publicChapterName, useDocumentTitle } from './publicNames';
+import {
+  READER_WIDTHS,
+  isDarkTheme,
+  readNight,
+  readWidth,
+  recordProgress,
+  saveNight,
+  saveWidth,
+  type ReaderWidth,
+} from './readerPrefs';
 
 /**
  * The public chapter reader: the chapter as drawn images (no text on the page), one toolbar (previous, chapter list,
@@ -20,6 +30,22 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [chapter, setChapter] = useState<PublicChapterFile | null>(null);
   const [failed, setFailed] = useState(false);
+  // Night mode: the reader's own choice, else on exactly when the app theme is dark.
+  const [night, setNight] = useState(() => readNight() ?? isDarkTheme());
+  const [width, setWidth] = useState<ReaderWidth>(readWidth);
+  const widthStep = READER_WIDTHS.indexOf(width);
+
+  function toggleNight() {
+    saveNight(!night);
+    setNight(!night);
+  }
+
+  function stepWidth(delta: number) {
+    const next = READER_WIDTHS[widthStep + delta];
+    if (next === undefined) return;
+    saveWidth(next);
+    setWidth(next);
+  }
 
   useEffect(() => {
     source
@@ -43,6 +69,11 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const to = (no: number) => `/novels/${slug}/${no}`;
   const prev = chapter?.prev ?? null;
   const next = chapter?.next ?? null;
+
+  const openedNo = chapter?.chapterNo;
+  useEffect(() => {
+    if (openedNo !== undefined) recordProgress(slug, openedNo);
+  }, [slug, openedNo]);
 
   const current = chapter ? publicChapterLabel(chapter.chapterNo, chapter.title, chapter.label) : null;
   useDocumentTitle(current && novel ? `${current} · ${novel.title}` : current);
@@ -111,7 +142,40 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
               <span className="reader__step reader__step--next" aria-hidden="true" />
             )}
           </nav>
-          <div className={hidden ? 'reader reader--hidden' : 'reader'}>
+          <div className="reader__display">
+            <button
+              type="button"
+              className="button button--small"
+              aria-pressed={night}
+              onClick={toggleNight}
+            >
+              {night ? <Sun className="icon" aria-hidden="true" /> : <Moon className="icon" aria-hidden="true" />}
+              Chế độ đêm
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              aria-label="Chữ nhỏ hơn"
+              disabled={widthStep <= 0}
+              onClick={() => stepWidth(-1)}
+            >
+              A−
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              aria-label="Chữ lớn hơn"
+              disabled={widthStep >= READER_WIDTHS.length - 1}
+              onClick={() => stepWidth(1)}
+            >
+              A+
+            </button>
+          </div>
+          <div
+            className={['reader', hidden && 'reader--hidden', night && 'reader--night'].filter(Boolean).join(' ')}
+            data-width={width}
+            style={{ '--reader-width': `${width}px` } as CSSProperties}
+          >
             {chapter.images.map((src, i) => (
               <img
                 key={src}

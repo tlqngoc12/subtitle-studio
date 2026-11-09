@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
 import PublicNovelPage from './PublicNovelPage';
@@ -144,5 +144,81 @@ describe('PublicNovelPage', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Không tải được. Vui lòng thử lại sau.');
     expect(within(alert).getByRole('link', { name: 'Về danh sách truyện' })).toHaveAttribute('href', '/novels');
+  });
+});
+
+describe('PublicNovelPage reading progress', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  function renderPage(s = source()) {
+    render(
+      <MemoryRouter initialEntries={['/novels/summer']}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={s} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('offers to continue from the stored chapter, or to start over', async () => {
+    localStorage.setItem('novel-progress:summer', JSON.stringify({ chapterNo: 3 }));
+    renderPage();
+
+    const resume = await screen.findByRole('link', { name: 'Đọc tiếp: Ngoại truyện 1' });
+    expect(resume).toHaveAttribute('href', '/novels/summer/3');
+    expect(screen.getByRole('link', { name: 'Đọc từ đầu' })).toHaveAttribute('href', '/novels/summer/1');
+    expect(screen.queryByRole('link', { name: 'Bắt đầu đọc' })).not.toBeInTheDocument();
+  });
+
+  it('says Bắt đầu đọc without stored progress', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Bắt đầu đọc' })).toHaveAttribute('href', '/novels/summer/1');
+    expect(screen.queryByRole('link', { name: /Đọc tiếp/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Đọc từ đầu' })).not.toBeInTheDocument();
+  });
+
+  it('says Bắt đầu đọc, with no broken link, when the stored chapter is no longer published', async () => {
+    localStorage.setItem('novel-progress:summer', JSON.stringify({ chapterNo: 99 }));
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Bắt đầu đọc' })).toHaveAttribute('href', '/novels/summer/1');
+    expect(screen.queryByRole('link', { name: /Đọc tiếp/ })).not.toBeInTheDocument();
+    expect(document.querySelector('a[href="/novels/summer/99"]')).toBeNull();
+    expect(screen.queryByText('Đang đọc')).not.toBeInTheDocument();
+  });
+
+  it('marks read chapters and the one being read', async () => {
+    localStorage.setItem('novel-progress:summer', JSON.stringify({ chapterNo: 3 }));
+    localStorage.setItem('novel-read:summer', JSON.stringify([1, 3]));
+    renderPage();
+
+    const items = within(await screen.findByRole('list', { name: 'Danh sách chương' })).getAllByRole('listitem');
+    expect(within(items[0]).getByRole('img', { name: 'Đã đọc' })).toBeInTheDocument();
+    expect(items[0]).toHaveClass('chapter-list__item--read');
+    expect(within(items[0]).queryByText('Đang đọc')).not.toBeInTheDocument();
+    expect(within(items[1]).getByText('Đang đọc')).toBeInTheDocument();
+    expect(within(items[1]).getByRole('img', { name: 'Đã đọc' })).toBeInTheDocument();
+  });
+
+  it('leaves unread chapters unmarked', async () => {
+    renderPage();
+
+    const items = within(await screen.findByRole('list', { name: 'Danh sách chương' })).getAllByRole('listitem');
+    expect(within(items[0]).queryByRole('img', { name: 'Đã đọc' })).not.toBeInTheDocument();
+    expect(items[0]).not.toHaveClass('chapter-list__item--read');
+  });
+
+  it('still renders with the defaults when localStorage throws', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Bắt đầu đọc' })).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Danh sách chương' })).getAllByRole('link')).toHaveLength(2);
   });
 });

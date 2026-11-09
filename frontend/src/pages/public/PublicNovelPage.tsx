@@ -1,8 +1,9 @@
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, Check, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail } from '../../data/novelTypes';
+import { readProgress, readReadChapters } from './readerPrefs';
 import { PUBLIC_ERROR_TITLE, PUBLIC_STATUS_LABEL, publicChapterLabel, useDocumentTitle } from './publicNames';
 
 /** A novel's public page: cover, the eight fields (description as plain text) and its published chapters. */
@@ -40,6 +41,9 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   }
 
   const first = novel.chapters[0];
+  const stored = readProgress(novel.slug);
+  const resume = stored === null ? undefined : novel.chapters.find((c) => c.chapterNo === stored);
+  const read = new Set(readReadChapters(novel.slug));
   return (
     <main className="page">
       <header className="novel-hero">
@@ -80,10 +84,21 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
             </ul>
           )}
           <div className="novel-hero__actions">
-            {first && (
-              <Link className="button button--primary" to={`/novels/${novel.slug}/${first.chapterNo}`}>
-                Bắt đầu đọc
-              </Link>
+            {resume ? (
+              <>
+                <Link className="button button--primary" to={`/novels/${novel.slug}/${resume.chapterNo}`}>
+                  Đọc tiếp: {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                </Link>
+                <Link className="button button--small" to={`/novels/${novel.slug}/${first.chapterNo}`}>
+                  Đọc từ đầu
+                </Link>
+              </>
+            ) : (
+              first && (
+                <Link className="button button--primary" to={`/novels/${novel.slug}/${first.chapterNo}`}>
+                  Bắt đầu đọc
+                </Link>
+              )
             )}
             {novel.sourceUrl && (
               <a className="button button--small" href={novel.sourceUrl} target="_blank" rel="noopener noreferrer">
@@ -99,13 +114,23 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
 
       <h2 className="history__heading">Danh sách chương</h2>
       <ol className="chapter-list" aria-label="Danh sách chương">
-        {novel.chapters.map((c) => (
-          <li key={c.chapterNo} className="chapter-list__item">
-            <Link className="chapter-list__open" to={`/novels/${novel.slug}/${c.chapterNo}`}>
-              {publicChapterLabel(c.chapterNo, c.title, c.label)}
-            </Link>
-          </li>
-        ))}
+        {novel.chapters.map((c) => {
+          const isRead = read.has(c.chapterNo);
+          return (
+            <li
+              key={c.chapterNo}
+              className={isRead ? 'chapter-list__item chapter-list__item--read' : 'chapter-list__item'}
+            >
+              <div className="chapter-list__row">
+                <Link className="chapter-list__open" to={`/novels/${novel.slug}/${c.chapterNo}`}>
+                  {publicChapterLabel(c.chapterNo, c.title, c.label)}
+                </Link>
+                {c.chapterNo === stored && <span className="badge badge--info">Đang đọc</span>}
+                {isRead && <Check className="icon chapter-list__check" role="img" aria-label="Đã đọc" />}
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </main>
   );
