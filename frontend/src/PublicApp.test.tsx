@@ -96,6 +96,6 @@ describe('PublicApp', () => {
   it('readerOpensAChapter', async () => {
     renderAt('/novels/abc/2');
 
-    expect(await screen.findByRole('img', { name: 'Chapter 2, page 1 of 1' })).toHaveAttribute('src', '/novels/abc/x-1.webp');
+    expect(await screen.findByRole('img', { name: 'Chương 2, trang 1/1' })).toHaveAttribute('src', '/novels/abc/x-1.webp');
   });
 });

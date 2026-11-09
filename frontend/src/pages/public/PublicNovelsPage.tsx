@@ -4,13 +4,14 @@ import { Link } from 'react-router';
 import { EmptyState } from '../../components/EmptyState';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
-import { errorMessage, type ErrorMessage } from '../../lib/errors';
-import { STATUS_LABEL, chapterCountLabel } from '../NovelsPage';
+import { errorMessage } from '../../lib/errors';
+import { PUBLIC_ERROR_TITLE, PUBLIC_STATUS_LABEL, publicChapterCount, useDocumentTitle } from './publicNames';
 
-/** Public Novels: one card per novel that has a published chapter. */
+/** Public Novels: one card per novel that has a published chapter. Copy is Vietnamese. */
 export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
-  const [error, setError] = useState<ErrorMessage | null>(null);
+  const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
+  useDocumentTitle('Truyện');
 
   useEffect(() => {
     source
@@ -18,14 +19,14 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
       .then(setNovels)
       .catch((e) => {
         setNovels([]);
-        setError(errorMessage(e, { readOnly: true }));
+        setError({ title: PUBLIC_ERROR_TITLE, hint: errorMessage(e, { readOnly: true }).hint });
       });
   }, [source]);
 
   return (
     <main className="page">
       <header className="masthead">
-        <h1 className="masthead__name">Novels</h1>
+        <h1 className="masthead__name">Truyện</h1>
       </header>
       {error && (
         <div className="alert" role="alert">
@@ -33,11 +34,11 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
           {error.hint && <p className="alert__hint">{error.hint}</p>}
         </div>
       )}
-      <section className="history" aria-label="Novels">
+      <section className="history" aria-label="Truyện">
         {novels === null ? (
-          <p className="muted">Loading list…</p>
+          <p className="muted">Đang tải…</p>
         ) : novels.length === 0 ? (
-          <EmptyState icon={BookOpen}>No novels yet. Check back soon.</EmptyState>
+          <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
         ) : (
           <ul className="novel-grid">
             {novels.map((n) => (
@@ -52,8 +53,8 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
                   )}
                   <span className="novel-card__body">
                     <span className="novel-card__title">{n.title}</span>
-                    <span className="badge badge--info">{STATUS_LABEL[n.novelStatus]}</span>
-                    <span className="meta">{chapterCountLabel(n.publishedCount)}</span>
+                    <span className="badge badge--info">{PUBLIC_STATUS_LABEL[n.novelStatus]}</span>
+                    <span className="meta">{publicChapterCount(n.publishedCount)}</span>
                   </span>
                 </Link>
               </li>

@@ -2597,21 +2597,23 @@ a.tabs__tab {
   scroll-margin-top: 80px;
 }
 
-.reader__head {
+/* One toolbar: previous, chapter list (fills the row), next. Narrow screens: list on its own row, buttons below. */
+.reader__toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.reader__title {
-  margin: 0;
-  font-size: var(--step-2);
+  gap: 8px;
+  align-items: center;
+  margin-block: 12px;
 }
 
 .reader__select {
-  min-width: 200px;
+  flex: 1 1 220px;
+  order: 2;
+  min-width: 0;
+}
+
+.reader__select select {
+  width: 100%;
 }
 
 /* The selected chapter in the list uses the "you are here" colour. */
@@ -2619,22 +2621,112 @@ a.tabs__tab {
   border-color: var(--brand-2);
 }
 
-.reader__nav {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-block: 12px;
+.reader__step {
+  min-height: 44px;
+  white-space: nowrap;
 }
 
-.reader__nav .button {
-  min-height: 44px;
+.reader__step--prev {
+  order: 1;
+}
+
+.reader__step--next {
+  order: 3;
+}
+
+@media (max-width: 560px) {
+  .reader__select {
+    flex-basis: 100%;
+    order: 0;
+  }
+
+  .reader__step {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+/* End of chapter: a big "next" card, or the "you have read everything" box. */
+.reader__end {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 600px;
+  margin: 16px auto 32px;
+}
+
+.reader__next-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 14px 18px;
+  border: 2px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.reader__next-card:hover {
+  background: var(--surface);
+  border-color: var(--brand-2);
+}
+
+.reader__next-card__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reader__next-card__hint {
+  color: var(--muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.reader__next-card__name {
+  font-size: var(--step-1);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.reader__done {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--brand-2);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  text-align: center;
+}
+
+.reader__done p {
+  margin: 0;
+}
+
+.reader__prev-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.reader__prev-link:hover {
+  color: var(--ink);
 }
 
 /* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
 .reader {
   position: relative;
   display: grid;
-  gap: 8px;
+  gap: 0;
   max-width: 600px;
   margin-inline: auto;
   user-select: none;
@@ -2646,9 +2738,21 @@ a.tabs__tab {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 4px;
+  /* Reserve the page's space before it loads, so the chapter does not jump. */
+  aspect-ratio: auto 1080 / 1600;
   pointer-events: none;
   transition: filter 0.2s;
+}
+
+/* Continuous pages: only the outer corners of the first and last image are rounded. */
+.reader__page:first-of-type {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.reader__page:last-of-type {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
 .reader__shield {
@@ -2666,8 +2770,8 @@ a.tabs__tab {
 
 @media print {
   .reader,
-  .reader__nav,
-  .reader__head {
+  .reader__toolbar,
+  .reader__end {
     display: none !important;
   }
 
