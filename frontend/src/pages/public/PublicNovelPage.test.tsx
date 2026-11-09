@@ -125,6 +125,17 @@ describe('PublicNovelPage', () => {
     expect(document.title).toBe('Tình Yêu Mùa Hạ');
   });
 
+  it('shows Novels > novel title as a breadcrumb', async () => {
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    const last = within(crumbs).getByText('Tình Yêu Mùa Hạ');
+    expect(last).toHaveAttribute('aria-current', 'page');
+    expect(last.closest('a')).toBeNull();
+  });
+
   it('says it is loading', () => {
     renderPage(source({ getNovel: () => new Promise(() => {}) }));
 

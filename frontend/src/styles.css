@@ -2638,100 +2638,162 @@ a.tabs__tab {
   scroll-margin-top: 80px;
 }
 
-/* One toolbar: previous, chapter list (fills the row), next. Narrow screens: list on its own row, buttons below. */
-.reader__toolbar {
+/* Breadcrumbs: Novels > title > current page. Long labels are cut with an ellipsis. */
+.breadcrumbs__list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   align-items: center;
-  margin-block: 12px;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
-.reader__select {
-  flex: 1 1 220px;
-  order: 2;
+.breadcrumbs__item {
   min-width: 0;
+  flex: 0 1 auto;
 }
 
-.reader__select select {
-  width: 100%;
+.breadcrumbs__item--current {
+  flex: 1 1 0;
+  color: var(--ink);
+  font-weight: 700;
 }
 
-/* The selected chapter in the list uses the "you are here" colour. */
-.reader__select select:focus {
-  border-color: var(--brand-2);
-}
-
-.reader__step {
-  min-height: 44px;
+.breadcrumbs__label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  color: inherit;
+  text-decoration: none;
 }
 
-.reader__step--prev {
-  order: 1;
+a.breadcrumbs__label:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
-.reader__step--next {
-  order: 3;
+.breadcrumbs__sep {
+  display: flex;
+  flex: none;
 }
 
-@media (max-width: 560px) {
-  .reader__select {
-    flex-basis: 100%;
-    order: 0;
-  }
-
-  .reader__step {
-    flex: 1 1 0;
-    justify-content: center;
-  }
+/* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
+.reader-bar {
+  position: sticky;
+  top: 56px;
+  z-index: 9;
+  margin-block: 8px;
+  transition: transform 0.2s ease-out, visibility 0s;
 }
 
-/* End of chapter: a big "next" card, or the "you have read everything" box. */
+.reader-bar--hidden {
+  transform: translateY(calc(-100% - 12px));
+  visibility: hidden;
+  transition: transform 0.2s ease-out, visibility 0s 0.2s;
+}
+
+.reader-bar__inner {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+
+.reader-bar .button--icon {
+  border-radius: 999px;
+}
+
+.reader-pop {
+  z-index: 40;
+  display: grid;
+  gap: 10px;
+  width: min(300px, calc(100vw - 32px));
+  padding: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.16);
+  animation: tip-in 120ms ease-out;
+}
+
+.reader-settings .button[aria-pressed='true'] {
+  border-color: var(--brand);
+}
+
+.reader-settings__size {
+  display: flex;
+  gap: 8px;
+}
+
+.reader-settings__size .button {
+  flex: 1;
+}
+
+.reader-toc {
+  max-height: min(420px, 60vh);
+  padding: 6px;
+}
+
+.reader-toc__list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.reader-toc__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+  border-radius: var(--radius-control);
+}
+
+.reader-toc__item:hover {
+  background: var(--paper);
+}
+
+.reader-toc__link {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.reader-toc__link--current {
+  font-weight: 700;
+}
+
+/* End of chapter: previous and next as two equal buttons, or the "you have read everything" box. */
 .reader__end {
   display: grid;
   gap: 12px;
-  justify-items: center;
   max-width: 600px;
   margin: 16px auto 32px;
 }
 
-.reader__next-card {
+.reader__end-nav {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
-  min-height: 64px;
-  padding: 14px 18px;
-  border: 2px solid var(--brand);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink);
-  text-decoration: none;
 }
 
-.reader__next-card:hover {
-  background: var(--surface);
-  border-color: var(--brand-2);
-}
-
-.reader__next-card__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.reader__next-card__hint {
-  color: var(--muted);
-  font-size: var(--step--1);
-  font-weight: 700;
-}
-
-.reader__next-card__name {
-  font-size: var(--step-1);
-  font-weight: 700;
-  overflow-wrap: anywhere;
+.reader__end-button {
+  min-width: 140px;
+  min-height: 44px;
 }
 
 .reader__done {
@@ -2748,19 +2810,6 @@ a.tabs__tab {
 
 .reader__done p {
   margin: 0;
-}
-
-.reader__prev-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--muted);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.reader__prev-link:hover {
-  color: var(--ink);
 }
 
 /* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
@@ -2814,19 +2863,6 @@ a.tabs__tab {
   filter: invert(0.88) hue-rotate(180deg) blur(24px);
 }
 
-/* Night mode / text size buttons, above the pages (outside the copy-guarded .reader). */
-.reader__display {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}
-
-.reader__display .button[aria-pressed='true'] {
-  border-color: var(--brand);
-}
-
 /* Chapters already read on the novel page. */
 .chapter-list__item--read .chapter-list__open {
   color: var(--muted);
@@ -2843,8 +2879,8 @@ a.tabs__tab {
 
 @media print {
   .reader,
-  .reader__display,
-  .reader__toolbar,
+  .reader-bar,
+  .breadcrumbs,
   .reader__end {
     display: none !important;
   }
@@ -2856,6 +2892,11 @@ a.tabs__tab {
 
 @media (prefers-reduced-motion: reduce) {
   .reader__page {
+    transition: none;
+  }
+
+  .reader-bar,
+  .reader-bar--hidden {
     transition: none;
   }
 }
