@@ -6,7 +6,7 @@
   width: min(100%, 760px);
   box-sizing: border-box;
   padding: var(--space-5) var(--space-5) var(--space-6);
-  background: #1b2430;
+  background: var(--frame);
   border-radius: var(--radius-frame);
   overflow: hidden;
 }
@@ -42,7 +42,7 @@
 }
 
 .frame__input:focus-visible {
-  /* The frame is always dark: the orchid ring (7.5:1 on #1b2430), as in dark mode. */
+  /* The frame is always dark: the orchid ring (on --frame), as in dark mode. */
   outline-color: var(--brand-2);
 }
 

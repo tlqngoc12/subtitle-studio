@@ -14,16 +14,17 @@
    min-width (the public chapter list's two columns at 760). scripts/check-css-split.mjs rejects any other value. */
 
 :root {
-  --paper: #eef1f4;
+  --paper: #f7f3ee;
   --surface: #ffffff;
-  --ink: #1b2430;
-  --muted: #5b6675;
-  --rule: #d3d9e0;
+  --ink: #221c26;
+  --muted: #5e5666;
+  --rule: #e3dcd3;
   /* Brand: orange for primary actions and the subtitle-style accent, orchid for "you are here". Both are
      light, so text on them is always the dark --on-brand (white on orange would be about 2:1). */
   --brand: #f39a42;
   --brand-2: #d9a1d9;
-  --on-brand: #1b2430;
+  --brand-hover: #e8862c;
+  --on-brand: #221c26;
   --caption: var(--brand);
   --danger: #b42318;
   --danger-bg: #fdecea;
@@ -31,9 +32,12 @@
   /* Darker twins of the brand colours for text and meaningful icons on the light surfaces
      (--brand itself stays a background: orange on white is only about 2:1). Checked by contrast.test.ts. */
   --brand-ink: #a35509;
-  --brand-2-ink: #965296;
+  --brand-2-ink: #8e4f8e;
   /* Border of inputs, selects and the search box (>= 3:1 on --surface and --paper); --rule stays for decoration. */
-  --field-border: #778291;
+  --field-border: #8b8178;
+  /* The video frame stays dark in both themes: it represents the video, not the page. */
+  --frame: #221c26;
+  --on-frame: #eee8f3;
   --hover: color-mix(in srgb, var(--brand-2) 14%, transparent);
   /* Only floating layers (tooltip, dialog, menus, popovers) cast a shadow; a dragged item gets the lighter one. */
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.12);
@@ -71,17 +75,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --paper: #151b23;
-    --surface: #1d2530;
-    --ink: #e6ebf1;
-    --muted: #9aa6b4;
-    --rule: #2e3846;
+    --paper: #16121b;
+    --surface: #211b28;
+    --ink: #eee8f3;
+    --muted: #a9a1b4;
+    --rule: #342c3e;
+    --brand: #f5a25a;
+    --brand-hover: #f8b47a;
+    --on-brand: #16121b;
     --danger: #ff8a80;
     --danger-bg: #3a1f1f;
     --focus: var(--brand-2);
     --brand-ink: var(--brand);
     --brand-2-ink: var(--brand-2);
-    --field-border: #6b7a8c;
+    --field-border: #776d84;
     --hover: color-mix(in srgb, var(--brand-2) 16%, transparent);
     --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
     --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.5);
@@ -90,17 +97,20 @@
 }
 
 :root[data-theme='dark'] {
-  --paper: #151b23;
-  --surface: #1d2530;
-  --ink: #e6ebf1;
-  --muted: #9aa6b4;
-  --rule: #2e3846;
+  --paper: #16121b;
+  --surface: #211b28;
+  --ink: #eee8f3;
+  --muted: #a9a1b4;
+  --rule: #342c3e;
+  --brand: #f5a25a;
+  --brand-hover: #f8b47a;
+  --on-brand: #16121b;
   --danger: #ff8a80;
   --danger-bg: #3a1f1f;
   --focus: var(--brand-2);
   --brand-ink: var(--brand);
   --brand-2-ink: var(--brand-2);
-  --field-border: #6b7a8c;
+  --field-border: #776d84;
   --hover: color-mix(in srgb, var(--brand-2) 16%, transparent);
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
   --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.5);

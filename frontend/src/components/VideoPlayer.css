@@ -50,7 +50,7 @@ html.player-filled-open body {
   place-items: center;
   margin: 0;
   padding: var(--space-6);
-  color: #e6ebf1;
+  color: var(--on-frame);
   text-align: center;
 }
 
