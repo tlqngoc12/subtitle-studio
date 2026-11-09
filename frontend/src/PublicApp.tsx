@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react';
 import { useMemo } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { NavBar } from './components/NavBar';
+import { TopbarSlotProvider } from './components/TopbarSlot';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteProvider, type Site } from './data/SiteContext';
 import { createNovelSource } from './data/novelSource';
@@ -25,20 +26,22 @@ export default function PublicApp() {
   return (
     <SiteProvider value={site}>
       <MotionConfig reducedMotion="user">
-        <NavBar />
-        <Routes>
-          <Route path="/" element={<Navigate to="/vietsub/list" replace />} />
-          <Route path="/vietsub/list" element={<VietsubListPage />} />
-          <Route path="/vietsub/:id" element={<WatchPage />} />
-          <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
-          <Route path="/profiles/:slug" element={<ProfilePage />} />
-          <Route path="/novels" element={<PublicNovelsPage source={novels} />} />
-          <Route path="/novels/all" element={<PublicAllNovelsPage source={novels} />} />
-          <Route path="/novels/:slug" element={<PublicNovelPage source={novels} />} />
-          <Route path="/novels/:slug/:chapterNo" element={<ReaderPage source={novels} />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-        <SiteFooter />
+        <TopbarSlotProvider>
+          <NavBar />
+          <Routes>
+            <Route path="/" element={<Navigate to="/vietsub/list" replace />} />
+            <Route path="/vietsub/list" element={<VietsubListPage />} />
+            <Route path="/vietsub/:id" element={<WatchPage />} />
+            <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
+            <Route path="/profiles/:slug" element={<ProfilePage />} />
+            <Route path="/novels" element={<PublicNovelsPage source={novels} />} />
+            <Route path="/novels/all" element={<PublicAllNovelsPage source={novels} />} />
+            <Route path="/novels/:slug" element={<PublicNovelPage source={novels} />} />
+            <Route path="/novels/:slug/:chapterNo" element={<ReaderPage source={novels} />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+          <SiteFooter />
+        </TopbarSlotProvider>
       </MotionConfig>
     </SiteProvider>
   );

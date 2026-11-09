@@ -415,6 +415,6 @@ describe('VietsubPage', () => {
   it('leaves space between the search/Filter toolbar and the top border of the video list', () => {
     const toolbar = /\.toolbar\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
 
-    expect(toolbar).toMatch(/margin-bottom:\s*(1[2-6])px/);
+    expect(toolbar).toMatch(/margin-bottom:\s*var\(--space-(3|4)\)/);
   });
 });
