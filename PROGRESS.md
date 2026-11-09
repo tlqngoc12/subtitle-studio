@@ -541,6 +541,17 @@ Plan: [docs/superpowers/plans/2026-11-09-enhancements-batch.md](docs/superpowers
 - **Model Gemini:** `GeminiCaller` báo từng model trước khi gọi; chương và Vietsub hiện `Translating with <model>…` (cập nhật khi chuyển sang model dự phòng) và `Translated by <model>` (nhiều model: nối bằng `, `); lưu ở `t_chapter.translation_model` và `video.translation_model`. Lỗi → giữ giá trị đã lưu trước đó. Dữ liệu cũ: không hiện gì.
 - **Flyway V9** (`V9__chapter_order_and_translation_model.sql`, một file cho cả lô): `t_chapter.sort_order` (backfill = `chapter_no`, rồi NOT NULL), `t_chapter.translation_model`, `video.translation_model` (VARCHAR2(200 CHAR)). Chạy được trên H2 MODE=Oracle (test); **chưa chạy trên Oracle thật**, sẽ chạy khi deploy.
 
+### 2026-11-09: Trang đọc truyện public dễ đọc hơn (tiếng Việt, tiến độ đọc, chế độ đêm) ✅ (chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-09-novel-reader-polish.md](docs/superpowers/plans/2026-11-09-novel-reader-polish.md). Nhánh `feature/novel-page-checks`, chưa merge, chưa push, chưa deploy.
+
+- **Toast:** hiện giữa màn hình (sonner `top-center` + `offset`/`mobileOffset` top `calc(50vh - 40px)`), cả trang admin lẫn public.
+- **Ảnh chương giữ dòng trống:** `NovelRenderer` vẽ đúng như người dịch gõ: mỗi dòng trống thêm một dòng cao `lineHeight`, các dòng liền nhau vẫn là đoạn (khoảng cách 0,35); dòng trống đầu và cuối bị bỏ. `VERSION` lên 2. **Ảnh đã đăng cần Publish again** mới vẽ lại theo cách mới.
+- **Trang public Novels (Truyện) bằng tiếng Việt:** `publicNames.ts` (`Chương N`, `Ngoại truyện 1: ...`, trạng thái `Đang ra`/`Hoàn thành`, `N chương`, lỗi `Không tải được. Vui lòng thử lại sau.`). Admin vẫn tiếng Anh. Tiêu đề tab: `Chương 5: Mưa · <truyện>`, `<truyện>`, `Truyện` (khôi phục khi rời trang).
+- **Trang đọc:** một thanh công cụ (`Chương trước` · danh sách chương · `Chương sau`), `h1` ẩn (ảnh đã có tên chương), `Đang tải chương…`, ảnh có `aspect-ratio` (không giật), ảnh đầu `eager`, ghép liền nhau chỉ bo góc ngoài. Cuối chương: thẻ `Chương sau` kèm tên chương, hoặc hộp `Bạn đã đọc hết các chương đã đăng.`. Phím `←`/`→` đổi chương (bỏ qua khi đang ở select/input hoặc có phím bổ trợ).
+- **Lưu trong trình duyệt (`localStorage`, luôn try/catch):** vị trí đọc `novel-progress:<slug>` và danh sách đã đọc `novel-read:<slug>` (trang truyện có `Đọc tiếp: ...`, `Đọc từ đầu`, dấu Check và badge `Đang đọc`; chương đã gỡ thì về `Bắt đầu đọc`); chế độ đêm `reader-night` (mặc định theo theme tối, nút `Chế độ đêm` ghi đè); cỡ chữ `reader-width` (600/760/900 px, nút `A−`/`A+`).
+- Kiểm thử: `mvn test -Dskip.npm`, `vitest`, `tsc -b --noEmit` đều qua.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
