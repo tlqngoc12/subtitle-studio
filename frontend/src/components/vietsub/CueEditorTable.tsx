@@ -20,25 +20,13 @@ interface RowProps {
   readOnly: boolean;
   error: string | undefined;
   onChange: (index: number, text: string) => void;
-  onSeek: (ms: number) => void;
-}
-
-/** Puts the caret at the end of a line's text and focuses it without letting the browser scroll (the table scrolls itself). */
-function focusEnd(el: HTMLTextAreaElement | null) {
-  if (!el) return;
-  el.focus({ preventScroll: true });
-  el.setSelectionRange(el.value.length, el.value.length);
+  onSeek: (index: number, ms: number) => void;
 }
 
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
 const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
-
-  function seek() {
-    onSeek(startMs);
-    focusEnd(area.current);
-  }
 
   // Grow with the text (the CSS `field-sizing: content` does the same where the browser supports it).
   useLayoutEffect(() => {
@@ -51,7 +39,7 @@ const CueRow = memo(function CueRow({ index, startMs, text, edited, active, read
   return (
     <tr className={active ? 'cue-row cue-row--active' : 'cue-row'} aria-current={active ? 'true' : undefined}>
       <td className="cue-row__num">
-        <button className="cue-row__seek" type="button" aria-label={`Go to line ${number}`} onClick={seek}>
+        <button className="cue-row__seek" type="button" aria-label={`Go to line ${number}`} onClick={() => onSeek(index, startMs)}>
           {number}
         </button>
       </td>
@@ -103,7 +91,7 @@ interface Props {
  * The Vietsub lines as a table: number (seeks the video) and an editable text per line.
  * The table highlights the line at the player time (or the one before it in a gap, else the first) and keeps it in
  * view, except while a textarea has focus and for 3 s after it loses it. A seek of the player ends that wait, is followed
- * at once and focuses that line's text.
+ * at once; focus is never moved.
  */
 function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange, onSeek }: Props) {
   const box = useRef<HTMLDivElement>(null);
@@ -123,7 +111,18 @@ function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange
   );
 
   // A seek (time goes back, or jumps ahead) is an explicit "go there": it cancels any wait, scrolls to the line (also
-  // into a gap between lines) and moves focus into its text, even from another textarea. Normal playback never does.
+  // into a gap between lines), even while a textarea has focus. It never moves focus. Normal playback never does this.
+  // The # button: seek the video and go to that row at once (the player time may not change, e.g. a paused player).
+  const seekRow = useCallback(
+    (index: number, ms: number) => {
+      window.clearTimeout(timer.current);
+      setHolding(false);
+      scrollTo(index);
+      onSeek(ms);
+    },
+    [onSeek, scrollTo],
+  );
+
   const lastMs = useRef(currentMs);
   useEffect(() => {
     const delta = currentMs - lastMs.current;
@@ -133,7 +132,6 @@ function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange
     setHolding(false);
     if (scrollTarget < 0) return;
     scrollTo(scrollTarget);
-    focusEnd(box.current?.querySelectorAll<HTMLTextAreaElement>('tbody textarea')[scrollTarget] ?? null);
   }, [currentMs, scrollTarget, scrollTo]);
 
   useEffect(() => {
@@ -187,7 +185,7 @@ function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange
               readOnly={readOnly}
               error={errors[i]}
               onChange={onChange}
-              onSeek={onSeek}
+              onSeek={seekRow}
             />
           ))}
         </tbody>
