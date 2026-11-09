@@ -167,6 +167,46 @@ describe('ReaderPage', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
+  it('shows the novel title, the chapter name without its title and a back link on the left of the bar', async () => {
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    const back = within(bar()).getByRole('link', { name: 'Về trang truyện' });
+    expect(back).toHaveAttribute('href', '/novels/summer');
+    expect(back.querySelector('svg')).not.toBeNull();
+    await expectTooltip(back, 'Về trang truyện');
+    const title = bar().querySelector('.reader-bar__novel');
+    const name = bar().querySelector('.reader-bar__chapter');
+    expect(title).toHaveTextContent('Tình Yêu Mùa Hạ');
+    expect(name?.textContent).toBe('Chương 3');
+    expect(bar()).not.toHaveTextContent('Mưa');
+  });
+
+  it('names a labelled chapter by its label in the bar', async () => {
+    renderAt('/novels/summer/4');
+    await screen.findAllByRole('img', { name: /Special, trang/ });
+
+    expect(bar().querySelector('.reader-bar__chapter')?.textContent).toBe('Special');
+  });
+
+  it('makes the bar as wide as the pages (var(--reader-width)) and lays its text out on the left', async () => {
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    const inner = /\.reader-bar__inner\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(inner).toMatch(/max-width:\s*var\(--reader-width/);
+    expect(inner).not.toMatch(/fit-content/);
+    expect(/\.reader-bar__text\s*\{[^}]*min-width:\s*0/.test(css)).toBe(true);
+    expect(/\.reader-bar__novel,\s*\.reader-bar__chapter\s*\{[^}]*text-overflow:\s*ellipsis/.test(css)).toBe(true);
+    // --reader-width lives on the page column that holds both the bar and the images, so A-/A+ move them together.
+    const column = bar().closest('.reader-page') as HTMLElement;
+    expect(column.style.getPropertyValue('--reader-width')).toBe('600px');
+    expect(column.contains(container.querySelector('.reader'))).toBe(true);
+    await openSettings();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
+    expect(column.style.getPropertyValue('--reader-width')).toBe('760px');
+  });
+
   it('disables (does not hide) previous on the first chapter and next on the last', async () => {
     const first = renderAt('/novels/summer/1');
     await screen.findAllByRole('img', { name: /Chương 1, trang/ });

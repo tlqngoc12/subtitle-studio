@@ -1,12 +1,20 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
-import { Breadcrumbs } from '../../components/Breadcrumbs';
-import type { NovelSource } from '../../data/novelSource';
-import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
-import { useCopyGuard } from '../../lib/useCopyGuard';
-import { PUBLIC_ERROR_TITLE, publicChapterLabel, publicChapterName, useDocumentTitle } from './publicNames';
-import { OWN_KEYS, ReaderBar } from './ReaderBar';
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { Breadcrumbs } from "../../components/Breadcrumbs";
+import type { NovelSource } from "../../data/novelSource";
+import type {
+  PublicChapterFile,
+  PublicNovelDetail,
+} from "../../data/novelTypes";
+import { useCopyGuard } from "../../lib/useCopyGuard";
+import {
+  PUBLIC_ERROR_TITLE,
+  publicChapterLabel,
+  publicChapterName,
+  useDocumentTitle,
+} from "./publicNames";
+import { OWN_KEYS, ReaderBar } from "./ReaderBar";
 import {
   READER_WIDTHS,
   isDarkTheme,
@@ -16,7 +24,7 @@ import {
   saveNight,
   saveWidth,
   type ReaderWidth,
-} from './readerPrefs';
+} from "./readerPrefs";
 
 /**
  * The public chapter reader: breadcrumbs, a sticky icon bar (previous, next, contents, settings), the chapter as drawn
@@ -24,7 +32,7 @@ import {
  * Copy is Vietnamese.
  */
 export default function ReaderPage({ source }: { source: NovelSource }) {
-  const { slug = '', chapterNo = '' } = useParams();
+  const { slug = "", chapterNo = "" } = useParams();
   const navigate = useNavigate();
   // On <main>, which is always rendered, so the guard's listeners attach on mount.
   const area = useRef<HTMLElement>(null);
@@ -63,7 +71,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       .getChapter(slug, Number(chapterNo))
       .then((c) => {
         setChapter(c);
-        area.current?.scrollIntoView?.({ block: 'start' });
+        area.current?.scrollIntoView?.({ block: "start" });
       })
       .catch(() => setFailed(true));
   }, [source, slug, chapterNo]);
@@ -77,7 +85,9 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
     if (openedNo !== undefined) recordProgress(slug, openedNo);
   }, [slug, openedNo]);
 
-  const current = chapter ? publicChapterLabel(chapter.chapterNo, chapter.title, chapter.label) : null;
+  const current = chapter
+    ? publicChapterLabel(chapter.chapterNo, chapter.title, chapter.label)
+    : null;
   useDocumentTitle(current && novel ? `${current} · ${novel.title}` : current);
 
   // Arrow keys move between chapters, unless a modifier is held, the user is working in a form control or the focus
@@ -85,25 +95,39 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       const el = e.target instanceof HTMLElement ? e.target : null;
-      if (el && (el.isContentEditable || ['SELECT', 'INPUT', 'TEXTAREA'].includes(el.tagName))) return;
+      if (
+        el &&
+        (el.isContentEditable ||
+          ["SELECT", "INPUT", "TEXTAREA"].includes(el.tagName))
+      )
+        return;
       if (el?.closest(`[${OWN_KEYS}]`)) return;
-      const target = e.key === 'ArrowLeft' ? prev : next;
+      const target = e.key === "ArrowLeft" ? prev : next;
       if (target !== null) navigate(`/novels/${slug}/${target}`);
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [prev, next, slug, navigate]);
 
   const crumbs = [
-    { label: 'Novels', to: '/novels' },
-    { label: novel?.title ?? 'Về trang truyện', to: `/novels/${slug}` },
-    { label: publicChapterName(chapter?.chapterNo ?? Number(chapterNo), chapter?.label) },
+    { label: "Novels", to: "/novels" },
+    { label: novel?.title ?? "Về trang truyện", to: `/novels/${slug}` },
+    {
+      label: publicChapterName(
+        chapter?.chapterNo ?? Number(chapterNo),
+        chapter?.label,
+      ),
+    },
   ];
 
   return (
-    <main ref={area} className="page reader-page">
+    <main
+      ref={area}
+      className="page reader-page"
+      style={{ "--reader-width": `${width}px` } as CSSProperties}
+    >
       <Breadcrumbs items={crumbs} />
       {failed && (
         <div className="alert" role="alert">
@@ -116,6 +140,8 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
           <h1 className="visually-hidden">{current}</h1>
           <ReaderBar
             slug={slug}
+            novelTitle={novel?.title ?? ""}
+            chapterName={publicChapterName(chapter.chapterNo, chapter.label)}
             prev={prev}
             next={next}
             chapters={novel?.chapters ?? []}
@@ -126,9 +152,14 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
             onStepWidth={stepWidth}
           />
           <div
-            className={['reader', hidden && 'reader--hidden', night && 'reader--night'].filter(Boolean).join(' ')}
+            className={[
+              "reader",
+              hidden && "reader--hidden",
+              night && "reader--night",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             data-width={width}
-            style={{ '--reader-width': `${width}px` } as CSSProperties}
           >
             {chapter.images.map((src, i) => (
               <img
@@ -137,19 +168,22 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                 src={src}
                 alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${chapter.images.length}`}
                 draggable={false}
-                loading={i === 0 ? 'eager' : 'lazy'}
+                loading={i === 0 ? "eager" : "lazy"}
               />
             ))}
             <div className="reader__shield" aria-hidden="true" />
           </div>
           <p className="visually-hidden" aria-live="polite">
-            {hidden ? 'Nội dung tạm ẩn khi cửa sổ không hoạt động.' : ''}
+            {hidden ? "Nội dung tạm ẩn khi cửa sổ không hoạt động." : ""}
           </p>
           <p className="reader-print-note">Không hỗ trợ in trang này.</p>
           <section className="reader__end" aria-label="Hết chương">
             <div className="reader__end-nav">
               {prev !== null ? (
-                <Link className="button button--small reader__end-button" to={to(prev)}>
+                <Link
+                  className="button button--small reader__end-button"
+                  to={to(prev)}
+                >
                   <ChevronLeft className="icon" aria-hidden="true" />
                   Chương trước
                 </Link>
@@ -157,7 +191,10 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                 <span aria-hidden="true" />
               )}
               {next !== null ? (
-                <Link className="button button--small reader__end-button" to={to(next)}>
+                <Link
+                  className="button button--small reader__end-button"
+                  to={to(next)}
+                >
                   Chương sau
                   <ChevronRight className="icon" aria-hidden="true" />
                 </Link>

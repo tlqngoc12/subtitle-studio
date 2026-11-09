@@ -1337,6 +1337,14 @@ p.vietsub-status,
   color: var(--brand-2);
 }
 
+/* The close button sits in the top-right corner (sonner puts it top-left; 2.0.8 has no option for the side). */
+[data-sonner-toast].toast [data-close-button] {
+  right: 0;
+  left: auto;
+  top: 0;
+  transform: translate(35%, -35%);
+}
+
 [data-sonner-toast][data-type='success'].toast {
   border-left-color: var(--brand);
 }
@@ -2284,6 +2292,10 @@ a.tabs__tab {
   gap: 12px;
 }
 
+.featured__controls .button--icon {
+  flex: none;
+}
+
 .featured__counter {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -2814,23 +2826,24 @@ a.tabs__tab {
 .breadcrumbs__list {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin: 0;
+  gap: 6px;
+  margin: 4px 0 16px;
   padding: 0;
   list-style: none;
   color: var(--muted);
   font-size: var(--step--1);
 }
 
+/* Narrow screens: the links shrink (and are cut) first, the current item keeps its room. */
 .breadcrumbs__item {
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 0 100 auto;
 }
 
 .breadcrumbs__item--current {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .breadcrumbs__label {
@@ -2843,14 +2856,26 @@ a.tabs__tab {
   text-decoration: none;
 }
 
+a.breadcrumbs__label:hover,
+a.breadcrumbs__label:focus-visible {
+  color: var(--brand);
+}
+
 a.breadcrumbs__label:hover {
-  color: var(--ink);
   text-decoration: underline;
 }
 
 .breadcrumbs__sep {
   display: flex;
   flex: none;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.breadcrumbs__sep .icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.5;
 }
 
 /* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
@@ -2870,15 +2895,55 @@ a.breadcrumbs__label:hover {
 
 .reader-bar__inner {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  width: fit-content;
+  /* As wide as the page images; A-/A+ change --reader-width on the page column. */
+  max-width: var(--reader-width, 600px);
   margin-inline: auto;
   padding: 6px 8px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   border: 1px solid var(--rule);
   border-radius: 999px;
   backdrop-filter: blur(8px);
+}
+
+.reader-bar__left,
+.reader-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reader-bar__left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.reader-bar__right {
+  flex: none;
+}
+
+.reader-bar__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.reader-bar__novel,
+.reader-bar__chapter {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-bar__novel {
+  font-weight: 700;
+}
+
+.reader-bar__chapter {
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
 .reader-bar .button--icon {
