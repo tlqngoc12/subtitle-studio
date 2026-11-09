@@ -16,6 +16,8 @@ class NovelRendererTest {
     private static final String PARAGRAPH = "Mai đứng lặng bên cửa sổ, nhìn mưa rơi trên con đường quen thuộc. "
             + "Cô nhớ lại những ngày hè năm ấy, khi Nam còn ở đây, khi mọi thứ còn đơn giản và dịu dàng.";
 
+    private static final int OLD_PAGE_COUNT = 9;
+
     private final NovelRenderer renderer = new NovelRenderer(SIZE);
     private final ImageEncoder png = ImageEncoder.png();
 
@@ -111,7 +113,7 @@ class NovelRendererTest {
 
     @Test
     void versionIsBumpedSoCachedImagesAreRedrawn() {
-        assertThat(NovelRenderer.VERSION).isEqualTo(2);
+        assertThat(NovelRenderer.VERSION).isEqualTo(3);
     }
 
     @Test
@@ -131,6 +133,54 @@ class NovelRendererTest {
         byte[] padded = png.encode(renderer.render(input("\n\n\nMai đứng lặng.\n\nCô nhớ lại.\n\n\n")).getFirst());
 
         assertThat(padded).isEqualTo(plain);
+    }
+
+    @Test
+    void laterPagesStartHigherThanTheTitlePage() {
+        List<BufferedImage> pages = renderer.render(input(text(30)));
+
+        assertThat(pages.size()).isGreaterThanOrEqualTo(2);
+        assertThat(firstInkRow(pages.get(0))).isGreaterThanOrEqualTo(100);
+        // The old top margin was 110; the text of page 2+ now starts right under a slim margin.
+        assertThat(firstInkRow(pages.get(1))).isBetween(50, 100);
+    }
+
+    @Test
+    void footerIsStillDrawnAndCentredInItsSlimBand() {
+        BufferedImage img = renderer.render(input(text(30))).get(1);
+        int top = img.getHeight() - NovelRenderer.FOOTER;
+        int first = -1;
+        int last = -1;
+        for (int y = top; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                if (isInk(img.getRGB(x, y))) {
+                    first = first < 0 ? y : first;
+                    last = y;
+                    break;
+                }
+            }
+        }
+        assertThat(NovelRenderer.FOOTER).isLessThanOrEqualTo(70);
+        assertThat(first).as("footer ink").isGreaterThanOrEqualTo(0);
+        double centre = (first + last) / 2.0;
+        assertThat(centre).isCloseTo(img.getHeight() - NovelRenderer.FOOTER / 2.0, org.assertj.core.data.Offset.offset(8.0));
+    }
+
+    @Test
+    void longTextDoesNotNeedMorePagesThanBefore() {
+        // Measured with the old margins (TOP 110, FOOTER 120): 30 paragraphs.
+        assertThat(renderer.render(input(text(30))).size()).isLessThanOrEqualTo(OLD_PAGE_COUNT);
+    }
+
+    private static int firstInkRow(BufferedImage img) {
+        for (int y = 0; y < img.getHeight() - 150; y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                if (isInk(img.getRGB(x, y))) {
+                    return y;
+                }
+            }
+        }
+        return -1;
     }
 
     /** Lowest row of dark text above the footer. */

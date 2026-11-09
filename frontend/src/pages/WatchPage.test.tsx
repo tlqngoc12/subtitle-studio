@@ -215,7 +215,8 @@ describe('WatchPage', () => {
     renderPage({ ...video, viCueCount: 0, viUpdatedAt: null }, []);
 
     expect(await screen.findByText('This video has no Vietsub yet.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Add Vietsub/ })).toHaveAttribute('href', '/vietsub');
+    expect(screen.queryByRole('link', { name: /Add Vietsub/ })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent('Add Vietsub');
   });
 
   it('shows not found for an unknown video', async () => {

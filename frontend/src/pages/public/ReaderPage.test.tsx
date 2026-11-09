@@ -1,11 +1,27 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
+import { expectTooltip } from '../../test/tooltip';
 import ReaderPage from './ReaderPage';
+
+const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
+
+/** Pretends the page was scrolled to `y` and tells the listeners. */
+function scrollTo(y: number) {
+  Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+  fireEvent.scroll(window);
+}
+
+const bar = () => screen.getByRole('navigation', { name: 'Chuyển chương' });
+
+async function openSettings(user = userEvent.setup()) {
+  await user.click(screen.getByRole('button', { name: 'Cài đặt' }));
+  return user;
+}
 
 const NOVEL: PublicNovelDetail = {
   slug: 'summer',
@@ -55,7 +71,10 @@ function renderAt(path: string, s: NovelSource = source) {
   );
 }
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  scrollTo(0);
+});
 afterEach(() => {
   document.title = '';
   document.documentElement.removeAttribute('data-theme');
@@ -89,19 +108,14 @@ describe('ReaderPage', () => {
     expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
   });
 
-  it('shows the chapter name once: the heading is visually hidden, the select shows it', async () => {
+  it('shows the chapter name in the breadcrumb only; the heading is visually hidden', async () => {
     renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
     const heading = screen.getByRole('heading', { name: 'Chương 3: Mưa' });
     expect(heading).toHaveClass('visually-hidden');
-    const select = screen.getByLabelText('Danh sách chương');
-    expect(select).toHaveValue('3');
-    expect(within(select).getByRole('option', { name: 'Chương 3: Mưa' })).toBeInTheDocument();
-    const visible = screen
-      .queryAllByText('Chương 3: Mưa')
-      .filter((el) => el !== heading && el.tagName !== 'OPTION' && !el.closest('.visually-hidden'));
-    expect(visible).toHaveLength(0);
+    expect(screen.queryByLabelText('Danh sách chương')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.queryByText('Chapter')).not.toBeInTheDocument();
   });
 
@@ -112,30 +126,198 @@ describe('ReaderPage', () => {
     expect(screen.getAllByRole('img', { name: /^Special, trang/ })).toHaveLength(3);
   });
 
-  it('has a toolbar with links to the previous and next chapters', async () => {
+  it('shows Novels > novel title > chapter name as a breadcrumb', async () => {
+    renderAt('/novels/summer/4');
+    await screen.findAllByRole('img', { name: /^Special, trang/ });
+
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const links = within(crumbs).getAllByRole('link');
+    expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Tình Yêu Mùa Hạ']);
+    expect(links[0]).toHaveAttribute('href', '/novels');
+    expect(links[1]).toHaveAttribute('href', '/novels/summer');
+    const last = within(crumbs).getByText('Special');
+    expect(last).toHaveAttribute('aria-current', 'page');
+    expect(last.closest('a')).toBeNull();
+    expect(crumbs.querySelectorAll('svg')).toHaveLength(2); // ChevronRight separators
+    expect(screen.queryByRole('link', { name: /^←/ })).not.toBeInTheDocument();
+  });
+
+  it('has a sticky icon bar with previous, next, contents and settings, each with a tooltip', async () => {
     renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
-    const toolbar = await screen.findByRole('navigation', { name: 'Chuyển chương' });
-    expect(within(toolbar).getByRole('link', { name: /Chương trước/ })).toHaveAttribute('href', '/novels/summer/1');
-    expect(within(toolbar).getByRole('link', { name: /Chương sau/ })).toHaveAttribute('href', '/novels/summer/4');
-    expect(within(toolbar).getByLabelText('Danh sách chương')).toBeInTheDocument();
+    const prev = within(bar()).getByRole('link', { name: 'Chương trước' });
+    const next = within(bar()).getByRole('link', { name: 'Chương sau' });
+    expect(prev).toHaveAttribute('href', '/novels/summer/1');
+    expect(next).toHaveAttribute('href', '/novels/summer/4');
+    const toc = within(bar()).getByRole('button', { name: 'Mục lục' });
+    const settings = within(bar()).getByRole('button', { name: 'Cài đặt' });
+    for (const [el, tip] of [
+      [prev, 'Chương trước'],
+      [next, 'Chương sau'],
+      [toc, 'Mục lục'],
+      [settings, 'Cài đặt'],
+    ] as const) {
+      expect(el.textContent?.trim()).toBe('');
+      expect(el.querySelector('svg')).not.toBeNull();
+      await expectTooltip(el, tip);
+    }
+    // Neither the old orange step buttons nor a select any more.
+    expect(bar().querySelector('.button--primary')).toBeNull();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('has no previous link on the first chapter', async () => {
-    renderAt('/novels/summer/1');
-
+  it('disables (does not hide) previous on the first chapter and next on the last', async () => {
+    const first = renderAt('/novels/summer/1');
     await screen.findAllByRole('img', { name: /Chương 1, trang/ });
-    expect(screen.queryByRole('link', { name: /Chương trước/ })).not.toBeInTheDocument();
+    expect(within(bar()).getByRole('button', { name: 'Chương trước' })).toBeDisabled();
+    expect(within(bar()).getByRole('link', { name: 'Chương sau' })).toBeInTheDocument();
+    first.unmount();
+
+    renderAt('/novels/summer/4');
+    await screen.findAllByRole('img', { name: /^Special, trang/ });
+    expect(within(bar()).getByRole('button', { name: 'Chương sau' })).toBeDisabled();
+    expect(within(bar()).getByRole('link', { name: 'Chương trước' })).toBeInTheDocument();
   });
 
-  it('ends a chapter with a card naming the next chapter', async () => {
+  it('keeps the bar outside the copy-guarded reader', async () => {
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+    expect(container.querySelector('.reader')!.contains(bar())).toBe(false);
+  });
+
+  describe('table of contents', () => {
+    it('lists the chapters, marks the one being read and the read ones, and scrolls to the current one', async () => {
+      localStorage.setItem('novel-read:summer', JSON.stringify([1]));
+      const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Mục lục' }));
+      const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+      const items = within(list).getAllByRole('listitem');
+      expect(items.map((li) => li.textContent)).toEqual(['Chương 1: Mở đầu', 'Chương 3: MưaĐang đọc', 'Special']);
+      expect(within(items[0]).getByRole('img', { name: 'Đã đọc' })).toBeInTheDocument();
+      expect(within(items[1]).getByText('Đang đọc')).toBeInTheDocument();
+      expect(within(items[1]).getByRole('link')).toHaveAttribute('aria-current', 'true');
+      expect(within(items[2]).queryByText('Đang đọc')).not.toBeInTheDocument();
+      expect(scroll.mock.contexts.some((el) => el === within(items[1]).getByRole('link'))).toBe(true);
+    });
+
+    it('navigates to the picked chapter and closes', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+      await user.click(screen.getByRole('button', { name: 'Mục lục' }));
+      await user.click(
+        within(await screen.findByRole('list', { name: 'Danh sách chương' })).getByRole('link', { name: 'Special' }),
+      );
+
+      expect(await screen.findAllByRole('img', { name: /^Special, trang/ })).toHaveLength(3);
+      await waitFor(() => expect(screen.queryByRole('list', { name: 'Danh sách chương' })).not.toBeInTheDocument());
+    });
+
+    it('does not turn the arrow keys into chapter changes while focus is in the list', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await user.click(screen.getByRole('button', { name: 'Mục lục' }));
+      const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+
+      within(list).getByRole('link', { name: 'Special' }).focus();
+      await user.keyboard('{ArrowRight}{ArrowLeft}');
+
+      expect(screen.getAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
+      expect(screen.queryByRole('img', { name: /^Special, trang/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('hiding on scroll', () => {
+    const hidden = () => bar().classList.contains('reader-bar--hidden');
+
+    it('hides after scrolling down past the bar and returns on scrolling up', async () => {
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      expect(hidden()).toBe(false);
+
+      scrollTo(40); // down, but still near the top
+      expect(hidden()).toBe(false);
+      scrollTo(400);
+      expect(hidden()).toBe(true);
+      scrollTo(300);
+      expect(hidden()).toBe(false);
+      scrollTo(700);
+      expect(hidden()).toBe(true);
+      scrollTo(20); // back at the top
+      expect(hidden()).toBe(false);
+    });
+
+    it('stays visible while a popover is open', async () => {
+      const user = userEvent.setup();
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+
+      await openSettings(user);
+      scrollTo(900);
+      expect(hidden()).toBe(false);
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Chế độ đêm' })).not.toBeInTheDocument());
+      act(() => (document.activeElement as HTMLElement).blur()); // Radix gives the focus back to the button
+      scrollTo(1000);
+      expect(hidden()).toBe(true);
+    });
+
+    it('stays visible while focus is inside the bar', async () => {
+      renderAt('/novels/summer/3');
+      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      const next = within(bar()).getByRole('link', { name: 'Chương sau' });
+
+      scrollTo(500);
+      expect(hidden()).toBe(true);
+      // Tab to it like a keyboard user (a mouse click does not pin the bar).
+      const user = userEvent.setup();
+      for (let i = 0; i < 12 && document.activeElement !== next; i++) await user.tab();
+      expect(next).toHaveFocus();
+      expect(hidden()).toBe(false);
+      scrollTo(800);
+      expect(hidden()).toBe(false);
+      act(() => next.blur());
+      expect(hidden()).toBe(true);
+    });
+
+    it('does not slide with prefers-reduced-motion', () => {
+      const reduced = /@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*?\.reader-bar[^{]*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+      expect(reduced).toMatch(/transition:\s*none/);
+      expect(/\.reader-bar\s*\{[^}]*transition:/.test(css)).toBe(true);
+    });
+  });
+
+  it('ends a chapter with Chương trước and Chương sau as two buttons of the same style', async () => {
     renderAt('/novels/summer/3');
 
     const end = await screen.findByRole('region', { name: 'Hết chương' });
+    const prev = within(end).getByRole('link', { name: /Chương trước/ });
     const next = within(end).getByRole('link', { name: /Chương sau/ });
+    expect(prev).toHaveAttribute('href', '/novels/summer/1');
     expect(next).toHaveAttribute('href', '/novels/summer/4');
-    expect(next).toHaveTextContent('Special');
-    expect(within(end).getByRole('link', { name: /Chương trước/ })).toHaveAttribute('href', '/novels/summer/1');
+    expect(prev.className).toBe(next.className);
+    expect(prev).toHaveClass('button');
+    expect(prev).not.toHaveClass('button--primary');
+    expect(next).not.toHaveTextContent('Special'); // no big next-chapter card
+    expect(end.querySelector('.reader__next-card')).toBeNull();
+    // prev left, next right
+    expect(prev.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('leaves the empty slot when a neighbour is missing', async () => {
+    renderAt('/novels/summer/1');
+
+    const end = await screen.findByRole('region', { name: 'Hết chương' });
+    expect(within(end).queryByRole('link', { name: /Chương trước/ })).not.toBeInTheDocument();
+    expect(within(end).getByRole('link', { name: /Chương sau/ })).toBeInTheDocument();
+    expect(end.querySelectorAll('.reader__end-nav > *')).toHaveLength(2);
   });
 
   it('ends the last chapter with a "read everything" box', async () => {
@@ -145,15 +327,7 @@ describe('ReaderPage', () => {
     expect(within(end).getByText('Bạn đã đọc hết các chương đã đăng.')).toBeInTheDocument();
     expect(within(end).getByRole('link', { name: 'Về trang truyện' })).toHaveAttribute('href', '/novels/summer');
     expect(within(end).queryByRole('link', { name: /Chương sau/ })).not.toBeInTheDocument();
-  });
-
-  it('jumps to another chapter from the list', async () => {
-    renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-
-    await userEvent.setup().selectOptions(screen.getByLabelText('Danh sách chương'), '4');
-
-    expect(await screen.findAllByRole('img', { name: /^Special, trang/ })).toHaveLength(3);
+    expect(within(end).getByRole('link', { name: /Chương trước/ })).toBeInTheDocument();
   });
 
   it('opens the next chapter with ArrowRight and the previous with ArrowLeft', async () => {
@@ -180,22 +354,16 @@ describe('ReaderPage', () => {
     expect(screen.getAllByRole('img', { name: /Chương 1, trang/ })).toHaveLength(3);
   });
 
-  it('does not navigate twice when an arrow is used inside the chapter select', async () => {
-    const user = userEvent.setup();
+  it('ignores arrows typed in a form field', async () => {
     renderAt('/novels/summer/1');
     await screen.findAllByRole('img', { name: /Chương 1, trang/ });
-    const select = screen.getByLabelText('Danh sách chương');
+    const field = document.createElement('input');
+    document.body.append(field);
 
-    // A key pressed inside the select bubbles to the page: the page handler must leave it to the select.
-    select.focus();
-    await user.keyboard('{ArrowRight}');
-    fireEvent.keyDown(select, { key: 'ArrowRight' });
+    fireEvent.keyDown(field, { key: 'ArrowRight' });
+
     expect(screen.getAllByRole('img', { name: /Chương 1, trang/ })).toHaveLength(3);
-
-    // The select's own change (what a real arrow press does in a browser) navigates exactly once.
-    await user.selectOptions(select, '3');
-    expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
-    expect(screen.queryByRole('img', { name: /^Special, trang/ })).not.toBeInTheDocument();
+    field.remove();
   });
 
   it('sets the tab title and restores it on unmount', async () => {
@@ -219,7 +387,7 @@ describe('ReaderPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được. Vui lòng thử lại sau.');
   });
 
-  it('falls back to a plain back link before the novel is loaded', async () => {
+  it('falls back to a plain novel crumb before the novel is loaded', async () => {
     renderAt('/novels/summer/3', { ...source, getNovel: () => new Promise(() => {}) });
 
     expect(await screen.findByRole('link', { name: 'Về trang truyện' })).toHaveAttribute('href', '/novels/summer');
@@ -253,7 +421,7 @@ describe('ReaderPage preferences', () => {
     expect(JSON.parse(localStorage.getItem('novel-progress:summer')!)).toEqual({ chapterNo: 3 });
     expect(JSON.parse(localStorage.getItem('novel-read:summer')!)).toEqual([3]);
 
-    await userEvent.setup().selectOptions(screen.getByLabelText('Danh sách chương'), '4');
+    await userEvent.setup().click(within(bar()).getByRole('link', { name: 'Chương sau' }));
     await screen.findAllByRole('img', { name: /^Special, trang/ });
 
     expect(JSON.parse(localStorage.getItem('novel-progress:summer')!)).toEqual({ chapterNo: 4 });
@@ -272,6 +440,7 @@ describe('ReaderPage preferences', () => {
 
     expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
     expect(reader(container)).toHaveAttribute('data-width', '600');
+    await openSettings(user);
     expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
     await user.click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
@@ -283,6 +452,7 @@ describe('ReaderPage preferences', () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await openSettings(user);
     const toggle = screen.getByRole('button', { name: 'Chế độ đêm' });
 
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
@@ -296,6 +466,7 @@ describe('ReaderPage preferences', () => {
     const again = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     expect(reader(again.container)).toHaveClass('reader--night');
+    await openSettings(user);
     expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
@@ -339,6 +510,7 @@ describe('ReaderPage preferences', () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await openSettings(user);
     const smaller = screen.getByRole('button', { name: 'Chữ nhỏ hơn' });
     const larger = screen.getByRole('button', { name: 'Chữ lớn hơn' });
 
@@ -366,6 +538,7 @@ describe('ReaderPage preferences', () => {
   it('keeps the preference buttons outside the copy-guarded reader', async () => {
     const { container } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await openSettings();
 
     expect(reader(container).contains(screen.getByRole('button', { name: 'Chế độ đêm' }))).toBe(false);
     expect(reader(container).contains(screen.getByRole('button', { name: 'Chữ lớn hơn' }))).toBe(false);

@@ -34,7 +34,7 @@ export function PlaylistHeader({ playlist, href, count }: Props) {
         {preview.length > 0 && (
           <ol className="plcard__preview" aria-label="First videos">
             {preview.map((v) => (
-              <li key={v.id}>{v.title}</li>
+              <li key={v.id} className="title-clamp">{v.title}</li>
             ))}
           </ol>
         )}

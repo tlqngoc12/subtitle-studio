@@ -14,6 +14,8 @@ const SUMMARY: PublicNovelSummary = {
   tags: ['romance', 'BL'],
   novelStatus: 'ONGOING',
   publishedCount: 2,
+  totalChapters: 5,
+  lastPublishedAt: '2026-11-05T10:00:00Z',
   updatedAt: '2026-11-05T10:00:00Z',
 };
 
@@ -68,19 +70,20 @@ describe('PublicNovelsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Đang ra')).toBeInTheDocument();
+    expect((await screen.findAllByText('Đang ra')).length).toBeGreaterThan(0);
   });
 
-  it('shows a card per novel', async () => {
+  it('shows a small card per novel with x/y chương', async () => {
     render(
       <MemoryRouter>
         <PublicNovelsPage source={source()} />
       </MemoryRouter>,
     );
 
-    const card = await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ });
+    const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
+    const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText('2 chương')).toBeInTheDocument();
+    expect(within(card).getByText('2/5 chương')).toBeInTheDocument();
   });
 });
 
@@ -123,6 +126,17 @@ describe('PublicNovelPage', () => {
     expect(screen.getByRole('list', { name: 'Thể loại' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Danh sách chương' })).toBeInTheDocument();
     expect(document.title).toBe('Tình Yêu Mùa Hạ');
+  });
+
+  it('shows Novels > novel title as a breadcrumb', async () => {
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    const last = within(crumbs).getByText('Tình Yêu Mùa Hạ');
+    expect(last).toHaveAttribute('aria-current', 'page');
+    expect(last.closest('a')).toBeNull();
   });
 
   it('says it is loading', () => {

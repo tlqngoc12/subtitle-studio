@@ -296,6 +296,7 @@ class SiteExporterTest {
                 int chapterNo = no;
                 if (java.util.Arrays.stream(published).anyMatch(p -> p == chapterNo)) {
                     c.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+                    c.setPublishedAt(NOW.plusSeconds(60L * chapterNo));
                 }
                 chapters.save(c);
                 ChapterPage page = new ChapterPage(c, 1, entityMedia(mediaService.store("shot.png", PNG).getId()));
@@ -327,6 +328,45 @@ class SiteExporterTest {
         assertThat(list.get(0).get("publishedCount").asInt()).isEqualTo(1);
         assertThat(list.get(0).get("tags").get(1).asText()).isEqualTo("BL");
         assertThat(out.resolve("data/novels/drafts-only.json")).doesNotExist();
+    }
+
+    @Test
+    void summaryCountsEveryChapterAndTheLatestPublishedOne() throws IOException {
+        // 5 chapters, 1 and 3 published (published at NOW+60s and NOW+180s); a draft carries a later stale date.
+        long id = novel("summer", null, 5, 1, 3);
+        tx.executeWithoutResult(s -> chapters.findByNovelIdOrderByChapterNo(id).stream()
+                .filter(c -> c.getChapterNo() == 5).forEach(c -> c.setPublishedAt(NOW.plusSeconds(9999))));
+
+        exporter.export(out, NOW);
+
+        JsonNode summary = readJson("data/novels.json").get(0);
+        assertThat(summary.get("publishedCount").asInt()).isEqualTo(2);
+        assertThat(summary.get("totalChapters").asInt()).isEqualTo(5);
+        assertThat(java.time.Instant.parse(summary.get("lastPublishedAt").asText())).isEqualTo(NOW.plusSeconds(180));
+    }
+
+    @Test
+    void aNovelWithOnePublishedChapterStillAppearsWithItsDates() throws IOException {
+        novel("solo", null, 1, 1);
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/novels.json");
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("totalChapters").asInt()).isEqualTo(1);
+        assertThat(java.time.Instant.parse(list.get(0).get("lastPublishedAt").asText())).isEqualTo(NOW.plusSeconds(60));
+    }
+
+    @Test
+    void lastPublishedAtIsNullWhenNoPublishedChapterHasADate() throws IOException {
+        long id = novel("old", null, 2, 1, 2);
+        tx.executeWithoutResult(s -> chapters.findByNovelIdOrderByChapterNo(id).forEach(c -> c.setPublishedAt(null)));
+
+        exporter.export(out, NOW);
+
+        JsonNode summary = readJson("data/novels.json").get(0);
+        assertThat(summary.get("lastPublishedAt").isNull()).isTrue();
+        assertThat(summary.get("totalChapters").asInt()).isEqualTo(2);
     }
 
     @Test

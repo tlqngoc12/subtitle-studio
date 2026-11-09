@@ -27,5 +27,7 @@ export default defineConfig(({ mode }) => ({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Process styles.css so a test can read the rules (everything else stays unprocessed).
+    css: { include: [/styles.css/] },
   },
 }));

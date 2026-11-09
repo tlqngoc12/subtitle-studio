@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useSite } from '../data/SiteContext';
 import { pillTransition } from '../lib/motion';
+import { useTopbarHeight } from '../lib/useTopbarHeight';
 import { PublishButton } from './PublishButton';
 
 interface Section {
@@ -39,13 +40,15 @@ export function NavBar() {
   const { readOnly, homePath } = useSite();
   const sections = readOnly ? PUBLIC_SECTIONS : ADMIN_SECTIONS;
   const navRef = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLElement>(null);
+  useTopbarHeight(barRef);
 
   // On a phone only part of the row fits: bring the current section into view.
   useEffect(() => {
     navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }, [pathname]);
   return (
-    <header className="topbar">
+    <header className="topbar" ref={barRef}>
       <div className="topbar__inner">
         <Link className="topbar__brand" to={homePath}>
           Subtitle Studio

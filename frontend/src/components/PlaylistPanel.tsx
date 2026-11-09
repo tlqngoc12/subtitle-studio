@@ -84,7 +84,7 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
                   {current ? '▶' : i + 1}
                 </span>
                 <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
-                <span className="plpanel__title">{v.title}</span>
+                <span className="plpanel__title title-clamp">{v.title}</span>
               </Link>
             </li>
           );

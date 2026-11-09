@@ -91,12 +91,13 @@ describe('VietsubListPage', () => {
     expect(within(list).queryByLabelText(/Replace Vietsub/)).not.toBeInTheDocument();
   });
 
-  it('points to the Vietsub page when nothing has Vietsub yet', async () => {
+  it('has no Add Vietsub link when nothing has Vietsub yet', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [none] }]);
     renderPage();
 
     expect(await screen.findByText(/No videos with Vietsub yet/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Add Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(screen.queryByRole('link', { name: 'Add Vietsub' })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent('Add Vietsub');
   });
 
   describe('pagination', () => {
@@ -394,6 +395,17 @@ describe('VietsubListPage', () => {
       expect(within(first).getByRole('link')).toHaveAttribute('href', '/vietsub/CHO00000001');
       expect(first.querySelector('.vlist__index')).toBeNull();
     });
+  });
+});
+
+describe('VietsubListPage titles', () => {
+  it('a long video title wraps and clamps instead of overflowing', async () => {
+    const long = video('LONG0000001', 'Tiêu đề rất dài '.repeat(20), 5, '2026-11-02T10:00:00Z');
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [long] }]);
+    renderPage();
+
+    const list = await loadedRegion('Vietsub list');
+    expect(within(list).getByText(/^Tiêu đề rất dài/)).toHaveClass('title-clamp');
   });
 });
 

@@ -308,7 +308,7 @@ img {
 
 .result {
   /* Leave room for the sticky top bar when the panel is scrolled into view. */
-  scroll-margin-top: 88px;
+  scroll-margin-top: calc(var(--topbar-h, 56px) + 32px);
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
   gap: 28px;
@@ -480,6 +480,18 @@ img {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A video title in a public playlist view: wraps (even inside a long word) and stops at two lines. */
+.title-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 /* .history__open is a <button> on the Phase 1 page and a <Link> on the Vietsub page. */
@@ -700,33 +712,6 @@ a.history__open {
   background: var(--paper);
   color: var(--ink);
   font: inherit;
-}
-
-.filepick {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  min-height: 42px;
-}
-
-.filepick__button {
-  flex: none;
-  cursor: pointer;
-}
-
-/* The hidden input keeps keyboard focus; show it on the visible button. */
-.filepick input:focus-visible + .filepick__button {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.filepick__name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--step--1);
 }
 
 @media (max-width: 760px) {
@@ -1608,6 +1593,67 @@ p.vietsub-status,
   cursor: default;
 }
 
+/* Manage Vietsub: search box and the Filter button on one row. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar .searchbar {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-button {
+  flex: none;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.filter-button--active {
+  border-color: var(--brand);
+}
+
+.filter-menu {
+  z-index: 40;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.16);
+  animation: tip-in 120ms ease-out;
+}
+
+.filter-menu__list {
+  display: grid;
+  gap: 2px;
+}
+
+.filter-menu__option {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-menu__option:hover {
+  background: var(--paper);
+}
+
+.filter-menu__option[aria-checked='true'] {
+  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
+  font-weight: 700;
+}
+
 /* Vietsub list: search, playlist chips, YouTube-like playlist header, numbered rows. */
 .searchbar {
   position: relative;
@@ -1786,9 +1832,7 @@ a.tabs__tab {
 }
 
 .plcard__preview li {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1937,10 +1981,7 @@ a.tabs__tab {
 }
 
 .plpanel__title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  min-width: 0;
   font-size: var(--step--1);
   font-weight: 700;
 }
@@ -2110,6 +2151,178 @@ a.tabs__tab {
   font-weight: 700;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* Public Novels home: heading row of a section with a link on the right. */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Featured banner: the current novel on the left, the covers fanned on the right, its cover blurred behind. */
+.featured {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 28px;
+  padding: 28px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+}
+
+.featured__bg {
+  position: absolute;
+  inset: -40px;
+  z-index: -1;
+  background: var(--cover, none) center / cover no-repeat;
+  filter: blur(36px);
+  opacity: 0.18;
+}
+
+.featured__info {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.featured__title {
+  margin: 0;
+  font-size: var(--step-3);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.featured__rule {
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.featured__facts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.featured__facts li {
+  display: flex;
+  gap: 12px;
+}
+
+.featured__facts li > span:first-child {
+  min-width: 5.5em;
+  color: var(--muted);
+}
+
+.featured__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.featured__stage {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.featured__fan {
+  position: relative;
+  height: 340px;
+}
+
+/* --o is the signed distance to the current novel, --d its absolute value (set inline). */
+.featured__cover {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: calc(10 - var(--d, 0));
+  width: 180px;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  cursor: pointer;
+  transform: translate(-50%, -50%) translateX(calc(var(--o, 0) * 44%)) rotate(calc(var(--o, 0) * 7deg))
+    scale(calc(1.08 - 0.15 * var(--d, 0)));
+  filter: brightness(calc(1 - 0.12 * var(--d, 0)));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  transition: transform 0.4s ease-out, filter 0.4s ease-out;
+}
+
+.featured__cover:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.featured__art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+
+.featured__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.featured__counter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featured__cover {
+    transition: none;
+  }
+}
+
+/* Phones: the current cover on top, the details below; no fan. */
+@media (max-width: 760px) {
+  .featured {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .featured__stage {
+    order: -1;
+  }
+
+  .featured__fan {
+    height: auto;
+    display: grid;
+    justify-items: center;
+  }
+
+  .featured__cover:not([aria-current='true']) {
+    display: none;
+  }
+
+  .featured__cover {
+    position: static;
+    width: 150px;
+    transform: none;
+    filter: none;
+  }
 }
 
 /* Status badges: orange = done/published, purple = information or in progress, red = failed only. */
@@ -2594,103 +2807,165 @@ a.tabs__tab {
 .reader-page {
   max-width: 960px;
   /* Opening a chapter scrolls here; keep the heading clear of the sticky top bar. */
-  scroll-margin-top: 80px;
+  scroll-margin-top: calc(var(--topbar-h, 56px) + 24px);
 }
 
-/* One toolbar: previous, chapter list (fills the row), next. Narrow screens: list on its own row, buttons below. */
-.reader__toolbar {
+/* Breadcrumbs: Novels > title > current page. Long labels are cut with an ellipsis. */
+.breadcrumbs__list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   align-items: center;
-  margin-block: 12px;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
-.reader__select {
-  flex: 1 1 220px;
-  order: 2;
+.breadcrumbs__item {
   min-width: 0;
+  flex: 0 1 auto;
 }
 
-.reader__select select {
-  width: 100%;
+.breadcrumbs__item--current {
+  flex: 1 1 0;
+  color: var(--ink);
+  font-weight: 700;
 }
 
-/* The selected chapter in the list uses the "you are here" colour. */
-.reader__select select:focus {
-  border-color: var(--brand-2);
-}
-
-.reader__step {
-  min-height: 44px;
+.breadcrumbs__label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  color: inherit;
+  text-decoration: none;
 }
 
-.reader__step--prev {
-  order: 1;
+a.breadcrumbs__label:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
-.reader__step--next {
-  order: 3;
+.breadcrumbs__sep {
+  display: flex;
+  flex: none;
 }
 
-@media (max-width: 560px) {
-  .reader__select {
-    flex-basis: 100%;
-    order: 0;
-  }
-
-  .reader__step {
-    flex: 1 1 0;
-    justify-content: center;
-  }
+/* The reader's icon bar sticks under the site's top bar and slides away while reading downwards. */
+.reader-bar {
+  position: sticky;
+  top: var(--topbar-h, 56px);
+  z-index: 9;
+  margin-block: 8px;
+  transition: transform 0.2s ease-out, visibility 0s;
 }
 
-/* End of chapter: a big "next" card, or the "you have read everything" box. */
+.reader-bar--hidden {
+  transform: translateY(calc(-100% - 12px));
+  visibility: hidden;
+  transition: transform 0.2s ease-out, visibility 0s 0.2s;
+}
+
+.reader-bar__inner {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+
+.reader-bar .button--icon {
+  border-radius: 999px;
+}
+
+.reader-pop {
+  z-index: 40;
+  display: grid;
+  gap: 10px;
+  width: min(300px, calc(100vw - 32px));
+  padding: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.16);
+  animation: tip-in 120ms ease-out;
+}
+
+.reader-settings .button[aria-pressed='true'] {
+  border-color: var(--brand);
+}
+
+.reader-settings__size {
+  display: flex;
+  gap: 8px;
+}
+
+.reader-settings__size .button {
+  flex: 1;
+}
+
+.reader-toc {
+  max-height: min(420px, 60vh);
+  padding: 6px;
+}
+
+.reader-toc__list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.reader-toc__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+  border-radius: var(--radius-control);
+}
+
+.reader-toc__item:hover {
+  background: var(--paper);
+}
+
+.reader-toc__link {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.reader-toc__link--current {
+  font-weight: 700;
+}
+
+/* End of chapter: previous and next as two equal buttons, or the "you have read everything" box. */
 .reader__end {
   display: grid;
   gap: 12px;
-  justify-items: center;
   max-width: 600px;
   margin: 16px auto 32px;
 }
 
-.reader__next-card {
+.reader__end-nav {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
-  min-height: 64px;
-  padding: 14px 18px;
-  border: 2px solid var(--brand);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink);
-  text-decoration: none;
 }
 
-.reader__next-card:hover {
-  background: var(--surface);
-  border-color: var(--brand-2);
-}
-
-.reader__next-card__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.reader__next-card__hint {
-  color: var(--muted);
-  font-size: var(--step--1);
-  font-weight: 700;
-}
-
-.reader__next-card__name {
-  font-size: var(--step-1);
-  font-weight: 700;
-  overflow-wrap: anywhere;
+.reader__end-button {
+  min-width: 140px;
+  min-height: 44px;
 }
 
 .reader__done {
@@ -2707,19 +2982,6 @@ a.tabs__tab {
 
 .reader__done p {
   margin: 0;
-}
-
-.reader__prev-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--muted);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.reader__prev-link:hover {
-  color: var(--ink);
 }
 
 /* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
@@ -2773,19 +3035,6 @@ a.tabs__tab {
   filter: invert(0.88) hue-rotate(180deg) blur(24px);
 }
 
-/* Night mode / text size buttons, above the pages (outside the copy-guarded .reader). */
-.reader__display {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}
-
-.reader__display .button[aria-pressed='true'] {
-  border-color: var(--brand);
-}
-
 /* Chapters already read on the novel page. */
 .chapter-list__item--read .chapter-list__open {
   color: var(--muted);
@@ -2802,8 +3051,8 @@ a.tabs__tab {
 
 @media print {
   .reader,
-  .reader__display,
-  .reader__toolbar,
+  .reader-bar,
+  .breadcrumbs,
   .reader__end {
     display: none !important;
   }
@@ -2815,6 +3064,11 @@ a.tabs__tab {
 
 @media (prefers-reduced-motion: reduce) {
   .reader__page {
+    transition: none;
+  }
+
+  .reader-bar,
+  .reader-bar--hidden {
     transition: none;
   }
 }

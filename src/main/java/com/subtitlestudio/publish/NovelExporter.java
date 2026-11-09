@@ -16,9 +16,12 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
@@ -55,7 +58,8 @@ public class NovelExporter {
         String watermark = watermark();
         List<PublicNovelSummary> summaries = new ArrayList<>();
         for (Novel n : novels.findAllByOrderByUpdatedAtDesc()) {
-            List<Chapter> published = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId()).stream()
+            List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId());
+            List<Chapter> published = all.stream()
                     .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).toList();
             if (published.isEmpty()) {
                 continue;
@@ -75,9 +79,15 @@ public class NovelExporter {
                     n.getTranslatorCredit(), n.getSourceUrl(),
                     published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle(), c.getLabel())).toList()));
             summaries.add(new PublicNovelSummary(n.getSlug(), n.getTitle(), cover, n.getOriginalAuthor(), tags,
-                    n.getNovelStatus(), published.size(), n.getUpdatedAt()));
+                    n.getNovelStatus(), published.size(), all.size(), lastPublishedAt(published), n.getUpdatedAt()));
         }
         write.accept(dir.resolve("data/novels.json"), summaries);
+    }
+
+    /** The latest publish date among the published chapters (drafts never count). */
+    private static Instant lastPublishedAt(List<Chapter> published) {
+        return published.stream().map(Chapter::getPublishedAt).filter(Objects::nonNull).max(Comparator.naturalOrder())
+                .orElse(null);
     }
 
     private List<String> images(Path dir, Novel n, Chapter c, String watermark) {

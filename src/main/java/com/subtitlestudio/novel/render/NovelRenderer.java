@@ -29,10 +29,12 @@ import java.util.List;
 public class NovelRenderer {
 
     /** Bump when the drawing changes so cached images are redrawn. */
-    static final int VERSION = 2;
+    static final int VERSION = 3;
     static final int MARGIN = 64;
-    static final int TOP = 110;
-    static final int FOOTER = 120;
+    /** Top margin of pages 2+; the first page keeps {@link #FIRST_TOP} for the heading. */
+    static final int TOP = 56;
+    static final int FIRST_TOP = 110;
+    static final int FOOTER = 64;
     static final double LINE_SPACING = 1.7;
     static final float WATERMARK_ALPHA = 0.06f;
 
@@ -70,7 +72,8 @@ public class NovelRenderer {
 
         List<List<Line>> pages = new ArrayList<>();
         List<Line> page = new ArrayList<>();
-        float y = TOP;
+        float y = FIRST_TOP;
+        float pageTop = FIRST_TOP;
         for (TextLayout layout : layouts(heading(input), title, frc, wrap)) {
             y += layout.getAscent();
             page.add(new Line(layout, y));
@@ -81,7 +84,7 @@ public class NovelRenderer {
         for (String paragraph : paragraphs(input.text())) {
             if (paragraph.isEmpty()) {
                 // A blank line typed by the translator: one empty line of space (nothing at the top of a page).
-                if (y > TOP) {
+                if (y > pageTop) {
                     y += lineHeight;
                 }
                 continue;
@@ -91,6 +94,7 @@ public class NovelRenderer {
                     pages.add(page);
                     page = new ArrayList<>();
                     y = TOP;
+                    pageTop = TOP;
                 }
                 page.add(new Line(layout, y + layout.getAscent()));
                 y += lineHeight;
@@ -127,8 +131,10 @@ public class NovelRenderer {
         g.setColor(MUTED);
         g.setFont(small);
         String footer = footer(input, k, total);
-        float w = new TextLayout(footer, small, g.getFontRenderContext()).getAdvance();
-        g.drawString(footer, (size.width() - w) / 2f, size.height() - FOOTER / 2f);
+        TextLayout layout = new TextLayout(footer, small, g.getFontRenderContext());
+        // Centre the text's visible height (ascent to baseline) in the footer band.
+        float baseline = size.height() - FOOTER / 2f + (layout.getAscent() - layout.getDescent()) / 2f;
+        g.drawString(footer, (size.width() - layout.getAdvance()) / 2f, baseline);
         g.dispose();
         return img;
     }

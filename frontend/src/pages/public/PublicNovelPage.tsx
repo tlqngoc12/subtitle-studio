@@ -1,6 +1,7 @@
 import { BookOpen, Check, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail } from '../../data/novelTypes';
 import { readProgress, readReadChapters } from './readerPrefs';
@@ -46,6 +47,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   const read = new Set(readReadChapters(novel.slug));
   return (
     <main className="page">
+      <Breadcrumbs items={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]} />
       <header className="novel-hero">
         {novel.coverUrl ? (
           <img className="novel-hero__cover" src={novel.coverUrl} alt="" />
