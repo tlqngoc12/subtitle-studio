@@ -491,6 +491,8 @@ Spec: [docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md](docs/sup
 - **Giao diện lưu:** nút Save (bật khi có thay đổi và hợp lệ), Ctrl+S / ⌘S, toast `Vietsub saved`; 409 hiện Alert có nút Reload (giữ nguyên phần đã gõ cho tới khi Reload), 400 hiện lỗi dưới từng dòng và cuộn tới dòng đầu, lỗi mạng hiện Alert. Có thay đổi chưa lưu thì `beforeunload` hỏi khi đóng tab, và bấm link nội bộ (menu, breadcrumb) hiện hộp xác nhận `Discard unsaved changes?`.
 - **Lưu ý:** app dùng `BrowserRouter` (không có `useBlocker`) nên hộp xác nhận chỉ bắt **click vào link**; nút Back của trình duyệt không bị chặn. Trang tải video trước rồi mới tải các dòng, nên nếu Vietsub đổi giữa hai lần tải thì lần lưu bị từ chối (409) thay vì ghi đè bản mới.
 - Kiểm thử: `mvn test -Dskip.npm`, `vitest`, `tsc -b --noEmit`, `npm run build`, `npm run build:public` đều qua.
+- **Cập nhật: tua hoặc bấm `#` không còn đặt con trỏ vào text:** chỉ cuộn tới và tô dòng đó (huỷ chờ 3 giây), focus giữ nguyên chỗ người dùng đang đứng.
+- **Trang Profile:** tên profile không còn hiện thành tiêu đề lớn (tab đã có tên); vẫn giữ `<h1>` ẩn (`visually-hidden`) cho trình đọc màn hình, nút Edit/Done căn phải, bản public không còn khoảng trống ở đầu trang.
 
 ### 2026-11-09: Banner Profile dạng FilmStrip một ảnh, trình sửa Vietsub bám theo dòng đang chiếu ✅ (đã merge vào main, deploy local)
 
