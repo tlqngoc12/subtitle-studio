@@ -35,20 +35,25 @@ public class ChapterService {
     private final MediaService mediaService;
     private final ImageSniffer sniffer;
     private final RenderCache renderCache;
+    private final PageRotator rotator;
     private final long maxImageBytes;
     private final Clock clock;
+    private final TranslatingModels models;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
-                          SubtitleStudioProperties properties, Clock clock) {
+                          PageRotator rotator, SubtitleStudioProperties properties, Clock clock,
+                          TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.mediaService = mediaService;
         this.sniffer = sniffer;
         this.renderCache = renderCache;
+        this.rotator = rotator;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
         this.clock = clock;
+        this.models = models;
     }
 
     @Transactional
@@ -62,7 +67,30 @@ public class ChapterService {
             throw new DuplicateChapterNumberException(no);
         }
         novel.touch(clock.instant());
-        return detail(chapters.save(new Chapter(novel, no, title, clock.instant())));
+        Chapter created = new Chapter(novel, no, title, clock.instant());
+        // New chapters go last in the reading order, whatever their number.
+        created.setSortOrder(existing.stream().mapToInt(Chapter::getSortOrder).max().orElse(0) + 1);
+        return detail(chapters.save(created));
+    }
+
+    /** Sets the reading order; the list must name every chapter of the novel exactly once. Any publish status. */
+    @Transactional
+    public void reorderChapters(long novelId, ChapterOrderRequest request) {
+        Novel novel = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
+        List<Chapter> all = chapters.findByNovelIdOrderByChapterNo(novelId);
+        List<Long> order = request == null || request.chapterIds() == null ? List.of() : request.chapterIds();
+        Map<Long, Chapter> byId = new HashMap<>();
+        all.forEach(c -> byId.put(c.getId(), c));
+        if (order.size() != all.size() || new HashSet<>(order).size() != order.size()
+                || !byId.keySet().containsAll(order)) {
+            throw new InvalidChapterException(List.of(new FieldError("chapterIds",
+                    "List every chapter of the novel exactly once.")));
+        }
+        for (int i = 0; i < order.size(); i++) {
+            byId.get(order.get(i)).setSortOrder(i + 1);
+        }
+        novel.touch(clock.instant());
+        chapters.flush();
     }
 
     @Transactional(readOnly = true)
@@ -197,6 +225,45 @@ public class ChapterService {
         mediaService.deleteIfUnreferenced(List.of(target.getMedia().getId()));
     }
 
+    /** Turns one page photo; its text stays. The photo is stored as a new file, the old one goes if no page uses it. */
+    @Transactional
+    public List<PageDto> rotatePage(long id, long pageId, RotateDirection direction) {
+        Chapter c = structural(id);
+        ChapterPage page = pages.findByChapterIdOrderByPosition(id).stream().filter(p -> p.getId() == pageId)
+                .findFirst().orElseThrow(() -> new PageNotFoundException(pageId));
+        Long oldId = rotateOne(page, direction);
+        touch(c);
+        pages.flush();
+        mediaService.deleteIfUnreferenced(List.of(oldId));
+        return pageDtos(id);
+    }
+
+    /** Turns every page photo of the chapter the same way. */
+    @Transactional
+    public List<PageDto> rotatePages(long id, RotateDirection direction) {
+        Chapter c = structural(id);
+        List<Long> old = new ArrayList<>();
+        for (ChapterPage page : pages.findByChapterIdOrderByPosition(id)) {
+            old.add(rotateOne(page, direction));
+        }
+        touch(c);
+        pages.flush();
+        mediaService.deleteIfUnreferenced(old);
+        return pageDtos(id);
+    }
+
+    /** Stores the rotated photo as new media, points the page at it, and returns the old media id. */
+    private Long rotateOne(ChapterPage page, RotateDirection direction) {
+        Media old = page.getMedia();
+        byte[] bytes = rotator.rotate(mediaService.load(old.getId()).path(), direction);
+        page.setMedia(mediaService.store(old.getOriginalName(), bytes));
+        return old.getId();
+    }
+
+    TranslatingModels models() {
+        return models;
+    }
+
     Chapter find(long id) {
         return chapters.findById(id).orElseThrow(() -> new ChapterNotFoundException(id));
     }
@@ -253,14 +320,28 @@ public class ChapterService {
     }
 
     private List<PageDto> pageDtos(long chapterId) {
-        return pages.findByChapterIdOrderByPosition(chapterId).stream()
+        List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(chapterId);
+        if (ps.isEmpty()) {
+            return List.of();
+        }
+        Double median = SuspectPages.novelMedian(pages.findByChapterNovelId(ps.getFirst().getChapter().getNovel().getId()));
+        return ps.stream()
                 .map(p -> new PageDto(p.getId(), p.getPosition(), "/api/media/" + p.getMedia().getId(),
-                        p.getTextVi()))
+                        p.getTextVi(), p.getSourceTh(), landscape(p),
+                        SuspectPages.suspect(p.getTextVi(), p.getSourceTh(), median)))
                 .toList();
     }
 
+    private boolean landscape(ChapterPage p) {
+        try {
+            return PageImageSize.landscape(mediaService.load(p.getMedia().getId()).path());
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
     ChapterDetail detail(Chapter c) {
-        List<Chapter> all = chapters.findByNovelIdOrderByChapterNo(c.getNovel().getId());
+        List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(c.getNovel().getId());
         Long prev = null;
         Long next = null;
         for (int i = 0; i < all.size(); i++) {
@@ -270,7 +351,7 @@ public class ChapterService {
             }
         }
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
-                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), c.getTranslatedAt(),
+                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next);
     }

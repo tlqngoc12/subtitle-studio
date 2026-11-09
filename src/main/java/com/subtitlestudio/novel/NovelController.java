@@ -20,10 +20,18 @@ public class NovelController {
 
     private final NovelService service;
     private final NotebookService notebook;
+    private final ChapterService chapterService;
 
-    public NovelController(NovelService service, NotebookService notebook) {
+    public NovelController(NovelService service, NotebookService notebook, ChapterService chapterService) {
         this.service = service;
         this.notebook = notebook;
+        this.chapterService = chapterService;
+    }
+
+    @PutMapping("/{id}/chapters/order")
+    public List<ChapterSummary> reorderChapters(@PathVariable long id, @RequestBody ChapterOrderRequest request) {
+        chapterService.reorderChapters(id, request);
+        return service.get(id).chapters();
     }
 
     @GetMapping("/{id}/notebook")

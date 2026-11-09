@@ -12,6 +12,7 @@ import com.subtitlestudio.video.VideoRepository;
 import com.subtitlestudio.video.VietsubService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,8 @@ public class TranslationService {
     private final VietsubService vietsub;
     private final TransactionTemplate tx;
     private final Executor executor;
+    /** The model being asked right now, per video that is TRANSLATING; removed when the run ends. */
+    private final ConcurrentHashMap<String, String> activeModel = new ConcurrentHashMap<>();
 
     public TranslationService(SubtitleStudioProperties properties, PromptProfileStore profiles,
                               GeminiTranslator translator, VideoRepository videos, CueRepository cues,
@@ -110,6 +113,11 @@ public class TranslationService {
         }
     }
 
+    /** The Gemini model a running translation of this video is asking right now; null when none. */
+    public String activeModel(String videoId) {
+        return activeModel.get(videoId);
+    }
+
     /** At startup nothing can still be running: earlier runs died with the previous process. */
     @EventListener(ApplicationReadyEvent.class)
     public void markInterrupted() {
@@ -129,16 +137,28 @@ public class TranslationService {
 
     private void run(String id, String profile, VideoContext context) {
         try {
+            runTranslation(id, profile, context);
+        } finally {
+            activeModel.remove(id);
+        }
+    }
+
+    private void runTranslation(String id, String profile, VideoContext context) {
+        String[] lastTried = {null};
+        try {
             String profileText = profiles.read(profile);
             List<CueEntity> english = cues.findByVideo_IdOrderByIdxAsc(id);
             List<SourceLine> lines = english.stream().map(c -> new SourceLine(c.getIdx(), c.getTextEn())).toList();
-            List<TranslatedLine> translated = translator.translate(context, profileText, lines);
+            List<TranslatedLine> translated = translator.translate(context, profileText, lines, model -> {
+                lastTried[0] = model;
+                activeModel.put(id, model);
+            });
             List<ViCue> vietsubCues = new ArrayList<>(english.size());
             for (int i = 0; i < english.size(); i++) {
                 CueEntity cue = english.get(i);
                 vietsubCues.add(new ViCue(cue.getStartMs(), cue.getEndMs(), translated.get(i).text()));
             }
-            vietsub.saveAuto(id, vietsubCues, profile);
+            vietsub.saveAuto(id, vietsubCues, profile, lastTried[0]);
         } catch (TranslationFailedException e) {
             log.warn("Translation of {} failed: {}", id, e.userMessage());
             fail(id, e.userMessage());

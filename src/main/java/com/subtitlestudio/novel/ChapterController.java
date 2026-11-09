@@ -1,5 +1,6 @@
 package com.subtitlestudio.novel;
 
+import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.InvalidMediaException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -82,6 +83,17 @@ public class ChapterController {
         return service.addPages(id, images);
     }
 
+    @PostMapping("/api/chapters/{id}/pages/{pageId}/rotate")
+    public List<PageDto> rotatePage(@PathVariable long id, @PathVariable long pageId,
+                                    @RequestBody RotateRequest request) {
+        return service.rotatePage(id, pageId, direction(request));
+    }
+
+    @PostMapping("/api/chapters/{id}/pages/rotate")
+    public List<PageDto> rotatePages(@PathVariable long id, @RequestBody RotateRequest request) {
+        return service.rotatePages(id, direction(request));
+    }
+
     @PutMapping("/api/chapters/{id}/pages/order")
     public List<PageDto> reorder(@PathVariable long id, @RequestBody PageOrderRequest request) {
         return service.reorder(id, request);
@@ -91,5 +103,12 @@ public class ChapterController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePage(@PathVariable long id, @PathVariable long pageId) {
         service.deletePage(id, pageId);
+    }
+
+    private static RotateDirection direction(RotateRequest request) {
+        if (request.direction() == null) {
+            throw new InvalidChapterException(List.of(new FieldError("direction", "Direction is required.")));
+        }
+        return request.direction();
     }
 }

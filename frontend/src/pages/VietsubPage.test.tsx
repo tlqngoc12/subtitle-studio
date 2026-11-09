@@ -13,7 +13,7 @@ import { AppToaster } from '../components/AppToaster';
 
 const ID = 'dQw4w9WgXcQ';
 
-function video(id: string, title: string, viCueCount: number, viUpdatedAt: string | null): VideoDto {
+function video(id: string, title: string, viCueCount: number, viUpdatedAt: string | null, viSource: 'AUTO' | 'MANUAL' = 'MANUAL'): VideoDto {
   return {
     id,
     title,
@@ -26,10 +26,11 @@ function video(id: string, title: string, viCueCount: number, viUpdatedAt: strin
     thumbnailUrl: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
     viCueCount,
     viUpdatedAt,
-    viSource: viCueCount > 0 ? 'MANUAL' : null,
+    viSource: viCueCount > 0 ? viSource : null,
     translationStatus: null,
     translationError: null,
     translationProfile: null,
+    translationModel: null,
   };
 }
 
@@ -223,7 +224,7 @@ describe('VietsubPage', () => {
     expect(alert).toHaveTextContent('Block 3 is longer than 1000 characters');
   });
 
-  it('offers Watch Video, Download, Replace, Delete and Save to playlist for each video', async () => {
+  it('offers Download, Replace, Delete and Save to playlist for each video', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
     const list = await loadedRegion('Manage Vietsub');
@@ -243,15 +244,88 @@ describe('VietsubPage', () => {
     expect(download.querySelector('svg')).not.toBeNull();
     expect(download).toHaveAttribute('href', `/api/videos/${ID}/subtitle.vi.srt`);
     expect(download).toHaveAttribute('download');
-    const watch = within(item).getByRole('link', { name: 'Watch Video: Học Spring Boot' });
-    await expectTooltip(watch, 'Watch Video');
-    expect(watch.textContent?.trim()).toBe('');
-    expect(watch.querySelector('svg')).not.toBeNull();
-    expect(watch).toHaveAttribute('href', `/vietsub/${ID}`);
+    expect(within(item).queryByRole('link', { name: /^Watch Video/ })).not.toBeInTheDocument();
     const save = within(item).getByRole('button', { name: 'Save to playlist: Học Spring Boot' });
     await expectTooltip(save, 'Save to playlist');
     expect(save.textContent?.trim()).toBe('');
     expect(save.querySelector('svg')).not.toBeNull();
+  });
+
+  describe('search, source filter and order', () => {
+    const cafe = video('CAFE0000001', 'Café sáng', 3, '2026-11-02T08:00:00Z', 'MANUAL');
+    const aiOld = video('AIOLD000001', 'AI cũ', 3, '2026-11-02T07:00:00Z', 'AUTO');
+    const aiNew = video('AINEW000001', 'AI mới', 3, '2026-11-02T09:00:00Z', 'AUTO');
+    const names = (list: HTMLElement) =>
+      within(within(list).getByRole('list'))
+        .getAllByRole('listitem')
+        .map((li) => within(li).getByText(/^(Café sáng|AI cũ|AI mới|Video cũ hơn|Video \d+)$/).textContent);
+
+    it('lists AI Vietsub first, then manual, newest first inside each group', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld, older, aiNew] }]);
+      renderPage();
+
+      const list = await loadedRegion('Manage Vietsub');
+
+      expect(names(list)).toEqual(['AI mới', 'AI cũ', 'Video cũ hơn', 'Café sáng']);
+    });
+
+    it('finds a video without typing the accents', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld] }]);
+      renderPage();
+      const list = await loadedRegion('Manage Vietsub');
+
+      await userEvent.setup().type(screen.getByRole('searchbox', { name: 'Search videos' }), 'cafe');
+
+      await waitFor(() => expect(names(list)).toEqual(['Café sáng']));
+      expect(screen.getByLabelText('search')).toHaveTextContent('?q=cafe');
+    });
+
+    it('says so when nothing matches', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe] }]);
+      renderPage('/vietsub?q=zzz');
+
+      expect(await screen.findByText('No videos match your search.')).toBeInTheDocument();
+    });
+
+    it('filters by source with the All, AI and Manual chips', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld, aiNew] }]);
+      renderPage();
+      const list = await loadedRegion('Manage Vietsub');
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'AI' }));
+      await waitFor(() => expect(names(list)).toEqual(['AI mới', 'AI cũ']));
+      expect(screen.getByRole('button', { name: 'AI' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByLabelText('search')).toHaveTextContent('?source=ai');
+
+      await user.click(screen.getByRole('button', { name: 'Manual' }));
+      await waitFor(() => expect(names(list)).toEqual(['Café sáng']));
+
+      await user.click(screen.getByRole('button', { name: 'All' }));
+      await waitFor(() => expect(names(list)).toHaveLength(3));
+      expect(screen.getByLabelText('search')).toHaveTextContent('');
+    });
+
+    it('restores the search and the filter from the URL', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld, older] }]);
+      renderPage('/vietsub?q=x&source=manual');
+
+      expect(await screen.findByText('No videos match your search.')).toBeInTheDocument();
+      expect(screen.getByRole('searchbox', { name: 'Search videos' })).toHaveValue('x');
+      expect(screen.getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('paginates after filtering', async () => {
+      const ai = many(12).map((v) => ({ ...v, viSource: 'AUTO' as const }));
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [...ai, cafe] }]);
+      renderPage('/vietsub?source=manual&page=2');
+
+      const list = await loadedRegion('Manage Vietsub');
+
+      // Only one manual video, so page 2 does not exist and the URL falls back to page 1.
+      expect(names(list)).toEqual(['Café sáng']);
+      expect(screen.getByLabelText('search')).toHaveTextContent('?source=manual');
+    });
   });
 
   it('replaces Vietsub from the list', async () => {

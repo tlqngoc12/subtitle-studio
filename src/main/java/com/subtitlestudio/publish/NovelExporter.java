@@ -55,7 +55,7 @@ public class NovelExporter {
         String watermark = watermark();
         List<PublicNovelSummary> summaries = new ArrayList<>();
         for (Novel n : novels.findAllByOrderByUpdatedAtDesc()) {
-            List<Chapter> published = chapters.findByNovelIdOrderByChapterNo(n.getId()).stream()
+            List<Chapter> published = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId()).stream()
                     .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).toList();
             if (published.isEmpty()) {
                 continue;

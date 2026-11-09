@@ -43,6 +43,7 @@ const video: VideoDto = {
   translationStatus: null,
   translationError: null,
   translationProfile: null,
+  translationModel: null,
 };
 
 const cues: ViCue[] = [
@@ -291,6 +292,13 @@ describe('WatchPage', () => {
 
       await user.click(within(await panel()).getByRole('button', { name: 'Previous video' }));
       expect(location()).toBe(`/vietsub/${B.id}?playlist=4`);
+    });
+
+    it('does not start the first video of a playlist on its own', async () => {
+      renderAt(`/vietsub/${A.id}?playlist=4`);
+      await panel();
+
+      expect(player.calls.at(-1)).toEqual({ videoId: A.id, autoplay: false });
     });
 
     it('plays the next video when one ends and Autoplay is on', async () => {

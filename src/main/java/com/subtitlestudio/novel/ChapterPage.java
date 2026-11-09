@@ -38,6 +38,11 @@ public class ChapterPage {
     @Column(name = "text_vi")
     private String textVi;
 
+    /** The Thai text Gemini read from the image; null when unknown. */
+    @Lob
+    @Column(name = "source_th")
+    private String sourceTh;
+
     protected ChapterPage() {
         // for JPA
     }
@@ -68,11 +73,23 @@ public class ChapterPage {
         return media;
     }
 
+    public void setMedia(Media media) {
+        this.media = media;
+    }
+
     public String getTextVi() {
         return textVi;
     }
 
     public void setTextVi(String textVi) {
         this.textVi = textVi;
+    }
+
+    public String getSourceTh() {
+        return sourceTh;
+    }
+
+    public void setSourceTh(String sourceTh) {
+        this.sourceTh = sourceTh;
     }
 }

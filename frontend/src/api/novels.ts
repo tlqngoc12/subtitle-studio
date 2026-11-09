@@ -39,8 +39,12 @@ export interface ChapterSummary {
   label: string | null;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
+  /** Gemini model(s) translating now, or that translated it; null = unknown. */
+  translationModel: string | null;
   publishStatus: ChapterPublishStatus;
   pageCount: number;
+  /** Pages whose translation looks much shorter than the Thai text read from the image. */
+  suspectPages: number;
 }
 
 export interface NovelDetail extends Omit<NovelInput, 'tags'> {
@@ -57,7 +61,15 @@ export interface PageDto {
   position: number;
   mediaUrl: string;
   textVi: string | null;
+  /** The Thai text Gemini read from the image; null when unknown. */
+  source: string | null;
+  /** The photo is wider than tall (probably sideways). */
+  landscape: boolean;
+  /** The translation is much shorter than its source. */
+  suspect: boolean;
 }
+
+export type RotateDirection = 'LEFT' | 'RIGHT';
 
 export interface ChapterDetail {
   id: number;
@@ -68,6 +80,8 @@ export interface ChapterDetail {
   label: string | null;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
+  /** Gemini model(s) translating now, or that translated it; null = unknown. */
+  translationModel: string | null;
   translatedAt: string | null;
   editedAfterTranslation: boolean;
   publishStatus: ChapterPublishStatus;
@@ -179,8 +193,21 @@ export async function reorderPages(id: number, pageIds: number[]): Promise<PageD
   return (await send(`/api/chapters/${id}/pages/order`, json('PUT', { pageIds }))).json();
 }
 
+/** Sets the reading order of a novel's chapters (chapter numbers never change). */
+export async function reorderChapters(novelId: number, chapterIds: number[]): Promise<ChapterSummary[]> {
+  return (await send(`/api/novels/${novelId}/chapters/order`, json('PUT', { chapterIds }))).json();
+}
+
 export async function deletePage(id: number, pageId: number): Promise<void> {
   await send(`/api/chapters/${id}/pages/${pageId}`, { method: 'DELETE' });
+}
+
+export async function rotatePage(id: number, pageId: number, direction: RotateDirection): Promise<PageDto[]> {
+  return (await send(`/api/chapters/${id}/pages/${pageId}/rotate`, json('POST', { direction }))).json();
+}
+
+export async function rotatePages(id: number, direction: RotateDirection): Promise<PageDto[]> {
+  return (await send(`/api/chapters/${id}/pages/rotate`, json('POST', { direction }))).json();
 }
 
 export async function translateChapter(id: number): Promise<ChapterDetail> {

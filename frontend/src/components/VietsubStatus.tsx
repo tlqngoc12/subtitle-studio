@@ -40,7 +40,7 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
     return (
       <p className="vietsub-status">
         <Loader2 className="icon icon--spin" aria-hidden="true" />
-        Translating with Gemini ({video.translationProfile})…
+        Translating with Gemini ({video.translationModel ? `${video.translationProfile}, ${video.translationModel}` : video.translationProfile})…
       </p>
     );
   }
@@ -61,6 +61,7 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
       {video.viSource === 'AUTO' && (
         <p className="vietsub-status__line">
           <span>Vietsub: AI</span>
+          {video.translationModel && <span className="meta">Translated by {video.translationModel}</span>}
           {watch}
           <a className="vietsub-status__link" href={viSrtUrl(video.id)} download>
             Download Vietsub

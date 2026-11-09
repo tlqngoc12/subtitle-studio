@@ -2,11 +2,14 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { ArrowLeft, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { toast } from 'sonner';
 import {
   addChapter,
   deleteNovel,
   getNovel,
+  reorderChapters,
   updateNovel,
+  type ChapterSummary,
   type NotebookView as NotebookData,
   type NovelDetail,
 } from '../api/novels';
@@ -46,6 +49,21 @@ export default function NovelPage() {
     } catch (e) {
       setError(errorMessage(e));
       setAdding(false);
+    }
+  }
+
+  /** Optimistic: shows the new order at once, goes back to the old one when the server refuses it. */
+  async function reorder(next: ChapterSummary[]) {
+    if (!novel) return;
+    const previous = novel.chapters;
+    setError(null);
+    setNovel({ ...novel, chapters: next });
+    try {
+      const saved = await reorderChapters(novelId, next.map((c) => c.id));
+      setNovel((n) => (n ? { ...n, chapters: saved } : n));
+    } catch (e) {
+      setError(errorMessage(e));
+      setNovel((n) => (n ? { ...n, chapters: previous } : n));
     }
   }
 
@@ -115,7 +133,7 @@ export default function NovelPage() {
                 <Plus className="icon" aria-hidden="true" />
                 Add chapter
               </button>
-              <ChapterList novelId={novelId} chapters={novel.chapters} />
+              <ChapterList novelId={novelId} chapters={novel.chapters} onReorder={(next) => void reorder(next)} />
             </Tabs.Content>
 
             <Tabs.Content value="details" className="tabs__panel">
@@ -124,7 +142,10 @@ export default function NovelPage() {
                 initial={novel}
                 submitLabel="Save"
                 pendingLabel="Saving…"
-                onSubmit={async (input) => setNovel(await updateNovel(novelId, input))}
+                onSubmit={async (input) => {
+                  setNovel(await updateNovel(novelId, input));
+                  toast.success('Novel saved');
+                }}
               />
               <div className="danger-zone">
                 <button className="button button--danger" type="button" onClick={remove}>

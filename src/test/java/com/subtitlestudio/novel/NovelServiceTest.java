@@ -32,7 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
     NovelServiceTest.Config.class})
 class NovelServiceTest {
 
@@ -244,5 +244,40 @@ class NovelServiceTest {
         assertThat(media.findById(page.getId())).isEmpty();
         assertThatThrownBy(() -> service.get(d.id())).isInstanceOf(NovelNotFoundException.class);
         assertThat(cached).doesNotExist();
+    }
+
+    @Test
+    void chapterListFollowsTheReadingOrder() {
+        NovelDetail d = service.create(valid());
+        Novel novel = em.find(Novel.class, d.id());
+        Chapter one = new Chapter(novel, 1, null, NOW);
+        Chapter two = new Chapter(novel, 2, null, NOW);
+        one.setSortOrder(2);
+        two.setSortOrder(1);
+        chapters.save(one);
+        chapters.save(two);
+        em.flush();
+        em.clear();
+
+        assertThat(service.get(d.id()).chapters()).extracting(ChapterSummary::chapterNo).containsExactly(2, 1);
+    }
+
+    @Test
+    void summaryCountsSuspectPages() {
+        NovelDetail d = service.create(valid());
+        Novel novel = em.find(Novel.class, d.id());
+        Chapter chapter = chapters.save(new Chapter(novel, 1, null, NOW));
+        String source = "ก".repeat(200);
+        for (int i = 0; i < 6; i++) {
+            ChapterPage p = new ChapterPage(chapter, i + 1, mediaService.store("p.png", TestImages.png()));
+            p.setSourceTh(source);
+            p.setTextVi("a".repeat(i == 5 ? 80 : 200));
+            pages.save(p);
+        }
+        em.flush();
+        em.clear();
+
+        assertThat(service.get(d.id()).chapters()).singleElement()
+                .satisfies(c -> assertThat(c.suspectPages()).isEqualTo(1));
     }
 }

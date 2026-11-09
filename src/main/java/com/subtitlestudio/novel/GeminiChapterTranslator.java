@@ -14,12 +14,13 @@ import com.google.genai.types.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** One Gemini request for a batch of chapter pages: screenshots in, {@code {pages: [{page, text}]}} out. */
+/** One Gemini request for a batch of chapter pages: screenshots in, {@code {pages: [{page, text, source}]}} out. */
 @Component
 public class GeminiChapterTranslator implements ChapterTranslator {
 
@@ -29,6 +30,9 @@ public class GeminiChapterTranslator implements ChapterTranslator {
             từng ảnh theo đúng thứ tự trang rồi dịch sang tiếng Việt văn xuôi tự nhiên, giàu cảm xúc, đúng giọng nhân vật.
             - "text" là BẢN DỊCH TIẾNG VIỆT của trang, không chép lại chữ Thái. Không để sót chữ Thái nào: thán từ, \
             tiếng đáp (ค่ะ, คะ, อื้ม...) và cách gọi (คุณ...) cũng dịch sang tiếng Việt, không kèm chữ gốc trong ngoặc.
+            - Ảnh có thể bị xoay; hãy đọc theo đúng hướng chữ.
+            - "source" là toàn bộ chữ Thái đọc được trong ảnh của trang, chép đủ từng dòng theo thứ tự, không tóm tắt.
+            - "text" phải dịch đủ mọi câu có trong "source", không bỏ câu nào.
             - Với mỗi ảnh trả đúng một phần tử có "page" bằng số k của ảnh đó; không gộp, không tách, không bỏ trang.
             - Giữ ngắt đoạn của bản gốc (một dòng trống giữa các đoạn). Không thêm lời bình, chú thích hay tóm tắt.
             - Bỏ qua chữ thuộc giao diện ứng dụng nếu có trong ảnh (thanh trạng thái, giờ, pin, nút bấm, số trang).
@@ -62,7 +66,12 @@ public class GeminiChapterTranslator implements ChapterTranslator {
      */
     @Override
     public List<TranslatedPage> translate(ChapterPrompt prompt) {
-        PageTextOutput.Check first = ask(prompt, prompt.pages());
+        return translate(prompt, model -> {});
+    }
+
+    @Override
+    public List<TranslatedPage> translate(ChapterPrompt prompt, Consumer<String> onTrying) {
+        PageTextOutput.Check first = ask(prompt, prompt.pages(), onTrying);
         if (first.missing().isEmpty()) {
             return first.valid();
         }
@@ -71,7 +80,7 @@ public class GeminiChapterTranslator implements ChapterTranslator {
         List<PageImage> missing = prompt.pages().stream().filter(p -> first.missing().contains(p.page())).toList();
         PageTextOutput.Check second;
         try {
-            second = ask(prompt, missing);
+            second = ask(prompt, missing, onTrying);
         } catch (TranslationFailedException e) {
             throw new ChapterPartlyTranslatedException(e.userMessage(), first.valid());
         }
@@ -86,14 +95,14 @@ public class GeminiChapterTranslator implements ChapterTranslator {
     }
 
     /** One request for {@code pages}; logs the model and, when pages are missing, the answer's shape (no text). */
-    private PageTextOutput.Check ask(ChapterPrompt prompt, List<PageImage> pages) {
+    private PageTextOutput.Check ask(ChapterPrompt prompt, List<PageImage> pages, Consumer<String> onTrying) {
         List<Part> parts = new ArrayList<>();
         parts.add(Part.fromText(context(prompt)));
         for (PageImage page : pages) {
             parts.add(Part.fromText("Page " + page.page()));
             parts.add(Part.fromBytes(page.jpeg(), "image/jpeg"));
         }
-        GeminiCaller.Answer answer = caller.generate(parts, config());
+        GeminiCaller.Answer answer = caller.generate(parts, config(), onTrying);
         Answer got;
         try {
             got = mapper.readValue(answer.text(), Answer.class);
@@ -138,8 +147,9 @@ public class GeminiChapterTranslator implements ChapterTranslator {
                 .type(Type.Known.OBJECT)
                 .properties(Map.of(
                         "page", Schema.builder().type(Type.Known.INTEGER).build(),
+                        "source", Schema.builder().type(Type.Known.STRING).build(),
                         "text", Schema.builder().type(Type.Known.STRING).build()))
-                .required("page", "text")
+                .required("page", "source", "text")
                 .build();
         Schema root = Schema.builder()
                 .type(Type.Known.OBJECT)

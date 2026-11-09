@@ -2,6 +2,8 @@
 export interface YTPlayer {
   getCurrentTime(): number;
   destroy(): void;
+  loadVideoById(id: string): void;
+  cueVideoById(id: string): void;
   /** Undocumented but long-standing: unloadModule('captions') hides YouTube's own subtitles. */
   unloadModule?(name: string): void;
 }

@@ -1,4 +1,4 @@
-import { Captions, Download, FilePlus, FileUp, Languages, Play, Trash2 } from 'lucide-react';
+import { Captions, Download, FilePlus, FileUp, Languages, SearchX, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -17,16 +17,23 @@ interface Props {
   highlightId?: string | null;
   /** Changes when another page is shown, so its rows appear without enter/exit animations. */
   listKey?: number;
+  /** Search and filter controls shown above the list. */
+  toolbar?: ReactNode;
+  /** True when a search or filter is applied, so an empty list means "nothing matches" rather than "no Vietsub yet". */
+  filtered?: boolean;
   /** Shown under the list, e.g. the pager. */
   footer?: ReactNode;
 }
 
-export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, listKey, footer }: Props) {
+export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, listKey, toolbar, filtered, footer }: Props) {
   return (
     <section className="history" aria-label="Manage Vietsub">
       <h2 className="history__heading">Manage Vietsub</h2>
+      {toolbar}
       {videos === null ? (
         <p className="muted">Loading list…</p>
+      ) : videos.length === 0 && filtered ? (
+        <EmptyState icon={SearchX}>No videos match your search.</EmptyState>
       ) : videos.length === 0 ? (
         <EmptyState icon={FilePlus}>
           No videos with Vietsub yet. Paste a YouTube link and choose an .srt file above to start.
@@ -68,11 +75,6 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                     </span>
                   </Link>
                   <span className="history__actions">
-                    <Tip label="Watch Video">
-                      <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Watch Video: ${v.title}`}>
-                        <Play className="icon" aria-hidden="true" />
-                      </Link>
-                    </Tip>
                     <SaveToPlaylist video={v} />
                     <Tip label="Download Vietsub">
                       <a className="button button--icon" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>

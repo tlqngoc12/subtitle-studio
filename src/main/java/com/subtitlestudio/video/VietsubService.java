@@ -105,6 +105,11 @@ public class VietsubService {
      * @return whether the translation was stored
      */
     public boolean saveAuto(String id, List<ViCue> cues, String profile) {
+        return saveAuto(id, cues, profile, null);
+    }
+
+    /** {@code model}: the Gemini model that translated, stored for display; null = unknown. */
+    public boolean saveAuto(String id, List<ViCue> cues, String profile, String model) {
         Boolean saved = tx.execute(status -> {
             var locked = videos.findForUpdate(id);
             if (locked.isEmpty()) {
@@ -123,7 +128,7 @@ public class VietsubService {
             }
             viCues.saveAll(entities);
             video.updateVietsub(cues.size(), clock.instant(), ViSource.AUTO);
-            video.translationSucceeded(profile);
+            video.translationSucceeded(profile, model);
             return true;
         });
         if (Boolean.TRUE.equals(saved)) {

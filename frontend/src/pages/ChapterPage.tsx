@@ -1,21 +1,40 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { ArrowLeft, ChevronLeft, ChevronRight, Languages, Save, Send, Undo2 } from 'lucide-react';
-import { useEffect, useId, useState, type MouseEvent } from 'react';
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Info,
+  Languages,
+  RotateCcw,
+  RotateCw,
+  Save,
+  Send,
+  TriangleAlert,
+  Undo2,
+} from 'lucide-react';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import Lightbox from 'yet-another-react-lightbox';
+import { toast } from 'sonner';
+import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import 'yet-another-react-lightbox/plugins/captions.css';
 import 'yet-another-react-lightbox/styles.css';
 import {
   deletePage,
   getChapter,
   publishChapter,
   reorderPages,
+  rotatePage,
+  rotatePages,
   translateChapter,
   unpublishChapter,
   updateChapter,
   uploadPages,
   type ChapterDetail,
   type PageDto,
+  type RotateDirection,
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { PageRow } from '../components/novel/PageRow';
@@ -25,6 +44,9 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+
+/** Unsaved edits are saved by themselves this often (3 minutes). */
+export const AUTO_SAVE_MS = 180_000;
 
 /**
  * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
@@ -64,7 +86,12 @@ export default function ChapterPage() {
 
   const translating = chapter?.translationStatus === 'TRANSLATING';
   useChapterPolling(translating ? chapterId : null, (c) => {
-    if (c.translationStatus !== 'TRANSLATING') load(c);
+    if (c.translationStatus !== 'TRANSLATING') {
+      load(c);
+    } else {
+      // A fallback model took over: show it, keep the edits.
+      setChapter((prev) => (prev ? { ...prev, translationModel: c.translationModel } : prev));
+    }
   });
 
   const dirty =
@@ -80,6 +107,32 @@ export default function ChapterPage() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  // Save is allowed only for a loaded, edited chapter that is not busy/translating and has a Number.
+  const canSave = dirty && !translating && !busy && number !== '';
+  const saveRef = useRef<(auto: boolean) => Promise<void>>(async () => {});
+  const canSaveRef = useRef(canSave);
+  canSaveRef.current = canSave;
+
+  // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 's') return;
+      e.preventDefault();
+      if (canSaveRef.current) void saveRef.current(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // One timer while there are savable unsaved changes; the browser-side checks repeat at fire time.
+  useEffect(() => {
+    if (!canSave) return;
+    const id = window.setInterval(() => {
+      if (canSaveRef.current) void saveRef.current(true);
+    }, AUTO_SAVE_MS);
+    return () => window.clearInterval(id);
+  }, [canSave]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -131,9 +184,19 @@ export default function ChapterPage() {
   const locked = translating || busy;
   // Published: the notebook was built from this chapter, so only its text and title change (Unpublish to do more).
   const published = chapter.publishStatus === 'PUBLISHED';
+  const suspectNumbers = chapter.pages.flatMap((p, i) => (p.suspect ? [i + 1] : []));
 
   async function translate() {
     if (!chapter) return;
+    const landscape = chapter.pages.filter((p) => p.landscape).length;
+    if (landscape > 0) {
+      const ok = await confirm({
+        title: 'Landscape pages',
+        description: `${landscape} page(s) are landscape — Gemini reads sideways text poorly. Translate anyway?`,
+        confirmLabel: 'Translate anyway',
+      });
+      if (!ok) return;
+    }
     if (chapter.editedAfterTranslation || dirty) {
       const ok = await confirm({
         title: 'Translate this chapter again?',
@@ -145,9 +208,9 @@ export default function ChapterPage() {
     await run(async () => load(await translateChapter(chapterId)));
   }
 
-  async function save() {
+  async function save(auto = false) {
     if (!chapter) return;
-    await run(async () =>
+    await run(async () => {
       load(
         await updateChapter(chapterId, {
           chapterNo: Number(number),
@@ -155,9 +218,11 @@ export default function ChapterPage() {
           title: title.trim(),
           text,
         }),
-      ),
-    );
+      );
+      toast.success(auto ? 'Auto-saved' : 'Chapter saved');
+    });
   }
+  saveRef.current = save;
 
   async function upload(files: File[]) {
     setUploading(true);
@@ -191,6 +256,20 @@ export default function ChapterPage() {
     const to = chapter.pages.findIndex((p) => p.id === over.id);
     if (from < 0 || to < 0) return;
     void reorder(arrayMove(chapter.pages, from, to));
+  }
+
+  async function rotate(page: PageDto, direction: RotateDirection) {
+    await run(async () => {
+      const pages = await rotatePage(chapterId, page.id, direction);
+      setChapter((c) => (c ? { ...c, pages } : c));
+    });
+  }
+
+  async function rotateAll(direction: RotateDirection) {
+    await run(async () => {
+      const pages = await rotatePages(chapterId, direction);
+      setChapter((c) => (c ? { ...c, pages } : c));
+    });
   }
 
   async function removePage(page: PageDto, n: number) {
@@ -263,7 +342,16 @@ export default function ChapterPage() {
             )}
           </span>
         </div>
-        {translating && <p className="muted" aria-live="polite">Gemini is reading and translating the pages…</p>}
+        {translating && (
+          <p className="muted" aria-live="polite">
+            {chapter.translationModel
+              ? `Translating with ${chapter.translationModel}…`
+              : 'Gemini is reading and translating the pages…'}
+          </p>
+        )}
+        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+          <p className="muted">Translated by {chapter.translationModel}</p>
+        )}
         {chapter.translationStatus === 'FAILED' && chapter.translationError && (
           <p className="field__error">{chapter.translationError}</p>
         )}
@@ -277,21 +365,34 @@ export default function ChapterPage() {
       )}
 
       <div className="chapter-meta">
-        {!published && (
-          <div className="field">
-            <label htmlFor={`${ids}-no`}>Order</label>
-            <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
-              aria-describedby={`${ids}-no-hint`}
-              onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
-            <p className="field__hint" id={`${ids}-no-hint`}>Sorts the chapters and is the chapter's link number.</p>
+        <div className="chapter-meta__row">
+          {!published && (
+            <div className="field chapter-meta__number">
+              <div className="field__label-row">
+                <label htmlFor={`${ids}-no`}>Number</label>
+                <Tip label="The chapter's link number. Drag chapters in the list to change the reading order.">
+                  <button className="info-button" type="button" aria-label="About Number">
+                    <Info className="icon" aria-hidden="true" />
+                  </button>
+                </Tip>
+              </div>
+              <input id={`${ids}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
+                onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))} />
+            </div>
+          )}
+          <div className="field chapter-meta__label">
+            <div className="field__label-row">
+              <label htmlFor={`${ids}-label`}>Chapter label (optional)</label>
+              <Tip label="Shown instead of the number, e.g. Ngoại truyện 1, Special.">
+                <button className="info-button" type="button" aria-label="About Chapter label">
+                  <Info className="icon" aria-hidden="true" />
+                </button>
+              </Tip>
+            </div>
+            <input id={`${ids}-label`} type="text" maxLength={100} value={label} disabled={locked}
+              placeholder={`Chapter ${number || chapter.chapterNo}`}
+              onChange={(e) => setLabel(e.target.value)} />
           </div>
-        )}
-        <div className="field">
-          <label htmlFor={`${ids}-label`}>Chapter label (optional)</label>
-          <input id={`${ids}-label`} type="text" maxLength={100} value={label} disabled={locked}
-            placeholder={`Chapter ${number || chapter.chapterNo}`} aria-describedby={`${ids}-label-hint`}
-            onChange={(e) => setLabel(e.target.value)} />
-          <p className="field__hint" id={`${ids}-label-hint`}>Shown instead of the number, e.g. Ngoại truyện 1, Special.</p>
         </div>
         <div className="field">
           <label htmlFor={`${ids}-title`}>Chapter title (optional)</label>
@@ -308,6 +409,18 @@ export default function ChapterPage() {
         <section className="chapter-pages" aria-labelledby={`${ids}-pages`}>
           <h2 id={`${ids}-pages`} className="history__heading">Pages</h2>
           <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
+          {chapter.pages.length > 0 && (
+            <div className="chapter-pages__rotate">
+              <button className="button button--small" type="button" disabled={locked} onClick={() => void rotateAll('LEFT')}>
+                <RotateCcw className="icon" aria-hidden="true" />
+                Rotate all left
+              </button>
+              <button className="button button--small" type="button" disabled={locked} onClick={() => void rotateAll('RIGHT')}>
+                <RotateCw className="icon" aria-hidden="true" />
+                Rotate all right
+              </button>
+            </div>
+          )}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={chapter.pages.map((p) => p.id)} strategy={rectSortingStrategy}>
               <ol className="page-grid" aria-label="Pages">
@@ -318,6 +431,7 @@ export default function ChapterPage() {
                     number={i + 1}
                     locked={locked}
                     onEnlarge={() => setEnlarged(i)}
+                    onRotate={(d) => void rotate(p, d)}
                     onDelete={() => void removePage(p, i + 1)}
                   />
                 ))}
@@ -325,6 +439,23 @@ export default function ChapterPage() {
             </SortableContext>
           </DndContext>
         </section>
+      )}
+
+      {suspectNumbers.length > 0 && (
+        <p className="chapter-warning">
+          <TriangleAlert className="icon" aria-hidden="true" />
+          {suspectNumbers.length === 1 ? 'Page ' : 'Pages '}
+          {suspectNumbers.map((n, i) => (
+            <span key={n}>
+              <button className="chapter-warning__page" type="button" aria-label={`Show page ${n}`}
+                onClick={() => setEnlarged(n - 1)}>
+                {n}
+              </button>
+              {i < suspectNumbers.length - 1 ? ', ' : ''}
+            </span>
+          ))}
+          {' may be incomplete'}
+        </p>
       )}
 
       <div className="field chapter-text">
@@ -345,8 +476,30 @@ export default function ChapterPage() {
         open={enlarged !== null}
         index={enlarged ?? 0}
         close={() => setEnlarged(null)}
-        slides={chapter.pages.map((p, i) => ({ src: p.mediaUrl, alt: `Page ${i + 1}` }))}
+        plugins={[Captions]}
+        captions={{ descriptionMaxLines: 12 }}
+        toolbar={{ buttons: [<CopySourceButton key="copy-source" sources={chapter.pages.map((p) => p.source)} />, 'close'] }}
+        slides={chapter.pages.map((p, i) => ({
+          src: p.mediaUrl,
+          alt: `Page ${i + 1}`,
+          title: `Page ${i + 1}`,
+          description: p.source ? `Source read by AI:
+${p.source}` : undefined,
+        }))}
       />
     </main>
+  );
+}
+
+/** Lightbox toolbar button: copies the Thai text Gemini read from the slide on screen; hidden when there is none. */
+function CopySourceButton({ sources }: { sources: (string | null)[] }) {
+  const { state } = useLightboxState();
+  const source = sources[state.currentIndex];
+  if (!source) return null;
+  return (
+    <button className="yarl__button" type="button" aria-label="Copy source"
+      onClick={() => void navigator.clipboard.writeText(source)}>
+      <Copy className="icon" aria-hidden="true" />
+    </button>
   );
 }

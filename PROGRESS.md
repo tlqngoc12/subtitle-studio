@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-05
+> Cập nhật lần cuối: 2026-11-09
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -521,6 +521,25 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - **Sự cố:** khi `gemini-3.6-flash` hết quota, `gemini-3.5-flash-lite` dịch chương 7–16; chương 16 (14 trang) bị trả về nguyên chữ Thái và app lưu như bản dịch, chương 12/14/15 lọt vài chữ kiểu `ค่ะ (Dạ)`. Thứ tự fallback là 3.6-flash → 3.5-flash-lite → 3.5-flash; 429 của `gemini-3.5-flash` lại báo quota của `gemini-3.6-flash` (nghi dùng chung), nên khi 3.6 hết thì thực tế chỉ còn flash-lite. Quota ngày reset lúc 0h giờ Pacific (15h giờ VN mùa đông).
 - `PageTextOutput`: trang có **> 30% chữ cái là chữ Thái** bị coi là thiếu (log `untranslated [n]`, hỏi lại đúng trang đó); prompt thêm quy tắc "text là bản dịch tiếng Việt, không để sót chữ Thái kể cả thán từ/cách gọi".
 - **Nhãn chương** (Oracle **V7** `t_chapter.label`, ≤ 100 ký tự, sửa được cả khi Published): hiện thay "Chapter N" ở danh sách chương, trang chương, Notebook › Recent chapters, trang public (danh sách, nút Read, trang đọc), tiêu đề/chân ảnh vẽ và prompt Gemini. Số chương (ô **Order**) vẫn là thứ tự, số trong link public và khoá phiên bản sổ tay. Chương không nhãn giữ nguyên ảnh đã cache.
+
+### 2026-11-09: Kiểm tra trang ảnh trước/sau khi dịch (xoay, ảnh ngang, chữ Thái gốc) ✅ (chưa deploy)
+
+- **Nguyên nhân tìm được:** chương 17 (trang 14–22), 18 và 19 được upload từ ảnh chụp điện thoại xoay 90° (3264×2448, không có EXIF); Gemini (`gemini-3.5-flash-lite` sau các lỗi 503) đọc chữ Thái nằm ngang rất tệ và bịa nội dung, mà vẫn qua mọi kiểm tra cũ (đủ trang, là tiếng Việt, không trống).
+- **Xoay ảnh** (chỉ chương Draft, không đang dịch): `POST /api/chapters/{id}/pages/{pageId}/rotate` và `.../pages/rotate` (cả chương), body `{direction: LEFT|RIGHT}`. Mỗi lần xoay tạo file media mới (PNG giữ PNG, JPEG/WebP ra JPEG 0.92), file cũ xoá nếu không trang nào dùng. Bản dịch và chữ gốc của trang giữ nguyên. Nút Rotate trên từng thẻ và Rotate all left/right ở mục Pages.
+- **Cảnh báo ảnh ngang:** `PageDto.landscape` đọc từ header ảnh; badge Landscape (cam) và hộp xác nhận trước khi Translate.
+- **Gemini trả thêm chữ Thái đã đọc** (`source`, cùng request, vẫn 1 request/lượt) lưu ở `t_chapter_page.source_th` (Oracle **V8**). `SuspectPages`: trang có chữ gốc ≥ 100 ký tự mà bản dịch/chữ gốc < 0,6 × trung vị của cả truyện (cần ≥ 5 trang để lấy trung vị, ít hơn thì dùng ngưỡng cố định 0,5) bị đánh dấu "May be incomplete"; dòng cảnh báo trên ô Chapter text, badge `⚠ N` ở danh sách chương, chữ gốc hiện trong lightbox kèm nút Copy source. Chương dịch trước đây không có chữ gốc nên không bao giờ bị đánh dấu.
+- **Việc cần làm sau khi deploy (sau 15:00 giờ VN, khi quota reset):** chương 17–19: Unpublish → xoay ảnh bị ngang → Translate again → Publish.
+
+### 2026-11-09: Lô cải tiến (tìm Vietsub, autoplay, Novels: lưu/thứ tự/model) ✅ (chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-09-enhancements-batch.md](docs/superpowers/plans/2026-11-09-enhancements-batch.md). Nhánh `feature/novel-page-checks`, chưa merge, chưa push, chưa deploy.
+
+- **Vietsub › Videos:** ô tìm kiếm (không phân biệt dấu), chip All/AI/Manual, sắp xếp AI trước rồi Manual (mới cập nhật trước), phân trang sau khi lọc, `q` và `source` giữ trên URL; bỏ nút Watch Video ở danh sách (bấm cả hàng vẫn mở trang xem).
+- **Autoplay trong playlist:** giữ một `YT.Player` cho mỗi container, đổi video bằng `loadVideoById` (tự phát) hoặc `cueVideoById` (không tự phát) thay vì huỷ/tạo iframe mới. **Cần kiểm tra tay trên Edge và Safari sau khi deploy** (test tự động không có trình duyệt thật).
+- **Novels, trang chương:** toast `Chapter saved` / `Novel saved` / `Auto-saved`; Ctrl+S / ⌘S lưu; tự lưu mỗi 3 phút khi có thay đổi chưa lưu (bỏ qua khi đang dịch, đang khoá hoặc Number rỗng); nhãn "Order" đổi thành "Number", câu gợi ý của Number và Chapter label thành tooltip trên icon `Info`; Number + Label cùng một hàng, Title một hàng đầy chiều rộng.
+- **Thứ tự đọc chương:** cột `t_chapter.sort_order` tách khỏi `chapter_no` (số chương, link public và phiên bản sổ tay không đổi khi sắp xếp lại). `PUT /api/novels/{id}/chapters/order` (thiếu/trùng/id của truyện khác → 400, không đổi gì); chương mới luôn nằm cuối; danh sách, Previous/Next và site public theo `sort_order`. UI: kéo thả (dnd-kit) và nút Move up/down.
+- **Model Gemini:** `GeminiCaller` báo từng model trước khi gọi; chương và Vietsub hiện `Translating with <model>…` (cập nhật khi chuyển sang model dự phòng) và `Translated by <model>` (nhiều model: nối bằng `, `); lưu ở `t_chapter.translation_model` và `video.translation_model`. Lỗi → giữ giá trị đã lưu trước đó. Dữ liệu cũ: không hiện gì.
+- **Flyway V9** (`V9__chapter_order_and_translation_model.sql`, một file cho cả lô): `t_chapter.sort_order` (backfill = `chapter_no`, rồi NOT NULL), `t_chapter.translation_model`, `video.translation_model` (VARCHAR2(200 CHAR)). Chạy được trên H2 MODE=Oracle (test); **chưa chạy trên Oracle thật**, sẽ chạy khi deploy.
 
 ## 9. Rủi ro đang theo dõi
 

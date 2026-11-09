@@ -4,13 +4,19 @@ import type { YTPlayerEvent, YTPlayerOptions } from './youtube';
 import { useYouTubePlayer } from './useYouTubePlayer';
 
 /** A fake window.YT whose player time the test controls. */
-const fake = { time: 0, options: null as YTPlayerOptions | null, destroyed: false };
+const fake = { time: 0, options: null as YTPlayerOptions | null, destroyed: false, created: 0, calls: [] as string[] };
 
 const unloaded: string[] = [];
 const target = {
   getCurrentTime: () => fake.time,
   destroy: () => {},
   unloadModule: (name: string) => unloaded.push(name),
+  loadVideoById: (id: string) => {
+    fake.calls.push(`load ${id}`);
+  },
+  cueVideoById: (id: string) => {
+    fake.calls.push(`cue ${id}`);
+  },
 };
 const event = (data: number): YTPlayerEvent => ({ data, target });
 
@@ -34,11 +40,20 @@ describe('useYouTubePlayer', () => {
     fake.time = 0;
     fake.options = null;
     fake.destroyed = false;
+    fake.created = 0;
+    fake.calls = [];
     unloaded.length = 0;
     window.YT = {
       Player: class {
         constructor(_el: HTMLElement, options: YTPlayerOptions) {
           fake.options = options;
+          fake.created++;
+        }
+        loadVideoById(id: string) {
+          fake.calls.push(`load ${id}`);
+        }
+        cueVideoById(id: string) {
+          fake.calls.push(`cue ${id}`);
         }
         getCurrentTime() {
           return fake.time;
@@ -140,6 +155,49 @@ describe('useYouTubePlayer', () => {
 
     // A playlist page reacting to 'ended' would otherwise skip the next video.
     expect(seen.filter(([id]) => id === 'bbbbbbbbbbb').map(([, state]) => state)).not.toContain('ended');
+  });
+
+  it('loads the next video into the same player when autoplay is on', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const { rerender } = renderHook(({ id }) => useYouTubePlayer(ref, id, { autoplay: true }), { initialProps: { id: 'aaaaaaaaaaa' } });
+    await ready();
+
+    rerender({ id: 'bbbbbbbbbbb' });
+
+    expect(fake.created).toBe(1);
+    expect(fake.destroyed).toBe(false);
+    expect(fake.calls).toEqual(['load bbbbbbbbbbb']);
+  });
+
+  it('only cues the next video when autoplay is off', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const { rerender } = renderHook(({ id }) => useYouTubePlayer(ref, id, { autoplay: false }), { initialProps: { id: 'aaaaaaaaaaa' } });
+    await ready();
+
+    rerender({ id: 'bbbbbbbbbbb' });
+
+    expect(fake.created).toBe(1);
+    expect(fake.calls).toEqual(['cue bbbbbbbbbbb']);
+  });
+
+  it('shows the latest video when it changed before the player was ready', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const { rerender } = renderHook(({ id }) => useYouTubePlayer(ref, id, { autoplay: true }), { initialProps: { id: 'aaaaaaaaaaa' } });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    rerender({ id: 'bbbbbbbbbbb' });
+    expect(fake.calls).toEqual([]);
+
+    act(() => fake.options!.events!.onReady!(event(-1)));
+
+    expect(fake.calls).toEqual(['load bbbbbbbbbbb']);
   });
 
   it('destroys the player on unmount', async () => {

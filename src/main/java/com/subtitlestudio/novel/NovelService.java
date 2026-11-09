@@ -8,7 +8,9 @@ import com.subtitlestudio.profile.MediaService;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +27,12 @@ public class NovelService {
     private final NovelValidator validator;
     private final RenderCache renderCache;
     private final Clock clock;
+    private final TranslatingModels models;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                         NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
-                        NovelValidator validator, RenderCache renderCache, Clock clock) {
+                        NovelValidator validator, RenderCache renderCache, Clock clock,
+                        TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -38,6 +42,7 @@ public class NovelService {
         this.validator = validator;
         this.renderCache = renderCache;
         this.clock = clock;
+        this.models = models;
     }
 
     @Transactional(readOnly = true)
@@ -132,10 +137,16 @@ public class NovelService {
     }
 
     NovelDetail detail(Novel n) {
-        List<ChapterSummary> list = chapters.findByNovelIdOrderByChapterNo(n.getId()).stream()
+        List<ChapterPage> novelPages = pages.findByChapterNovelId(n.getId());
+        Double median = SuspectPages.novelMedian(novelPages);
+        Map<Long, Integer> suspect = new HashMap<>();
+        novelPages.stream().filter(p -> SuspectPages.suspect(p.getTextVi(), p.getSourceTh(), median))
+                .forEach(p -> suspect.merge(p.getChapter().getId(), 1, Integer::sum));
+        List<ChapterSummary> list = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId()).stream()
                 .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
                         c.getTranslationStatus(),
-                        c.getTranslationError(), c.getPublishStatus(), (int) pages.countByChapterId(c.getId())))
+                        c.getTranslationError(), models.shown(c), c.getPublishStatus(), (int) pages.countByChapterId(c.getId()),
+                        suspect.getOrDefault(c.getId(), 0)))
                 .toList();
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),

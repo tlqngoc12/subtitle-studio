@@ -34,6 +34,10 @@ public class Chapter {
     @Column(name = "chapter_no", nullable = false)
     private int chapterNo;
 
+    /** Reading order inside the novel (1..n); chapter_no never changes when chapters are reordered. */
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder;
+
     @Column(length = 200)
     private String title;
 
@@ -55,6 +59,10 @@ public class Chapter {
 
     @Column(name = "translated_at")
     private Instant translatedAt;
+
+    /** Gemini model(s) that translated the chapter, in order of use joined by ", "; null = unknown. */
+    @Column(name = "translation_model", length = 200)
+    private String translationModel;
 
     @Convert(converter = YesNoConverter.class)
     @Column(name = "edited_after_translation", length = 1, nullable = false)
@@ -80,6 +88,7 @@ public class Chapter {
     public Chapter(Novel novel, int chapterNo, String title, Instant at) {
         this.novel = novel;
         this.chapterNo = chapterNo;
+        this.sortOrder = chapterNo;
         this.title = title;
         this.createdAt = at;
         this.updatedAt = at;
@@ -99,6 +108,14 @@ public class Chapter {
 
     public void setChapterNo(int chapterNo) {
         this.chapterNo = chapterNo;
+    }
+
+    public int getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 
     public String getTitle() {
@@ -139,6 +156,14 @@ public class Chapter {
 
     public void setTranslationError(String translationError) {
         this.translationError = translationError;
+    }
+
+    public String getTranslationModel() {
+        return translationModel;
+    }
+
+    public void setTranslationModel(String translationModel) {
+        this.translationModel = translationModel;
     }
 
     public Instant getTranslatedAt() {

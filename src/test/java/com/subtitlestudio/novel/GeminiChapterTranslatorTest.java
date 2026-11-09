@@ -64,6 +64,20 @@ class GeminiChapterTranslatorTest {
     }
 
     @Test
+    void schemaRequiresPageTextAndSourceAndParsesSource() {
+        server.replyText("{\"pages\":[{\"page\":1,\"text\":\"Xin chào\",\"source\":\"สวัสดี\"},"
+                + "{\"page\":2,\"text\":\"Hai\",\"source\":\"สอง\"}]}", "STOP");
+
+        List<TranslatedPage> got = translator(List.of()).translate(prompt(null, null, null));
+
+        assertThat(got).containsExactly(new TranslatedPage(1, "Xin chào", "สวัสดี"),
+                new TranslatedPage(2, "Hai", "สอง"));
+        assertThat(server.lastBody()).containsPattern("\"required\":\\[\"page\",\"source\",\"text\"\\]")
+                .contains("\"source\"");
+        assertThat(GeminiChapterTranslator.SYSTEM_RULES).contains("\"source\"").contains("Ảnh có thể bị xoay");
+    }
+
+    @Test
     void rulesForbidCopyingTheThaiText() {
         assertThat(GeminiChapterTranslator.SYSTEM_RULES).contains("không chép lại chữ Thái")
                 .contains("Không để sót chữ Thái");

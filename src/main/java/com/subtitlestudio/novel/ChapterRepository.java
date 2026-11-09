@@ -8,6 +8,9 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     List<Chapter> findByNovelIdOrderByChapterNo(long novelId);
 
+    /** Reading order; chapter_no breaks ties. */
+    List<Chapter> findByNovelIdOrderBySortOrderAscChapterNoAsc(long novelId);
+
     Optional<Chapter> findByNovelIdAndChapterNo(long novelId, int chapterNo);
 
     List<Chapter> findByTranslationStatus(ChapterTranslationStatus status);

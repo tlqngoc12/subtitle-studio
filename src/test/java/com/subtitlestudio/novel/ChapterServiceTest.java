@@ -31,7 +31,7 @@ import org.springframework.util.unit.DataSize;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterService.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, ChapterService.class, PageRotator.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
 class ChapterServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
@@ -82,6 +82,12 @@ class ChapterServiceTest {
     private ChapterRepository chapters;
 
     @Autowired
+    private ChapterPageRepository pageRepository;
+
+    @Autowired
+    private MediaService mediaService;
+
+    @Autowired
     private NovelNotebookRepository notebooks;
 
     @Autowired
@@ -126,6 +132,81 @@ class ChapterServiceTest {
         assertThat(next.novelTitle()).isEqualTo("Tình Yêu");
         assertThat(next.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
         assertThat(next.translationStatus()).isEqualTo(ChapterTranslationStatus.NONE);
+    }
+
+    private List<Long> listOrder() {
+        em.flush();
+        em.clear();
+        return chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novel.getId()).stream().map(Chapter::getId).toList();
+    }
+
+    @Test
+    void reorderChangesTheListButNeverTheChapterNumbers() {
+        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        ChapterDetail c3 = service.add(novel.getId(), new ChapterRequest(3, null));
+
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c3.id(), c1.id(), c2.id())));
+
+        assertThat(listOrder()).containsExactly(c3.id(), c1.id(), c2.id());
+        assertThat(service.get(c3.id()).chapterNo()).isEqualTo(3);
+        assertThat(service.get(c1.id()).chapterNo()).isEqualTo(1);
+        // Previous / Next follow the reading order, not the numbers.
+        assertThat(service.get(c1.id()).prevChapterId()).isEqualTo(c3.id());
+        assertThat(service.get(c1.id()).nextChapterId()).isEqualTo(c2.id());
+        assertThat(service.get(c3.id()).prevChapterId()).isNull();
+        assertThat(service.get(c2.id()).nextChapterId()).isNull();
+    }
+
+    @Test
+    void reorderRejectsMissingDuplicateOrForeignIdsAndChangesNothing() {
+        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        Novel other = novels.save(new Novel("o", "Other", NovelStatus.ONGOING, NOW));
+        ChapterDetail foreign = service.add(other.getId(), new ChapterRequest(1, null));
+        List<List<Long>> bad = List.of(
+                List.of(c2.id()),
+                List.of(c2.id(), c2.id()),
+                List.of(c2.id(), c1.id(), c1.id()),
+                List.of(c2.id(), foreign.id()),
+                List.of(c2.id(), c1.id(), foreign.id()),
+                List.of());
+
+        for (List<Long> ids : bad) {
+            assertThatThrownBy(() -> service.reorderChapters(novel.getId(), new ChapterOrderRequest(ids)))
+                    .isInstanceOf(InvalidChapterException.class)
+                    .satisfies(e -> assertThat(((InvalidChapterException) e).errors().getFirst().field())
+                            .isEqualTo("chapterIds"));
+        }
+        assertThatThrownBy(() -> service.reorderChapters(novel.getId(), new ChapterOrderRequest(null)))
+                .isInstanceOf(InvalidChapterException.class);
+
+        assertThat(listOrder()).containsExactly(c1.id(), c2.id());
+        assertThat(chapters.findById(foreign.id()).orElseThrow().getSortOrder()).isEqualTo(1);
+    }
+
+    @Test
+    void reorderWorksOnPublishedChapters() {
+        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        setStatus(c1.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c2.id(), c1.id())));
+
+        assertThat(listOrder()).containsExactly(c2.id(), c1.id());
+    }
+
+    @Test
+    void chapterAddedAfterAReorderIsLastEvenWithASmallerNumber() {
+        ChapterDetail c5 = service.add(novel.getId(), new ChapterRequest(5, null));
+        ChapterDetail c6 = service.add(novel.getId(), new ChapterRequest(6, null));
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c6.id(), c5.id())));
+
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        ChapterDetail auto = service.add(novel.getId(), new ChapterRequest(null, null));
+
+        assertThat(listOrder()).containsExactly(c6.id(), c5.id(), c2.id(), auto.id());
+        assertThat(auto.chapterNo()).isEqualTo(7);
     }
 
     @Test
@@ -362,10 +443,10 @@ class ChapterServiceTest {
     }
 
     @Test
-    void prevNextIdsFollowChapterNumbers() {
+    void prevNextIdsFollowReadingOrder() {
         ChapterDetail one = service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));
         ChapterDetail three = service.add(novel.getId(), new ChapterRequest(3, null));
+        ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));
 
         ChapterDetail mid = service.get(three.id());
 
@@ -387,5 +468,87 @@ class ChapterServiceTest {
 
         assertThat(cached).doesNotExist();
         assertThatThrownBy(() -> service.get(c.id())).isInstanceOf(ChapterNotFoundException.class);
+    }
+
+    private ChapterDetail landscapeChapter(int no, int pageCount) {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(no, null));
+        List<NamedImage> files = new ArrayList<>();
+        for (int i = 1; i <= pageCount; i++) {
+            files.add(new NamedImage("p" + i + ".jpg", TestImages.jpeg(300, 200)));
+        }
+        service.addPages(c.id(), files);
+        return service.get(c.id());
+    }
+
+    @Test
+    void rotatePageStoresNewMediaKeepsText() {
+        ChapterDetail c = landscapeChapter(1, 1);
+        PageDto before = c.pages().getFirst();
+        assertThat(before.landscape()).isTrue();
+        service.update(c.id(), new ChapterUpdateRequest(null, null,
+                List.of(new PageTextEdit(before.id(), "x")), null));
+
+        PageDto after = service.rotatePage(c.id(), before.id(), RotateDirection.RIGHT).getFirst();
+
+        assertThat(after.mediaUrl()).isNotEqualTo(before.mediaUrl());
+        assertThat(after.textVi()).isEqualTo("x");
+        assertThat(after.landscape()).isFalse();
+    }
+
+    @Test
+    void rotatePageRefusedWhenPublished() {
+        ChapterDetail c = landscapeChapter(1, 1);
+        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+
+        assertThatThrownBy(() -> service.rotatePage(c.id(), c.pages().getFirst().id(), RotateDirection.LEFT))
+                .isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.rotatePages(c.id(), RotateDirection.LEFT))
+                .isInstanceOf(ChapterPublishedException.class);
+    }
+
+    @Test
+    void rotateKeepsSharedMediaForOtherPage() {
+        ChapterDetail c = landscapeChapter(1, 1);
+        Chapter chapter = chapters.findById(c.id()).orElseThrow();
+        ChapterPage first = pageRepository.findByChapterIdOrderByPosition(c.id()).getFirst();
+        pageRepository.saveAndFlush(new ChapterPage(chapter, 2, first.getMedia()));
+        ChapterDetail two = service.get(c.id());
+        PageDto p1 = two.pages().get(0);
+        PageDto p2 = two.pages().get(1);
+        assertThat(p2.mediaUrl()).isEqualTo(p1.mediaUrl());
+
+        List<PageDto> after = service.rotatePage(c.id(), p1.id(), RotateDirection.RIGHT);
+
+        assertThat(after.get(1).mediaUrl()).isEqualTo(p2.mediaUrl());
+        assertThat(after.get(0).mediaUrl()).isNotEqualTo(p2.mediaUrl());
+        assertThat(after.get(1).landscape()).isTrue();
+        long oldId = Long.parseLong(p2.mediaUrl().substring("/api/media/".length()));
+        assertThat(mediaService.load(oldId).path()).exists();
+    }
+
+    @Test
+    void rotatePagesRotatesEveryPage() {
+        ChapterDetail c = landscapeChapter(1, 3);
+
+        List<PageDto> after = service.rotatePages(c.id(), RotateDirection.LEFT);
+
+        assertThat(after).hasSize(3).allMatch(p -> !p.landscape());
+    }
+
+    @Test
+    void detailFlagsSuspectPage() {
+        ChapterDetail c = chapterWithPages(1, "a.png", "b.png", "c.png", "d.png", "e.png", "f.png");
+        String source = "ก".repeat(200);
+        List<ChapterPage> ps = pageRepository.findByChapterIdOrderByPosition(c.id());
+        for (int i = 0; i < ps.size(); i++) {
+            ps.get(i).setSourceTh(source);
+            ps.get(i).setTextVi("a".repeat(i == 5 ? 80 : 200));
+        }
+        pageRepository.flush();
+
+        List<PageDto> dtos = service.get(c.id()).pages();
+
+        assertThat(dtos).extracting(PageDto::suspect).containsExactly(false, false, false, false, false, true);
+        assertThat(dtos.get(5).source()).isEqualTo(source);
     }
 }
