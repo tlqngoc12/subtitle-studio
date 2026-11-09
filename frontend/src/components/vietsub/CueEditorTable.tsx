@@ -1,6 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from 'react';
 import type { ViCue } from '../../api/client';
-import { formatTimecode } from '../../lib/format';
 import { usePrefersReducedMotion } from '../../lib/usePrefersReducedMotion';
 import { Tip } from '../Tip';
 import './CueEditorTable.css';
@@ -11,7 +10,6 @@ export const SCROLL_RESUME_MS = 3000;
 interface RowProps {
   index: number;
   startMs: number;
-  endMs: number;
   text: string;
   edited: boolean;
   active: boolean;
@@ -22,7 +20,7 @@ interface RowProps {
 }
 
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
-const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
+const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
 
@@ -41,8 +39,6 @@ const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, activ
           {number}
         </button>
       </td>
-      <td className="cue-row__time">{formatTimecode(startMs)}</td>
-      <td className="cue-row__time cue-row__time--end">{formatTimecode(endMs)}</td>
       <td className="cue-row__text">
         <label className="visually-hidden" htmlFor={`cue-text-${index}`}>
           {`Line ${number} text`}
@@ -88,7 +84,7 @@ interface Props {
 }
 
 /**
- * The Vietsub lines as a table: number (seeks the video), read-only times, and an editable text per line.
+ * The Vietsub lines as a table: number (seeks the video) and an editable text per line.
  * The table keeps the highlighted line in view, except while a textarea has focus and for 3 s after it loses it.
  */
 function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChange, onSeek }: Props) {
@@ -136,8 +132,6 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChan
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col">Start</th>
-            <th scope="col" className="cue-row__time--end">End</th>
             <th scope="col">Text</th>
           </tr>
         </thead>
@@ -147,7 +141,6 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChan
               key={i}
               index={i}
               startMs={cue.startMs}
-              endMs={cue.endMs}
               text={texts[i]}
               edited={texts[i] !== cue.text}
               active={i === activeIndex}

@@ -73,15 +73,6 @@
   outline-offset: 2px;
 }
 
-.cue-row__time {
-  width: 1%;
-  padding-top: var(--space-2);
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--step--1);
-  white-space: nowrap;
-}
-
 .cue-row__text {
   position: relative;
 }
@@ -133,11 +124,6 @@
 }
 
 @media (max-width: 520px) {
-  /* Phones: the end time goes, the start time stays. */
-  .cue-row__time--end {
-    display: none;
-  }
-
   .cue-row td,
   .cue-table__grid th {
     padding-inline: var(--space-2);
