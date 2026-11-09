@@ -76,7 +76,7 @@ public class NovelExporter {
             }
             write.accept(dir.resolve("data/novels/" + n.getSlug() + ".json"), new PublicNovelDetail(n.getSlug(),
                     n.getTitle(), cover, n.getOriginalAuthor(), n.getDescription(), tags, n.getNovelStatus(),
-                    n.getTranslatorCredit(), n.getSourceUrl(),
+                    n.getTranslatorCredit(), n.getSourceUrl(), n.getTrailerVideoId(),
                     published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle(), c.getLabel())).toList()));
             summaries.add(new PublicNovelSummary(n.getSlug(), n.getTitle(), cover, n.getOriginalAuthor(), tags,
                     n.getNovelStatus(), published.size(), all.size(), lastPublishedAt(published), n.getUpdatedAt()));

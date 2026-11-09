@@ -69,3 +69,14 @@
     gap: var(--space-4);
   }
 }
+
+/* The trailer tab: a responsive 16:9 YouTube player, flat (no shadow). */
+.novel-trailer {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--radius-frame);
+  background: var(--frame);
+}

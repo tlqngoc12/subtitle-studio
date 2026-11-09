@@ -11,11 +11,14 @@ import {
   updateBlock,
   type BlockInput,
   type BlockType,
+  type BannerImage,
   type Direction,
   type Profile,
   type ProfileBlock,
   type ProfileSummary,
 } from '../api/profiles';
+import { BannerEditor } from '../components/profile/BannerEditor';
+import { ProfileBanner } from '../components/profile/ProfileBanner';
 import { BLOCK_TYPE_LABELS, BlockEditor } from '../components/profile/BlockEditor';
 import { BlockToolbar } from '../components/profile/BlockToolbar';
 import { BlockView } from '../components/profile/BlockView';
@@ -72,6 +75,8 @@ export default function ProfilePage() {
     };
   }, [slug, source, readOnly]);
 
+  const setBanner = (banner: BannerImage[]) => setProfile((p) => (p ? { ...p, banner } : p));
+
   const setBlocks = (update: (blocks: ProfileBlock[]) => ProfileBlock[]) =>
     setProfile((p) => (p ? { ...p, blocks: update(p.blocks) } : p));
 
@@ -117,6 +122,8 @@ export default function ProfilePage() {
   };
 
   const formOpen = form !== null;
+  // Profile data published before the banner existed has no `banner` field.
+  const banner = profile?.banner ?? [];
 
   return (
     <main className="page">
@@ -147,12 +154,15 @@ export default function ProfilePage() {
               )}
             </header>
 
+            <ProfileBanner images={banner} />
+            {editing && !readOnly && <BannerEditor slug={slug} images={banner} onChange={setBanner} />}
+
             {actionError && (
               <Alert title={actionError.title} hint={actionError.hint} />
             )}
 
             <div className="pblocks">
-              {profile.blocks.length === 0 && !formOpen && (
+              {profile.blocks.length === 0 && !formOpen && (banner.length === 0 || editing) && (
                 readOnly ? (
                   <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
                 ) : (

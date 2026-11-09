@@ -32,7 +32,7 @@ class NovelControllerTest {
     private static final Instant AT = Instant.parse("2026-11-05T10:00:00Z");
     static final NovelDetail DETAIL = new NovelDetail(3, "summer-love", "Tình Yêu Mùa Hạ", null, null, "ผู้เขียน",
             "Giới thiệu", List.of("romance"), NovelStatus.ONGOING, "Dịch: @byZenQN", null, "SummerLove",
-            NotebookStatus.IDLE, null, List.of());
+            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of());
     private static final String BODY = """
             {"slug":"summer-love","title":"Tình Yêu Mùa Hạ","tags":["romance"],"novelStatus":"ONGOING"}""";
 
@@ -53,7 +53,7 @@ class NovelControllerTest {
         ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null, null,
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
-                NovelStatus.ONGOING, null, null, null, NotebookStatus.IDLE, null, List.of(row)));
+                NovelStatus.ONGOING, null, null, null, null, NotebookStatus.IDLE, null, List.of(row)));
 
         mvc.perform(put("/api/novels/3/chapters/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"chapterIds\":[11,10]}")).andExpect(status().isOk())

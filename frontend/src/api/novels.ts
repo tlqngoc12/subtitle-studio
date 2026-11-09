@@ -18,6 +18,8 @@ export interface NovelInput {
   translatorCredit: string | null;
   sourceUrl: string | null;
   promptProfile: string | null;
+  /** A YouTube link of any common form; the server stores only its 11-character video id. Null clears it. */
+  trailerUrl: string | null;
 }
 
 export interface NovelSummary {
@@ -47,8 +49,10 @@ export interface ChapterSummary {
   suspectPages: number;
 }
 
-export interface NovelDetail extends Omit<NovelInput, 'tags'> {
+export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl'> {
   id: number;
+  /** The stored trailer's YouTube video id, or null. */
+  trailerVideoId: string | null;
   tags: string[];
   coverUrl: string | null;
   notebookStatus: NotebookStatus;

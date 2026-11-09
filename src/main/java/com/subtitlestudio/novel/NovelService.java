@@ -126,6 +126,7 @@ public class NovelService {
         n.setTranslatorCredit(r.translatorCredit());
         n.setSourceUrl(r.sourceUrl());
         n.setPromptProfile(r.promptProfile());
+        n.setTrailerVideoId(r.trailerUrl());
     }
 
     private Media cover(Long mediaId) {
@@ -151,7 +152,8 @@ public class NovelService {
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),
                 n.getDescription(), tags(n), n.getNovelStatus(), n.getTranslatorCredit(), n.getSourceUrl(),
-                n.getPromptProfile(), n.getNotebookStatus(), n.getNotebookError(), list);
+                n.getPromptProfile(), n.getTrailerVideoId(),
+                n.getNotebookStatus(), n.getNotebookError(), list);
     }
 
     static List<String> tags(Novel n) {

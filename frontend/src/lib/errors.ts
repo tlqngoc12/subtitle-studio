@@ -94,6 +94,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Profile not found.' };
     case 'BLOCK_NOT_FOUND':
       return { title: 'This block no longer exists.', hint: 'Reload the page.' };
+    case 'BANNER_IMAGE_NOT_FOUND':
+      return { title: 'This banner image no longer exists.', hint: 'Reload the page.' };
     case 'INVALID_BLOCK':
       return { title: 'Some block fields are not valid.' };
     case 'INVALID_MEDIA':

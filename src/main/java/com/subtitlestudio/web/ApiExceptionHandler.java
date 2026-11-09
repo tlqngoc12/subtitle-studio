@@ -17,6 +17,7 @@ import com.subtitlestudio.playlist.InvalidPlaylistException;
 import com.subtitlestudio.playlist.InvalidPlaylistOrderException;
 import com.subtitlestudio.playlist.PlaylistNotFoundException;
 import com.subtitlestudio.playlist.VideoHasNoVietsubException;
+import com.subtitlestudio.profile.BannerImageNotFoundException;
 import com.subtitlestudio.profile.BlockNotFoundException;
 import com.subtitlestudio.profile.InvalidBlockException;
 import com.subtitlestudio.profile.InvalidMediaException;
@@ -116,6 +117,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BlockNotFoundException.class)
     ProblemDetail blockNotFound(BlockNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "BLOCK_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(BannerImageNotFoundException.class)
+    ProblemDetail bannerImageNotFound(BannerImageNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "BANNER_IMAGE_NOT_FOUND", e.getMessage());
     }
 
     /** {@code errors} lists every rejected field so the form can mark each input. */

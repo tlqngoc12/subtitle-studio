@@ -94,7 +94,10 @@ describe('PublicNovelsPage (home)', () => {
 
     const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
     expect(within(section).getAllByRole('listitem')).toHaveLength(1);
-    expect(within(screen.getByRole('region', { name: 'Truyện nổi bật' })).getByText('01 / 01')).toBeInTheDocument();
+    const banner = screen.getByRole('region', { name: 'Truyện nổi bật' });
+    expect(within(banner).getByRole('heading', { name: /Truyện/ })).toBeInTheDocument();
+    // A lone novel has nothing to browse: no counter, arrows or pause button (FanCarousel).
+    expect(within(banner).queryByText('01 / 01')).not.toBeInTheDocument();
   });
 
   it('orders by updatedAt for files published before lastPublishedAt existed', async () => {

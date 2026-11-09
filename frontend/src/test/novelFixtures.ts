@@ -50,6 +50,7 @@ export function novelDetail(over: Partial<NovelDetail> = {}): NovelDetail {
     translatorCredit: 'Dịch: @byZenQN',
     sourceUrl: 'https://example.com/book',
     promptProfile: 'SummerLove',
+    trailerVideoId: null,
     notebookStatus: 'IDLE',
     notebookError: null,
     chapters: [

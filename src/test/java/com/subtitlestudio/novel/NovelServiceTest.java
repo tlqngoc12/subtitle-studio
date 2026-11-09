@@ -19,6 +19,8 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -32,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, NovelService.class, NovelValidator.class, com.subtitlestudio.url.UrlParser.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
     NovelServiceTest.Config.class})
 class NovelServiceTest {
 
@@ -85,7 +87,7 @@ class NovelServiceTest {
     static NovelRequest valid() {
         return new NovelRequest("summer-love", "Tình Yêu Mùa Hạ", null, "ผู้เขียน", "Giới thiệu",
                 List.of("romance", "BL"), NovelStatus.ONGOING, "Dịch: @byZenQN", "https://example.com/book",
-                "SummerLove");
+                "SummerLove", null);
     }
 
     private List<FieldError> errorsOf(NovelRequest request) {
@@ -100,7 +102,87 @@ class NovelServiceTest {
     private static NovelRequest copy(NovelRequest r, String slug, String title, String description, List<String> tags,
                                      NovelStatus status, String sourceUrl, String profile) {
         return new NovelRequest(slug, title, r.coverMediaId(), r.originalAuthor(), description, tags, status,
-                r.translatorCredit(), sourceUrl, profile);
+                r.translatorCredit(), sourceUrl, profile, r.trailerUrl());
+    }
+
+    private static NovelRequest withTrailer(NovelRequest r, String trailerUrl) {
+        return new NovelRequest(r.slug(), r.title(), r.coverMediaId(), r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), trailerUrl);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://youtube.com/watch?v=dQw4w9WgXcQ&t=30s",
+            "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+            "http://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://youtu.be/dQw4w9WgXcQ",
+            "https://youtu.be/dQw4w9WgXcQ?si=abc",
+            "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+            "https://m.youtube.com/shorts/dQw4w9WgXcQ",
+            "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            "https://youtube.com/embed/dQw4w9WgXcQ?start=3",
+            "  https://youtu.be/dQw4w9WgXcQ  ",
+            "dQw4w9WgXcQ"})
+    void storesTheVideoIdOfEveryAcceptedTrailerForm(String url) {
+        NovelDetail d = service.create(withTrailer(valid(), url));
+
+        assertThat(d.trailerVideoId()).isEqualTo("dQw4w9WgXcQ");
+        assertThat(service.get(d.id()).trailerVideoId()).isEqualTo("dQw4w9WgXcQ");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "https://vimeo.com/76979871",
+            "https://example.com/watch?v=dQw4w9WgXcQ",
+            "https://notyoutube.com/watch?v=dQw4w9WgXcQ",
+            "https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ",
+            "https://www.youtube.com/watch?v=short",
+            "https://www.youtube.com/watch",
+            "https://www.youtube.com/playlist?list=PLabcdefghijk",
+            "https://youtu.be/",
+            "javascript:alert(1)",
+            "ftp://youtu.be/dQw4w9WgXcQ",
+            "not a link",
+            "https://www.youtube.com/watch?v=dQw4w9WgXc!"})
+    void rejectsInvalidAndNonYouTubeTrailers(String url) {
+        assertThat(errorsOf(withTrailer(valid(), url)))
+                .containsExactly(new FieldError("trailerUrl", "Use a YouTube link (youtube.com or youtu.be)."));
+    }
+
+    @Test
+    void rejectsAnOverlongTrailerLink() {
+        assertThat(errorsOf(withTrailer(valid(), "https://youtu.be/dQw4w9WgXcQ?" + "a".repeat(1_000))))
+                .extracting(FieldError::field).containsExactly("trailerUrl");
+    }
+
+    @Test
+    void blankTrailerClearsIt() {
+        NovelDetail d = service.create(withTrailer(valid(), "https://youtu.be/dQw4w9WgXcQ"));
+        assertThat(d.trailerVideoId()).isEqualTo("dQw4w9WgXcQ");
+
+        assertThat(service.update(d.id(), withTrailer(valid(), "   ")).trailerVideoId()).isNull();
+        assertThat(service.update(d.id(), withTrailer(valid(), "https://youtu.be/dQw4w9WgXcQ")).trailerVideoId())
+                .isEqualTo("dQw4w9WgXcQ");
+        assertThat(service.update(d.id(), withTrailer(valid(), null)).trailerVideoId()).isNull();
+        assertThat(service.get(d.id()).trailerVideoId()).isNull();
+    }
+
+    @Test
+    void updateReplacesTheTrailerAndAnInvalidOneKeepsTheOld() {
+        NovelDetail d = service.create(withTrailer(valid(), "https://youtu.be/dQw4w9WgXcQ"));
+
+        assertThat(service.update(d.id(), withTrailer(valid(), "https://youtu.be/aaaaaaaaaaa")).trailerVideoId())
+                .isEqualTo("aaaaaaaaaaa");
+        assertThatThrownBy(() -> service.update(d.id(), withTrailer(valid(), "https://vimeo.com/1")))
+                .isInstanceOf(InvalidNovelException.class);
+        assertThat(service.get(d.id()).trailerVideoId()).isEqualTo("aaaaaaaaaaa");
+    }
+
+    @Test
+    void trailerIsOptional() {
+        assertThat(service.create(valid()).trailerVideoId()).isNull();
     }
 
     @Test
@@ -185,7 +267,7 @@ class NovelServiceTest {
         Media cover = mediaService.store("c.png", TestImages.png());
         NovelRequest v = valid();
         NovelDetail d = service.create(new NovelRequest(v.slug(), v.title(), cover.getId(), null, null, List.of(),
-                v.novelStatus(), null, null, null));
+                v.novelStatus(), null, null, null, null));
 
         assertThat(d.coverMediaId()).isEqualTo(cover.getId());
         assertThat(d.coverUrl()).isEqualTo("/api/media/" + cover.getId());
@@ -225,7 +307,7 @@ class NovelServiceTest {
         Media page = mediaService.store("p.png", TestImages.png());
         NovelRequest v = valid();
         NovelDetail d = service.create(new NovelRequest(v.slug(), v.title(), cover.getId(), null, null, List.of(),
-                v.novelStatus(), null, null, null));
+                v.novelStatus(), null, null, null, null));
         Novel novel = em.find(Novel.class, d.id());
         Chapter chapter = chapters.save(new Chapter(novel, 1, null, NOW));
         pages.save(new ChapterPage(chapter, 1, page));
