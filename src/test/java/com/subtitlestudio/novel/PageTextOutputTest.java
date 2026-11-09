@@ -82,4 +82,14 @@ class PageTextOutputTest {
                 .isEqualTo("Gemini returned an incomplete translation (got 2 of 3 pages).");
         assertThatThrownBy(() -> PageTextOutput.validate(SENT, null)).isInstanceOf(TranslationFailedException.class);
     }
+
+    @Test
+    void missingSourceStillValid() {
+        PageTextOutput.Check check = PageTextOutput.check(SENT, List.of(new TranslatedPage(3, "A", null),
+                new TranslatedPage(4, "B", "   "), new TranslatedPage(5, "C", " ก ")));
+
+        assertThat(check.missing()).isEmpty();
+        assertThat(check.valid()).containsExactly(new TranslatedPage(3, "A", null),
+                new TranslatedPage(4, "B", null), new TranslatedPage(5, "C", "ก"));
+    }
 }

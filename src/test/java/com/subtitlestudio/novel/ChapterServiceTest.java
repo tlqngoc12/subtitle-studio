@@ -459,4 +459,21 @@ class ChapterServiceTest {
 
         assertThat(after).hasSize(3).allMatch(p -> !p.landscape());
     }
+
+    @Test
+    void detailFlagsSuspectPage() {
+        ChapterDetail c = chapterWithPages(1, "a.png", "b.png", "c.png", "d.png", "e.png", "f.png");
+        String source = "ก".repeat(200);
+        List<ChapterPage> ps = pageRepository.findByChapterIdOrderByPosition(c.id());
+        for (int i = 0; i < ps.size(); i++) {
+            ps.get(i).setSourceTh(source);
+            ps.get(i).setTextVi("a".repeat(i == 5 ? 80 : 200));
+        }
+        pageRepository.flush();
+
+        List<PageDto> dtos = service.get(c.id()).pages();
+
+        assertThat(dtos).extracting(PageDto::suspect).containsExactly(false, false, false, false, false, true);
+        assertThat(dtos.get(5).source()).isEqualTo(source);
+    }
 }

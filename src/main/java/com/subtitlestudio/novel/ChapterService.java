@@ -290,9 +290,15 @@ public class ChapterService {
     }
 
     private List<PageDto> pageDtos(long chapterId) {
-        return pages.findByChapterIdOrderByPosition(chapterId).stream()
+        List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(chapterId);
+        if (ps.isEmpty()) {
+            return List.of();
+        }
+        Double median = SuspectPages.novelMedian(pages.findByChapterNovelId(ps.getFirst().getChapter().getNovel().getId()));
+        return ps.stream()
                 .map(p -> new PageDto(p.getId(), p.getPosition(), "/api/media/" + p.getMedia().getId(),
-                        p.getTextVi(), null, landscape(p), false))
+                        p.getTextVi(), p.getSourceTh(), landscape(p),
+                        SuspectPages.suspect(p.getTextVi(), p.getSourceTh(), median)))
                 .toList();
     }
 

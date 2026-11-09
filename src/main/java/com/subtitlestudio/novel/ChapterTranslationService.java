@@ -166,6 +166,7 @@ public class ChapterTranslationService {
             return;
         }
         Map<Integer, String> texts = new HashMap<>(job.kept());
+        Map<Integer, String> sources = new HashMap<>();
         try {
             List<PageImage> images = new ArrayList<>();
             for (int i = 0; i < job.mediaIds().size(); i++) {
@@ -181,18 +182,24 @@ public class ChapterTranslationService {
                             job.notebookText(), job.previousText(), carryOver(texts, batch.getFirst().page()),
                             batch));
                 } catch (ChapterPartlyTranslatedException e) {
-                    e.done().forEach(p -> texts.put(p.page(), p.text()));
+                    e.done().forEach(p -> {
+                        texts.put(p.page(), p.text());
+                        sources.put(p.page(), p.source());
+                    });
                     throw e;
                 }
-                got.forEach(p -> texts.put(p.page(), p.text()));
+                got.forEach(p -> {
+                    texts.put(p.page(), p.text());
+                    sources.put(p.page(), p.source());
+                });
             }
-            save(chapterId, job, texts);
+            save(chapterId, job, texts, sources);
         } catch (TranslationFailedException e) {
             log.warn("Translation of chapter {} failed: {}", chapterId, e.userMessage());
-            saveFailed(chapterId, job, texts, e.userMessage());
+            saveFailed(chapterId, job, texts, sources, e.userMessage());
         } catch (RuntimeException e) {
             log.warn("Translation of chapter {} failed: {}", chapterId, e.getClass().getName());
-            saveFailed(chapterId, job, texts, "Could not translate: " + e.getClass().getSimpleName() + ".");
+            saveFailed(chapterId, job, texts, sources, "Could not translate: " + e.getClass().getSimpleName() + ".");
         }
     }
 
@@ -244,7 +251,7 @@ public class ChapterTranslationService {
         return null;
     }
 
-    private void save(long chapterId, Job job, Map<Integer, String> texts) {
+    private void save(long chapterId, Job job, Map<Integer, String> texts, Map<Integer, String> sources) {
         tx.executeWithoutResult(status -> {
             Chapter c = chapters.findById(chapterId).orElse(null);
             if (c == null) {
@@ -258,6 +265,9 @@ public class ChapterTranslationService {
             }
             for (int i = 0; i < ps.size(); i++) {
                 ps.get(i).setTextVi(texts.get(i + 1));
+                if (!job.kept().containsKey(i + 1)) {
+                    ps.get(i).setSourceTh(sources.get(i + 1));
+                }
             }
             c.setTextVi(null); // the new translation replaces the edited whole text
             c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
@@ -274,7 +284,8 @@ public class ChapterTranslationService {
      * Keeps the pages Gemini did translate (other pages keep their text) and marks the chapter FAILED; the message
      * says how far it got when pages are still without text.
      */
-    private void saveFailed(long chapterId, Job job, Map<Integer, String> texts, String message) {
+    private void saveFailed(long chapterId, Job job, Map<Integer, String> texts, Map<Integer, String> sources,
+                            String message) {
         tx.executeWithoutResult(status -> {
             Chapter c = chapters.findById(chapterId).orElse(null);
             if (c == null) {
@@ -290,6 +301,7 @@ public class ChapterTranslationService {
                 String text = texts.get(i + 1);
                 if (text != null && !job.kept().containsKey(i + 1)) {
                     ps.get(i).setTextVi(text);
+                    ps.get(i).setSourceTh(sources.get(i + 1));
                     saved = true;
                 }
             }

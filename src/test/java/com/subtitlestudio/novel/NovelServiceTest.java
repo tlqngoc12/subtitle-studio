@@ -245,4 +245,23 @@ class NovelServiceTest {
         assertThatThrownBy(() -> service.get(d.id())).isInstanceOf(NovelNotFoundException.class);
         assertThat(cached).doesNotExist();
     }
+
+    @Test
+    void summaryCountsSuspectPages() {
+        NovelDetail d = service.create(valid());
+        Novel novel = em.find(Novel.class, d.id());
+        Chapter chapter = chapters.save(new Chapter(novel, 1, null, NOW));
+        String source = "ก".repeat(200);
+        for (int i = 0; i < 6; i++) {
+            ChapterPage p = new ChapterPage(chapter, i + 1, mediaService.store("p.png", TestImages.png()));
+            p.setSourceTh(source);
+            p.setTextVi("a".repeat(i == 5 ? 80 : 200));
+            pages.save(p);
+        }
+        em.flush();
+        em.clear();
+
+        assertThat(service.get(d.id()).chapters()).singleElement()
+                .satisfies(c -> assertThat(c.suspectPages()).isEqualTo(1));
+    }
 }

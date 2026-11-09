@@ -8,4 +8,7 @@ public interface ChapterPageRepository extends JpaRepository<ChapterPage, Long> 
     List<ChapterPage> findByChapterIdOrderByPosition(long chapterId);
 
     long countByChapterId(long chapterId);
+
+    /** Every page of every chapter of the novel. */
+    List<ChapterPage> findByChapterNovelId(long novelId);
 }

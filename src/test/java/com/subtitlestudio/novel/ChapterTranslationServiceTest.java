@@ -54,6 +54,7 @@ class ChapterTranslationServiceTest {
         /** With {@link #failOnCall}: that call fails after translating this many of its pages (-1 = none). */
         int partlyDone = -1;
         Runnable beforeReturn;
+        boolean omitSource;
 
         @Override
         public List<TranslatedPage> translate(ChapterPrompt prompt) {
@@ -61,7 +62,7 @@ class ChapterTranslationServiceTest {
             if (prompts.size() == failOnCall && partlyDone >= 0) {
                 throw new ChapterPartlyTranslatedException("Gemini free quota is used up, try again later.",
                         prompt.pages().stream().limit(partlyDone)
-                                .map(p -> new TranslatedPage(p.page(), pad("T" + p.page() + " "))).toList());
+                                .map(p -> new TranslatedPage(p.page(), pad("T" + p.page() + " "), "S" + p.page())).toList());
             }
             if (prompts.size() == failOnCall) {
                 throw new TranslationFailedException(
@@ -71,7 +72,7 @@ class ChapterTranslationServiceTest {
                 beforeReturn.run();
             }
             return prompt.pages().stream()
-                    .map(p -> new TranslatedPage(p.page(), pad("T" + p.page() + " ")))
+                    .map(p -> new TranslatedPage(p.page(), pad("T" + p.page() + " "), omitSource ? null : "S" + p.page()))
                     .toList();
         }
 
@@ -196,6 +197,7 @@ class ChapterTranslationServiceTest {
         translator.failOnCall = -1;
         translator.partlyDone = -1;
         translator.beforeReturn = null;
+        translator.omitSource = false;
         scheduler.calls.clear();
         notebookSource.asked.clear();
         Novel n = new Novel("n", "Tình Yêu", NovelStatus.ONGOING, NOW);
@@ -481,5 +483,45 @@ class ChapterTranslationServiceTest {
 
         assertThat(draft.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
         assertThat(scheduler.calls).isEmpty();
+    }
+
+    @Test
+    void savesSource() {
+        ChapterDetail c = chapter(1, 2);
+
+        service.start(c.id());
+
+        assertThat(pages.findByChapterIdOrderByPosition(c.id())).extracting(ChapterPage::getSourceTh)
+                .containsExactly("S1", "S2");
+    }
+
+    @Test
+    void resumeKeepsSourceOfKeptPages() {
+        ChapterDetail c = chapter(1, 2);
+        ChapterPage first = pages.findByChapterIdOrderByPosition(c.id()).getFirst();
+        first.setTextVi("giữ");
+        first.setSourceTh("nguồn cũ");
+        reload(c.id()).setTranslationStatus(ChapterTranslationStatus.FAILED);
+        pages.flush();
+
+        service.start(c.id());
+
+        assertThat(translator.prompts.getLast().pages()).extracting(PageImage::page).containsExactly(2);
+        assertThat(pages.findByChapterIdOrderByPosition(c.id())).extracting(ChapterPage::getSourceTh)
+                .containsExactly("nguồn cũ", "S2");
+    }
+
+    @Test
+    void translatingAgainReplacesAStaleSourceEvenWhenGeminiSendsNone() {
+        ChapterDetail c = chapter(1, 1);
+        ChapterPage only = pages.findByChapterIdOrderByPosition(c.id()).getFirst();
+        only.setTextVi("cũ");
+        only.setSourceTh("nguồn cũ");
+        pages.flush();
+        translator.omitSource = true;
+
+        service.start(c.id());
+
+        assertThat(pages.findByChapterIdOrderByPosition(c.id()).getFirst().getSourceTh()).isNull();
     }
 }

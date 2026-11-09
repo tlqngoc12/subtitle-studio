@@ -2,6 +2,7 @@ package com.subtitlestudio.novel;
 
 import com.subtitlestudio.translate.TranslationFailedException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ final class PageTextOutput {
         Set<Integer> expected = sent.stream().map(PageImage::page).collect(Collectors.toSet());
         List<TranslatedPage> answer = got == null ? List.of() : got;
         Map<Integer, String> valid = new TreeMap<>();
+        Map<Integer, String> sources = new HashMap<>();
         List<Integer> returned = new ArrayList<>();
         List<Integer> unexpected = new ArrayList<>();
         List<Integer> duplicate = new ArrayList<>();
@@ -49,6 +51,7 @@ final class PageTextOutput {
                 untranslated.add(p.page());
             } else {
                 valid.put(p.page(), p.text().strip());
+                sources.put(p.page(), p.source() == null || p.source().isBlank() ? null : p.source().strip());
             }
         }
         List<Integer> missing = sent.stream().map(PageImage::page).filter(n -> !valid.containsKey(n)).sorted()
@@ -73,7 +76,7 @@ final class PageTextOutput {
         }
         d.append(", chars ").append(chars);
         List<TranslatedPage> pages = valid.entrySet().stream()
-                .map(e -> new TranslatedPage(e.getKey(), e.getValue())).toList();
+                .map(e -> new TranslatedPage(e.getKey(), e.getValue(), sources.get(e.getKey()))).toList();
         return new Check(pages, missing, d.toString());
     }
 
