@@ -29,7 +29,7 @@ import java.util.List;
 public class NovelRenderer {
 
     /** Bump when the drawing changes so cached images are redrawn. */
-    static final int VERSION = 1;
+    static final int VERSION = 2;
     static final int MARGIN = 64;
     static final int TOP = 110;
     static final int FOOTER = 120;
@@ -79,6 +79,13 @@ public class NovelRenderer {
         y += lineHeight * 0.6f;
 
         for (String paragraph : paragraphs(input.text())) {
+            if (paragraph.isEmpty()) {
+                // A blank line typed by the translator: one empty line of space (nothing at the top of a page).
+                if (y > TOP) {
+                    y += lineHeight;
+                }
+                continue;
+            }
             for (TextLayout layout : layouts(paragraph, body, frc, wrap)) {
                 if (y + lineHeight > bottom && !page.isEmpty()) {
                     pages.add(page);
@@ -169,12 +176,19 @@ public class NovelRenderer {
         return nfc(name + " · " + k + "/" + total);
     }
 
-    /** Non-blank lines of the text; each line is one paragraph. */
+    /** Lines of the text, each non-empty one a paragraph and each empty one a blank line; leading/trailing blanks dropped. */
     private static List<String> paragraphs(String text) {
         if (text == null) {
             return List.of();
         }
-        return nfc(text).lines().map(String::strip).filter(l -> !l.isEmpty()).toList();
+        List<String> lines = new ArrayList<>(nfc(text).lines().map(String::strip).toList());
+        while (!lines.isEmpty() && lines.getFirst().isEmpty()) {
+            lines.removeFirst();
+        }
+        while (!lines.isEmpty() && lines.getLast().isEmpty()) {
+            lines.removeLast();
+        }
+        return lines;
     }
 
     private static String nfc(String s) {

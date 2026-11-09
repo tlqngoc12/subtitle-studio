@@ -109,6 +109,42 @@ class NovelRendererTest {
         assertThat(renderer.render(input(""))).hasSize(1);
     }
 
+    @Test
+    void versionIsBumpedSoCachedImagesAreRedrawn() {
+        assertThat(NovelRenderer.VERSION).isEqualTo(2);
+    }
+
+    @Test
+    void eachBlankLineAddsSpace() {
+        int one = lastInkRow(renderer.render(input("Mai đứng lặng.\nCô nhớ lại.")).getFirst());
+        int two = lastInkRow(renderer.render(input("Mai đứng lặng.\n\nCô nhớ lại.")).getFirst());
+        int three = lastInkRow(renderer.render(input("Mai đứng lặng.\n\n\nCô nhớ lại.")).getFirst());
+
+        assertThat(two).isGreaterThan(one);
+        assertThat(three).isGreaterThan(two);
+        assertThat(three - two).isCloseTo(two - one, org.assertj.core.data.Offset.offset(1));
+    }
+
+    @Test
+    void leadingAndTrailingBlankLinesChangeNothing() {
+        byte[] plain = png.encode(renderer.render(input("Mai đứng lặng.\n\nCô nhớ lại.")).getFirst());
+        byte[] padded = png.encode(renderer.render(input("\n\n\nMai đứng lặng.\n\nCô nhớ lại.\n\n\n")).getFirst());
+
+        assertThat(padded).isEqualTo(plain);
+    }
+
+    /** Lowest row of dark text above the footer. */
+    private static int lastInkRow(BufferedImage img) {
+        for (int y = img.getHeight() - 150; y >= 0; y--) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                if (isInk(img.getRGB(x, y))) {
+                    return y;
+                }
+            }
+        }
+        return -1;
+    }
+
     private static boolean isInk(int rgb) {
         int r = (rgb >> 16) & 0xff;
         int g = (rgb >> 8) & 0xff;
