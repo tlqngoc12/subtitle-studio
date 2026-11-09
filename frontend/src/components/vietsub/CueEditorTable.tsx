@@ -1,6 +1,6 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent } from 'react';
 import type { ViCue } from '../../api/client';
-import { formatTimecode } from '../../lib/format';
+import { findScrollTarget } from '../../lib/findActiveCue';
 import { usePrefersReducedMotion } from '../../lib/usePrefersReducedMotion';
 import { Tip } from '../Tip';
 import './CueEditorTable.css';
@@ -8,10 +8,12 @@ import './CueEditorTable.css';
 /** How long after the focus leaves the table the highlighted line is followed again. */
 export const SCROLL_RESUME_MS = 3000;
 
+/** A player time that moves backwards, or forwards by more than this between two updates, is a seek, not playback. */
+export const SEEK_JUMP_MS = 1500;
+
 interface RowProps {
   index: number;
   startMs: number;
-  endMs: number;
   text: string;
   edited: boolean;
   active: boolean;
@@ -22,7 +24,7 @@ interface RowProps {
 }
 
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
-const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
+const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
 
@@ -41,8 +43,6 @@ const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, activ
           {number}
         </button>
       </td>
-      <td className="cue-row__time">{formatTimecode(startMs)}</td>
-      <td className="cue-row__time cue-row__time--end">{formatTimecode(endMs)}</td>
       <td className="cue-row__text">
         <label className="visually-hidden" htmlFor={`cue-text-${index}`}>
           {`Line ${number} text`}
@@ -78,8 +78,10 @@ interface Props {
   cues: readonly ViCue[];
   /** The current text of every line (same order as `cues`). */
   texts: readonly string[];
-  /** Index of the line on screen now, or -1. */
+  /** Index of the line on screen now, or -1 (the highlight). */
   activeIndex: number;
+  /** The player time. The table follows the line on screen, or the one before it in a gap, and any seek. */
+  currentMs: number;
   readOnly: boolean;
   /** Server messages by line index; the first one is scrolled into view when the set changes. */
   errors: Readonly<Record<number, string>>;
@@ -88,10 +90,11 @@ interface Props {
 }
 
 /**
- * The Vietsub lines as a table: number (seeks the video), read-only times, and an editable text per line.
- * The table keeps the highlighted line in view, except while a textarea has focus and for 3 s after it loses it.
+ * The Vietsub lines as a table: number (seeks the video) and an editable text per line.
+ * The table keeps the line at the player time in view (the highlighted one, or the one before it in a gap), except
+ * while a textarea has focus and for 3 s after it loses it. A seek of the player ends that wait and is followed at once.
  */
-function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChange, onSeek }: Props) {
+function CueEditorTableImpl({ cues, texts, activeIndex, currentMs, readOnly, errors, onChange, onSeek }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
@@ -99,11 +102,32 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChan
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  const scrollTarget = useMemo(() => findScrollTarget(cues, currentMs), [cues, currentMs]);
+  const scrollTo = useCallback(
+    (index: number) => {
+      const row = box.current?.querySelectorAll('tbody tr')[index];
+      row?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    },
+    [reduced],
+  );
+
+  // A seek (time goes back, or jumps ahead) cancels the wait after a blur and is followed at once, even into a gap
+  // between lines. While a textarea still has focus the user is typing, so the table stays put.
+  const lastMs = useRef(currentMs);
   useEffect(() => {
-    if (holding || activeIndex < 0) return;
-    const row = box.current?.querySelector('tr[aria-current="true"]');
-    row?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
-  }, [activeIndex, holding, reduced]);
+    const delta = currentMs - lastMs.current;
+    lastMs.current = currentMs;
+    if (delta >= 0 && delta <= SEEK_JUMP_MS) return;
+    if (box.current?.contains(document.activeElement) && document.activeElement instanceof HTMLTextAreaElement) return;
+    window.clearTimeout(timer.current);
+    setHolding(false);
+    if (scrollTarget >= 0) scrollTo(scrollTarget);
+  }, [currentMs, scrollTarget, scrollTo]);
+
+  useEffect(() => {
+    if (holding || scrollTarget < 0) return;
+    scrollTo(scrollTarget);
+  }, [scrollTarget, holding, scrollTo]);
 
   // Lines rejected by a save: show the first one. Clearing a message while typing must not move the table.
   const shownErrors = useRef<ReadonlySet<string>>(new Set());
@@ -136,8 +160,6 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChan
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col">Start</th>
-            <th scope="col" className="cue-row__time--end">End</th>
             <th scope="col">Text</th>
           </tr>
         </thead>
@@ -147,7 +169,6 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChan
               key={i}
               index={i}
               startMs={cue.startMs}
-              endMs={cue.endMs}
               text={texts[i]}
               edited={texts[i] !== cue.text}
               active={i === activeIndex}

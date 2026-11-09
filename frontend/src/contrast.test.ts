@@ -66,3 +66,14 @@ describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens)
 it('no stylesheet hard-codes a focus outline colour', () => {
   expect(css).not.toMatch(/outline(-color)?:[^;]*#[0-9a-f]{3,8}/i);
 });
+
+it('the film strip description bar keeps --on-frame text at 4.5:1 over even a white image', () => {
+  const bar = /\.filmstrip__bar\s*\{[^}]*background:\s*rgb\(0 0 0 \/ ([\d.]+)\)/.exec(css);
+  expect(bar).not.toBeNull();
+  // Worst case: pure white under the bar, so the bar colour is white * (1 - alpha).
+  const channel = Math.round(255 * (1 - Number(bar![1])))
+    .toString(16)
+    .padStart(2, '0');
+  const worst = `#${channel}${channel}${channel}`;
+  for (const tokens of Object.values(themes)) expect(ratio(tokens, '--on-frame', worst)).toBeGreaterThanOrEqual(4.5);
+});

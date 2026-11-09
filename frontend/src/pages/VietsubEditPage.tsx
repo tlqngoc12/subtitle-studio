@@ -329,6 +329,7 @@ function Editor({
           cues={baseline}
           texts={texts}
           activeIndex={activeIndex}
+          currentMs={player.currentMs}
           readOnly={translating}
           errors={lineErrors}
           onChange={onChange}

@@ -23,16 +23,16 @@ vi.mock('../player/useYouTubePlayer', () => ({
   useYouTubePlayer: () => ({ ...player }),
 }));
 
-// Every row formats its two times when it renders, so the number of calls counts row renders.
-const format = vi.hoisted(() => ({ calls: 0 }));
-vi.mock('../lib/format', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../lib/format')>();
+// Counts every useRef call (each component render makes some), to prove that typing re-renders one row only.
+const refs = vi.hoisted(() => ({ calls: 0 }));
+vi.mock('react', async (importOriginal) => {
+  const original = await importOriginal<typeof import('react')>();
   return {
     ...original,
-    formatTimecode: (ms: number) => {
-      format.calls++;
-      return original.formatTimecode(ms);
-    },
+    useRef: ((...args: Parameters<typeof original.useRef>) => {
+      refs.calls++;
+      return original.useRef(...args);
+    }) as typeof original.useRef,
   };
 });
 
@@ -113,7 +113,6 @@ describe('VietsubEditPage', () => {
     player.seekTo = vi.fn();
     polling.ids = [];
     polling.onUpdate = null;
-    format.calls = 0;
     vi.mocked(toast.success).mockClear();
   });
 
@@ -142,15 +141,16 @@ describe('VietsubEditPage', () => {
     expect(screen.queryByText('AI', { exact: true })).not.toBeInTheDocument();
   });
 
-  it('renders one row per line with read-only times and a labelled textarea', async () => {
+  it('renders one row per line with a seek number and a labelled textarea, and no time columns', async () => {
     await renderEditor();
 
     const table = screen.getByRole('table', { name: 'Vietsub lines' });
     expect(within(table).getAllByRole('row')).toHaveLength(4); // header + 3
     expect(area(1)).toHaveValue('Xin chào');
     expect(area(3)).toHaveValue('Hẹn gặp lại');
-    expect(within(row(3)).getByText('00:00:03,000')).toBeInTheDocument();
-    expect(within(row(3)).getByText('00:00:04,500')).toBeInTheDocument();
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['#', 'Text']);
+    expect(within(row(3)).queryByText('00:00:03,000')).not.toBeInTheDocument();
+    expect(within(row(3)).queryByText('00:00:04,500')).not.toBeInTheDocument();
     expect(within(row(3)).getByRole('button', { name: 'Go to line 3' })).toHaveTextContent('3');
   });
 
@@ -219,16 +219,23 @@ describe('VietsubEditPage', () => {
   });
 
   it('re-renders only the edited row while typing', async () => {
-    const lines = Array.from({ length: 50 }, (_, i) => ({ startMs: i * 1000, endMs: i * 1000 + 900, text: `Dòng ${i}` }));
-    await renderEditor({ ...video, viCueCount: 50 }, lines);
-    const user = userEvent.setup();
-    await user.click(area(10));
-    format.calls = 0;
+    async function typingCost(count: number) {
+      const lines = Array.from({ length: count }, (_, i) => ({ startMs: i * 1000, endMs: i * 1000 + 900, text: `Dòng ${i}` }));
+      const { unmount } = await renderEditor({ ...video, viCueCount: count }, lines);
+      const user = userEvent.setup();
+      await user.click(area(2));
+      refs.calls = 0;
+      await user.keyboard('abc');
+      const cost = refs.calls;
+      unmount();
+      return cost;
+    }
 
-    await user.keyboard('abc');
+    const small = await typingCost(3);
+    const large = await typingCost(50);
 
-    // 3 keystrokes x 1 row x 2 times per row; a full-table render would be 50 x 2 per keystroke.
-    expect(format.calls).toBe(6);
+    // A full-table render per keystroke would add 47 rows' worth of renders.
+    expect(large).toBe(small);
   });
 
   describe('auto-scroll', () => {
@@ -266,6 +273,103 @@ describe('VietsubEditPage', () => {
       });
       expect(spy).toHaveBeenCalled();
       expect(spy.mock.contexts.at(-1)).toBe(row(3));
+    });
+
+    // Lines: 1 = 0-1 s, 2 = 1-2 s, 3 = 3-4.5 s; 2-3 s is a gap.
+    it('seeking backwards into a gap scrolls to the line before it, with no highlight', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 3_200;
+      const { rerender } = await renderEditor();
+      spy.mockClear();
+
+      player.currentMs = 2_500;
+      rerender(tree());
+
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      expect(spy.mock.contexts.at(-1)).toBe(row(2));
+      expect(screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'))).toHaveLength(0);
+    });
+
+    it('seeking forwards into a gap scrolls to the line before it', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 100;
+      const { rerender } = await renderEditor();
+      spy.mockClear();
+
+      player.currentMs = 2_500;
+      rerender(tree());
+
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      expect(spy.mock.contexts.at(-1)).toBe(row(2));
+      expect(screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'))).toHaveLength(0);
+    });
+
+    it('scrolls to the first line when the time is before every line', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 3_200;
+      const lines: ViCue[] = [
+        { startMs: 5_000, endMs: 6_000, text: 'A' },
+        { startMs: 7_000, endMs: 8_000, text: 'B' },
+      ];
+      fakeFetch(routes({ ...video, viCueCount: 2 }, lines));
+      const { rerender } = render(tree());
+      await screen.findByRole('table');
+      player.currentMs = 7_500;
+      rerender(tree());
+      await waitFor(() => expect(spy.mock.contexts.at(-1)).toBe(row(2)));
+      spy.mockClear();
+
+      player.currentMs = 1_000;
+      rerender(tree());
+
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      expect(spy.mock.contexts.at(-1)).toBe(row(1));
+    });
+
+    it('follows a seek at once during the 3 s hold after a textarea loses focus', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 3_200;
+      const { rerender } = await renderEditor();
+      await act(async () => area(3).focus());
+      vi.useFakeTimers();
+      act(() => area(3).blur()); // e.g. a click into the YouTube iframe
+      spy.mockClear();
+
+      player.currentMs = 500;
+      rerender(tree());
+
+      expect(spy).toHaveBeenCalled();
+      expect(spy.mock.contexts.at(-1)).toBe(row(1));
+    });
+
+    it('does not follow a seek while a textarea still has focus', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 3_200;
+      const { rerender } = await renderEditor();
+      await act(async () => area(3).focus());
+      spy.mockClear();
+
+      player.currentMs = 500;
+      rerender(tree());
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('keeps holding through normal playback after a blur', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 500;
+      const { rerender } = await renderEditor();
+      await act(async () => area(1).focus());
+      vi.useFakeTimers();
+      act(() => area(1).blur());
+      spy.mockClear();
+
+      for (const ms of [800, 1_100, 1_400, 2_700, 3_100]) {
+        player.currentMs = ms; // steps of at most 1.5 s: playback, not a seek
+        rerender(tree());
+      }
+
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 

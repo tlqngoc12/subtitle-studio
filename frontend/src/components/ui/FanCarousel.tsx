@@ -43,7 +43,6 @@ export function FanCarousel({
   onIndexChange,
   hold = false,
   labels = DEFAULT_LABELS,
-  fit = 'cover',
 }: {
   items: FanItem[];
   /** Gives the carousel a region landmark with this name. */
@@ -54,8 +53,6 @@ export function FanCarousel({
   /** The parent asks for the timer to wait (for example while its own area is hovered). */
   hold?: boolean;
   labels?: FanLabels;
-  /** `cover` (default): fixed-ratio cards that crop. `natural`: each card keeps its image's own ratio and shows it whole. */
-  fit?: 'cover' | 'natural';
 }) {
   const count = items.length;
   const [inner, setInner] = useState(0);
@@ -88,7 +85,7 @@ export function FanCarousel({
 
   return (
     <section
-      className={fit === 'natural' ? 'fan fan--natural' : 'fan'}
+      className="fan"
       aria-label={label}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
