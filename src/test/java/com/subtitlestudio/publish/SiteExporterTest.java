@@ -400,6 +400,19 @@ class SiteExporterTest {
     }
 
     @Test
+    void novelDetailCarriesTheTrailerIdOrNull() throws IOException {
+        long withTrailer = novel("summer", null, 1, 1);
+        novel("winter", null, 1, 1);
+        tx.executeWithoutResult(s -> novels.findById(withTrailer).orElseThrow().setTrailerVideoId("dQw4w9WgXcQ"));
+
+        exporter.export(out, NOW);
+
+        assertThat(readJson("data/novels/summer.json").get("trailerVideoId").asText()).isEqualTo("dQw4w9WgXcQ");
+        assertThat(readJson("data/novels/winter.json").get("trailerVideoId").isNull()).isTrue();
+        assertThat(readJson("data/novels.json").toString()).doesNotContain("dQw4w9WgXcQ");
+    }
+
+    @Test
     void chaptersFollowTheReadingOrderNotTheNumber() throws IOException {
         long id = novel("summer", null, 3, 1, 2, 3);
         tx.executeWithoutResult(s -> chapters.findByNovelIdOrderByChapterNo(id).forEach(c -> c.setSortOrder(

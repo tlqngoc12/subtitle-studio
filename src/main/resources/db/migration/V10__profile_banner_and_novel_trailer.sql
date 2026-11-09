@@ -1,4 +1,5 @@
--- Profile banner images (spec docs/superpowers/specs/2026-11-09-profile-banner-design.md).
+-- Profile banner images and the optional novel trailer
+-- (spec docs/superpowers/specs/2026-11-09-profile-banner-design.md, parts 1 and 2).
 -- Same conventions as V1-V9: CHAR length semantics, ${bigint} / ${int} placeholders, sequences in steps of 50,
 -- new tables use the T_ prefix. Never edit this file once it has run on a real database; add V11__... instead.
 --
@@ -21,3 +22,6 @@ CREATE TABLE t_profile_banner_image (
 );
 CREATE INDEX t_profile_banner_image_profile_ix ON t_profile_banner_image (profile_id, position);
 CREATE INDEX t_profile_banner_image_media_ix ON t_profile_banner_image (media_id);
+
+-- Optional YouTube trailer of a novel: only the 11-character video id is stored (NovelValidator extracts it).
+ALTER TABLE t_novel ADD (trailer_video_id VARCHAR2(11 CHAR));

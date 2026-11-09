@@ -60,6 +60,9 @@ public class Novel {
     @Column(name = "prompt_profile", length = 40)
     private String promptProfile;
 
+    @Column(name = "trailer_video_id", length = 11)
+    private String trailerVideoId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "notebook_status", length = 20, nullable = false)
     private NotebookStatus notebookStatus = NotebookStatus.IDLE;
@@ -170,6 +173,14 @@ public class Novel {
 
     public void setPromptProfile(String promptProfile) {
         this.promptProfile = promptProfile;
+    }
+
+    public String getTrailerVideoId() {
+        return trailerVideoId;
+    }
+
+    public void setTrailerVideoId(String trailerVideoId) {
+        this.trailerVideoId = trailerVideoId;
     }
 
     public NotebookStatus getNotebookStatus() {

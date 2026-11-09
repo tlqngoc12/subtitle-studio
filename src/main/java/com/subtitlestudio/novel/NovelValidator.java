@@ -1,6 +1,8 @@
 package com.subtitlestudio.novel;
 
 import com.subtitlestudio.profile.FieldError;
+import com.subtitlestudio.url.InvalidUrlException;
+import com.subtitlestudio.url.UrlParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -22,16 +24,21 @@ public class NovelValidator {
     private static final Pattern SLUG = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*");
 
     private final NovelProfileStore profiles;
+    private final UrlParser urlParser;
 
-    public NovelValidator(NovelProfileStore profiles) {
+    public NovelValidator(NovelProfileStore profiles, UrlParser urlParser) {
         this.profiles = profiles;
+        this.urlParser = urlParser;
     }
 
-    /** The trimmed request (blank optional fields become null, empty tags are dropped). */
+    /**
+     * The trimmed request (blank optional fields become null, empty tags are dropped). In the result
+     * {@code trailerUrl} holds the 11-character YouTube video id (or null), not the link.
+     */
     public NovelRequest validate(NovelRequest r) {
         NovelRequest n = new NovelRequest(trim(r.slug()), trim(r.title()), r.coverMediaId(), trim(r.originalAuthor()),
                 trim(r.description()), tags(r.tags()), r.novelStatus(), trim(r.translatorCredit()),
-                trim(r.sourceUrl()), trim(r.promptProfile()));
+                trim(r.sourceUrl()), trim(r.promptProfile()), trim(r.trailerUrl()));
         List<FieldError> errors = new ArrayList<>();
         if (n.slug() == null || n.slug().length() > MAX_SLUG || !SLUG.matcher(n.slug()).matches()) {
             errors.add(new FieldError("slug", "Use lowercase letters, numbers and single hyphens."));
@@ -58,10 +65,30 @@ public class NovelValidator {
         if (n.promptProfile() != null && !profiles.list().contains(n.promptProfile())) {
             errors.add(new FieldError("promptProfile", "Unknown translation profile."));
         }
+        String trailerId = null;
+        if (n.trailerUrl() != null) {
+            trailerId = trailerId(n.trailerUrl());
+            if (trailerId == null) {
+                errors.add(new FieldError("trailerUrl", "Use a YouTube link (youtube.com or youtu.be)."));
+            }
+        }
         if (!errors.isEmpty()) {
             throw new InvalidNovelException(errors);
         }
-        return n;
+        return new NovelRequest(n.slug(), n.title(), n.coverMediaId(), n.originalAuthor(), n.description(), n.tags(),
+                n.novelStatus(), n.translatorCredit(), n.sourceUrl(), n.promptProfile(), trailerId);
+    }
+
+    /** The video id of a YouTube link, or null when it is too long or not a YouTube video link. */
+    private String trailerId(String url) {
+        if (url.length() > MAX_URL) {
+            return null;
+        }
+        try {
+            return urlParser.parse(url);
+        } catch (InvalidUrlException e) {
+            return null;
+        }
     }
 
     private static void tooLong(List<FieldError> errors, String field, String value, int max) {
