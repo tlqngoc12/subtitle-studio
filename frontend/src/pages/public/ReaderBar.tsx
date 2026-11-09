@@ -1,3 +1,4 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
 import {
   ArrowLeft,
@@ -8,6 +9,7 @@ import {
   Moon,
   Settings,
   Sun,
+  X,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
 import { createPortal } from "react-dom";
@@ -44,7 +46,7 @@ interface Props {
 }
 
 /**
- * The reader's controls: back link with the novel and chapter name, then previous, next, table of contents, settings.
+ * The reader's controls: back link with the novel and chapter name, then previous, next, table of contents (a right-side drawer), settings.
  * They are portaled into the site top bar, which they take over from the logo and the menu; the whole top bar slides
  * away while the page scrolls down and returns on scrolling up, near the top, while a popover is open and while
  * keyboard focus is in the controls. Without a top bar (isolated renders) they render in place.
@@ -63,6 +65,7 @@ export function ReaderBar({
   onStepWidth,
 }: Props) {
   const [tocOpen, setTocOpen] = useState(false);
+  const drawer = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [focusIn, setFocusIn] = useState(false);
   const hidden = useHideOnScroll(tocOpen || settingsOpen || focusIn);
@@ -123,23 +126,40 @@ export function ReaderBar({
           {step(prev, "Chương trước", ChevronLeft)}
           {step(next, "Chương sau", ChevronRight)}
 
-          <Popover.Root open={tocOpen} onOpenChange={setTocOpen}>
-            <Popover.Trigger asChild>
+          <Dialog.Root open={tocOpen} onOpenChange={setTocOpen}>
+            <Dialog.Trigger asChild>
               <IconButton label="Mục lục" icon={List} />
-            </Popover.Trigger>
-            <PopoverPanel
-              className="reader-pop reader-toc"
-              {...{ [OWN_KEYS]: "" }}
-              aria-label="Mục lục"
-            >
-              <ChapterToc
-                slug={slug}
-                chapters={chapters}
-                currentNo={currentNo}
-                onPick={() => setTocOpen(false)}
-              />
-            </PopoverPanel>
-          </Popover.Root>
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="drawer__overlay" />
+              <Dialog.Content
+                ref={drawer}
+                className="drawer"
+                {...{ [OWN_KEYS]: "" }}
+                aria-describedby={undefined}
+                // Land on the drawer itself, not on the close button: its tooltip would take the first Esc.
+                onOpenAutoFocus={(e) => {
+                  e.preventDefault();
+                  drawer.current?.focus();
+                }}
+              >
+                <div className="drawer__head">
+                  <Dialog.Title className="drawer__title">Mục lục</Dialog.Title>
+                  <Dialog.Close asChild>
+                    <IconButton label="Đóng" icon={X} />
+                  </Dialog.Close>
+                </div>
+                <div className="drawer__body">
+                  <ChapterToc
+                    slug={slug}
+                    chapters={chapters}
+                    currentNo={currentNo}
+                    onPick={() => setTocOpen(false)}
+                  />
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
 
           <Popover.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
             <Popover.Trigger asChild>
@@ -205,7 +225,7 @@ function ChapterToc({
 }) {
   const read = new Set(readReadChapters(slug));
   const currentRef = useRef<HTMLAnchorElement>(null);
-  // Mounted when the popover opens: bring the chapter being read to the middle of the scrolling list.
+  // Mounted when the drawer opens: bring the chapter being read to the middle of the scrolling drawer body.
   useEffect(() => {
     currentRef.current?.scrollIntoView({ block: "center" });
   }, []);
@@ -215,7 +235,14 @@ function ChapterToc({
       {chapters.map((c) => {
         const current = c.chapterNo === currentNo;
         return (
-          <li key={c.chapterNo} className="reader-toc__item">
+          <li
+            key={c.chapterNo}
+            className={
+              current
+                ? "reader-toc__item reader-toc__item--current"
+                : "reader-toc__item"
+            }
+          >
             <Link
               ref={current ? currentRef : undefined}
               className={

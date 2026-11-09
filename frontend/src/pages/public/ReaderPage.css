@@ -4,11 +4,12 @@
   scroll-margin-top: calc(var(--topbar-h, 56px) + 24px);
 }
 
-/* End of chapter: previous and next as two equal buttons, or the "you have read everything" box. */
+/* End of chapter: previous in the left corner and next in the right corner of the reader column (orange primary
+   buttons), then the "you have read everything" box. */
 .reader__end {
   display: grid;
   gap: var(--space-3);
-  max-width: 600px;
+  max-width: var(--reader-width, 600px);
   margin: var(--space-4) auto var(--space-8);
 }
 
@@ -18,13 +19,13 @@
   gap: var(--space-3);
 }
 
-.reader__end-button {
+.reader__end-nav .reader__end-button {
   justify-self: start;
   min-width: 140px;
   min-height: 44px;
 }
 
-.reader__end-button--next {
+.reader__end-nav .reader__end-button--next {
   grid-column: 2;
   justify-self: end;
 }

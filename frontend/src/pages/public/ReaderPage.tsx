@@ -185,7 +185,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
             <div className="reader__end-nav">
               {prev !== null && (
                 <Link
-                  className="button button--small reader__end-button"
+                  className="button button--primary reader__end-button"
                   to={to(prev)}
                 >
                   <ChevronLeft className="icon" aria-hidden="true" />
@@ -194,7 +194,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
               )}
               {next !== null && (
                 <Link
-                  className="button button--small reader__end-button reader__end-button--next"
+                  className="button button--primary reader__end-button reader__end-button--next"
                   to={to(next)}
                 >
                   Chương sau
