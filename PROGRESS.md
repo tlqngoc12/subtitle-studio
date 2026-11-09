@@ -577,6 +577,16 @@ Plan: [docs/superpowers/plans/2026-11-09-reader-bar-wide-and-polish.md](docs/sup
 - **Trang truyện (public):** danh sách chương là một hộp viền liền, hàng gọn (40 px), từ 760 px và hơn 12 chương thì chia hai cột (CSS columns: đọc xuống hết cột trái rồi sang cột phải). Có mô tả thì hiện hai tab `Giới thiệu` | `Danh sách chương`, mặc định mở `Danh sách chương`; URL chỉ ghi tab còn lại (`?tab=intro`). Không có mô tả thì không có tab.
 - **Admin:** Number, Chapter label, Chapter title trên một hàng (tự xuống dòng khi hẹp); khoảng cách giữa thanh Search/Filter và đường kẻ trên của danh sách Manage Vietsub.
 
+### 2026-11-09: Rà soát UI vòng 1 (token, độ tương phản) và điều khiển đọc truyện trên thanh trên cùng ✅ (chưa merge, chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-09-ui-tokens-and-reader-topbar.md](docs/superpowers/plans/2026-11-09-ui-tokens-and-reader-topbar.md). Nhánh `feature/novel-page-checks`. Chỉ đổi frontend.
+
+- **Token khoảng cách** 4 px (`--space-0-5` … `--space-16`) dùng cho mọi `margin`/`padding`/`gap` trong `styles.css` (giá trị lệch làm tròn: 6→8, 10→12, 14→16, 18→20, 22→24, 28→32); ngoại lệ giữ px: 0, 1px, `-1px`, `clamp()`/`calc()`.
+- **Token đổ bóng:** chỉ `--shadow-overlay` (tooltip, hộp thoại, menu, popover) và `--shadow-drag` (3 trạng thái kéo). Thẻ và bìa không đổ bóng; bỏ gradient trang trí của `.plcard`; nền mờ banner opacity 0.12.
+- **Token tương phản:** `--brand-ink`, `--brand-2-ink` (chữ/icon cam, tím trên nền sáng), `--field-border` (viền input, select, ô tìm, nút Filter ≥ 3:1), `--hover`. `contrast.test.ts` kiểm tra WCAG cho cả hai theme.
+- **Thanh đọc** nằm trong thanh trên cùng (thay logo và menu) chỉ ở trang đọc chương; cả thanh trên cùng ẩn khi cuộn xuống, hiện lại khi cuộn lên. Cơ chế: `TopbarSlotProvider` (context) + portal; `ReaderPage` vẫn giữ state.
+- **Vòng sau (chưa làm):** component dùng chung `Alert`, `LoadingText`, `IconButton`, `PageHeader`, `Cover`, `SearchBar`, `PopoverPanel`; quy ước breakpoint 520/760/1024 mobile-first; tách `styles.css`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
