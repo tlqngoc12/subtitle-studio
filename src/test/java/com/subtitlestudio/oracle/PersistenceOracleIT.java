@@ -103,7 +103,7 @@ class PersistenceOracleIT {
         // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
                 .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_PAGE", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
-                        "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BLOCK",
+                        "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
                         "T_PROFILE_BLOCK_ITEM", "VIDEO",
                         "VI_CUE", "flyway_schema_history");
     }
