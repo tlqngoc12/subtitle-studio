@@ -1,10 +1,4 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  Info,
-  Pause,
-  Play,
-} from "lucide-react";
+import { Info } from "lucide-react";
 import {
   useEffect,
   useState,
@@ -17,7 +11,6 @@ import type {
   PublicNovelDetail,
   PublicNovelSummary,
 } from "../../data/novelTypes";
-import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import {
   PUBLIC_STATUS_LABEL,
   latestUpdate,
@@ -26,17 +19,15 @@ import {
   publicDate,
 } from "./publicNames";
 import { readProgress } from "./readerPrefs";
-import { Cover } from '../../components/ui/Cover';
-import { IconButton, IconLink } from '../../components/ui/IconButton';
+import { FanCarousel } from '../../components/ui/FanCarousel';
+import { IconLink } from '../../components/ui/IconButton';
 import './FeaturedNovels.css';
-
-const ADVANCE_MS = 6000;
-const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
  * The featured banner at the top of the public Novels page: the current novel on the left, the covers fanned on the
- * right (the current one in front; each cover links to its novel's page, and the small arrows browse). It moves on every 6 seconds unless paused,
- * hovered or focused, and never moves by itself with prefers-reduced-motion. `novels` is already in display order.
+ * right (a FanCarousel: the current one in front; each cover links to its novel's page, and the small arrows
+ * browse). Hovering or focusing anywhere in the banner holds the carousel's 6 second timer. `novels` is already in
+ * display order.
  */
 export default function FeaturedNovels({
   novels,
@@ -47,11 +38,9 @@ export default function FeaturedNovels({
 }) {
   const count = novels.length;
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [details, setDetails] = useState<Record<string, PublicNovelDetail>>({});
-  const reduced = usePrefersReducedMotion();
 
   // The summaries do not say which chapter comes first, so the chapter lists are read (a handful of small files).
   useEffect(() => {
@@ -69,16 +58,6 @@ export default function FeaturedNovels({
     };
   }, [novels, source]);
 
-  const running = count > 1 && !paused && !hovered && !focused && !reduced;
-  useEffect(() => {
-    if (!running) return;
-    const timer = setTimeout(
-      () => setIndex((i) => (i + 1) % count),
-      ADVANCE_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [running, index, count]);
-
   if (count === 0) return null;
   const at = Math.min(index, count - 1);
   const novel = novels[at];
@@ -89,7 +68,6 @@ export default function FeaturedNovels({
       ? undefined
       : detail?.chapters.find((c) => c.chapterNo === stored);
   const first = detail?.chapters[0];
-  const half = Math.floor(count / 2);
 
   function onBlur(e: FocusEvent<HTMLElement>) {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null))
@@ -158,57 +136,19 @@ export default function FeaturedNovels({
       </div>
 
       <div className="featured__stage">
-        <div className="featured__fan">
-          {novels.map((n, i) => {
-            // Signed distance to the current novel around the circle: -2..2 for five novels.
-            const o = ((((i - at + half) % count) + count) % count) - half;
-            const current = i === at;
-            return (
-              <Link
-                key={n.slug}
-                className="featured__cover"
-                to={`/novels/${n.slug}`}
-                aria-label={n.title}
-                aria-current={current ? "true" : undefined}
-                style={
-                  {
-                    "--o": String(o),
-                    "--d": String(Math.abs(o)),
-                  } as CSSProperties
-                }
-              >
-                <Cover src={n.coverUrl} className="featured__art" draggable={false} />
-              </Link>
-            );
-          })}
-        </div>
-        <div className="featured__controls">
-          {count > 1 && (
-            <IconButton
-              label="Truyện trước"
-              icon={ChevronLeft}
-              onClick={() => setIndex((at - 1 + count) % count)}
-            />
-          )}
-          <span className="featured__counter">{`${pad(at + 1)} / ${pad(count)}`}</span>
-          {count > 1 && (
-            <IconButton label="Truyện sau" icon={ChevronRight} onClick={() => setIndex((at + 1) % count)} />
-          )}
-          {count > 1 && (
-            <button
-              className="button button--icon"
-              type="button"
-              aria-label={paused ? "Tiếp tục" : "Tạm dừng"}
-              onClick={() => setPaused((p) => !p)}
-            >
-              {paused ? (
-                <Play className="icon" aria-hidden="true" />
-              ) : (
-                <Pause className="icon" aria-hidden="true" />
-              )}
-            </button>
-          )}
-        </div>
+        <FanCarousel
+          items={novels.map((n) => ({
+            key: n.slug,
+            src: n.coverUrl,
+            alt: '',
+            name: n.title,
+            href: `/novels/${n.slug}`,
+          }))}
+          index={at}
+          onIndexChange={setIndex}
+          hold={hovered || focused}
+          labels={{ previous: 'Truyện trước', next: 'Truyện sau' }}
+        />
       </div>
     </section>
   );

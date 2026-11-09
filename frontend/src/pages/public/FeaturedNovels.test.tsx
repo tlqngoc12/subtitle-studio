@@ -172,9 +172,11 @@ describe('FeaturedNovels', () => {
     expect(counter()).toBe('01 / 03');
   });
 
-  it('has no previous/next buttons for a single novel', async () => {
+  it('has no previous/next buttons, counter or pause for a single novel', async () => {
     await renderBanner([NOVELS[0]]);
 
+    expect(screen.queryByText(/^\d\d \/ \d\d$/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tạm dừng' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Truyện trước' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Truyện sau' })).not.toBeInTheDocument();
   });
@@ -195,10 +197,6 @@ describe('FeaturedNovels', () => {
     expect(css).toMatch(/\.featured__bg\s*\{[^}]*var\(--cover[^}]*filter:\s*blur[^}]*opacity:\s*0?\.\d+/);
   });
 
-  it('keeps the mobile layout to the current cover only', () => {
-    expect(css).toMatch(/@media \(max-width: 760px\)\s*\{[^@]*\.featured__cover:not\(\[aria-current='true'\]\)\s*\{[^}]*display:\s*none/);
-  });
-
   describe('auto-advance', () => {
     beforeEach(() => vi.useFakeTimers());
 
@@ -214,34 +212,6 @@ describe('FeaturedNovels', () => {
       await tick(6000);
       await tick(6000);
       expect(counter()).toBe('01 / 03');
-    });
-
-    it('restarts the 6 second timer when previous or next is pressed', async () => {
-      await renderBanner();
-
-      await tick(4000);
-      fireEvent.click(screen.getByRole('button', { name: 'Truyện sau' }));
-      expect(counter()).toBe('02 / 03');
-      await tick(5999);
-      expect(counter()).toBe('02 / 03');
-      await tick(1);
-      expect(counter()).toBe('03 / 03');
-      fireEvent.click(screen.getByRole('button', { name: 'Truyện trước' }));
-      expect(counter()).toBe('02 / 03');
-    });
-
-    it('stops with the pause button and resumes with the same button', async () => {
-      await renderBanner();
-      const pause = screen.getByRole('button', { name: 'Tạm dừng' });
-
-      fireEvent.click(pause);
-      expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeInTheDocument();
-      await tick(20000);
-      expect(counter()).toBe('01 / 03');
-
-      fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
-      await tick(6000);
-      expect(counter()).toBe('02 / 03');
     });
 
     it('waits while the pointer is over the banner or focus is inside it', async () => {
@@ -263,6 +233,15 @@ describe('FeaturedNovels', () => {
       expect(counter()).toBe('03 / 03');
     });
 
+    it('can be paused with the pause button (the carousel owns the control)', async () => {
+      await renderBanner();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Tạm dừng' }));
+      await tick(20000);
+
+      expect(counter()).toBe('01 / 03');
+    });
+
     it('does not advance with prefers-reduced-motion', async () => {
       vi.stubGlobal('matchMedia', (query: string) => ({
         matches: query.includes('prefers-reduced-motion'),
@@ -277,16 +256,5 @@ describe('FeaturedNovels', () => {
       expect(vi.getTimerCount()).toBe(0);
     });
 
-    it('does not advance a single novel, and clears its timer on unmount', async () => {
-      const one = await renderBanner([NOVELS[0]]);
-      expect(screen.queryByRole('button', { name: 'Tạm dừng' })).not.toBeInTheDocument();
-      expect(vi.getTimerCount()).toBe(0);
-      one.unmount();
-
-      const many = await renderBanner();
-      expect(vi.getTimerCount()).toBeGreaterThan(0);
-      many.unmount();
-      expect(vi.getTimerCount()).toBe(0);
-    });
   });
 });

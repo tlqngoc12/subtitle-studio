@@ -1,0 +1,90 @@
+/* FanCarousel: images fanned around the middle of the container, controls centred below.
+   A page can resize the fan with --fan-width, --fan-width-narrow (phones), --fan-ratio and --fan-height on the element (or an ancestor). */
+.fan {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.fan__stage {
+  position: relative;
+  height: var(--fan-height, 340px);
+}
+
+/* --o is the signed distance to the current item, --d its absolute value (set inline). */
+.fan__item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: calc(10 - var(--d, 0));
+  width: var(--fan-width, 180px);
+  aspect-ratio: var(--fan-ratio, 2 / 3);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transform: translate(-50%, -50%) translateX(calc(var(--o, 0) * 44%)) rotate(calc(var(--o, 0) * 7deg))
+    scale(calc(1.08 - 0.15 * var(--d, 0)));
+  filter: brightness(calc(1 - 0.12 * var(--d, 0)));
+  transition: transform 0.4s ease-out, filter 0.4s ease-out;
+}
+
+div.fan__item {
+  cursor: default;
+}
+
+.fan__item:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.fan__art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+
+.fan__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan__item {
+    transition: none;
+  }
+}
+
+/* Phones: the current image only; no fan. */
+@media (max-width: 760px) {
+  .fan__stage {
+    height: auto;
+    display: grid;
+    justify-items: center;
+  }
+
+  .fan__item:not([aria-current='true']) {
+    display: none;
+  }
+
+  .fan__item {
+    position: static;
+    width: var(--fan-width-narrow, 150px);
+    transform: none;
+    filter: none;
+  }
+}
+
+.fan__counter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--muted);
+}
