@@ -352,7 +352,7 @@ describe('ProfilePage banner', () => {
     );
 
     const banner = await screen.findByRole('region', { name: 'Ảnh banner' });
-    await userEvent.click(within(banner).getByRole('button', { name: 'Ảnh 2/2' }));
+    await userEvent.click(within(banner.querySelector('.filmstrip__row') as HTMLElement).getByRole('button', { name: 'Ảnh 2/2' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();

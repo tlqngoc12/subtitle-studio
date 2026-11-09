@@ -1,4 +1,4 @@
-/* FilmStrip: a full-bleed row of same-height images at their natural width. No card, border or shadow. */
+/* FilmStrip: a full-bleed one-image slider; each slide is the strip's width, the image whole. No card, border or shadow. */
 .filmstrip {
   position: relative;
   /* Break out of .page to the viewport edges. 100vw includes a classic scrollbar, so the body clips that sliver
@@ -11,12 +11,14 @@ body:has(.filmstrip) {
   overflow-x: clip;
 }
 
+.filmstrip__stage {
+  position: relative;
+}
+
 .filmstrip__row {
   display: flex;
-  gap: var(--space-3);
-  padding-inline: var(--gutter);
+  align-items: start;
   overflow-x: auto;
-  scroll-padding-inline: var(--gutter);
   scroll-snap-type: x mandatory;
   /* Scrollable and swipeable, but no visible bar. */
   scrollbar-width: none;
@@ -28,16 +30,17 @@ body:has(.filmstrip) {
 
 .filmstrip__item {
   position: relative;
-  flex: none;
-  height: clamp(120px, 18vw, 220px);
+  flex: 0 0 100%;
+  width: 100%;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-control);
+  border-radius: 0;
   background: none;
   color: inherit;
   cursor: pointer;
   overflow: hidden;
   scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .filmstrip__item:focus-visible {
@@ -47,10 +50,9 @@ body:has(.filmstrip) {
 
 .filmstrip__art {
   display: block;
-  width: auto;
+  width: 100%;
   max-width: none;
-  height: 100%;
-  border-radius: var(--radius-control);
+  height: auto;
 }
 
 /* The empty placeholder has no image to take a width from. */
@@ -83,6 +85,45 @@ body:has(.filmstrip) {
 
 .filmstrip__item:focus-visible .filmstrip__bar {
   opacity: 1;
+}
+
+.filmstrip__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+}
+
+/* 24px hit area around a 10px visible dot. */
+.filmstrip__dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.filmstrip__dot::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--rule);
+}
+
+/* --brand-2 alone is under 3:1 on the light --paper, so the current dot gets a --brand-2-ink ring. */
+.filmstrip__dot[aria-current='true']::before {
+  background: var(--brand-2);
+  border: 2px solid var(--brand-2-ink);
+}
+
+.filmstrip__dot:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
 }
 
 /* The arrows are a pointer-device aid; touch swipes. */

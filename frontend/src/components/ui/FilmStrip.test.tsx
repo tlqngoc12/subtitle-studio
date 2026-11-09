@@ -17,14 +17,29 @@ function renderStrip(images = IMAGES, onOpen = vi.fn()) {
       <FilmStrip images={images} label="Ảnh banner" onOpen={onOpen} />
     </MemoryRouter>,
   );
-  return { onOpen, row: screen.getByRole('region', { name: 'Ảnh banner' }).querySelector('.filmstrip__row') as HTMLElement };
+  const row = screen.getByRole('region', { name: 'Ảnh banner' }).querySelector('.filmstrip__row') as HTMLElement;
+  return {
+    onOpen,
+    row,
+    slide: (name: string) => within(row).getByRole('button', { name }),
+  };
 }
 
 /** jsdom has no layout: give the row the measurements the arrows read, then let it report a scroll. */
 function layout(row: HTMLElement, { scrollLeft, scrollWidth, clientWidth }: { scrollLeft: number; scrollWidth: number; clientWidth: number }) {
-  Object.defineProperty(row, 'scrollWidth', { configurable: true, value: scrollWidth });
-  Object.defineProperty(row, 'clientWidth', { configurable: true, value: clientWidth });
-  Object.defineProperty(row, 'scrollLeft', { configurable: true, writable: true, value: scrollLeft });
+  Object.defineProperty(row, 'scrollWidth', {
+    configurable: true,
+    value: scrollWidth,
+  });
+  Object.defineProperty(row, 'clientWidth', {
+    configurable: true,
+    value: clientWidth,
+  });
+  Object.defineProperty(row, 'scrollLeft', {
+    configurable: true,
+    writable: true,
+    value: scrollLeft,
+  });
   fireEvent.scroll(row);
 }
 
@@ -40,35 +55,35 @@ describe('FilmStrip', () => {
   });
 
   it('is one row of button items named by their description or "Ảnh k/n"', () => {
-    const { row } = renderStrip();
+    const { row, slide } = renderStrip();
 
     expect(within(row).getAllByRole('button')).toHaveLength(3);
-    expect(screen.getByRole('button', { name: 'Fan meeting' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ảnh 2/3' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Backstage' })).toBeInTheDocument();
+    expect(slide('Fan meeting')).toBeInTheDocument();
+    expect(slide('Ảnh 2/3')).toBeInTheDocument();
+    expect(slide('Backstage')).toBeInTheDocument();
   });
 
   it('gives each image its description as alt, or alt="" when it has none', () => {
-    renderStrip();
+    const { slide } = renderStrip();
 
-    expect(screen.getByRole('button', { name: 'Fan meeting' }).querySelector('img')).toHaveAttribute('alt', 'Fan meeting');
-    expect(screen.getByRole('button', { name: 'Ảnh 2/3' }).querySelector('img')).toHaveAttribute('alt', '');
+    expect(slide('Fan meeting').querySelector('img')).toHaveAttribute('alt', 'Fan meeting');
+    expect(slide('Ảnh 2/3').querySelector('img')).toHaveAttribute('alt', '');
   });
 
   it('calls onOpen with the index of the clicked image', async () => {
-    const { onOpen } = renderStrip();
+    const { onOpen, slide } = renderStrip();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Backstage' }));
+    await userEvent.click(slide('Backstage'));
 
     expect(onOpen).toHaveBeenCalledWith(2);
   });
 
   describe('description bar', () => {
     it('exists only for an image with a description', () => {
-      renderStrip();
+      const { slide } = renderStrip();
 
-      expect(screen.getByRole('button', { name: 'Fan meeting' }).querySelector('.filmstrip__bar')).toHaveTextContent('Fan meeting');
-      expect(screen.getByRole('button', { name: 'Ảnh 2/3' }).querySelector('.filmstrip__bar')).toBeNull();
+      expect(slide('Fan meeting').querySelector('.filmstrip__bar')).toHaveTextContent('Fan meeting');
+      expect(slide('Ảnh 2/3').querySelector('.filmstrip__bar')).toBeNull();
     });
 
     it('is hidden until hover or keyboard focus, then fades in', () => {
@@ -116,7 +131,7 @@ describe('FilmStrip', () => {
       expect(screen.queryByRole('button', { name: 'Ảnh sau' })).not.toBeInTheDocument();
     });
 
-    it('scroll the row by about one viewport of the strip', async () => {
+    it('scroll the row by exactly one slide, the strip clientWidth', async () => {
       const { row } = renderStrip();
       const scrollBy = vi.fn();
       row.scrollBy = scrollBy;
@@ -138,6 +153,61 @@ describe('FilmStrip', () => {
     });
   });
 
+  it('with one image shows no arrows and no dots', () => {
+    const { row } = renderStrip([IMAGES[0]]);
+    layout(row, { scrollLeft: 500, scrollWidth: 3000, clientWidth: 1000 });
+
+    expect(screen.queryByRole('button', { name: 'Ảnh trước' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ảnh sau' })).not.toBeInTheDocument();
+    expect(document.querySelector('.filmstrip__dots')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  describe('dots', () => {
+    const dots = () => within(document.querySelector('.filmstrip__dots') as HTMLElement).getAllByRole('button');
+
+    it('are one button per image, named "Ảnh k/n", outside the image row', () => {
+      const { row } = renderStrip();
+
+      expect(dots().map((d) => d.getAttribute('aria-label'))).toEqual(['Ảnh 1/3', 'Ảnh 2/3', 'Ảnh 3/3']);
+      expect(row.contains(dots()[0])).toBe(false);
+    });
+
+    it('mark the current slide with aria-current, derived from scrollLeft / clientWidth', () => {
+      const { row } = renderStrip();
+      expect(dots()[0]).toHaveAttribute('aria-current', 'true');
+
+      layout(row, { scrollLeft: 1000, scrollWidth: 3000, clientWidth: 1000 });
+      expect(dots().map((d) => d.getAttribute('aria-current'))).toEqual([null, 'true', null]);
+
+      layout(row, { scrollLeft: 1900, scrollWidth: 3000, clientWidth: 1000 });
+      expect(dots()[2]).toHaveAttribute('aria-current', 'true');
+      expect(document.querySelectorAll('[aria-current="true"]')).toHaveLength(1);
+    });
+
+    it('scroll to index * clientWidth when clicked', async () => {
+      const { row } = renderStrip();
+      const scrollTo = vi.fn();
+      row.scrollTo = scrollTo;
+      layout(row, { scrollLeft: 0, scrollWidth: 3000, clientWidth: 800 });
+
+      await userEvent.click(dots()[2]);
+      expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ left: 1600 }));
+      await userEvent.click(dots()[0]);
+      expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ left: 0 }));
+    });
+
+    it('have a 24px hit area around a smaller visible dot, the current one orchid with an ink ring', () => {
+      const dot = rule('.filmstrip__dot');
+      expect(dot).toMatch(/width:\s*24px/);
+      expect(dot).toMatch(/height:\s*24px/);
+      expect(css).toMatch(/\.filmstrip__dot::before\s*\{[^}]*background:\s*var\(--rule\)/);
+      const current = css.match(/\.filmstrip__dot\[aria-current='true'\]::before\s*\{([^}]*)\}/)?.[1] ?? '';
+      expect(current).toMatch(/background:\s*var\(--brand-2\)/);
+      expect(current).toMatch(/border:\s*2px solid var\(--brand-2-ink\)/);
+    });
+  });
+
   it('has no auto-advance, counter or pause button', () => {
     renderStrip();
 
@@ -153,29 +223,30 @@ describe('FilmStrip', () => {
       expect(css).toMatch(/body:has\(\.filmstrip\)\s*\{[^}]*overflow-x:\s*clip/);
     });
 
-    it('is one flex row with the gap and page gutter, scrolling natively with mandatory snap and no visible scrollbar', () => {
+    it('is one flex row with no gap or padding, top-aligned, scrolling natively with mandatory snap and no visible scrollbar', () => {
       const row = rule('.filmstrip__row');
       expect(row).toMatch(/display:\s*flex/);
       expect(row).not.toMatch(/flex-wrap:\s*wrap/);
-      expect(row).toMatch(/gap:\s*var\(--space-3\)/);
-      expect(row).toMatch(/padding-inline:\s*var\(--gutter\)/);
-      expect(row).toMatch(/scroll-padding-inline:\s*var\(--gutter\)/);
+      expect(row).not.toMatch(/gap:|padding/);
+      expect(row).toMatch(/align-items:\s*start/);
       expect(row).toMatch(/overflow-x:\s*auto/);
       expect(row).toMatch(/scroll-snap-type:\s*x mandatory/);
       expect(row).toMatch(/scrollbar-width:\s*none/);
       expect(css).toMatch(/\.filmstrip__row::-webkit-scrollbar\s*\{[^}]*display:\s*none/);
       expect(rule('.filmstrip__item')).toMatch(/scroll-snap-align:\s*start/);
+      expect(rule('.filmstrip__item')).toMatch(/scroll-snap-stop:\s*always/);
     });
 
-    it('gives every image the same clamped height and its natural width, uncropped', () => {
+    it('makes every slide 100% of the strip and shows its image whole at 100% width, auto height, no radius', () => {
       const item = rule('.filmstrip__item');
-      expect(item).toMatch(/height:\s*clamp\(120px,\s*18vw,\s*220px\)/);
-      expect(item).toMatch(/flex:\s*none/);
+      expect(item).toMatch(/flex:\s*0 0 100%/);
+      expect(item).toMatch(/width:\s*100%/);
+      expect(item).toMatch(/border-radius:\s*0/);
+      expect(item).not.toMatch(/\bheight:/);
       const art = rule('.filmstrip__art');
-      expect(art).toMatch(/height:\s*100%/);
-      expect(art).toMatch(/width:\s*auto/);
-      expect(art).toMatch(/border-radius:\s*var\(--radius-control\)/);
-      expect(art).not.toMatch(/object-fit:\s*cover|aspect-ratio/);
+      expect(art).toMatch(/width:\s*100%/);
+      expect(art).toMatch(/height:\s*auto/);
+      expect(art).not.toMatch(/object-fit:\s*cover|aspect-ratio|border-radius/);
     });
 
     it('has no card, border, shadow or gradient', () => {

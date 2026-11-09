@@ -104,6 +104,11 @@ async function renderEditor(v: VideoDto = video, lines: ViCue[] = cues) {
 const overlay = { ignore: 'textarea' };
 const area = (n: number) => screen.getByRole('textbox', { name: `Line ${n} text` });
 const row = (n: number) => area(n).closest('tr') as HTMLElement;
+const highlighted = () => screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'));
+const caretAtEnd = (node: HTMLElement) => {
+  const el = node as HTMLTextAreaElement;
+  return el.selectionStart === el.value.length && el.selectionEnd === el.value.length;
+};
 
 describe('VietsubEditPage', () => {
   beforeEach(() => {
@@ -167,9 +172,29 @@ describe('VietsubEditPage', () => {
     expect(row(3)).toHaveAttribute('aria-current', 'true');
     expect(row(2)).not.toHaveAttribute('aria-current');
 
-    player.currentMs = 2_500; // a gap between lines
+    player.currentMs = 2_500; // a gap between lines: the line before it stays highlighted
     rerender(tree());
-    expect(screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'))).toHaveLength(0);
+    expect(row(2)).toHaveAttribute('aria-current', 'true');
+    expect(highlighted()).toHaveLength(1);
+
+    player.currentMs = 4_800; // after the last line
+    rerender(tree());
+    expect(row(3)).toHaveAttribute('aria-current', 'true');
+    expect(highlighted()).toHaveLength(1);
+  });
+
+  it('highlights the first line when the time is before every line', async () => {
+    player.currentMs = 3_200;
+    const lines: ViCue[] = [
+      { startMs: 5_000, endMs: 6_000, text: 'A' },
+      { startMs: 7_000, endMs: 8_000, text: 'B' },
+    ];
+    fakeFetch(routes({ ...video, viCueCount: 2 }, lines));
+    render(tree());
+    await screen.findByRole('table');
+
+    expect(row(1)).toHaveAttribute('aria-current', 'true');
+    expect(highlighted()).toHaveLength(1);
   });
 
   it('shows the saved text on the video, and the edited text as soon as it is typed', async () => {
@@ -258,7 +283,7 @@ describe('VietsubEditPage', () => {
       await act(async () => area(1).focus());
       spy.mockClear();
 
-      player.currentMs = 3_200;
+      player.currentMs = 1_200; // normal playback into line 2
       rerender(tree());
       expect(spy).not.toHaveBeenCalled();
 
@@ -272,11 +297,11 @@ describe('VietsubEditPage', () => {
         vi.advanceTimersByTime(200);
       });
       expect(spy).toHaveBeenCalled();
-      expect(spy.mock.contexts.at(-1)).toBe(row(3));
+      expect(spy.mock.contexts.at(-1)).toBe(row(2));
     });
 
     // Lines: 1 = 0-1 s, 2 = 1-2 s, 3 = 3-4.5 s; 2-3 s is a gap.
-    it('seeking backwards into a gap scrolls to the line before it, with no highlight', async () => {
+    it('seeking backwards into a gap scrolls to, highlights and focuses the line before it', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       player.currentMs = 3_200;
       const { rerender } = await renderEditor();
@@ -287,10 +312,13 @@ describe('VietsubEditPage', () => {
 
       await waitFor(() => expect(spy).toHaveBeenCalled());
       expect(spy.mock.contexts.at(-1)).toBe(row(2));
-      expect(screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'))).toHaveLength(0);
+      expect(row(2)).toHaveAttribute('aria-current', 'true');
+      expect(highlighted()).toHaveLength(1);
+      expect(area(2)).toHaveFocus();
+      expect(caretAtEnd(area(2))).toBe(true);
     });
 
-    it('seeking forwards into a gap scrolls to the line before it', async () => {
+    it('seeking forwards into a gap scrolls to, highlights and focuses the line before it', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       player.currentMs = 100;
       const { rerender } = await renderEditor();
@@ -301,7 +329,75 @@ describe('VietsubEditPage', () => {
 
       await waitFor(() => expect(spy).toHaveBeenCalled());
       expect(spy.mock.contexts.at(-1)).toBe(row(2));
-      expect(screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'))).toHaveLength(0);
+      expect(row(2)).toHaveAttribute('aria-current', 'true');
+      expect(area(2)).toHaveFocus();
+    });
+
+    it('a seek into a line highlights and focuses that line, caret at the end, without scrolling by focus', async () => {
+      const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+      player.currentMs = 3_200;
+      const { rerender } = await renderEditor();
+
+      player.currentMs = 1_300; // backwards into line 2
+      rerender(tree());
+
+      await waitFor(() => expect(area(2)).toHaveFocus());
+      expect(row(2)).toHaveAttribute('aria-current', 'true');
+      expect(highlighted()).toHaveLength(1);
+      expect(caretAtEnd(area(2))).toBe(true);
+      expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    });
+
+    it('a seek moves focus even from another textarea, and follows the table', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      player.currentMs = 3_200;
+      const { rerender } = await renderEditor();
+      await act(async () => area(3).focus());
+      spy.mockClear();
+
+      player.currentMs = 500;
+      rerender(tree());
+
+      await waitFor(() => expect(area(1)).toHaveFocus());
+      expect(spy.mock.contexts.at(-1)).toBe(row(1));
+      expect(row(1)).toHaveAttribute('aria-current', 'true');
+    });
+
+    it('normal playback highlights the next line but never moves focus', async () => {
+      const { rerender } = await renderEditor();
+      await act(async () => area(1).focus());
+
+      player.currentMs = 1_200;
+      rerender(tree());
+
+      expect(row(2)).toHaveAttribute('aria-current', 'true');
+      expect(area(1)).toHaveFocus();
+
+      await act(async () => area(1).blur());
+      player.currentMs = 1_900;
+      rerender(tree());
+      expect(document.body).toHaveFocus();
+    });
+
+    it('the # button of a row seeks and focuses that row textarea', async () => {
+      const user = userEvent.setup();
+      await renderEditor();
+
+      await user.click(within(row(3)).getByRole('button', { name: 'Go to line 3' }));
+
+      expect(player.seekTo).toHaveBeenCalledWith(3_000);
+      expect(area(3)).toHaveFocus();
+      expect(caretAtEnd(area(3))).toBe(true);
+    });
+
+    it('focusing a textarea does not control the player, and Space types a space', async () => {
+      const user = userEvent.setup();
+      await renderEditor();
+      await user.click(area(1));
+      await user.keyboard(' ');
+
+      expect(player.seekTo).not.toHaveBeenCalled();
+      expect(area(1)).toHaveValue('Xin chào ');
     });
 
     it('scrolls to the first line when the time is before every line', async () => {
@@ -340,19 +436,6 @@ describe('VietsubEditPage', () => {
 
       expect(spy).toHaveBeenCalled();
       expect(spy.mock.contexts.at(-1)).toBe(row(1));
-    });
-
-    it('does not follow a seek while a textarea still has focus', async () => {
-      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
-      player.currentMs = 3_200;
-      const { rerender } = await renderEditor();
-      await act(async () => area(3).focus());
-      spy.mockClear();
-
-      player.currentMs = 500;
-      rerender(tree());
-
-      expect(spy).not.toHaveBeenCalled();
     });
 
     it('keeps holding through normal playback after a blur', async () => {

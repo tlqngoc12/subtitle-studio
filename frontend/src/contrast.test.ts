@@ -77,3 +77,10 @@ it('the film strip description bar keeps --on-frame text at 4.5:1 over even a wh
   const worst = `#${channel}${channel}${channel}`;
   for (const tokens of Object.values(themes)) expect(ratio(tokens, '--on-frame', worst)).toBeGreaterThanOrEqual(4.5);
 });
+
+it('the current film strip dot is at least 3:1 against --paper in both themes (orchid fill plus --brand-2-ink ring)', () => {
+  expect(css).toMatch(/\.filmstrip__dot\[aria-current='true'\]::before\s*\{[^}]*background:\s*var\(--brand-2\)[^}]*border:\s*2px solid var\(--brand-2-ink\)/);
+  // The ring carries the 3:1 on the light paper; in dark --brand-2-ink is --brand-2 itself.
+  for (const tokens of Object.values(themes)) expect(ratio(tokens, '--brand-2-ink', '--paper')).toBeGreaterThanOrEqual(3);
+  expect(ratio(dark, '--brand-2', '--paper')).toBeGreaterThanOrEqual(3);
+});

@@ -23,10 +23,22 @@ interface RowProps {
   onSeek: (ms: number) => void;
 }
 
+/** Puts the caret at the end of a line's text and focuses it without letting the browser scroll (the table scrolls itself). */
+function focusEnd(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  el.setSelectionRange(el.value.length, el.value.length);
+}
+
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
 const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
+
+  function seek() {
+    onSeek(startMs);
+    focusEnd(area.current);
+  }
 
   // Grow with the text (the CSS `field-sizing: content` does the same where the browser supports it).
   useLayoutEffect(() => {
@@ -39,7 +51,7 @@ const CueRow = memo(function CueRow({ index, startMs, text, edited, active, read
   return (
     <tr className={active ? 'cue-row cue-row--active' : 'cue-row'} aria-current={active ? 'true' : undefined}>
       <td className="cue-row__num">
-        <button className="cue-row__seek" type="button" aria-label={`Go to line ${number}`} onClick={() => onSeek(startMs)}>
+        <button className="cue-row__seek" type="button" aria-label={`Go to line ${number}`} onClick={seek}>
           {number}
         </button>
       </td>
@@ -78,9 +90,7 @@ interface Props {
   cues: readonly ViCue[];
   /** The current text of every line (same order as `cues`). */
   texts: readonly string[];
-  /** Index of the line on screen now, or -1 (the highlight). */
-  activeIndex: number;
-  /** The player time. The table follows the line on screen, or the one before it in a gap, and any seek. */
+  /** The player time. The table highlights and follows the line on screen, else the one before it, else the first. */
   currentMs: number;
   readOnly: boolean;
   /** Server messages by line index; the first one is scrolled into view when the set changes. */
@@ -91,10 +101,11 @@ interface Props {
 
 /**
  * The Vietsub lines as a table: number (seeks the video) and an editable text per line.
- * The table keeps the line at the player time in view (the highlighted one, or the one before it in a gap), except
- * while a textarea has focus and for 3 s after it loses it. A seek of the player ends that wait and is followed at once.
+ * The table highlights the line at the player time (or the one before it in a gap, else the first) and keeps it in
+ * view, except while a textarea has focus and for 3 s after it loses it. A seek of the player ends that wait, is followed
+ * at once and focuses that line's text.
  */
-function CueEditorTableImpl({ cues, texts, activeIndex, currentMs, readOnly, errors, onChange, onSeek }: Props) {
+function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange, onSeek }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
@@ -111,17 +122,18 @@ function CueEditorTableImpl({ cues, texts, activeIndex, currentMs, readOnly, err
     [reduced],
   );
 
-  // A seek (time goes back, or jumps ahead) cancels the wait after a blur and is followed at once, even into a gap
-  // between lines. While a textarea still has focus the user is typing, so the table stays put.
+  // A seek (time goes back, or jumps ahead) is an explicit "go there": it cancels any wait, scrolls to the line (also
+  // into a gap between lines) and moves focus into its text, even from another textarea. Normal playback never does.
   const lastMs = useRef(currentMs);
   useEffect(() => {
     const delta = currentMs - lastMs.current;
     lastMs.current = currentMs;
     if (delta >= 0 && delta <= SEEK_JUMP_MS) return;
-    if (box.current?.contains(document.activeElement) && document.activeElement instanceof HTMLTextAreaElement) return;
     window.clearTimeout(timer.current);
     setHolding(false);
-    if (scrollTarget >= 0) scrollTo(scrollTarget);
+    if (scrollTarget < 0) return;
+    scrollTo(scrollTarget);
+    focusEnd(box.current?.querySelectorAll<HTMLTextAreaElement>('tbody textarea')[scrollTarget] ?? null);
   }, [currentMs, scrollTarget, scrollTo]);
 
   useEffect(() => {
@@ -171,7 +183,7 @@ function CueEditorTableImpl({ cues, texts, activeIndex, currentMs, readOnly, err
               startMs={cue.startMs}
               text={texts[i]}
               edited={texts[i] !== cue.text}
-              active={i === activeIndex}
+              active={i === scrollTarget}
               readOnly={readOnly}
               error={errors[i]}
               onChange={onChange}

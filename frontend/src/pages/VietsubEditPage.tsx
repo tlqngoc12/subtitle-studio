@@ -328,7 +328,6 @@ function Editor({
         <CueEditorTable
           cues={baseline}
           texts={texts}
-          activeIndex={activeIndex}
           currentMs={player.currentMs}
           readOnly={translating}
           errors={lineErrors}
