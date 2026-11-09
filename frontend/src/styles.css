@@ -1677,6 +1677,7 @@ a.tabs__tab {
 }
 
 .tabs__tab[data-state='active'],
+.tabs__tab[aria-pressed='true'],
 .tabs__tab[aria-current='page'] {
   border-bottom-color: var(--brand-2);
   color: var(--ink);
