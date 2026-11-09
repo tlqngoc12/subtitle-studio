@@ -5,6 +5,7 @@ import { MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router
 import { describe, expect, it } from 'vitest';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { block, profile, SUMMARIES } from '../test/profileFixtures';
+import type { BannerImage } from '../api/profiles';
 import ProfilePage from './ProfilePage';
 import { ApiError } from '../api/client';
 import { SiteProvider } from '../data/SiteContext';
@@ -261,5 +262,117 @@ describe('ProfilePage on the public site', () => {
 
     expect(await screen.findByText('Trang của Emi')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ProfilePage banner', () => {
+  const IMAGES: BannerImage[] = [
+    { id: 1, mediaUrl: '/api/media/11', altText: 'Fan meeting' },
+    { id: 2, mediaUrl: '/api/media/12', altText: null },
+  ];
+  const TEXT = block({ id: 1, type: 'TEXT', body: 'Khối A' });
+  const page = (banner: BannerImage[]): FakeRoute => ({
+    method: 'GET',
+    path: '/api/profiles/emibonnie',
+    status: 200,
+    body: profile('emibonnie', 'EmiBonnie', [TEXT], banner),
+  });
+
+  it('has no banner element at all without images', async () => {
+    fakeFetch([LIST, page([])]);
+    renderAt('/profiles/emibonnie');
+    await screen.findByText('Khối A');
+
+    expect(screen.queryByRole('region', { name: 'Ảnh banner' })).not.toBeInTheDocument();
+    expect(document.querySelector('.pbanner')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Banner' })).not.toBeInTheDocument();
+  });
+
+  it('shows the banner under the profile title and above the blocks', async () => {
+    fakeFetch([LIST, page(IMAGES)]);
+    renderAt('/profiles/emibonnie');
+    const title = await screen.findByRole('heading', { level: 1, name: 'EmiBonnie' });
+    const banner = await screen.findByRole('region', { name: 'Ảnh banner' });
+    const blocks = screen.getByText('Khối A');
+
+    expect(title.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(banner.compareDocumentPosition(blocks) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(banner).getByRole('button', { name: 'Fan meeting' })).toBeInTheDocument();
+  });
+
+  it('adds the Banner section above the blocks only in edit mode', async () => {
+    fakeFetch([LIST, page(IMAGES)]);
+    renderAt('/profiles/emibonnie');
+    await screen.findByText('Khối A');
+    expect(screen.queryByRole('heading', { name: 'Banner' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    const heading = screen.getByRole('heading', { name: 'Banner' });
+    expect(heading.compareDocumentPosition(screen.getByText('Khối A')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('heading', { name: 'Banner' })).not.toBeInTheDocument();
+  });
+
+  it('shows a newly added image in the banner at once', async () => {
+    const added = { id: 3, mediaUrl: '/api/media/50', altText: 'Photo shoot' };
+    fakeFetch([
+      LIST,
+      page([]),
+      { method: 'POST', path: '/api/media', status: 201, body: { id: 50, url: '/api/media/50' } },
+      { method: 'POST', path: '/api/profiles/emibonnie/banner', status: 201, body: [added] },
+    ]);
+    renderAt('/profiles/emibonnie');
+    await screen.findByText('Khối A');
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.queryByRole('region', { name: 'Ảnh banner' })).not.toBeInTheDocument();
+
+    await userEvent.upload(screen.getByLabelText('Choose image'), new File(['x'], 'a.png', { type: 'image/png' }));
+    await screen.findByAltText('Selected image');
+    await userEvent.type(screen.getByLabelText('Image description (optional)'), 'Photo shoot');
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    const banner = await screen.findByRole('region', { name: 'Ảnh banner' });
+    expect(within(banner).getByRole('button', { name: 'Photo shoot' })).toBeInTheDocument();
+  });
+
+  it('shows the banner on the public site with no editing controls', async () => {
+    const source = fakeSource({
+      listProfiles: async () => SUMMARIES,
+      getProfile: async () => profile('emi', 'Emi', [block({ id: 2, type: 'TEXT', body: 'Trang của Emi' })], IMAGES),
+    });
+    render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={['/profiles/emi']}>
+          <Routes>
+            <Route path="/profiles/:slug" element={<ProfilePage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+
+    const banner = await screen.findByRole('region', { name: 'Ảnh banner' });
+    await userEvent.click(within(banner).getByRole('button', { name: 'Ảnh 2/2' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Banner' })).not.toBeInTheDocument();
+  });
+
+  it('copes with profile data published before the banner existed', async () => {
+    const old = { slug: 'emi', displayName: 'Emi', updatedAt: '2026-11-03T10:00:00Z', blocks: [] } as never;
+    const source = fakeSource({ listProfiles: async () => SUMMARIES, getProfile: async () => old });
+    render(
+      <SiteProvider value={publicSite(source)}>
+        <MemoryRouter initialEntries={['/profiles/emi']}>
+          <Routes>
+            <Route path="/profiles/:slug" element={<ProfilePage />} />
+          </Routes>
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+
+    expect(await screen.findByText('Nothing here yet — check back soon.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Ảnh banner' })).not.toBeInTheDocument();
   });
 });

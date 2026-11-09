@@ -22,11 +22,21 @@ export interface ProfileBlock {
   items: ProfileItem[];
 }
 
+/** One image of a profile's banner; `altText` is optional and only read by screen readers. */
+export interface BannerImage {
+  id: number;
+  /** Null when the file is missing from the public site. */
+  mediaUrl: string | null;
+  altText: string | null;
+}
+
 export interface Profile {
   slug: string;
   displayName: string;
   updatedAt: string;
   blocks: ProfileBlock[];
+  /** In display order. Profile data published before the banner existed has none. */
+  banner: BannerImage[];
 }
 
 export interface ProfileSummary {
@@ -70,6 +80,25 @@ export async function deleteBlock(slug: string, id: number): Promise<void> {
 /** Returns the profile's blocks in their new order. */
 export async function moveBlock(slug: string, id: number, direction: Direction): Promise<ProfileBlock[]> {
   return (await send(`${base(slug)}/blocks/${id}/move`, json('POST', { direction }))).json();
+}
+
+/** Adds an uploaded image to the banner (max 8); returns the whole banner. */
+export async function addBannerImage(slug: string, mediaId: number, altText: string | null): Promise<BannerImage[]> {
+  return (await send(`${base(slug)}/banner`, json('POST', { mediaId, altText }))).json();
+}
+
+/** Changes (or, with null, clears) an image's description; returns the whole banner. */
+export async function updateBannerAltText(slug: string, id: number, altText: string | null): Promise<BannerImage[]> {
+  return (await send(`${base(slug)}/banner/${id}`, json('PUT', { altText }))).json();
+}
+
+export async function deleteBannerImage(slug: string, id: number): Promise<BannerImage[]> {
+  return (await send(`${base(slug)}/banner/${id}`, { method: 'DELETE' })).json();
+}
+
+/** `imageIds` lists every banner image once, in the new order. */
+export async function reorderBanner(slug: string, imageIds: number[]): Promise<BannerImage[]> {
+  return (await send(`${base(slug)}/banner/order`, json('PUT', { imageIds }))).json();
 }
 
 export async function uploadMedia(file: File): Promise<{ id: number; url: string }> {

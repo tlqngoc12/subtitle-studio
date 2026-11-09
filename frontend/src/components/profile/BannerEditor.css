@@ -1,0 +1,107 @@
+/* The Banner section of a profile's Edit mode: thumbnails, their descriptions, and the Add flow. */
+.banner-editor {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 760px;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+}
+
+.banner-editor__title {
+  margin: 0;
+  font-size: var(--step-1);
+}
+
+.banner-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.banner-thumb {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+}
+
+.banner-thumb:focus-within {
+  border-color: var(--brand-2);
+}
+
+.banner-thumb--dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-drag);
+}
+
+.banner-thumb__shot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+
+.banner-thumb__shot--empty {
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.banner-thumb__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.banner-thumb .field input[type='text'] {
+  background: var(--surface);
+}
+
+.banner-editor__add {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+}
+
+.banner-editor__add legend {
+  padding: 0 var(--space-1);
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.banner-editor__add:disabled {
+  opacity: 0.6;
+}
+
+.banner-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (max-width: 760px) {
+  .banner-thumb__bar .button--icon {
+    width: 44px;
+    height: 44px;
+  }
+}
