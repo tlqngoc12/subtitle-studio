@@ -48,13 +48,13 @@
 .banner-thumb__shot {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  height: auto;
   border-radius: var(--radius-control);
-  object-fit: cover;
 }
 
 .banner-thumb__shot--empty {
   display: grid;
+  aspect-ratio: 5 / 1;
   place-items: center;
   background: var(--surface);
   color: var(--muted);

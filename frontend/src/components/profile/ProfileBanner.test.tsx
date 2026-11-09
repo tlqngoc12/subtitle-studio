@@ -109,6 +109,14 @@ describe('ProfileBanner', () => {
     expect(screen.getByRole('button', { name: 'Lost' })).toBeInTheDocument();
   });
 
+  it('fans the images in natural mode, whole and uncropped', () => {
+    renderBanner();
+
+    expect(screen.getByRole('region', { name: 'Ảnh banner' })).toHaveClass('fan--natural');
+    const block = css.match(/\.pbanner\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(block).not.toMatch(/--fan-ratio|--fan-width:\s*220px|--fan-height/);
+  });
+
   describe('style', () => {
     it('is a flat surface with a 1px rule border and the frame radius, using theme tokens only', () => {
       const block = css.match(/\.pbanner\s*\{[^}]*\}/)?.[0] ?? '';

@@ -267,6 +267,55 @@ describe('FanCarousel', () => {
     });
   });
 
+  describe('natural fit', () => {
+    it('is off by default and marks the section when fit="natural"', () => {
+      const { unmount } = renderFan();
+      expect(screen.getByRole('region', { name: 'Ảnh nổi bật' })).not.toHaveClass('fan--natural');
+      unmount();
+      renderFan(ITEMS, { fit: 'natural' });
+      expect(screen.getByRole('region', { name: 'Ảnh nổi bật' })).toHaveClass('fan--natural');
+    });
+
+    const rule = (selector: string) => {
+      const esc = selector.replace(/[.[\]()]/g, '\\$&');
+      return css.match(new RegExp(`(?:^|\\n)${esc}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
+    };
+
+    it('stacks the items in one grid cell so the height follows the tallest image', () => {
+      expect(rule('.fan--natural .fan__stage')).toMatch(/display:\s*grid/);
+      expect(rule('.fan--natural .fan__stage')).toMatch(/place-items:\s*center/);
+      expect(rule('.fan--natural .fan__stage')).toMatch(/height:\s*auto/);
+      const item = rule('.fan--natural .fan__item');
+      expect(item).toMatch(/grid-area:\s*1\s*\/\s*1/);
+      expect(item).toMatch(/position:\s*relative/);
+      expect(item).toMatch(/width:\s*min\(720px,\s*100%\)/);
+      expect(item).toMatch(/aspect-ratio:\s*auto/);
+      expect(item).not.toMatch(/height:\s*\d/);
+    });
+
+    it('keeps the natural ratio: no crop, no fixed ratio on the image', () => {
+      const art = rule('.fan--natural .fan__art');
+      expect(art).toMatch(/height:\s*auto/);
+      expect(art).not.toMatch(/object-fit:\s*cover|aspect-ratio:\s*\d/);
+    });
+
+    it('peeks neighbours out smaller, rotated 2 degrees a step and behind', () => {
+      const item = rule('.fan--natural .fan__item');
+      expect(item).toMatch(/translateX\(calc\(var\(--o,\s*0\)\s*\*\s*\d+%\)\)/);
+      expect(item).toMatch(/rotate\(calc\(var\(--o,\s*0\)\s*\*\s*2deg\)\)/);
+      expect(item).toMatch(/scale\(calc\(1 - 0\.14 \* var\(--d,\s*0\)\)\)/);
+      expect(rule('.fan__item')).toMatch(/brightness\(calc\(1 - 0\.12/);
+      expect(item).not.toMatch(/filter:\s*none/);
+    });
+
+    it('does not animate with reduced motion and shows one full-width whole image on phones', () => {
+      expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*\.fan--natural \.fan__item\s*\{[^}]*transition:\s*none/);
+      const phone = css.match(/@media \(max-width: 760px\)\s*\{[^@]*\.fan--natural \.fan__item\s*\{([^}]*)\}/)?.[1] ?? '';
+      expect(phone).toMatch(/width:\s*100%/);
+      expect(phone).toMatch(/transform:\s*none/);
+    });
+  });
+
   describe('layout CSS', () => {
     it('centres the fan in its container and the controls below it', () => {
       expect(css).toMatch(/\.fan__item\s*\{[^}]*position:\s*absolute[^}]*left:\s*50%/);

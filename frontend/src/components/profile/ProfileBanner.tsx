@@ -32,7 +32,7 @@ export function ProfileBanner({ images }: { images: BannerImage[] }) {
   return (
     <>
       <div className="pbanner">
-        <FanCarousel items={items} label="Ảnh banner" hold={open !== null} />
+        <FanCarousel items={items} label="Ảnh banner" fit="natural" hold={open !== null} />
       </div>
       <ImageLightbox
         images={images.map((image) => ({ src: image.mediaUrl ?? '', alt: image.altText?.trim() ?? '' }))}
