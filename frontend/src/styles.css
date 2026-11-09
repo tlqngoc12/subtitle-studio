@@ -27,6 +27,21 @@
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.12);
   --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.16);
 
+  /* Spacing scale, 4 px based. Every margin, padding and gap uses one of these (off-scale values round to the
+     nearest step). Kept as plain px: 0, 1px hairlines, -1px overlaps, widths/heights, min-height touch targets,
+     sticky/absolute offsets, and clamp()/calc() such as --gutter. */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
   --font: 'Be Vietnam Pro', 'Noto Sans Thai', system-ui, sans-serif;
   /* Modular scale, ratio 1.25 */
   --step--1: 0.8rem;
@@ -125,9 +140,9 @@ img {
 .page {
   max-width: 1120px;
   margin: 0 auto;
-  padding: var(--gutter) var(--gutter) 64px;
+  padding: var(--gutter) var(--gutter) var(--space-16);
   display: grid;
-  gap: 28px;
+  gap: var(--space-8);
 }
 
 .masthead__name {
@@ -139,7 +154,7 @@ img {
 }
 
 .masthead__lede {
-  margin: 6px 0 0;
+  margin: var(--space-2) 0 0;
   max-width: 60ch;
   color: var(--muted);
 }
@@ -152,7 +167,7 @@ img {
   position: relative;
   width: min(100%, 760px);
   box-sizing: border-box;
-  padding: 20px 20px 24px;
+  padding: var(--space-5) var(--space-5) var(--space-6);
   background: #1b2430;
   border-radius: var(--radius-frame);
   overflow: hidden;
@@ -160,14 +175,14 @@ img {
 
 .frame__caption {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
 }
 
 .frame__input {
   flex: 1;
   min-width: 0;
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   border: 0;
   border-radius: var(--radius-control);
   background: rgb(0 0 0 / 0.45);
@@ -227,8 +242,8 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 18px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   font: inherit;
@@ -256,7 +271,7 @@ img {
 }
 
 .button--small {
-  padding: 6px 12px;
+  padding: var(--space-2) var(--space-3);
   font-size: var(--step--1);
   background: transparent;
   color: var(--ink);
@@ -308,7 +323,7 @@ img {
 /* ---------- Alert ---------- */
 
 .alert {
-  padding: 14px 18px;
+  padding: var(--space-4) var(--space-5);
   border-left: 4px solid var(--danger);
   border-radius: var(--radius-control);
   background: var(--danger-bg);
@@ -321,7 +336,7 @@ img {
 }
 
 .alert__hint {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   max-width: 75ch;
   overflow-wrap: anywhere;
 }
@@ -333,13 +348,13 @@ img {
   scroll-margin-top: calc(var(--topbar-h, 56px) + 32px);
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
-  gap: 28px;
+  gap: var(--space-8);
   align-items: start;
 }
 
 .result__meta {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .result__thumb {
@@ -350,7 +365,7 @@ img {
 }
 
 .result__title {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: var(--step-2);
   line-height: 1.2;
 }
@@ -360,7 +375,7 @@ img {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: var(--space-2) var(--space-4);
   color: var(--muted);
 }
 
@@ -394,7 +409,7 @@ img {
 .cues th {
   position: sticky;
   top: 0;
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
   text-align: left;
@@ -404,7 +419,7 @@ img {
 }
 
 .cues td {
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
@@ -433,7 +448,7 @@ img {
 /* ---------- History ---------- */
 
 .history__heading {
-  margin: 12px 0 10px;
+  margin: var(--space-3) 0 var(--space-3);
   font-size: var(--step-1);
 }
 
@@ -448,8 +463,8 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 8px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--rule);
   transition: background-color 120ms ease-out;
 }
@@ -472,9 +487,9 @@ img {
 .history__open {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-4);
   min-width: 0;
-  padding: 4px;
+  padding: var(--space-1);
   border: 0;
   border-radius: var(--radius-control);
   background: none;
@@ -533,7 +548,7 @@ a.history__open {
 .history__actions {
   display: flex;
   flex: none;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* ---------- Pager (react-paginate markup: ul.pager > li > a) ---------- */
@@ -542,8 +557,8 @@ a.history__open {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
-  margin: 20px 0 0;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -555,7 +570,7 @@ a.history__open {
   justify-content: center;
   min-width: 34px;
   height: 34px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--rule);
   border-radius: var(--radius-control);
   color: var(--ink);
@@ -631,10 +646,10 @@ a.history__open {
 .topbar__inner {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 10px var(--gutter);
+  padding: var(--space-3) var(--gutter);
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .topbar__brand {
@@ -648,10 +663,10 @@ a.history__open {
 /* One row; on narrow screens the sections scroll sideways instead of wrapping. */
 .nav {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
   /* overflow clips vertically too: leave room for the focus ring. */
-  padding: 4px;
+  padding: var(--space-1);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -670,7 +685,7 @@ a.history__open {
 .nav__link {
   flex: none;
   white-space: nowrap;
-  padding: 6px 14px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 999px;
   color: var(--muted);
   font-weight: 700;
@@ -707,9 +722,9 @@ a.history__open {
 .vsform {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) auto;
-  gap: 14px;
+  gap: var(--space-4);
   align-items: end;
-  padding: 20px;
+  padding: var(--space-5);
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
@@ -717,7 +732,7 @@ a.history__open {
 
 .vsform__field {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -728,7 +743,7 @@ a.history__open {
 }
 
 .vsform__field input[type='text'] {
-  padding: 9px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--field-border);
   border-radius: var(--radius-control);
   background: var(--paper);
@@ -748,7 +763,7 @@ a.history__open {
   justify-self: start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   color: var(--muted);
   font-weight: 700;
   text-decoration: none;
@@ -810,7 +825,7 @@ html.player-filled-open body {
   display: grid;
   place-items: center;
   margin: 0;
-  padding: 24px;
+  padding: var(--space-6);
   color: #e6ebf1;
   text-align: center;
 }
@@ -880,7 +895,7 @@ html.player-filled-open body {
 .frame__select {
   flex: none;
   max-width: 11rem;
-  padding: 10px 12px;
+  padding: var(--space-3) var(--space-3);
   border: 0;
   border-radius: var(--radius-control);
   background: rgb(0 0 0 / 0.45);
@@ -906,7 +921,7 @@ html.player-filled-open body {
 /* Vietsub line in the result panel (Gemini translation). */
 .vietsub-status {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   margin: 0;
 }
 
@@ -920,7 +935,7 @@ p.vietsub-status,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
+  gap: var(--space-2) var(--space-3);
 }
 
 .vietsub-status__link {
@@ -953,15 +968,15 @@ p.vietsub-status,
 
 .pblocks {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
   max-width: 760px;
 }
 
 .pblock {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
-  padding: 20px;
+  padding: var(--space-5);
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
@@ -987,7 +1002,7 @@ p.vietsub-status,
 .pblock__figure {
   margin: 0;
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .pblock__figure figcaption {
@@ -1011,7 +1026,7 @@ p.vietsub-status,
 .pblock__gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .pblock__gallery .pblock__zoom img {
@@ -1039,13 +1054,13 @@ p.vietsub-status,
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .pblock__links a {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--ink);
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -1058,7 +1073,7 @@ p.vietsub-status,
 
 .pblock__facts th,
 .pblock__facts td {
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
@@ -1071,7 +1086,7 @@ p.vietsub-status,
 
 .pblock__facts th {
   width: 40%;
-  padding-right: 16px;
+  padding-right: var(--space-4);
   color: var(--muted);
   font-weight: 700;
 }
@@ -1083,38 +1098,38 @@ p.vietsub-status,
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .pblock-wrap {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .ptools,
 .items__tools {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .padd {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   justify-items: start;
 }
 
 .padd__types {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .peditor {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
   min-width: 0;
-  padding: 20px;
+  padding: var(--space-5);
   background: var(--surface);
   border: 2px solid var(--brand);
   border-radius: var(--radius-frame);
@@ -1131,13 +1146,13 @@ p.vietsub-status,
 
 .peditor__actions {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   align-items: center;
 }
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -1151,7 +1166,7 @@ p.vietsub-status,
 .field input[type='text'],
 .field textarea {
   width: 100%;
-  padding: 9px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--field-border);
   border-radius: var(--radius-control);
   background: var(--paper);
@@ -1183,7 +1198,7 @@ p.vietsub-status,
 
 .picker {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   justify-items: start;
   min-width: 0;
 }
@@ -1202,24 +1217,24 @@ p.vietsub-status,
 
 .items {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   justify-items: start;
 }
 
 .items__row {
   width: 100%;
   margin: 0;
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--rule);
   border-radius: var(--radius-control);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: var(--space-3);
   align-items: start;
 }
 
 .items__row legend {
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   font-size: var(--step--1);
   font-weight: 700;
   color: var(--muted);
@@ -1227,7 +1242,7 @@ p.vietsub-status,
 
 .items__fields {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -1243,13 +1258,13 @@ p.vietsub-status,
 .history__sub {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  gap: var(--space-1) var(--space-4);
 }
 
 .meta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 /* The row just fetched or replaced flashes an orange ring once. */
@@ -1271,8 +1286,8 @@ p.vietsub-status,
 .empty {
   display: grid;
   justify-items: center;
-  gap: 10px;
-  padding: 36px 16px;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
   text-align: center;
   color: var(--muted);
 }
@@ -1291,7 +1306,7 @@ p.vietsub-status,
 .pblock__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .pblock__title-icon {
@@ -1304,7 +1319,7 @@ p.vietsub-status,
 .tip {
   z-index: 50;
   max-width: 240px;
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   border-radius: 6px;
   background: var(--ink);
   color: var(--paper);
@@ -1400,7 +1415,7 @@ p.vietsub-status,
   z-index: 41;
   width: min(92vw, 420px);
   transform: translate(-50%, -50%);
-  padding: 22px 22px 18px;
+  padding: var(--space-6) var(--space-6) var(--space-5);
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
   background: var(--surface);
@@ -1417,15 +1432,15 @@ p.vietsub-status,
 }
 
 .confirm__description {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
 }
 
 .confirm__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
 }
 
 /* Solid red: the confirming button of a destructive action. */
@@ -1498,11 +1513,11 @@ p.vietsub-status,
 .saveto {
   z-index: 40;
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   width: min(280px, calc(100vw - 32px));
   max-height: min(420px, 70vh);
   overflow-y: auto;
-  padding: 14px;
+  padding: var(--space-4);
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
@@ -1518,7 +1533,7 @@ p.vietsub-status,
 
 .saveto__list {
   display: grid;
-  gap: 2px;
+  gap: var(--space-0-5);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1527,8 +1542,8 @@ p.vietsub-status,
 .saveto__option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 4px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-1);
   border-radius: var(--radius-control);
   cursor: pointer;
 }
@@ -1550,8 +1565,8 @@ p.vietsub-status,
 .saveto__new {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-top: 10px;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--rule);
   color: var(--muted);
 }
@@ -1559,7 +1574,7 @@ p.vietsub-status,
 .saveto__input {
   flex: 1;
   min-width: 0;
-  padding: 7px 10px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--rule);
   border-radius: var(--radius-control);
   background: var(--paper);
@@ -1570,14 +1585,14 @@ p.vietsub-status,
 /* Playlist editor: header actions and sortable rows. */
 .plhead {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .plhead__actions,
 .plhead__form-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -1588,7 +1603,7 @@ p.vietsub-status,
 .plitem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   background: var(--surface);
 }
 
@@ -1627,8 +1642,8 @@ p.vietsub-status,
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .toolbar .searchbar {
@@ -1650,7 +1665,7 @@ p.vietsub-status,
 .filter-menu {
   z-index: 40;
   min-width: 160px;
-  padding: 6px;
+  padding: var(--space-2);
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
@@ -1661,13 +1676,13 @@ p.vietsub-status,
 
 .filter-menu__list {
   display: grid;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .filter-menu__option {
   display: block;
   width: 100%;
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   border: 0;
   border-radius: var(--radius-control);
   background: none;
@@ -1702,7 +1717,7 @@ p.vietsub-status,
 
 .searchbar__input {
   width: 100%;
-  padding: 10px 44px 10px 40px;
+  padding: var(--space-3) var(--space-12) var(--space-3) var(--space-10);
   border: 1px solid var(--field-border);
   border-radius: 999px;
   background: var(--surface);
@@ -1723,19 +1738,19 @@ p.vietsub-status,
 /* Vietsub list tabs (Radix Tabs): Playlists | All videos. The open tab is marked in orchid ("you are here"). */
 .tabs {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .tabs__list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2);
   border-bottom: 1px solid var(--rule);
 }
 
 .tabs__tab {
   margin-bottom: -1px;
-  padding: 10px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 0;
   border-bottom: 3px solid transparent;
   background: none;
@@ -1764,15 +1779,15 @@ a.tabs__tab {
 /* Playlist cards stacked vertically. */
 .plcards {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .plcard {
   display: grid;
   grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
   align-items: start;
-  padding: 16px;
+  padding: var(--space-4);
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
   background: var(--surface);
@@ -1796,7 +1811,7 @@ a.tabs__tab {
 
 .plcard__body {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   justify-items: start;
 }
 
@@ -1881,8 +1896,8 @@ a.tabs__tab {
   /* In the Playlists tab the cards stay compact on phones: small cover on the left. */
   .plcards .plcard {
     grid-template-columns: 120px minmax(0, 1fr);
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-3);
+    padding: var(--space-3);
   }
 
   .plcards .plcard__name {
@@ -1904,7 +1919,7 @@ a.tabs__tab {
 .watch--playlist {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -1926,8 +1941,8 @@ a.tabs__tab {
 
 .plpanel__head {
   display: grid;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--rule);
   background: var(--surface);
 }
@@ -1950,13 +1965,13 @@ a.tabs__tab {
 .plpanel__controls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .plpanel__autoplay {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   margin-left: auto;
   font-size: var(--step--1);
   font-weight: 700;
@@ -1971,7 +1986,7 @@ a.tabs__tab {
 
 .plpanel__list {
   margin: 0;
-  padding: 6px;
+  padding: var(--space-2);
   list-style: none;
   overflow-y: auto;
 }
@@ -1979,8 +1994,8 @@ a.tabs__tab {
 .plpanel__item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  gap: var(--space-2);
+  padding: var(--space-2);
   border-radius: var(--radius-control);
   color: var(--ink);
   text-decoration: none;
@@ -2023,7 +2038,7 @@ a.tabs__tab {
 .site-footer {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 24px var(--gutter) 40px;
+  padding: var(--space-6) var(--gutter) var(--space-10);
   border-top: 1px solid var(--rule);
   color: var(--muted);
   font-size: var(--step--1);
@@ -2045,7 +2060,7 @@ a.tabs__tab {
 /* Destructive actions sit apart at the end of the page (playlist editor). */
 .danger-zone {
   justify-self: start;
-  padding-top: 20px;
+  padding-top: var(--space-5);
   border-top: 1px solid var(--rule);
   width: 100%;
 }
@@ -2097,7 +2112,7 @@ a.tabs__tab {
 
   .plpanel__autoplay {
     min-height: 44px;
-    padding: 0 6px;
+    padding: 0 var(--space-2);
   }
 }
 
@@ -2126,13 +2141,13 @@ a.tabs__tab {
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .novel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2141,10 +2156,10 @@ a.tabs__tab {
 .novel-card {
   display: grid;
   grid-template-columns: 72px 1fr;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: start;
   min-height: 44px;
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
   background: var(--surface);
@@ -2172,7 +2187,7 @@ a.tabs__tab {
 
 .novel-card__body {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   justify-items: start;
   min-width: 0;
 }
@@ -2190,7 +2205,7 @@ a.tabs__tab {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 /* Featured banner: the current novel on the left, the covers fanned on the right, its cover blurred behind. */
@@ -2199,10 +2214,10 @@ a.tabs__tab {
   isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
   align-items: center;
-  margin-bottom: 28px;
-  padding: 28px;
+  margin-bottom: var(--space-8);
+  padding: var(--space-8);
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -2220,7 +2235,7 @@ a.tabs__tab {
 
 .featured__info {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   justify-items: start;
   min-width: 0;
 }
@@ -2234,14 +2249,14 @@ a.tabs__tab {
 
 .featured__rule {
   width: 100%;
-  margin: 2px 0;
+  margin: var(--space-0-5) 0;
   border: 0;
   border-top: 1px solid var(--rule);
 }
 
 .featured__facts {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2249,7 +2264,7 @@ a.tabs__tab {
 
 .featured__facts li {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .featured__facts li > span:first-child {
@@ -2260,13 +2275,13 @@ a.tabs__tab {
 .featured__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-3);
   align-items: center;
 }
 
 .featured__stage {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -2312,7 +2327,7 @@ a.tabs__tab {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .featured__controls .button--icon {
@@ -2335,7 +2350,7 @@ a.tabs__tab {
 @media (max-width: 760px) {
   .featured {
     grid-template-columns: minmax(0, 1fr);
-    padding: 18px;
+    padding: var(--space-5);
   }
 
   .featured__stage {
@@ -2364,8 +2379,8 @@ a.tabs__tab {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
   border: 1px solid transparent;
   border-radius: 999px;
   font-size: var(--step--1);
@@ -2401,14 +2416,14 @@ a.tabs__tab {
 
 .novel-form {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   max-width: 640px;
 }
 
 .field select {
   width: 100%;
   min-height: 40px;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--field-border);
   border-radius: var(--radius-control);
   background: var(--paper);
@@ -2424,32 +2439,32 @@ a.tabs__tab {
 
 .novel-head {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: flex-end;
-  margin-block: 8px 16px;
+  margin-block: var(--space-2) var(--space-4);
 }
 
 .novel-head__text {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   justify-items: start;
 }
 
 .tabs__panel {
   display: grid;
-  gap: 16px;
-  padding-top: 16px;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
 }
 
 .badges {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .chapter-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2474,14 +2489,14 @@ a.tabs__tab {
 
 .chapter-list__row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   align-items: center;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
 }
 
 .chapter-list__move {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .chapter-list__open {
@@ -2489,11 +2504,11 @@ a.tabs__tab {
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   color: var(--ink);
   text-decoration: none;
 }
@@ -2505,7 +2520,7 @@ a.tabs__tab {
 .chapter-list__meta {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -2532,12 +2547,12 @@ a.tabs__tab {
 }
 
 .chapter-list--public .chapter-list__row {
-  padding: 0 12px 0 0;
+  padding: 0 var(--space-3) 0 0;
 }
 
 .chapter-list--public .chapter-list__open {
   min-height: 40px;
-  padding: 6px 14px;
+  padding: var(--space-2) var(--space-4);
   font-size: var(--step--1);
 }
 
@@ -2551,17 +2566,17 @@ a.tabs__tab {
 }
 
 .chapter-list__error {
-  padding: 0 14px 10px;
+  padding: 0 var(--space-4) var(--space-3);
 }
 
 .danger-zone {
-  padding-top: 16px;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--rule);
 }
 
 .notebook {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .notebook__version {
@@ -2570,19 +2585,19 @@ a.tabs__tab {
 
 .notebook__warning {
   margin: 0;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border-left: 3px solid var(--brand-2);
   background: var(--surface);
 }
 
 .notebook__section h3 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   font-size: var(--step-1);
 }
 
 .notebook__list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0;
 }
 
@@ -2591,7 +2606,7 @@ a.tabs__tab {
 }
 
 .notebook__entry dd {
-  margin: 2px 0 0;
+  margin: var(--space-0-5) 0 0;
 }
 
 .notebook__now {
@@ -2601,47 +2616,47 @@ a.tabs__tab {
 
 .notebook__plain {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   margin: 0;
-  padding-left: 18px;
+  padding-left: var(--space-5);
 }
 
 /* ---------- Novels: chapter page ---------- */
 
 .chapter-head {
   display: grid;
-  gap: 12px;
-  margin-block: 8px 16px;
+  gap: var(--space-3);
+  margin-block: var(--space-2) var(--space-4);
 }
 
 .chapter-head__title {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   justify-items: start;
 }
 
 .chapter-head__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
 .chapter-head__nav {
   display: inline-flex;
-  gap: 6px;
+  gap: var(--space-2);
   margin-left: auto;
 }
 
 .chapter-meta {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* Number, label and title on one row; the title takes the rest and wraps to its own line on narrow screens. */
 .chapter-meta__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .chapter-meta__number {
@@ -2668,14 +2683,14 @@ a.tabs__tab {
 .field__label-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .info-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  padding: var(--space-0-5);
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -2696,10 +2711,10 @@ a.tabs__tab {
 .uploader {
   position: relative;
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   justify-items: center;
-  margin-bottom: 16px;
-  padding: 20px;
+  margin-bottom: var(--space-4);
+  padding: var(--space-5);
   border: 2px dashed var(--rule);
   border-radius: var(--radius-frame);
   background: var(--surface);
@@ -2732,8 +2747,8 @@ a.tabs__tab {
 
 .chapter-pages {
   display: grid;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .chapter-pages .uploader {
@@ -2744,7 +2759,7 @@ a.tabs__tab {
 .page-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2752,8 +2767,8 @@ a.tabs__tab {
 
 .page-thumb {
   display: grid;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--space-2);
+  padding: var(--space-2);
   border: 1px solid var(--rule);
   border-radius: var(--radius-control);
   background: var(--surface);
@@ -2811,10 +2826,10 @@ a.tabs__tab {
   position: sticky;
   bottom: 0;
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
-  margin-top: 16px;
-  padding: 12px 0;
+  margin-top: var(--space-4);
+  padding: var(--space-3) 0;
   background: var(--paper);
 }
 
@@ -2834,9 +2849,9 @@ a.tabs__tab {
 .novel-hero {
   display: grid;
   grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
   align-items: start;
-  margin-block: 8px 20px;
+  margin-block: var(--space-2) var(--space-5);
 }
 
 .novel-hero__cover {
@@ -2850,7 +2865,7 @@ a.tabs__tab {
 
 .novel-hero__text {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   justify-items: start;
   min-width: 0;
 }
@@ -2858,18 +2873,18 @@ a.tabs__tab {
 .novel-hero__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .novel-facts {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   margin: 0;
 }
 
 .novel-facts div {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .novel-facts dt {
@@ -2884,7 +2899,7 @@ a.tabs__tab {
 .tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2905,8 +2920,8 @@ a.tabs__tab {
 .breadcrumbs__list {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 4px 0 16px;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-4);
   padding: 0;
   list-style: none;
   color: var(--muted);
@@ -2962,7 +2977,7 @@ a.breadcrumbs__label:hover {
   position: sticky;
   top: var(--topbar-h, 56px);
   z-index: 9;
-  margin-block: 8px;
+  margin-block: var(--space-2);
   transition: transform 0.2s ease-out, visibility 0s;
 }
 
@@ -2976,11 +2991,11 @@ a.breadcrumbs__label:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   /* As wide as the page images; A-/A+ change --reader-width on the page column. */
   max-width: var(--reader-width, 600px);
   margin-inline: auto;
-  padding: 6px 8px;
+  padding: var(--space-2) var(--space-2);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   border: 1px solid var(--rule);
   border-radius: 999px;
@@ -2991,7 +3006,7 @@ a.breadcrumbs__label:hover {
 .reader-bar__right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .reader-bar__left {
@@ -3032,9 +3047,9 @@ a.breadcrumbs__label:hover {
 .reader-pop {
   z-index: 40;
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   width: min(300px, calc(100vw - 32px));
-  padding: 12px;
+  padding: var(--space-3);
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
@@ -3049,7 +3064,7 @@ a.breadcrumbs__label:hover {
 
 .reader-settings__size {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .reader-settings__size .button {
@@ -3058,7 +3073,7 @@ a.breadcrumbs__label:hover {
 
 .reader-toc {
   max-height: min(420px, 60vh);
-  padding: 6px;
+  padding: var(--space-2);
 }
 
 .reader-toc__list {
@@ -3071,8 +3086,8 @@ a.breadcrumbs__label:hover {
 .reader-toc__item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-right: 8px;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
   border-radius: var(--radius-control);
 }
 
@@ -3083,7 +3098,7 @@ a.breadcrumbs__label:hover {
 .reader-toc__link {
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   color: var(--ink);
   text-decoration: none;
   overflow-wrap: anywhere;
@@ -3096,15 +3111,15 @@ a.breadcrumbs__label:hover {
 /* End of chapter: previous and next as two equal buttons, or the "you have read everything" box. */
 .reader__end {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   max-width: 600px;
-  margin: 16px auto 32px;
+  margin: var(--space-4) auto var(--space-8);
 }
 
 .reader__end-nav {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .reader__end-button {
@@ -3114,10 +3129,10 @@ a.breadcrumbs__label:hover {
 
 .reader__done {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   justify-items: center;
   width: 100%;
-  padding: 16px 18px;
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--brand-2);
   border-radius: var(--radius-control);
   background: var(--surface);
@@ -3220,14 +3235,14 @@ a.breadcrumbs__label:hover {
 @media (max-width: 760px) {
   .novel-hero {
     grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
-    gap: 14px;
+    gap: var(--space-4);
   }
 }
 
 /* Published chapter: what can still be changed (information = purple). */
 .chapter-note {
-  margin: 0 0 16px;
-  padding: 10px 14px;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-left: 3px solid var(--brand-2);
   border-radius: var(--radius-control);
   background: var(--surface);
@@ -3237,23 +3252,23 @@ a.breadcrumbs__label:hover {
 .page-thumb__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .chapter-warning {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   margin: 0;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--brand-2);
   border-radius: var(--radius-control);
   color: var(--ink);
 }
 
 .chapter-warning__page {
-  padding: 0 6px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--brand-2);
   border-radius: 4px;
   background: none;
@@ -3266,7 +3281,7 @@ a.breadcrumbs__label:hover {
 .chapter-pages__rotate {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .yarl__slide_description {
