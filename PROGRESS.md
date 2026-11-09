@@ -493,6 +493,8 @@ Spec: [docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md](docs/sup
 - Kiểm thử: `mvn test -Dskip.npm`, `vitest`, `tsc -b --noEmit`, `npm run build`, `npm run build:public` đều qua.
 - **Cập nhật: tua hoặc bấm `#` không còn đặt con trỏ vào text:** chỉ cuộn tới và tô dòng đó (huỷ chờ 3 giây), focus giữ nguyên chỗ người dùng đang đứng.
 - **Trang Profile:** tên profile không còn hiện thành tiêu đề lớn (tab đã có tên); vẫn giữ `<h1>` ẩn (`visually-hidden`) cho trình đọc màn hình, nút Edit/Done căn phải, bản public không còn khoảng trống ở đầu trang.
+- **Lỗi lưu Vietsub lần thứ hai bị 409 (đã sửa):** trên Oracle (`TIMESTAMP(6)` làm tròn chữ số thứ 7) giá trị `viUpdatedAt` trả về cho client giữ nguyên nano của đồng hồ Windows (vd `.1234567`) nên lần lưu sau gửi lại giá trị lệch với giá trị đã lưu (`.123457`). Sửa: `Video.updateVietsub` cắt về micro giây trước khi gán (mọi đường: upload, AUTO, sửa text). Có test hai lần lưu liên tiếp ở `VietsubTextSaveTest` và `PersistenceOracleIT` (đồng hồ `.1234567Z`). Token khoá lạc quan duy nhất trong app là `viUpdatedAt`.
+- **Nút Save chỉ có chữ:** bỏ icon `Save` ở trình sửa Vietsub và trang Chương.
 
 ### 2026-11-09: Banner Profile dạng FilmStrip một ảnh, trình sửa Vietsub bám theo dòng đang chiếu ✅ (đã merge vào main, deploy local)
 
