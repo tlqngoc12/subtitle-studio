@@ -37,3 +37,7 @@
     --cue-table-max: calc(100dvh - var(--topbar-h, 56px) - 160px);
   }
 }
+
+.vedit__hint {
+  margin: var(--space-2) 0 0;
+}

@@ -56,6 +56,12 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       };
     case 'TRANSLATION_IN_PROGRESS':
       return { title: 'This is already being translated.', hint: 'Wait until the translation finishes.' };
+    case 'VIETSUB_CHANGED':
+      return { title: 'This Vietsub changed since you opened it.', hint: 'Reload to see the latest version.' };
+    case 'INVALID_VIETSUB_TEXT':
+      return { title: 'Check the highlighted lines.' };
+    case 'NO_VIETSUB':
+      return { title: 'This video has no Vietsub yet.' };
     case 'NOVEL_NOT_FOUND':
       return { title: 'This novel no longer exists.', hint: 'It may have been deleted. Reload the page.' };
     case 'CHAPTER_NOT_FOUND':

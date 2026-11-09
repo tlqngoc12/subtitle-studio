@@ -166,3 +166,17 @@ export async function deleteVietsub(id: string): Promise<void> {
 export function viSrtUrl(id: string): string {
   return `/api/videos/${encodeURIComponent(id)}/subtitle.vi.srt`;
 }
+
+/**
+ * Saves the edited text of every Vietsub line (timing stays). `baseUpdatedAt` is the `viUpdatedAt` the lines were
+ * loaded with; a 409 means the Vietsub changed meanwhile. The video comes back as MANUAL.
+ */
+export async function saveVietsubText(id: string, baseUpdatedAt: string | null, texts: readonly string[]): Promise<VideoDto> {
+  return (
+    await send(`/api/videos/${encodeURIComponent(id)}/vietsub/text`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ baseUpdatedAt, lines: texts.map((text, idx) => ({ idx, text })) }),
+    })
+  ).json();
+}

@@ -16,12 +16,13 @@ interface RowProps {
   edited: boolean;
   active: boolean;
   readOnly: boolean;
+  error: string | undefined;
   onChange: (index: number, text: string) => void;
   onSeek: (ms: number) => void;
 }
 
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
-const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, active, readOnly, onChange, onSeek }: RowProps) {
+const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
 
@@ -53,8 +54,15 @@ const CueRow = memo(function CueRow({ index, startMs, endMs, text, edited, activ
           rows={1}
           value={text}
           readOnly={readOnly}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `cue-error-${index}` : undefined}
           onChange={(e) => onChange(index, e.target.value)}
         />
+        {error && (
+          <p className="cue-row__error" id={`cue-error-${index}`}>
+            {error}
+          </p>
+        )}
         {edited && (
           <Tip label="Edited">
             <span className="cue-row__dot" role="img" aria-label="Edited" tabIndex={0} />
@@ -73,6 +81,8 @@ interface Props {
   /** Index of the line on screen now, or -1. */
   activeIndex: number;
   readOnly: boolean;
+  /** Server messages by line index; the first one is scrolled into view when the set changes. */
+  errors: Readonly<Record<number, string>>;
   onChange: (index: number, text: string) => void;
   onSeek: (ms: number) => void;
 }
@@ -81,7 +91,7 @@ interface Props {
  * The Vietsub lines as a table: number (seeks the video), read-only times, and an editable text per line.
  * The table keeps the highlighted line in view, except while a textarea has focus and for 3 s after it loses it.
  */
-function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, onChange, onSeek }: Props) {
+function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, errors, onChange, onSeek }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
@@ -94,6 +104,17 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, onChange, onSe
     const row = box.current?.querySelector('tr[aria-current="true"]');
     row?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
   }, [activeIndex, holding, reduced]);
+
+  // Lines rejected by a save: show the first one. Clearing a message while typing must not move the table.
+  const shownErrors = useRef<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    const keys = new Set(Object.keys(errors));
+    const fresh = [...keys].some((k) => !shownErrors.current.has(k));
+    shownErrors.current = keys;
+    if (fresh) {
+      box.current?.querySelector('[aria-invalid="true"]')?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+    }
+  }, [errors, reduced]);
 
   function onFocus(e: FocusEvent) {
     if (!(e.target instanceof HTMLTextAreaElement)) return;
@@ -131,6 +152,7 @@ function CueEditorTableImpl({ cues, texts, activeIndex, readOnly, onChange, onSe
               edited={texts[i] !== cue.text}
               active={i === activeIndex}
               readOnly={readOnly}
+              error={errors[i]}
               onChange={onChange}
               onSeek={onSeek}
             />

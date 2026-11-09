@@ -82,6 +82,15 @@ describe('errorMessage', () => {
       .toContain('Cannot reach the server');
   });
 
+  it('explains the Vietsub editor errors', () => {
+    expect(errorMessage(new ApiError(409, 'VIETSUB_CHANGED', 'x'))).toEqual({
+      title: 'This Vietsub changed since you opened it.',
+      hint: 'Reload to see the latest version.',
+    });
+    expect(errorMessage(new ApiError(400, 'INVALID_VIETSUB_TEXT', 'x')).title).toBe('Check the highlighted lines.');
+    expect(errorMessage(new ApiError(404, 'NO_VIETSUB', 'x')).title).toContain('no Vietsub');
+  });
+
   it('falls back to the HTTP status when there is no known code', () => {
     expect(errorMessage(new ApiError(405, null, 'Method not allowed')).title).toContain('HTTP 405');
   });

@@ -1,12 +1,16 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { Link, MemoryRouter, Route, Routes } from 'react-router';
+import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ViCue, VideoDto } from '../api/client';
 import { SCROLL_RESUME_MS } from '../components/vietsub/CueEditorTable';
+import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import VietsubEditPage from './VietsubEditPage';
+
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
 
 const player = vi.hoisted(() => ({
   currentMs: 0,
@@ -80,8 +84,10 @@ function routes(v: VideoDto = video, lines: ViCue[] = cues) {
 function tree(): ReactElement {
   return (
     <MemoryRouter initialEntries={[`/vietsub/${ID}/edit`]}>
+      <Link to="/away">Away</Link>
       <Routes>
         <Route path="/vietsub/:id/edit" element={<VietsubEditPage />} />
+        <Route path="/away" element={<p>away page</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -108,6 +114,7 @@ describe('VietsubEditPage', () => {
     polling.ids = [];
     polling.onUpdate = null;
     format.calls = 0;
+    vi.mocked(toast.success).mockClear();
   });
 
   afterEach(() => {
@@ -295,5 +302,213 @@ describe('VietsubEditPage', () => {
     await waitFor(() => expect(area(1)).not.toHaveAttribute('readonly'));
     expect(screen.queryByText(/Gemini is translating/)).not.toBeInTheDocument();
     expect(calls.length).toBeGreaterThan(0);
+  });
+
+  describe('saving', () => {
+    const PUT = { method: 'PUT', path: `/api/videos/${ID}/vietsub/text` };
+    const saved: VideoDto = { ...video, viSource: 'MANUAL', viUpdatedAt: '2026-11-09T12:00:00Z' };
+    const saveButton = () => screen.getByRole('button', { name: 'Save' });
+
+    it('keeps Save disabled until something changes, and disables it again for an empty or over-long line', async () => {
+      await renderEditor();
+      const user = userEvent.setup();
+      expect(saveButton()).toBeDisabled();
+      expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+
+      await user.type(area(1), '!');
+      expect(saveButton()).toBeEnabled();
+      expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+
+      await user.clear(area(2));
+      expect(saveButton()).toBeDisabled();
+      expect(screen.getByText(/Every line needs text/)).toBeInTheDocument();
+
+      await user.type(area(2), 'ok');
+      expect(saveButton()).toBeEnabled();
+    });
+
+    it('sends the base version and every line in order, then shows the toast, the Manual badge and a clean state', async () => {
+      await renderEditor();
+      const calls = fakeFetch([...routes(), { ...PUT, status: 200, body: saved }]);
+      const user = userEvent.setup();
+      await user.type(area(2), ' nữa');
+
+      await user.click(saveButton());
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Vietsub saved'));
+      const put = calls.find((c) => c.method === 'PUT')!;
+      expect(JSON.parse(put.body as string)).toEqual({
+        baseUpdatedAt: '2026-11-02T11:00:00Z',
+        lines: [
+          { idx: 0, text: 'Xin chào' },
+          { idx: 1, text: 'Tạm biệt nữa' },
+          { idx: 2, text: 'Hẹn gặp lại' },
+        ],
+      });
+      expect(screen.getByText('Manual', { exact: true })).toBeInTheDocument();
+      expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+      expect(screen.queryByRole('img', { name: 'Edited' })).not.toBeInTheDocument();
+      expect(saveButton()).toBeDisabled();
+      expect(area(2)).toHaveValue('Tạm biệt nữa');
+    });
+
+    it('uses the version returned by the last save for the next one', async () => {
+      await renderEditor();
+      const calls = fakeFetch([...routes(), { ...PUT, status: 200, body: saved }]);
+      const user = userEvent.setup();
+      await user.type(area(1), 'a');
+      await user.click(saveButton());
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+
+      await user.type(area(1), 'b');
+      await user.click(saveButton());
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(2));
+
+      const puts = calls.filter((c) => c.method === 'PUT');
+      expect(JSON.parse(puts[1].body as string).baseUpdatedAt).toBe('2026-11-09T12:00:00Z');
+    });
+
+    it('saves with Ctrl+S from inside a textarea, and does nothing when there is nothing to save', async () => {
+      await renderEditor();
+      const calls = fakeFetch([...routes(), { ...PUT, status: 200, body: saved }]);
+      const user = userEvent.setup();
+
+      await user.click(area(1));
+      await user.keyboard('{Control>}s{/Control}');
+      expect(calls.some((c) => c.method === 'PUT')).toBe(false);
+
+      await user.keyboard('x');
+      const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true });
+      act(() => {
+        area(1).dispatchEvent(event);
+      });
+      expect(event.defaultPrevented).toBe(true); // the browser's "save page" dialog stays closed
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Vietsub saved'));
+      expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
+
+      await user.type(area(1), 'y');
+      await user.keyboard('{Meta>}s{/Meta}'); // ⌘S
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(2));
+    });
+
+    it('on 409 asks to reload, keeps the edits, and Reload brings back the stored version', async () => {
+      await renderEditor();
+      fakeFetch([...routes(), { ...PUT, status: 409, body: problem(409, 'VIETSUB_CHANGED', 'changed') }]);
+      const user = userEvent.setup();
+      await user.type(area(1), '!!');
+
+      await user.click(saveButton());
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('This Vietsub changed since you opened it.');
+      expect(alert).toHaveTextContent('Reload to see the latest version.');
+      expect(area(1)).toHaveValue('Xin chào!!');
+      expect(toast.success).not.toHaveBeenCalled();
+
+      fakeFetch(routes({ ...video, viUpdatedAt: '2026-11-09T09:00:00Z' }, [{ ...cues[0], text: 'Bản mới' }, cues[1], cues[2]]));
+      await user.click(within(alert).getByRole('button', { name: 'Reload' }));
+
+      await waitFor(() => expect(area(1)).toHaveValue('Bản mới'));
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('on 400 marks the rejected lines, scrolls to the first and keeps the edits', async () => {
+      await renderEditor();
+      const body = {
+        ...problem(400, 'INVALID_VIETSUB_TEXT', 'bad'),
+        errors: [
+          { field: 'lines[1].text', message: 'Text is longer than 1000 characters' },
+          { field: 'lines[2].text', message: 'Text is required' },
+        ],
+      };
+      fakeFetch([...routes(), { ...PUT, status: 400, body }]);
+      const user = userEvent.setup();
+      await user.type(area(2), '!');
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      spy.mockClear();
+
+      await user.click(saveButton());
+
+      expect(await within(row(2)).findByText('Text is longer than 1000 characters')).toBeInTheDocument();
+      expect(within(row(3)).getByText('Text is required')).toBeInTheDocument();
+      expect(area(2)).toHaveAttribute('aria-invalid', 'true');
+      expect(area(2)).toHaveAccessibleDescription('Text is longer than 1000 characters');
+      expect(area(1)).not.toHaveAttribute('aria-invalid');
+      expect(area(2)).toHaveValue('Tạm biệt!');
+      await waitFor(() => expect(spy.mock.contexts).toContain(area(2)));
+
+      await user.type(area(2), '?'); // typing in a rejected line clears its message
+      expect(within(row(2)).queryByText('Text is longer than 1000 characters')).not.toBeInTheDocument();
+    });
+
+    it('on a network error shows an alert and keeps the edits', async () => {
+      await renderEditor();
+      fakeFetch(routes()); // the PUT has no route, so it fails like a dropped connection
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+
+      await user.click(saveButton());
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument();
+      expect(area(1)).toHaveValue('Xin chào!');
+      expect(saveButton()).toBeEnabled();
+    });
+
+    it('cannot be saved while Gemini translates', async () => {
+      await renderEditor({ ...video, translationStatus: 'TRANSLATING' });
+
+      expect(saveButton()).toBeDisabled();
+    });
+  });
+
+  describe('unsaved changes guard', () => {
+    it('asks the browser before closing the tab only while there are unsaved edits', async () => {
+      await renderEditor();
+      const clean = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(clean);
+      expect(clean.defaultPrevented).toBe(false);
+
+      await userEvent.setup().type(area(1), '!');
+      const dirty = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(dirty);
+      expect(dirty.defaultPrevented).toBe(true);
+    });
+
+    it('lets in-app links through when nothing was edited', async () => {
+      await renderEditor();
+
+      await userEvent.setup().click(screen.getByRole('link', { name: 'Away' }));
+
+      expect(await screen.findByText('away page')).toBeInTheDocument();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+
+    it('confirms before an in-app link with unsaved edits: Cancel stays, Leave goes', async () => {
+      await renderEditor();
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+
+      await user.click(screen.getByRole('link', { name: 'Away' }));
+      await answerConfirm('Cancel', 'Discard unsaved changes?');
+      expect(screen.queryByText('away page')).not.toBeInTheDocument();
+      expect(area(1)).toHaveValue('Xin chào!');
+
+      await user.click(screen.getByRole('link', { name: 'Away' }));
+      await answerConfirm('Leave', 'Discard unsaved changes?');
+      expect(await screen.findByText('away page')).toBeInTheDocument();
+    });
+
+    it('does not ask after the edits were saved', async () => {
+      await renderEditor();
+      fakeFetch([...routes(), { method: 'PUT', path: `/api/videos/${ID}/vietsub/text`, status: 200, body: { ...video, viSource: 'MANUAL' } }]);
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+
+      await user.click(screen.getByRole('link', { name: 'Away' }));
+
+      expect(await screen.findByText('away page')).toBeInTheDocument();
+    });
   });
 });
