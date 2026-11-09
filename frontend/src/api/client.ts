@@ -36,6 +36,8 @@ export interface VideoDto {
   translationStatus: TranslationStatus | null;
   translationError: string | null;
   translationProfile: string | null;
+  /** Gemini model translating now (while TRANSLATING) or that translated the AUTO Vietsub; null = unknown. */
+  translationModel: string | null;
 }
 
 /** One Vietsub line, timed by the uploaded .srt file. */

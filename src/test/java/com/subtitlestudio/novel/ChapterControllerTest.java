@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ChapterControllerTest {
 
     static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu", null,
-            ChapterTranslationStatus.NONE, null, null, false, ChapterPublishStatus.DRAFT,
+            ChapterTranslationStatus.NONE, null, null, null, false, ChapterPublishStatus.DRAFT,
             List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null);
 
     @Autowired

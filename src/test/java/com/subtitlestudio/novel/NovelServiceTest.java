@@ -32,7 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, NovelService.class, NovelValidator.class, MediaService.class, ImageSniffer.class, PromptProfileStore.class, NovelProfileStore.class,
     NovelServiceTest.Config.class})
 class NovelServiceTest {
 

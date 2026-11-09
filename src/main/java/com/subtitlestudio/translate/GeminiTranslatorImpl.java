@@ -57,8 +57,14 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
 
     @Override
     public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines) {
+        return translate(video, profile, lines, model -> {});
+    }
+
+    @Override
+    public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines,
+                                          java.util.function.Consumer<String> onTrying) {
         GeminiCaller.Answer answer = caller.generate(List.of(Part.fromText(userContent(video, profile, lines))),
-                config());
+                config(), onTrying);
         String answeredBy = answer.model();
         List<TranslatedLine> got;
         try {

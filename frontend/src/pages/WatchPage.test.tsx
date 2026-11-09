@@ -43,6 +43,7 @@ const video: VideoDto = {
   translationStatus: null,
   translationError: null,
   translationProfile: null,
+  translationModel: null,
 };
 
 const cues: ViCue[] = [

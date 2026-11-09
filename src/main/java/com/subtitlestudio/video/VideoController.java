@@ -62,7 +62,7 @@ public class VideoController {
                 video = service.get(video.getId()); // now TRANSLATING
             }
         }
-        FetchResponse body = new FetchResponse(VideoDto.from(video), skipReason);
+        FetchResponse body = new FetchResponse(dto(video), skipReason);
         return result.created()
                 ? ResponseEntity.created(URI.create("/api/videos/" + video.getId())).body(body)
                 : ResponseEntity.ok(body);
@@ -72,17 +72,21 @@ public class VideoController {
     @PostMapping("/{id}/translate")
     public ResponseEntity<VideoDto> translate(@PathVariable String id, @RequestBody TranslateRequest request) {
         translation.retranslate(id, request.profile());
-        return ResponseEntity.accepted().body(VideoDto.from(service.get(id)));
+        return ResponseEntity.accepted().body(dto(service.get(id)));
     }
 
     @GetMapping
     public List<VideoDto> list() {
-        return service.list().stream().map(VideoDto::from).toList();
+        return service.list().stream().map(this::dto).toList();
     }
 
     @GetMapping("/{id}")
     public VideoDto get(@PathVariable String id) {
-        return VideoDto.from(service.get(id));
+        return dto(service.get(id));
+    }
+
+    private VideoDto dto(Video v) {
+        return VideoDto.from(v, translation.activeModel(v.getId()));
     }
 
     @GetMapping("/{id}/cues")

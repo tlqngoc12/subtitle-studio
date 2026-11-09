@@ -101,7 +101,7 @@ function ChapterRow({
         <Link className="chapter-list__open" to={`/novels/${novelId}/chapters/${c.id}`}>
           <span className="chapter-list__title">{name}</span>
           <span className="chapter-list__meta">
-            <StatusBadges translation={c.translationStatus} publish={c.publishStatus} />
+            <StatusBadges translation={c.translationStatus} publish={c.publishStatus} model={c.translationModel} />
             <span className="meta">
               {c.pageCount} {c.pageCount === 1 ? 'page' : 'pages'}
             </span>

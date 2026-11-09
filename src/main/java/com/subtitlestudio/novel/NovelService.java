@@ -27,10 +27,12 @@ public class NovelService {
     private final NovelValidator validator;
     private final RenderCache renderCache;
     private final Clock clock;
+    private final TranslatingModels models;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                         NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
-                        NovelValidator validator, RenderCache renderCache, Clock clock) {
+                        NovelValidator validator, RenderCache renderCache, Clock clock,
+                        TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -40,6 +42,7 @@ public class NovelService {
         this.validator = validator;
         this.renderCache = renderCache;
         this.clock = clock;
+        this.models = models;
     }
 
     @Transactional(readOnly = true)
@@ -142,7 +145,7 @@ public class NovelService {
         List<ChapterSummary> list = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId()).stream()
                 .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
                         c.getTranslationStatus(),
-                        c.getTranslationError(), c.getPublishStatus(), (int) pages.countByChapterId(c.getId()),
+                        c.getTranslationError(), models.shown(c), c.getPublishStatus(), (int) pages.countByChapterId(c.getId()),
                         suspect.getOrDefault(c.getId(), 0)))
                 .toList();
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),

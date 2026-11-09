@@ -86,7 +86,12 @@ export default function ChapterPage() {
 
   const translating = chapter?.translationStatus === 'TRANSLATING';
   useChapterPolling(translating ? chapterId : null, (c) => {
-    if (c.translationStatus !== 'TRANSLATING') load(c);
+    if (c.translationStatus !== 'TRANSLATING') {
+      load(c);
+    } else {
+      // A fallback model took over: show it, keep the edits.
+      setChapter((prev) => (prev ? { ...prev, translationModel: c.translationModel } : prev));
+    }
   });
 
   const dirty =
@@ -337,7 +342,16 @@ export default function ChapterPage() {
             )}
           </span>
         </div>
-        {translating && <p className="muted" aria-live="polite">Gemini is reading and translating the pages…</p>}
+        {translating && (
+          <p className="muted" aria-live="polite">
+            {chapter.translationModel
+              ? `Translating with ${chapter.translationModel}…`
+              : 'Gemini is reading and translating the pages…'}
+          </p>
+        )}
+        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+          <p className="muted">Translated by {chapter.translationModel}</p>
+        )}
         {chapter.translationStatus === 'FAILED' && chapter.translationError && (
           <p className="field__error">{chapter.translationError}</p>
         )}

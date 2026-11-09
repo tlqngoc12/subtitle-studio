@@ -37,7 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterTranslationService.class, ChapterService.class, PageRotator.class, MediaService.class, ImageSniffer.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterTranslationService.class, ChapterService.class, TranslatingModels.class, PageRotator.class, MediaService.class, ImageSniffer.class,
     PromptProfileStore.class, NovelProfileStore.class, PageImagePreparer.class, ChapterTranslationServiceTest.Config.class})
 class ChapterTranslationServiceTest {
 
@@ -55,10 +55,20 @@ class ChapterTranslationServiceTest {
         int partlyDone = -1;
         Runnable beforeReturn;
         boolean omitSource;
+        /** Model reported through onTrying by call n (1-based); null = none reported. */
+        List<String> modelByCall;
 
         @Override
         public List<TranslatedPage> translate(ChapterPrompt prompt) {
+            return translate(prompt, m -> {});
+        }
+
+        @Override
+        public List<TranslatedPage> translate(ChapterPrompt prompt, java.util.function.Consumer<String> onTrying) {
             prompts.add(prompt);
+            if (modelByCall != null && prompts.size() <= modelByCall.size()) {
+                onTrying.accept(modelByCall.get(prompts.size() - 1));
+            }
             if (prompts.size() == failOnCall && partlyDone >= 0) {
                 throw new ChapterPartlyTranslatedException("Gemini free quota is used up, try again later.",
                         prompt.pages().stream().limit(partlyDone)
@@ -156,6 +166,9 @@ class ChapterTranslationServiceTest {
     private ChapterService chapterService;
 
     @Autowired
+    private TranslatingModels models;
+
+    @Autowired
     private NovelRepository novels;
 
     @Autowired
@@ -198,6 +211,7 @@ class ChapterTranslationServiceTest {
         translator.partlyDone = -1;
         translator.beforeReturn = null;
         translator.omitSource = false;
+        translator.modelByCall = null;
         scheduler.calls.clear();
         notebookSource.asked.clear();
         Novel n = new Novel("n", "Tình Yêu", NovelStatus.ONGOING, NOW);
@@ -246,6 +260,58 @@ class ChapterTranslationServiceTest {
         reload(c.id()).setTranslationStatus(ChapterTranslationStatus.TRANSLATING);
         assertThatThrownBy(() -> service.start(c.id())).isInstanceOf(ChapterTranslationInProgressException.class);
         assertThatThrownBy(() -> service.start(999)).isInstanceOf(ChapterNotFoundException.class);
+    }
+
+    @Test
+    void showsTheModelBeingTriedWhileTranslatingAndStoresItAfterwards() {
+        ChapterDetail c = chapter(1, 2);
+        translator.modelByCall = List.of("gemini-x");
+        String[] during = {"unset"};
+        translator.beforeReturn = () -> during[0] = chapterService.get(c.id()).translationModel();
+
+        service.start(c.id());
+
+        assertThat(during[0]).isEqualTo("gemini-x");
+        assertThat(chapterService.get(c.id()).translationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(chapterService.get(c.id()).translationModel()).isEqualTo("gemini-x");
+        assertThat(reload(c.id()).getTranslationModel()).isEqualTo("gemini-x");
+        assertThat(models.get(c.id())).isNull();
+    }
+
+    @Test
+    void storesTheDistinctModelsOfAllBatchesInOrder() {
+        ChapterDetail c = chapter(1, 25);
+        translator.modelByCall = List.of("a", "b");
+
+        service.start(c.id());
+        assertThat(reload(c.id()).getTranslationModel()).isEqualTo("a, b");
+
+        ChapterDetail same = chapter(2, 25);
+        translator.prompts.clear();
+        translator.modelByCall = List.of("a", "a");
+        service.start(same.id());
+        assertThat(reload(same.id()).getTranslationModel()).isEqualTo("a");
+    }
+
+    @Test
+    void failureKeepsTheStoredModelAndClearsTheActiveOne() {
+        ChapterDetail c = chapter(1, 3);
+        translator.modelByCall = List.of("old");
+        service.start(c.id());
+        assertThat(reload(c.id()).getTranslationModel()).isEqualTo("old");
+
+        translator.prompts.clear();
+        translator.modelByCall = List.of("new");
+        translator.failOnCall = 1;
+        String[] during = {"unset"};
+        translator.beforeReturn = () -> during[0] = "not reached";
+        service.start(c.id());
+
+        Chapter failed = reload(c.id());
+        assertThat(failed.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(failed.getTranslationModel()).isEqualTo("old");
+        assertThat(models.get(c.id())).isNull();
+        assertThat(chapterService.get(c.id()).translationModel()).isEqualTo("old");
     }
 
     @Test

@@ -14,6 +14,7 @@ import com.google.genai.types.Part;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -52,6 +53,11 @@ public class GeminiCaller {
     }
 
     public Answer generate(List<Part> parts, GenerateContentConfig config) {
+        return generate(parts, config, model -> {});
+    }
+
+    /** {@code onTrying} gets each model's name right before that model is asked (main model, then fallbacks). */
+    public Answer generate(List<Part> parts, GenerateContentConfig config, Consumer<String> onTrying) {
         GenerateContentResponse response = null;
         String answeredBy = null;
         Content content = Content.fromParts(parts.toArray(Part[]::new));
@@ -62,6 +68,7 @@ public class GeminiCaller {
             models.add(settings.model());
             models.addAll(settings.fallbackModels());
             for (String model : models) {
+                onTrying.accept(model);
                 try {
                     response = client.models.generateContent(model, content, config);
                     answeredBy = model;

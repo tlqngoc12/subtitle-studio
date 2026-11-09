@@ -104,6 +104,17 @@ class TranslationServiceTest {
         final AtomicInteger calls = new AtomicInteger();
         String lastProfile;
         GeminiTranslator behaviour;
+        /** Reported through onTrying before the work; null = none. */
+        String model;
+
+        @Override
+        public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines,
+                                              java.util.function.Consumer<String> onTrying) {
+            if (model != null) {
+                onTrying.accept(model);
+            }
+            return translate(video, profile, lines);
+        }
 
         @Override
         public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines) {
@@ -169,6 +180,7 @@ class TranslationServiceTest {
     void reset() {
         translator.calls.set(0);
         translator.behaviour = null;
+        translator.model = null;
         executor.hold = false;
         executor.pending.clear();
     }
@@ -354,6 +366,40 @@ class TranslationServiceTest {
         service.startFromFetch(ID, PROFILE);
 
         assertThat(videos.findById(ID)).isEmpty();
+    }
+
+    @Test
+    void showsTheModelWhileTranslatingAndStoresItAfterwards() {
+        video(600);
+        translator.model = "gemini-x";
+        String[] during = {"unset"};
+        translator.behaviour = (v, p, lines) -> {
+            during[0] = service.activeModel(ID);
+            return lines.stream().map(l -> new TranslatedLine(l.id(), "Dịch: " + l.text())).toList();
+        };
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(during[0]).isEqualTo("gemini-x");
+        assertThat(reload().getTranslationModel()).isEqualTo("gemini-x");
+        assertThat(service.activeModel(ID)).isNull();
+    }
+
+    @Test
+    void failureKeepsTheStoredVietsubModelAndClearsTheActiveOne() {
+        Video saved = video(600);
+        saved.setTranslationModel("old");
+        videos.flush();
+        translator.model = "new";
+        translator.behaviour = (v, p, lines) -> {
+            throw new TranslationFailedException("Gemini free quota is used up, try again later.");
+        };
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(reload().getTranslationStatus()).isEqualTo(TranslationStatus.FAILED);
+        assertThat(reload().getTranslationModel()).isEqualTo("old");
+        assertThat(service.activeModel(ID)).isNull();
     }
 
     @Test

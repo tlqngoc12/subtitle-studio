@@ -27,6 +27,7 @@ const autoVideo: VideoDto = {
   translationStatus: null,
   translationError: null,
   translationProfile: null,
+  translationModel: null,
 };
 
 const manualVideo: VideoDto = {
@@ -407,6 +408,28 @@ describe('HomePage', () => {
 
       const result = await screen.findByRole('region', { name: 'Result' });
       expect(within(result).getByText('Translating with Gemini (EmiBonnie)…')).toBeInTheDocument();
+    });
+
+    it('shows the model while translating and who translated afterwards', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [{ ...translating, translationModel: 'gemini-x' }] },
+        profiles,
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const result = await openFromHistory();
+      expect(within(result).getByText('Translating with Gemini (EmiBonnie, gemini-x)…')).toBeInTheDocument();
+    });
+
+    it('shows Translated by <model> next to an AI Vietsub', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [{ ...done, translationModel: 'gemini-x, gemini-y' }] },
+        profiles,
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const result = await openFromHistory();
+      expect(within(result).getByText('Translated by gemini-x, gemini-y')).toBeInTheDocument();
     });
 
     it('polls every 3 s and shows the AUTO Vietsub when done', async () => {

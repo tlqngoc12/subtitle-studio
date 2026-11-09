@@ -428,6 +428,44 @@ describe('ChapterPage', () => {
   });
 });
 
+describe('ChapterPage translating model', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('says which model is translating', async () => {
+    renderPage([get({ translationStatus: 'TRANSLATING', translationModel: 'gemini-x' })]);
+    expect(await screen.findByText('Translating with gemini-x…')).toBeInTheDocument();
+  });
+
+  it('names no model before one is known', async () => {
+    renderPage([get({ translationStatus: 'TRANSLATING', translationModel: null })]);
+    expect(await screen.findByText('Gemini is reading and translating the pages…')).toBeInTheDocument();
+    expect(screen.queryByText(/Translating with/)).not.toBeInTheDocument();
+  });
+
+  it('follows a fallback model while polling', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const routes: FakeRoute[] = [get({ translationStatus: 'TRANSLATING', translationModel: 'a' })];
+    renderPage(routes);
+    expect(await screen.findByText('Translating with a…')).toBeInTheDocument();
+
+    routes[0] = get({ translationStatus: 'TRANSLATING', translationModel: 'b' });
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(await screen.findByText('Translating with b…')).toBeInTheDocument();
+  });
+
+  it('shows who translated it afterwards, and nothing for old chapters', async () => {
+    renderPage([get({ translationModel: 'a, b' })]);
+    expect(await screen.findByText('Translated by a, b')).toBeInTheDocument();
+  });
+
+  it('shows nothing about the model when it is unknown', async () => {
+    renderPage([get()]);
+    await loaded();
+    expect(screen.queryByText(/Translated by/)).not.toBeInTheDocument();
+  });
+});
+
 describe('ChapterPage save shortcuts and auto-save', () => {
   const put: FakeRoute = { method: 'PUT', path: '/api/chapters/9', status: 200, body: chapterDetail({ text: 'x' }) };
   const puts = (calls: { method: string }[]) => calls.filter((c) => c.method === 'PUT');

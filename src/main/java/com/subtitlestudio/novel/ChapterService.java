@@ -38,10 +38,12 @@ public class ChapterService {
     private final PageRotator rotator;
     private final long maxImageBytes;
     private final Clock clock;
+    private final TranslatingModels models;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
-                          PageRotator rotator, SubtitleStudioProperties properties, Clock clock) {
+                          PageRotator rotator, SubtitleStudioProperties properties, Clock clock,
+                          TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -51,6 +53,7 @@ public class ChapterService {
         this.rotator = rotator;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
         this.clock = clock;
+        this.models = models;
     }
 
     @Transactional
@@ -257,6 +260,10 @@ public class ChapterService {
         return old.getId();
     }
 
+    TranslatingModels models() {
+        return models;
+    }
+
     Chapter find(long id) {
         return chapters.findById(id).orElseThrow(() -> new ChapterNotFoundException(id));
     }
@@ -344,7 +351,7 @@ public class ChapterService {
             }
         }
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
-                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), c.getTranslatedAt(),
+                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next);
     }

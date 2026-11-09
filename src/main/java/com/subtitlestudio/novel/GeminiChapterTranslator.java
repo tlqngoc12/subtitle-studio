@@ -14,6 +14,7 @@ import com.google.genai.types.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +66,12 @@ public class GeminiChapterTranslator implements ChapterTranslator {
      */
     @Override
     public List<TranslatedPage> translate(ChapterPrompt prompt) {
-        PageTextOutput.Check first = ask(prompt, prompt.pages());
+        return translate(prompt, model -> {});
+    }
+
+    @Override
+    public List<TranslatedPage> translate(ChapterPrompt prompt, Consumer<String> onTrying) {
+        PageTextOutput.Check first = ask(prompt, prompt.pages(), onTrying);
         if (first.missing().isEmpty()) {
             return first.valid();
         }
@@ -74,7 +80,7 @@ public class GeminiChapterTranslator implements ChapterTranslator {
         List<PageImage> missing = prompt.pages().stream().filter(p -> first.missing().contains(p.page())).toList();
         PageTextOutput.Check second;
         try {
-            second = ask(prompt, missing);
+            second = ask(prompt, missing, onTrying);
         } catch (TranslationFailedException e) {
             throw new ChapterPartlyTranslatedException(e.userMessage(), first.valid());
         }
@@ -89,14 +95,14 @@ public class GeminiChapterTranslator implements ChapterTranslator {
     }
 
     /** One request for {@code pages}; logs the model and, when pages are missing, the answer's shape (no text). */
-    private PageTextOutput.Check ask(ChapterPrompt prompt, List<PageImage> pages) {
+    private PageTextOutput.Check ask(ChapterPrompt prompt, List<PageImage> pages, Consumer<String> onTrying) {
         List<Part> parts = new ArrayList<>();
         parts.add(Part.fromText(context(prompt)));
         for (PageImage page : pages) {
             parts.add(Part.fromText("Page " + page.page()));
             parts.add(Part.fromBytes(page.jpeg(), "image/jpeg"));
         }
-        GeminiCaller.Answer answer = caller.generate(parts, config());
+        GeminiCaller.Answer answer = caller.generate(parts, config(), onTrying);
         Answer got;
         try {
             got = mapper.readValue(answer.text(), Answer.class);

@@ -50,7 +50,7 @@ class NovelControllerTest {
 
     @Test
     void reordersChapters() throws Exception {
-        ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null,
+        ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null, null,
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
                 NovelStatus.ONGOING, null, null, null, NotebookStatus.IDLE, null, List.of(row)));

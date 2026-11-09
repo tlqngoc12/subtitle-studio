@@ -155,7 +155,8 @@ public class Video {
     }
 
     /** A Gemini translation was stored: no translation is pending any more. */
-    public void translationSucceeded(String profile) {
+    public void translationSucceeded(String profile, String model) {
+        this.translationModel = model;
         this.translationStatus = null;
         this.translationError = null;
         this.translationProfile = profile;

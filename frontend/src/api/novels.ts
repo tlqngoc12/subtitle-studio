@@ -39,6 +39,8 @@ export interface ChapterSummary {
   label: string | null;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
+  /** Gemini model(s) translating now, or that translated it; null = unknown. */
+  translationModel: string | null;
   publishStatus: ChapterPublishStatus;
   pageCount: number;
   /** Pages whose translation looks much shorter than the Thai text read from the image. */
@@ -78,6 +80,8 @@ export interface ChapterDetail {
   label: string | null;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
+  /** Gemini model(s) translating now, or that translated it; null = unknown. */
+  translationModel: string | null;
   translatedAt: string | null;
   editedAfterTranslation: boolean;
   publishStatus: ChapterPublishStatus;

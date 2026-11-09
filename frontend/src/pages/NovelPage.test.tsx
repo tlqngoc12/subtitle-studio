@@ -202,6 +202,22 @@ describe('NovelPage', () => {
     expect(within(rows[1]).queryByText(/⚠/)).not.toBeInTheDocument();
   });
 
+  it('shows the translating model as a tooltip on the Translated badge', async () => {
+    const chapters = [
+      { ...chapterSummary(), translationModel: 'gemini-x' },
+      { ...chapterSummary({ id: 10, chapterNo: 2 }), translationModel: null },
+    ];
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters }) }]);
+    renderPage();
+    const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
+
+    await userEvent.setup().hover(within(rows[0]).getByText('Translated'));
+
+    expect((await screen.findAllByText('Translated by gemini-x')).length).toBeGreaterThan(0);
+    await userEvent.setup().hover(within(rows[1]).getByText('Translated'));
+    expect(screen.queryByText(/Translated by null/)).not.toBeInTheDocument();
+  });
+
   describe('chapter reading order', () => {
     const order = (ids: number[]) => ({
       method: 'PUT',
