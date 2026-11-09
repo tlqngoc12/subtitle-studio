@@ -16,20 +16,28 @@ import com.subtitlestudio.video.CueRepository;
 import com.subtitlestudio.video.SubtitleService;
 import com.subtitlestudio.video.ViCueEntity;
 import com.subtitlestudio.video.ViCueRepository;
+import com.subtitlestudio.video.ViCue;
 import com.subtitlestudio.video.Video;
+import com.subtitlestudio.video.VietsubService;
+import com.subtitlestudio.video.VietsubTextRequest;
 import com.subtitlestudio.video.VideoRepository;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -42,11 +50,21 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 @SpringBootTest(properties = {"SUBTITLESTUDIO_DB_USER=unused", "SUBTITLESTUDIO_DB_PASSWORD=unused"})
 @ActiveProfiles("oracle")
-@Import(OracleTestContainer.Config.class)
+@Import({OracleTestContainer.Config.class, PersistenceOracleIT.FixedClockConfig.class})
 class PersistenceOracleIT {
 
     private static final Instant AT = Instant.parse("2026-11-03T01:02:03.123456Z");
     private static final String ID = "ORACLE00001";
+
+    /** A clock with sub-microsecond digits: Oracle rounds them, so a stored and a returned value could differ. */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FixedClockConfig {
+        @Bean
+        @Primary
+        Clock testClock() {
+            return Clock.fixed(Instant.parse("2026-11-09T10:00:00.1234567Z"), ZoneOffset.UTC);
+        }
+    }
 
     @DynamicPropertySource
     static void dataDir(DynamicPropertyRegistry registry) {
@@ -57,6 +75,9 @@ class PersistenceOracleIT {
             throw new UncheckedIOException(e);
         }
     }
+
+    @Autowired
+    private VietsubService vietsubService;
 
     @Autowired
     private VideoRepository videos;
@@ -203,6 +224,20 @@ class PersistenceOracleIT {
         // Oracle stores '' as NULL, so a blank cue breaks NOT NULL: blank text must be filtered before saving.
         assertThatThrownBy(() -> cues.saveAndFlush(new CueEntity(v, 0, 0, 1_000, "")))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void secondVietsubTextSaveWithTheReturnedTimestampIsNotStale() {
+        videos.save(video(ID, "t"));
+        vietsubService.saveAuto(ID, List.of(new ViCue(0, 1_000, "a"), new ViCue(1_000, 2_000, "b")), "p");
+        Instant base = videos.findById(ID).orElseThrow().getViUpdatedAt();
+
+        Video first = vietsubService.saveText(ID, new VietsubTextRequest(base, List.of(
+                new VietsubTextRequest.LineText(0, "A"), new VietsubTextRequest.LineText(1, "b"))));
+        Video second = vietsubService.saveText(ID, new VietsubTextRequest(first.getViUpdatedAt(), List.of(
+                new VietsubTextRequest.LineText(0, "A"), new VietsubTextRequest.LineText(1, "B"))));
+
+        assertThat(second.getViUpdatedAt()).isEqualTo(videos.findById(ID).orElseThrow().getViUpdatedAt());
     }
 
     private static Video video(String id, String title) {

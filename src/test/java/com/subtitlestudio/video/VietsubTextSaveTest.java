@@ -128,6 +128,24 @@ class VietsubTextSaveTest {
     }
 
     @Test
+    void secondSaveWithTheTimestampReturnedByTheFirstIsNotStale() {
+        seedAuto();
+        // Oracle keeps 6 fractional digits and rounds the 7th: the returned and the stored value must be the same.
+        clock.set(Instant.parse("2026-11-09T10:00:00.1234567Z"));
+
+        Video first = service.saveText(ID, request(stored(), "Một", "Hai"));
+        assertThat(first.getViUpdatedAt().getNano() % 1_000).isZero();
+        reload();
+
+        clock.set(Instant.parse("2026-11-09T10:05:00.7654567Z"));
+        Video second = service.saveText(ID, request(first.getViUpdatedAt(), "Một", "Hai hai"));
+        reload();
+
+        assertThat(second.getViUpdatedAt().getNano() % 1_000).isZero();
+        assertThat(service.getCues(ID)).extracting(ViCue::text).containsExactly("Một", "Hai hai");
+    }
+
+    @Test
     void replacesTextKeepsTimingAndMarksManual() {
         seedAuto();
         Instant base = stored();
