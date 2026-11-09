@@ -1,0 +1,55 @@
+/* Breadcrumbs: Novels > title > current page. Long labels are cut with an ellipsis. */
+.breadcrumbs__list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+/* Narrow screens: the links shrink (and are cut) first, the current item keeps its room. */
+.breadcrumbs__item {
+  min-width: 0;
+  flex: 0 100 auto;
+}
+
+.breadcrumbs__item--current {
+  flex: 1 1 auto;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.breadcrumbs__label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.breadcrumbs__label:hover,
+a.breadcrumbs__label:focus-visible {
+  color: var(--brand-ink);
+}
+
+a.breadcrumbs__label:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbs__sep {
+  display: flex;
+  flex: none;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+@media print {
+  .breadcrumbs {
+    display: none !important;
+  }
+}

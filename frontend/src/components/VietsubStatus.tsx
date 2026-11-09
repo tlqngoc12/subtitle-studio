@@ -2,6 +2,7 @@ import { Languages, Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
 import { viSrtUrl, type SkipReason, type VideoDto } from '../api/client';
 import { Tip } from './Tip';
+import './VietsubStatus.css';
 
 interface Props {
   video: VideoDto;

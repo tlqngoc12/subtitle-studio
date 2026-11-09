@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react';
-import { Tip } from '../Tip';
+import { IconButton } from '../ui/IconButton';
+import './BlockToolbar.css';
 
 /** Edit-mode tools of one block. */
 export function BlockToolbar({
@@ -26,17 +27,7 @@ export function BlockToolbar({
   return (
     <div className="ptools">
       {tools.map(({ label, icon: Icon, onClick, off }) => (
-        <Tip key={label} label={label}>
-          <button
-            type="button"
-            className="button button--icon"
-            aria-label={label}
-            disabled={disabled || off}
-            onClick={onClick}
-          >
-            <Icon className="icon" aria-hidden="true" />
-          </button>
-        </Tip>
+        <IconButton key={label} label={label} icon={Icon} disabled={disabled || off} onClick={onClick} />
       ))}
     </div>
   );

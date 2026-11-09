@@ -7,6 +7,7 @@ import { formatDuration } from '../lib/format';
 import { rowMotion } from '../lib/motion';
 import { EmptyState } from './EmptyState';
 import { Tip } from './Tip';
+import { LoadingText } from './ui/LoadingText';
 
 interface Props {
   videos: VideoDto[] | null;
@@ -26,7 +27,7 @@ export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listK
     <section className="history" aria-label="Fetched earlier">
       <h2 className="history__heading">Fetched earlier</h2>
       {videos === null ? (
-        <p className="muted">Loading list…</p>
+        <LoadingText>Loading list…</LoadingText>
       ) : videos.length === 0 ? (
         <EmptyState icon={MonitorPlay}>No videos yet. Paste a YouTube link above to start.</EmptyState>
       ) : (

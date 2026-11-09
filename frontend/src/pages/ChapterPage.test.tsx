@@ -9,8 +9,8 @@ import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { chapterDetail } from '../test/novelFixtures';
 import ChapterPage, { AUTO_SAVE_MS } from './ChapterPage';
+import { css } from '../test/css';
 
-const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
 

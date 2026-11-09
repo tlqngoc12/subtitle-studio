@@ -1,0 +1,52 @@
+/* ---------- Cue preview ---------- */
+.cues {
+  max-height: 460px;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+}
+
+.cues table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cues th {
+  position: sticky;
+  top: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  font-size: var(--step--1);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.cues td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.cues tr:last-child td {
+  border-bottom: 0;
+}
+
+.cues__time {
+  width: 9.5em;
+  display: grid;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--step--1);
+  white-space: nowrap;
+}
+
+.cues__end {
+  color: var(--muted);
+}
+
+.cues__text {
+  max-width: 70ch;
+  white-space: pre-line;
+}

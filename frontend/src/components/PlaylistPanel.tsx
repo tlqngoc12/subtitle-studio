@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import type { PublicPlaylistDetail } from '../data/types';
 import { Tip } from './Tip';
+import './PlaylistPanel.css';
 
 interface Props {
   playlist: PublicPlaylistDetail;

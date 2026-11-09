@@ -6,8 +6,8 @@ import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
 import { expectTooltip } from '../../test/tooltip';
 import FeaturedNovels from './FeaturedNovels';
+import { css } from '../../test/css';
 
-const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 function summary(slug: string, over: Partial<PublicNovelSummary> = {}): PublicNovelSummary {
   return {

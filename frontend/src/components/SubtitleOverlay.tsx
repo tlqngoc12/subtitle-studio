@@ -1,4 +1,5 @@
 import type { ViCue } from '../api/client';
+import './SubtitleOverlay.css';
 
 /** The subtitle line over the video. Text is rendered as plain text, never as HTML. */
 export function SubtitleOverlay({ cue }: { cue: ViCue | null }) {

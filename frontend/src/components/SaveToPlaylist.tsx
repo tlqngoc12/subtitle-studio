@@ -12,6 +12,10 @@ import {
 } from '../api/playlists';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Tip } from './Tip';
+import { Alert } from './ui/Alert';
+import { LoadingText } from './ui/LoadingText';
+import { PopoverPanel } from './ui/PopoverPanel';
+import './SaveToPlaylist.css';
 
 /**
  * "Save to playlist" like YouTube: an icon button opening a popover with one checkbox per playlist. Ticking adds
@@ -110,60 +114,47 @@ export function SaveToPlaylist({ video }: { video: VideoDto }) {
           </button>
         </Popover.Trigger>
       </Tip>
-      <Popover.Portal>
-        <Popover.Content
-          className="saveto"
-          side="bottom"
-          align="end"
-          sideOffset={6}
-          collisionPadding={8}
-          aria-labelledby={`${ids}-title`}
-        >
-          <p className="saveto__title" id={`${ids}-title`}>
-            Save to playlist
-          </p>
-          {playlists === null ? (
-            <p className="muted">Loading playlists…</p>
-          ) : playlists.length === 0 ? (
-            <p className="muted">No playlists yet.</p>
-          ) : (
-            <ul className="saveto__list">
-              {playlists.map((p) => (
-                <li key={p.id}>
-                  <label className="saveto__option">
-                    <input
-                      type="checkbox"
-                      checked={p.containsVideo === true}
-                      disabled={savingId === p.id}
-                      onChange={() => toggle(p)}
-                    />
-                    <span>{p.name}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-          {error && (
-            <div className="alert saveto__alert" role="alert">
-              <p className="alert__title">{error.title}</p>
-            </div>
-          )}
-          <div className="saveto__new">
-            <Plus className="icon icon--sm" aria-hidden="true" />
-            <input
-              type="text"
-              className="saveto__input"
-              placeholder="New playlist"
-              aria-label="New playlist name"
-              maxLength={100}
-              value={newName}
-              disabled={creating}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={onNewNameKey}
-            />
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
+      <PopoverPanel className="saveto" aria-labelledby={`${ids}-title`}>
+        <p className="saveto__title" id={`${ids}-title`}>
+          Save to playlist
+        </p>
+        {playlists === null ? (
+          <LoadingText>Loading playlists…</LoadingText>
+        ) : playlists.length === 0 ? (
+          <p className="muted">No playlists yet.</p>
+        ) : (
+          <ul className="saveto__list">
+            {playlists.map((p) => (
+              <li key={p.id}>
+                <label className="saveto__option">
+                  <input
+                    type="checkbox"
+                    checked={p.containsVideo === true}
+                    disabled={savingId === p.id}
+                    onChange={() => toggle(p)}
+                  />
+                  <span>{p.name}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        {error && <Alert className="saveto__alert" title={error.title} />}
+        <div className="saveto__new">
+          <Plus className="icon icon--sm" aria-hidden="true" />
+          <input
+            type="text"
+            className="saveto__input"
+            placeholder="New playlist"
+            aria-label="New playlist name"
+            maxLength={100}
+            value={newName}
+            disabled={creating}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={onNewNameKey}
+          />
+        </div>
+      </PopoverPanel>
     </Popover.Root>
   );
 }

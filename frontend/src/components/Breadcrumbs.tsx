@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { Fragment } from 'react';
 import { Link } from 'react-router';
+import './Breadcrumbs.css';
 
 export interface Crumb {
   label: string;

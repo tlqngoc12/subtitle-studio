@@ -1,0 +1,18 @@
+/* ---------- Publish (admin top bar) ---------- */
+.publish {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+}
+
+@media (max-width: 520px) {
+  /* Publish becomes an icon button (its tooltip and accessible name stay). */
+  .publish__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

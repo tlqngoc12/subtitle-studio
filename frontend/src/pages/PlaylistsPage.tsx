@@ -17,6 +17,10 @@ import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { rowMotion } from '../lib/motion';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
+import { PageHeader } from '../components/ui/PageHeader';
+import './PlaylistsPage.css';
 
 function toSummary(d: PlaylistDetail): PlaylistSummary {
   return {
@@ -72,25 +76,19 @@ export default function PlaylistsPage() {
   return (
     <main className="page">
       {confirmDialog}
-      <header className="masthead">
-        <h1 className="masthead__name">Vietsub</h1>
-        <p className="masthead__lede">Group videos with Vietsub into playlists and choose their order.</p>
-      </header>
+      <PageHeader title="Vietsub" lede="Group videos with Vietsub into playlists and choose their order." />
       <VietsubTabs />
 
       <NewPlaylistForm onCreated={(d) => setPlaylists((list) => [toSummary(d), ...(list ?? [])])} />
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
 
       <section className="history" aria-label="Playlists">
         <h2 className="history__heading">Playlists</h2>
         {playlists === null ? (
-          <p className="muted">Loading list…</p>
+          <LoadingText>Loading list…</LoadingText>
         ) : playlists.length === 0 ? (
           <EmptyState icon={ListMusic}>
             No playlists yet. Create one above, then use Save to playlist in the Videos tab.
@@ -227,9 +225,7 @@ function NewPlaylistForm({ onCreated }: { onCreated: (d: PlaylistDetail) => void
         {pending ? 'Creating…' : 'Create playlist'}
       </button>
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-        </div>
+        <Alert title={error.title} />
       )}
     </form>
   );

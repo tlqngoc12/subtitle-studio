@@ -1,0 +1,53 @@
+.page-thumb {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.page-thumb:focus-within {
+  border-color: var(--brand-2);
+}
+
+.page-thumb--dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-drag);
+}
+
+.page-thumb__shot {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.page-thumb__shot img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  object-position: top;
+}
+
+.page-thumb__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-thumb__number {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Page checks: badges under a thumbnail, the "may be incomplete" line, and the lightbox's AI source caption. */
+.page-thumb__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}

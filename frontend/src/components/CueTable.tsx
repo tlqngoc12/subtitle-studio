@@ -1,5 +1,6 @@
 import type { CueDto } from '../api/client';
 import { formatTimecode } from '../lib/format';
+import './CueTable.css';
 
 export function CueTable({ cues }: { cues: CueDto[] }) {
   return (

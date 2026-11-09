@@ -1,0 +1,10 @@
+/* Shared look of the Radix popovers (PopoverPanel): save-to-playlist, source filter, reader settings and contents. */
+.popover {
+  z-index: 40;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  box-shadow: var(--shadow-overlay);
+  animation: tip-in 120ms ease-out;
+}

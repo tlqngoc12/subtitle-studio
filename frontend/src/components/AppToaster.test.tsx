@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { css } from '../test/css';
 
 const toasterProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
 
@@ -12,7 +13,6 @@ vi.mock('sonner', () => ({
 
 import { AppToaster } from './AppToaster';
 
-const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 describe('AppToaster', () => {
   it('puts the close button in the top-right corner of the toast (sonner 2.0.8 has no option, so CSS)', () => {

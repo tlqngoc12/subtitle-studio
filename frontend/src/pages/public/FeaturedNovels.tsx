@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   ChevronLeft,
   ChevronRight,
   Info,
@@ -13,7 +12,6 @@ import {
   type FocusEvent,
 } from "react";
 import { Link } from "react-router";
-import { Tip } from "../../components/Tip";
 import type { NovelSource } from "../../data/novelSource";
 import type {
   PublicNovelDetail,
@@ -28,6 +26,9 @@ import {
   publicDate,
 } from "./publicNames";
 import { readProgress } from "./readerPrefs";
+import { Cover } from '../../components/ui/Cover';
+import { IconButton, IconLink } from '../../components/ui/IconButton';
+import './FeaturedNovels.css';
 
 const ADVANCE_MS = 6000;
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -152,15 +153,7 @@ export default function FeaturedNovels({
               Đọc từ đầu
             </Link>
           )}
-          <Tip label="Thông tin truyện">
-            <Link
-              className="button button--icon"
-              to={`/novels/${novel.slug}`}
-              aria-label="Thông tin truyện"
-            >
-              <Info className="icon" aria-hidden="true" />
-            </Link>
-          </Tip>
+          <IconLink label="Thông tin truyện" icon={Info} to={`/novels/${novel.slug}`} />
         </div>
       </div>
 
@@ -184,50 +177,22 @@ export default function FeaturedNovels({
                   } as CSSProperties
                 }
               >
-                {n.coverUrl ? (
-                  <img
-                    className="featured__art"
-                    src={n.coverUrl}
-                    alt=""
-                    draggable={false}
-                  />
-                ) : (
-                  <span
-                    className="featured__art novel-card__cover--empty"
-                    aria-hidden="true"
-                  >
-                    <BookOpen className="icon" />
-                  </span>
-                )}
+                <Cover src={n.coverUrl} className="featured__art" draggable={false} />
               </Link>
             );
           })}
         </div>
         <div className="featured__controls">
           {count > 1 && (
-            <Tip label="Truyện trước">
-              <button
-                className="button button--icon"
-                type="button"
-                aria-label="Truyện trước"
-                onClick={() => setIndex((at - 1 + count) % count)}
-              >
-                <ChevronLeft className="icon" aria-hidden="true" />
-              </button>
-            </Tip>
+            <IconButton
+              label="Truyện trước"
+              icon={ChevronLeft}
+              onClick={() => setIndex((at - 1 + count) % count)}
+            />
           )}
           <span className="featured__counter">{`${pad(at + 1)} / ${pad(count)}`}</span>
           {count > 1 && (
-            <Tip label="Truyện sau">
-              <button
-                className="button button--icon"
-                type="button"
-                aria-label="Truyện sau"
-                onClick={() => setIndex((at + 1) % count)}
-              >
-                <ChevronRight className="icon" aria-hidden="true" />
-              </button>
-            </Tip>
+            <IconButton label="Truyện sau" icon={ChevronRight} onClick={() => setIndex((at + 1) % count)} />
           )}
           {count > 1 && (
             <button

@@ -4,6 +4,8 @@ import type { BlockInput, BlockType, ProfileBlock } from '../../api/profiles';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImagePicker, type PickedImage } from './ImagePicker';
 import { ItemListEditor } from './ItemListEditor';
+import { Alert } from '../ui/Alert';
+import './BlockEditor.css';
 
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   TEXT: 'Text',
@@ -142,10 +144,7 @@ export function BlockEditor({
     <form className="peditor" aria-label={`${BLOCK_TYPE_LABELS[type]} block`} onSubmit={submit} noValidate>
       <p className="peditor__kind">{BLOCK_TYPE_LABELS[type]}</p>
       {formError && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{formError.title}</p>
-          {formError.hint && <p className="alert__hint">{formError.hint}</p>}
-        </div>
+        <Alert title={formError.title} hint={formError.hint} />
       )}
 
       {field('title', 'Title', text(title, setTitle), 'Optional')}

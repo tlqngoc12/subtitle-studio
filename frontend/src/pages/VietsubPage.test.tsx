@@ -10,8 +10,8 @@ import { fakeFetch, problem } from '../test/fakeFetch';
 import { expectTooltip } from '../test/tooltip';
 import VietsubPage from './VietsubPage';
 import { AppToaster } from '../components/AppToaster';
+import { css } from '../test/css';
 
-const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 const ID = 'dQw4w9WgXcQ';
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import type { ViCue } from '../api/client';
 import type { PlayerError } from '../player/useYouTubePlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
+import './VideoPlayer.css';
 
 const ERROR_TEXT: Record<PlayerError, string> = {
   EMBED_BLOCKED: 'This video cannot be played in an embedded player.',

@@ -1,0 +1,9 @@
+.vlist__index {
+  flex: none;
+  align-self: center;
+  min-width: 1.6em;
+  text-align: right;
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import './EmptyState.css';
 
 /** An empty list or page: a large icon and one sentence telling the user what to do next. */
 export function EmptyState({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {

@@ -1,0 +1,59 @@
+/* ---------- Result ---------- */
+.result {
+  /* Leave room for the sticky top bar when the panel is scrolled into view. */
+  scroll-margin-top: calc(var(--topbar-h, 56px) + 32px);
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.result__meta {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.result__thumb {
+  border-radius: var(--radius-control);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--rule);
+}
+
+.result__title {
+  margin: var(--space-1) 0 0;
+  font-size: var(--step-2);
+  line-height: 1.2;
+}
+
+.result__byline,
+.result__source {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  color: var(--muted);
+}
+
+.result__source {
+  align-items: center;
+  color: var(--ink);
+}
+
+.result__note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+  max-width: 40ch;
+}
+
+@media (max-width: 760px) {
+  .result {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Focused by script when a video is opened from the list; no outline for a non-interactive heading. */
+.result__title:focus {
+  outline: none;
+}

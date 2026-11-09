@@ -1,0 +1,56 @@
+/* ---------- Pager (react-paginate markup: ul.pager > li > a) ---------- */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pager__link,
+.pager__break {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pager__break {
+  border-color: transparent;
+}
+
+.pager__link:hover {
+  border-color: var(--brand-2);
+}
+
+.pager__link--active {
+  background: var(--brand-2);
+  border-color: var(--brand-2);
+  color: var(--on-brand);
+}
+
+.pager__item--disabled .pager__link {
+  opacity: 0.35;
+  cursor: default;
+  border-color: var(--rule);
+}
+
+@media (max-width: 760px) {
+  .pager__link,
+  .pager__break {
+    min-width: 44px;
+    height: 44px;
+  }
+}

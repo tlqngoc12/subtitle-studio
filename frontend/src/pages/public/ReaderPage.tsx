@@ -15,6 +15,8 @@ import {
   useDocumentTitle,
 } from "./publicNames";
 import { OWN_KEYS, ReaderBar } from "./ReaderBar";
+import { Alert } from '../../components/ui/Alert';
+import { LoadingText } from '../../components/ui/LoadingText';
 import {
   READER_WIDTHS,
   isDarkTheme,
@@ -25,6 +27,7 @@ import {
   saveWidth,
   type ReaderWidth,
 } from "./readerPrefs";
+import './ReaderPage.css';
 
 /**
  * The public chapter reader: breadcrumbs, the controls in the top bar (previous, next, contents, settings), the chapter as drawn
@@ -146,11 +149,9 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         onStepWidth={stepWidth}
       />
       {failed && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{PUBLIC_ERROR_TITLE}</p>
-        </div>
+        <Alert title={PUBLIC_ERROR_TITLE} />
       )}
-      {!chapter && !failed && <p className="muted">Đang tải chương…</p>}
+      {!chapter && !failed && <LoadingText>Đang tải chương…</LoadingText>}
       {chapter && (
         <>
           <h1 className="visually-hidden">{current}</h1>
@@ -182,7 +183,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
           <p className="reader-print-note">Không hỗ trợ in trang này.</p>
           <section className="reader__end" aria-label="Hết chương">
             <div className="reader__end-nav">
-              {prev !== null ? (
+              {prev !== null && (
                 <Link
                   className="button button--small reader__end-button"
                   to={to(prev)}
@@ -190,19 +191,15 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                   <ChevronLeft className="icon" aria-hidden="true" />
                   Chương trước
                 </Link>
-              ) : (
-                <span aria-hidden="true" />
               )}
-              {next !== null ? (
+              {next !== null && (
                 <Link
-                  className="button button--small reader__end-button"
+                  className="button button--small reader__end-button reader__end-button--next"
                   to={to(next)}
                 >
                   Chương sau
                   <ChevronRight className="icon" aria-hidden="true" />
                 </Link>
-              ) : (
-                <span aria-hidden="true" />
               )}
             </div>
             {next === null && (

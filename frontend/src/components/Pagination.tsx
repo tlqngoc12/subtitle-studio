@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactPaginateModule from 'react-paginate';
+import './Pagination.css';
 
 // react-paginate ships a webpack UMD bundle whose component sits on `module.exports.default`.
 // Vitest unwraps that, but the production Vite build hands us the whole exports object

@@ -1,5 +1,6 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { ReactElement } from 'react';
+import './Tip.css';
 
 /**
  * Styled tooltip for icon-only controls (replaces the browser's slow `title`). Opens on hover and on keyboard

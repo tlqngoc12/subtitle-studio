@@ -27,7 +27,10 @@ export default defineConfig(({ mode }) => ({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    // Process styles.css so a test can read the rules (everything else stays unprocessed).
-    css: { include: [/styles.css/] },
+    // Process the project's own stylesheets (src/**/*.css) so a test can read the rules via test/css.ts;
+    // third-party CSS stays unprocessed.
+    // Only the ?raw imports are matched: components import their .css files too, and those stay empty in
+    // jsdom so the page's layout rules (hidden bars, print) do not change what the behaviour tests can see.
+    css: { include: [/\/src\/.*\.css\?.*raw/] },
   },
 }));

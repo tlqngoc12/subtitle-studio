@@ -12,7 +12,6 @@ import {
 import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
-import { Tip } from "../../components/Tip";
 import { useTopbarSlot } from "../../components/TopbarSlot";
 import type { PublicChapterRef } from "../../data/novelTypes";
 import { useHideOnScroll } from "../../lib/useHideOnScroll";
@@ -22,6 +21,9 @@ import {
   readReadChapters,
   type ReaderWidth,
 } from "./readerPrefs";
+import { IconButton, IconLink } from '../../components/ui/IconButton';
+import { PopoverPanel } from '../../components/ui/PopoverPanel';
+import './ReaderBar.css';
 
 /** Attribute that marks a popover whose keys (the arrows) belong to it, not to chapter navigation. */
 export const OWN_KEYS = "data-own-keys";
@@ -94,22 +96,11 @@ export function ReaderBar({
   }
 
   const step = (no: number | null, label: string, Icon: typeof ChevronLeft) => (
-    <Tip label={label}>
-      {no !== null ? (
-        <Link className="button button--icon" to={to(no)} aria-label={label}>
-          <Icon className="icon" aria-hidden="true" />
-        </Link>
-      ) : (
-        <button
-          className="button button--icon"
-          type="button"
-          disabled
-          aria-label={label}
-        >
-          <Icon className="icon" aria-hidden="true" />
-        </button>
-      )}
-    </Tip>
+    no !== null ? (
+      <IconLink label={label} icon={Icon} to={to(no)} />
+    ) : (
+      <IconButton label={label} icon={Icon} disabled />
+    )
   );
 
   const widthStep = READER_WIDTHS.indexOf(width);
@@ -122,15 +113,7 @@ export function ReaderBar({
     >
       <div className="reader-bar__inner">
         <div className="reader-bar__left">
-          <Tip label="Về trang truyện">
-            <Link
-              className="button button--icon"
-              to={`/novels/${slug}`}
-              aria-label="Về trang truyện"
-            >
-              <ArrowLeft className="icon" aria-hidden="true" />
-            </Link>
-          </Tip>
+          <IconLink label="Về trang truyện" icon={ArrowLeft} to={`/novels/${slug}`} />
           <div className="reader-bar__text">
             <span className="reader-bar__novel">{novelTitle}</span>
             <span className="reader-bar__chapter">{chapterName}</span>
@@ -141,94 +124,66 @@ export function ReaderBar({
           {step(next, "Chương sau", ChevronRight)}
 
           <Popover.Root open={tocOpen} onOpenChange={setTocOpen}>
-            <Tip label="Mục lục">
-              <Popover.Trigger asChild>
-                <button
-                  className="button button--icon"
-                  type="button"
-                  aria-label="Mục lục"
-                >
-                  <List className="icon" aria-hidden="true" />
-                </button>
-              </Popover.Trigger>
-            </Tip>
-            <Popover.Portal>
-              <Popover.Content
-                className="reader-pop reader-toc"
-                side="bottom"
-                align="end"
-                sideOffset={6}
-                collisionPadding={8}
-                {...{ [OWN_KEYS]: "" }}
-                aria-label="Mục lục"
-              >
-                <ChapterToc
-                  slug={slug}
-                  chapters={chapters}
-                  currentNo={currentNo}
-                  onPick={() => setTocOpen(false)}
-                />
-              </Popover.Content>
-            </Popover.Portal>
+            <Popover.Trigger asChild>
+              <IconButton label="Mục lục" icon={List} />
+            </Popover.Trigger>
+            <PopoverPanel
+              className="reader-pop reader-toc"
+              {...{ [OWN_KEYS]: "" }}
+              aria-label="Mục lục"
+            >
+              <ChapterToc
+                slug={slug}
+                chapters={chapters}
+                currentNo={currentNo}
+                onPick={() => setTocOpen(false)}
+              />
+            </PopoverPanel>
           </Popover.Root>
 
           <Popover.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <Tip label="Cài đặt">
-              <Popover.Trigger asChild>
-                <button
-                  className="button button--icon"
-                  type="button"
-                  aria-label="Cài đặt"
-                >
-                  <Settings className="icon" aria-hidden="true" />
-                </button>
-              </Popover.Trigger>
-            </Tip>
-            <Popover.Portal>
-              <Popover.Content
-                className="reader-pop reader-settings"
-                side="bottom"
-                align="end"
-                sideOffset={6}
-                collisionPadding={8}
-                {...{ [OWN_KEYS]: "" }}
-                aria-label="Cài đặt"
+            <Popover.Trigger asChild>
+              <IconButton label="Cài đặt" icon={Settings} />
+            </Popover.Trigger>
+            <PopoverPanel
+              className="reader-pop reader-settings"
+              {...{ [OWN_KEYS]: "" }}
+              aria-label="Cài đặt"
+            >
+              <button
+                type="button"
+                className="button button--small"
+                aria-pressed={night}
+                onClick={onToggleNight}
               >
+                {night ? (
+                  <Sun className="icon" aria-hidden="true" />
+                ) : (
+                  <Moon className="icon" aria-hidden="true" />
+                )}
+                Chế độ đêm
+              </button>
+              <div className="reader-settings__size">
                 <button
                   type="button"
                   className="button button--small"
-                  aria-pressed={night}
-                  onClick={onToggleNight}
+                  aria-label="Chữ nhỏ hơn"
+                  disabled={widthStep <= 0}
+                  onClick={() => onStepWidth(-1)}
                 >
-                  {night ? (
-                    <Sun className="icon" aria-hidden="true" />
-                  ) : (
-                    <Moon className="icon" aria-hidden="true" />
-                  )}
-                  Chế độ đêm
+                  A−
                 </button>
-                <div className="reader-settings__size">
-                  <button
-                    type="button"
-                    className="button button--small"
-                    aria-label="Chữ nhỏ hơn"
-                    disabled={widthStep <= 0}
-                    onClick={() => onStepWidth(-1)}
-                  >
-                    A−
-                  </button>
-                  <button
-                    type="button"
-                    className="button button--small"
-                    aria-label="Chữ lớn hơn"
-                    disabled={widthStep >= READER_WIDTHS.length - 1}
-                    onClick={() => onStepWidth(1)}
-                  >
-                    A+
-                  </button>
-                </div>
-              </Popover.Content>
-            </Popover.Portal>
+                <button
+                  type="button"
+                  className="button button--small"
+                  aria-label="Chữ lớn hơn"
+                  disabled={widthStep >= READER_WIDTHS.length - 1}
+                  onClick={() => onStepWidth(1)}
+                >
+                  A+
+                </button>
+              </div>
+            </PopoverPanel>
           </Popover.Root>
         </div>
       </div>

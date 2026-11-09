@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-
-const css = Object.values(import.meta.glob('./styles.css', { query: '?raw', import: 'default', eager: true })).join('');
+import { css } from './test/css';
 
 function block(selector: string): Record<string, string> {
   const start = css.indexOf(`${selector} {`);

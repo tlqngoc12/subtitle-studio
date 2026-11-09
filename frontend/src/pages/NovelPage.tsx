@@ -1,5 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowLeft, BookOpen, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -19,6 +19,10 @@ import { NovelForm } from '../components/novel/NovelForm';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { STATUS_LABEL } from './NovelsPage';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
+import { Cover } from '../components/ui/Cover';
+import './NovelPage.css';
 
 /** Novels › one novel: Chapters | Details | Notebook. The novel is loaded once for every tab. */
 export default function NovelPage() {
@@ -92,23 +96,14 @@ export default function NovelPage() {
         Novels
       </Link>
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
       {!novel ? (
-        !error && <p className="muted">Loading novel…</p>
+        !error && <LoadingText>Loading novel…</LoadingText>
       ) : (
         <>
           <header className="novel-head">
-            {novel.coverUrl ? (
-              <img className="novel-card__cover" src={novel.coverUrl} alt="" />
-            ) : (
-              <span className="novel-card__cover novel-card__cover--empty" aria-hidden="true">
-                <BookOpen className="icon" />
-              </span>
-            )}
+            <Cover src={novel.coverUrl} />
             <div className="novel-head__text">
               <h1 className="masthead__name">{novel.title}</h1>
               <span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>

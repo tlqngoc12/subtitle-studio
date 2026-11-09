@@ -44,6 +44,10 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { Alert } from '../components/ui/Alert';
+import { LoadingText } from '../components/ui/LoadingText';
+import { IconLink } from '../components/ui/IconButton';
+import './ChapterPage.css';
 
 /** Unsaved edits are saved by themselves this often (3 minutes). */
 export const AUTO_SAVE_MS = 180_000;
@@ -168,12 +172,9 @@ export default function ChapterPage() {
     return (
       <main className="page">
         {error ? (
-          <div className="alert" role="alert">
-            <p className="alert__title">{error.title}</p>
-            {error.hint && <p className="alert__hint">{error.hint}</p>}
-          </div>
+          <Alert title={error.title} hint={error.hint} />
         ) : (
-          <p className="muted">Loading chapter…</p>
+          <LoadingText>Loading chapter…</LoadingText>
         )}
       </main>
     );
@@ -325,20 +326,12 @@ export default function ChapterPage() {
           )}
           <span className="chapter-head__nav">
             {chapter.prevChapterId !== null && (
-              <Tip label="Previous chapter">
-                <Link className="button button--icon" to={chapterPath(chapter.prevChapterId)} aria-label="Previous chapter"
-                  onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))}>
-                  <ChevronLeft className="icon" aria-hidden="true" />
-                </Link>
-              </Tip>
+              <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
+                onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
             )}
             {chapter.nextChapterId !== null && (
-              <Tip label="Next chapter">
-                <Link className="button button--icon" to={chapterPath(chapter.nextChapterId)} aria-label="Next chapter"
-                  onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))}>
-                  <ChevronRight className="icon" aria-hidden="true" />
-                </Link>
-              </Tip>
+              <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
+                onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
             )}
           </span>
         </div>
@@ -358,10 +351,7 @@ export default function ChapterPage() {
       </section>
 
       {error && (
-        <div className="alert" role="alert">
-          <p className="alert__title">{error.title}</p>
-          {error.hint && <p className="alert__hint">{error.hint}</p>}
-        </div>
+        <Alert title={error.title} hint={error.hint} />
       )}
 
       <div className="chapter-meta">

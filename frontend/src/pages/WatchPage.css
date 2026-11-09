@@ -1,0 +1,13 @@
+/* Watch page in playlist mode: player + playlist panel (right on desktop, below on phones). */
+.watch--playlist {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .watch--playlist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

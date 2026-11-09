@@ -6,8 +6,8 @@ import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
 import PublicNovelPage from './PublicNovelPage';
 import PublicNovelsPage from './PublicNovelsPage';
+import { css } from '../../test/css';
 
-const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 const SUMMARY: PublicNovelSummary = {
   slug: 'summer',

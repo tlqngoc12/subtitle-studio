@@ -1,0 +1,71 @@
+/* ---------- Novels (public) ---------- */
+.novel-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  margin-block: var(--space-2) var(--space-5);
+}
+
+.novel-hero__cover {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-control);
+  object-fit: cover;
+}
+
+.novel-hero__text {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  min-width: 0;
+}
+
+.novel-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.novel-facts {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.novel-facts div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.novel-facts dt {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.novel-facts dd {
+  margin: 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.novel-description {
+  max-width: 70ch;
+  white-space: pre-line;
+}
+
+@media (max-width: 760px) {
+  .novel-hero {
+    grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+}

@@ -1,0 +1,12 @@
+.novel-head {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin-block: var(--space-2) var(--space-4);
+}
+
+.novel-head__text {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}

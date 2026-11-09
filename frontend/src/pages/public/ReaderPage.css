@@ -1,0 +1,118 @@
+.reader-page {
+  max-width: 960px;
+  /* Opening a chapter scrolls here; keep the heading clear of the sticky top bar. */
+  scroll-margin-top: calc(var(--topbar-h, 56px) + 24px);
+}
+
+/* End of chapter: previous and next as two equal buttons, or the "you have read everything" box. */
+.reader__end {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 600px;
+  margin: var(--space-4) auto var(--space-8);
+}
+
+.reader__end-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.reader__end-button {
+  justify-self: start;
+  min-width: 140px;
+  min-height: 44px;
+}
+
+.reader__end-button--next {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.reader__done {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--brand-2);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  text-align: center;
+}
+
+.reader__done p {
+  margin: 0;
+}
+
+/* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
+.reader {
+  position: relative;
+  display: grid;
+  gap: 0;
+  max-width: var(--reader-width, 600px);
+  margin-inline: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.reader__page {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Reserve the page's space before it loads, so the chapter does not jump. */
+  aspect-ratio: auto 1080 / 1600;
+  pointer-events: none;
+  transition: filter 0.2s;
+}
+
+/* Continuous pages: only the outer corners of the first and last image are rounded. */
+.reader__page:first-of-type {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.reader__page:last-of-type {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.reader__shield {
+  position: absolute;
+  inset: 0;
+}
+
+.reader--hidden .reader__page {
+  filter: blur(24px);
+}
+
+/* Night mode: invert the paper to dark and turn the hues back, so the text is light on dark. */
+.reader--night .reader__page {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+
+.reader--night.reader--hidden .reader__page {
+  filter: invert(0.88) hue-rotate(180deg) blur(24px);
+}
+
+.reader-print-note {
+  display: none;
+}
+
+@media print {
+  .reader,
+.reader__end {
+    display: none !important;
+  }
+
+  .reader-print-note {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader__page {
+    transition: none;
+  }
+}

@@ -106,11 +106,12 @@ frontend/
     ├── main.tsx                       # font Be Vietnam Pro + styles
     ├── App.tsx                        # state: danh sách, video đang xem, pending, lỗi
     ├── App.test.tsx                   # luồng chính với fetch giả
-    ├── styles.css                     # token màu/type, khung video, responsive, dark mode
+    ├── styles/                        # tokens.css (màu, khoảng cách, bóng, breakpoint), base.css (reset, button, field, badge, alert, tabs), vietsub-lists.css (hàng/danh sách dùng chung), index.css
+    │                                  #   CSS riêng của từng component/trang nằm cạnh file .tsx (vd. components/NavBar.css)
     ├── api/client.ts                  # client có type + ApiError(status, code, detail)
     ├── lib/format.ts (+test)          # timecode SRT, thời lượng
     ├── lib/errors.ts (+test)          # code → thông báo tiếng Việt
-    └── components/                    # UrlForm, ResultPanel, CueTable, VideoList
+    └── components/                    # UrlForm, ResultPanel, CueTable, VideoList; ui/ = Alert, LoadingText, IconButton(+IconLink), PageHeader, Cover, SearchBar, PopoverPanel
 ```
 
 ## 4. Cấu hình (`application.yml`)
@@ -585,7 +586,18 @@ Plan: [docs/superpowers/plans/2026-11-09-ui-tokens-and-reader-topbar.md](docs/su
 - **Token đổ bóng:** chỉ `--shadow-overlay` (tooltip, hộp thoại, menu, popover) và `--shadow-drag` (3 trạng thái kéo). Thẻ và bìa không đổ bóng; bỏ gradient trang trí của `.plcard`; nền mờ banner opacity 0.12.
 - **Token tương phản:** `--brand-ink`, `--brand-2-ink` (chữ/icon cam, tím trên nền sáng), `--field-border` (viền input, select, ô tìm, nút Filter ≥ 3:1), `--hover`. `contrast.test.ts` kiểm tra WCAG cho cả hai theme.
 - **Thanh đọc** nằm trong thanh trên cùng (thay logo và menu) chỉ ở trang đọc chương; cả thanh trên cùng ẩn khi cuộn xuống, hiện lại khi cuộn lên. Cơ chế: `TopbarSlotProvider` (context) + portal; `ReaderPage` vẫn giữ state.
-- **Vòng sau (chưa làm):** component dùng chung `Alert`, `LoadingText`, `IconButton`, `PageHeader`, `Cover`, `SearchBar`, `PopoverPanel`; quy ước breakpoint 520/760/1024 mobile-first; tách `styles.css`.
+- **Vòng sau:** xem mục ngay dưới (vòng 2–3, đã làm).
+
+### 2026-11-09: Rà soát UI vòng 2–3 (component dùng chung, breakpoint, tách CSS) ✅ (chưa merge, chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-09-ui-components-and-css-split.md](docs/superpowers/plans/2026-11-09-ui-components-and-css-split.md). Refactor thuần: không đổi giao diện.
+
+- **Component dùng chung** trong `frontend/src/components/ui/` (mỗi cái có test): `Alert` (`div.alert[role=alert]`, title + hint + children), `LoadingText` (`p.muted[role=status]`), `IconButton` / `IconLink` (bọc `Tip`; `label` dùng cho cả tooltip và `aria-label`), `PageHeader` (`header.masthead`; có `actions` thì xếp hàng `masthead--row`), `Cover` (ảnh bìa hoặc ô trống có icon `BookOpen`), `SearchBar`, `PopoverPanel` (Radix Popover + Portal, class `.popover` chứa phần giao diện chung; `.saveto`, `.filter-menu`, `.reader-pop` chỉ giữ phần riêng). Chỗ tooltip khác `aria-label` có chủ ý (vd. `Move up` / `Move up: <tên>`) vẫn dùng `Tip` + nút thường.
+- `NovelCard`: tên truyện là `h3`. Cuối chương: bỏ `<span aria-hidden>` giữ chỗ, dùng lưới 2 cột (Previous cột 1, Next cột 2).
+- **Breakpoint** 520 / 760 / 1024 px: bảng ở đầu `styles/tokens.css`. Mọi `@media` hiện có đã đúng 520/760; chưa có layout nào ở 1024.
+- **Tách `styles.css`:** `styles/tokens.css` + `styles/base.css` + `styles/vietsub-lists.css` (nhập qua `styles/index.css`, nhập một lần trong `main.tsx` và `main.public.tsx`); phần còn lại nằm cạnh component sở hữu và được component đó `import`. Bundle admin và public giờ chỉ chứa CSS của các component mà mỗi bên dùng (nhỏ hơn trước).
+- **Kiểm tra:** `node frontend/scripts/check-css-split.mjs <commit-trước-khi-tách>` so từng luật (selector, khai báo, @media) của `styles.css` cũ với mọi file `.css` hiện tại: báo thiếu, trùng, luật mới ngoài danh sách chủ ý (`INTENDED` trong script) và breakpoint lạ; thoát mã 1 nếu có vấn đề. Commit trước khi tách: `a171382`.
+- Test đọc CSS dùng `src/test/css.ts` (gộp mọi `src/**/*.css`, tokens trước). `vite.config.ts` chỉ xử lý các import `?raw` của CSS, nên `import './X.css'` trong component vẫn rỗng khi chạy test jsdom.
 
 ## 9. Rủi ro đang theo dõi
 

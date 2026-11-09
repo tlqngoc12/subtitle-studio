@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 import type { PageDto, RotateDirection } from '../../api/novels';
 import { Tip } from '../Tip';
+import './PageRow.css';
 
 /**
  * One page screenshot of a draft chapter: drag handle, thumbnail (click to enlarge), rotate left/right, delete, and

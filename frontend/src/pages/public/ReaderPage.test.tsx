@@ -7,8 +7,8 @@ import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
 import { expectTooltip } from '../../test/tooltip';
 import ReaderPage from './ReaderPage';
+import { css } from '../../test/css';
 
-const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 /** Pretends the page was scrolled to `y` and tells the listeners. */
 function scrollTo(y: number) {
@@ -280,7 +280,8 @@ describe('ReaderPage', () => {
     const next = within(end).getByRole('link', { name: /Chương sau/ });
     expect(prev).toHaveAttribute('href', '/novels/summer/1');
     expect(next).toHaveAttribute('href', '/novels/summer/4');
-    expect(prev.className).toBe(next.className);
+    // Same style; only next carries its column modifier.
+    expect(prev.className).toBe(next.className.replace(' reader__end-button--next', ''));
     expect(prev).toHaveClass('button');
     expect(prev).not.toHaveClass('button--primary');
     expect(next).not.toHaveTextContent('Special'); // no big next-chapter card
@@ -289,13 +290,16 @@ describe('ReaderPage', () => {
     expect(prev.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('leaves the empty slot when a neighbour is missing', async () => {
+  it('keeps next in the second column when there is no previous chapter', async () => {
     renderAt('/novels/summer/1');
 
     const end = await screen.findByRole('region', { name: 'Hết chương' });
     expect(within(end).queryByRole('link', { name: /Chương trước/ })).not.toBeInTheDocument();
     expect(within(end).getByRole('link', { name: /Chương sau/ })).toBeInTheDocument();
-    expect(end.querySelectorAll('.reader__end-nav > *')).toHaveLength(2);
+    expect(end.querySelectorAll('.reader__end-nav > *')).toHaveLength(1);
+    const nextRule = /\.reader__end-button--next\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(nextRule).toMatch(/grid-column:\s*2/);
+    expect(nextRule).toMatch(/justify-self:\s*end/);
   });
 
   it('ends the last chapter with a "read everything" box', async () => {

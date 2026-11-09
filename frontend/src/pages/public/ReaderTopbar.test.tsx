@@ -8,8 +8,8 @@ import { SiteProvider, type Site } from '../../data/SiteContext';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail } from '../../data/novelTypes';
 import ReaderPage from './ReaderPage';
+import { css } from '../../test/css';
 
-const css = Object.values(import.meta.glob('../../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
 
 function scrollTo(y: number) {
   Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
