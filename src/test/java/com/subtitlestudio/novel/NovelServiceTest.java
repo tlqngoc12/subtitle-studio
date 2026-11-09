@@ -247,6 +247,22 @@ class NovelServiceTest {
     }
 
     @Test
+    void chapterListFollowsTheReadingOrder() {
+        NovelDetail d = service.create(valid());
+        Novel novel = em.find(Novel.class, d.id());
+        Chapter one = new Chapter(novel, 1, null, NOW);
+        Chapter two = new Chapter(novel, 2, null, NOW);
+        one.setSortOrder(2);
+        two.setSortOrder(1);
+        chapters.save(one);
+        chapters.save(two);
+        em.flush();
+        em.clear();
+
+        assertThat(service.get(d.id()).chapters()).extracting(ChapterSummary::chapterNo).containsExactly(2, 1);
+    }
+
+    @Test
     void summaryCountsSuspectPages() {
         NovelDetail d = service.create(valid());
         Novel novel = em.find(Novel.class, d.id());

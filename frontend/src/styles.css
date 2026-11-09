@@ -2217,7 +2217,28 @@ a.tabs__tab {
   border-color: var(--brand-2);
 }
 
+.chapter-list__item--dragging {
+  position: relative;
+  z-index: 1;
+  border-color: var(--brand);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.2);
+}
+
+.chapter-list__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.chapter-list__move {
+  display: inline-flex;
+  gap: 4px;
+}
+
 .chapter-list__open {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;

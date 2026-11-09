@@ -7,7 +7,9 @@ import {
   addChapter,
   deleteNovel,
   getNovel,
+  reorderChapters,
   updateNovel,
+  type ChapterSummary,
   type NotebookView as NotebookData,
   type NovelDetail,
 } from '../api/novels';
@@ -47,6 +49,21 @@ export default function NovelPage() {
     } catch (e) {
       setError(errorMessage(e));
       setAdding(false);
+    }
+  }
+
+  /** Optimistic: shows the new order at once, goes back to the old one when the server refuses it. */
+  async function reorder(next: ChapterSummary[]) {
+    if (!novel) return;
+    const previous = novel.chapters;
+    setError(null);
+    setNovel({ ...novel, chapters: next });
+    try {
+      const saved = await reorderChapters(novelId, next.map((c) => c.id));
+      setNovel((n) => (n ? { ...n, chapters: saved } : n));
+    } catch (e) {
+      setError(errorMessage(e));
+      setNovel((n) => (n ? { ...n, chapters: previous } : n));
     }
   }
 
@@ -116,7 +133,7 @@ export default function NovelPage() {
                 <Plus className="icon" aria-hidden="true" />
                 Add chapter
               </button>
-              <ChapterList novelId={novelId} chapters={novel.chapters} />
+              <ChapterList novelId={novelId} chapters={novel.chapters} onReorder={(next) => void reorder(next)} />
             </Tabs.Content>
 
             <Tabs.Content value="details" className="tabs__panel">

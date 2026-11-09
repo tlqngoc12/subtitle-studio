@@ -45,6 +45,27 @@ class NovelControllerTest {
     @MockitoBean
     private NotebookService notebook;
 
+    @MockitoBean
+    private ChapterService chapterService;
+
+    @Test
+    void reordersChapters() throws Exception {
+        ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null,
+                ChapterPublishStatus.DRAFT, 0, 0);
+        when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
+                NovelStatus.ONGOING, null, null, null, NotebookStatus.IDLE, null, List.of(row)));
+
+        mvc.perform(put("/api/novels/3/chapters/order").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"chapterIds\":[11,10]}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(11));
+        verify(chapterService).reorderChapters(3L, new ChapterOrderRequest(List.of(11L, 10L)));
+
+        doThrow(new InvalidChapterException(List.of(new FieldError("chapterIds", "x"))))
+                .when(chapterService).reorderChapters(eq(3L), any());
+        mvc.perform(put("/api/novels/3/chapters/order").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"chapterIds\":[11]}")).andExpect(status().isBadRequest());
+    }
+
     @Test
     void notebookViewAndRetry() throws Exception {
         when(notebook.view(3L, 5)).thenReturn(new NotebookView(5, NotebookContent.EMPTY, List.of(2, 5),

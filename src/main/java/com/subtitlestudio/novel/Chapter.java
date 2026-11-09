@@ -34,6 +34,10 @@ public class Chapter {
     @Column(name = "chapter_no", nullable = false)
     private int chapterNo;
 
+    /** Reading order inside the novel (1..n); chapter_no never changes when chapters are reordered. */
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder;
+
     @Column(length = 200)
     private String title;
 
@@ -80,6 +84,7 @@ public class Chapter {
     public Chapter(Novel novel, int chapterNo, String title, Instant at) {
         this.novel = novel;
         this.chapterNo = chapterNo;
+        this.sortOrder = chapterNo;
         this.title = title;
         this.createdAt = at;
         this.updatedAt = at;
@@ -99,6 +104,14 @@ public class Chapter {
 
     public void setChapterNo(int chapterNo) {
         this.chapterNo = chapterNo;
+    }
+
+    public int getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 
     public String getTitle() {

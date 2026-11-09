@@ -60,6 +60,10 @@ public class Video {
     @Column(name = "translation_profile", length = 40)
     private String translationProfile;
 
+    /** Gemini model(s) that translated this Vietsub, in order of use joined by ", "; null = unknown / not AUTO. */
+    @Column(name = "translation_model", length = 200)
+    private String translationModel;
+
     protected Video() {
         // for JPA
     }
@@ -129,6 +133,14 @@ public class Video {
 
     public String getTranslationError() {
         return translationError;
+    }
+
+    public String getTranslationModel() {
+        return translationModel;
+    }
+
+    public void setTranslationModel(String translationModel) {
+        this.translationModel = translationModel;
     }
 
     public String getTranslationProfile() {

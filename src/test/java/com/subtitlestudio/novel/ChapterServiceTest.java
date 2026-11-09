@@ -134,6 +134,81 @@ class ChapterServiceTest {
         assertThat(next.translationStatus()).isEqualTo(ChapterTranslationStatus.NONE);
     }
 
+    private List<Long> listOrder() {
+        em.flush();
+        em.clear();
+        return chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novel.getId()).stream().map(Chapter::getId).toList();
+    }
+
+    @Test
+    void reorderChangesTheListButNeverTheChapterNumbers() {
+        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        ChapterDetail c3 = service.add(novel.getId(), new ChapterRequest(3, null));
+
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c3.id(), c1.id(), c2.id())));
+
+        assertThat(listOrder()).containsExactly(c3.id(), c1.id(), c2.id());
+        assertThat(service.get(c3.id()).chapterNo()).isEqualTo(3);
+        assertThat(service.get(c1.id()).chapterNo()).isEqualTo(1);
+        // Previous / Next follow the reading order, not the numbers.
+        assertThat(service.get(c1.id()).prevChapterId()).isEqualTo(c3.id());
+        assertThat(service.get(c1.id()).nextChapterId()).isEqualTo(c2.id());
+        assertThat(service.get(c3.id()).prevChapterId()).isNull();
+        assertThat(service.get(c2.id()).nextChapterId()).isNull();
+    }
+
+    @Test
+    void reorderRejectsMissingDuplicateOrForeignIdsAndChangesNothing() {
+        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        Novel other = novels.save(new Novel("o", "Other", NovelStatus.ONGOING, NOW));
+        ChapterDetail foreign = service.add(other.getId(), new ChapterRequest(1, null));
+        List<List<Long>> bad = List.of(
+                List.of(c2.id()),
+                List.of(c2.id(), c2.id()),
+                List.of(c2.id(), c1.id(), c1.id()),
+                List.of(c2.id(), foreign.id()),
+                List.of(c2.id(), c1.id(), foreign.id()),
+                List.of());
+
+        for (List<Long> ids : bad) {
+            assertThatThrownBy(() -> service.reorderChapters(novel.getId(), new ChapterOrderRequest(ids)))
+                    .isInstanceOf(InvalidChapterException.class)
+                    .satisfies(e -> assertThat(((InvalidChapterException) e).errors().getFirst().field())
+                            .isEqualTo("chapterIds"));
+        }
+        assertThatThrownBy(() -> service.reorderChapters(novel.getId(), new ChapterOrderRequest(null)))
+                .isInstanceOf(InvalidChapterException.class);
+
+        assertThat(listOrder()).containsExactly(c1.id(), c2.id());
+        assertThat(chapters.findById(foreign.id()).orElseThrow().getSortOrder()).isEqualTo(1);
+    }
+
+    @Test
+    void reorderWorksOnPublishedChapters() {
+        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        setStatus(c1.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c2.id(), c1.id())));
+
+        assertThat(listOrder()).containsExactly(c2.id(), c1.id());
+    }
+
+    @Test
+    void chapterAddedAfterAReorderIsLastEvenWithASmallerNumber() {
+        ChapterDetail c5 = service.add(novel.getId(), new ChapterRequest(5, null));
+        ChapterDetail c6 = service.add(novel.getId(), new ChapterRequest(6, null));
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c6.id(), c5.id())));
+
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        ChapterDetail auto = service.add(novel.getId(), new ChapterRequest(null, null));
+
+        assertThat(listOrder()).containsExactly(c6.id(), c5.id(), c2.id(), auto.id());
+        assertThat(auto.chapterNo()).isEqualTo(7);
+    }
+
     @Test
     void duplicateNumberOnAddAndOnRenumber() {
         service.add(novel.getId(), new ChapterRequest(1, null));
@@ -368,10 +443,10 @@ class ChapterServiceTest {
     }
 
     @Test
-    void prevNextIdsFollowChapterNumbers() {
+    void prevNextIdsFollowReadingOrder() {
         ChapterDetail one = service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));
         ChapterDetail three = service.add(novel.getId(), new ChapterRequest(3, null));
+        ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));
 
         ChapterDetail mid = service.get(three.id());
 

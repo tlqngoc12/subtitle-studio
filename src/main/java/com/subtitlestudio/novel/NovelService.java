@@ -139,7 +139,7 @@ public class NovelService {
         Map<Long, Integer> suspect = new HashMap<>();
         novelPages.stream().filter(p -> SuspectPages.suspect(p.getTextVi(), p.getSourceTh(), median))
                 .forEach(p -> suspect.merge(p.getChapter().getId(), 1, Integer::sum));
-        List<ChapterSummary> list = chapters.findByNovelIdOrderByChapterNo(n.getId()).stream()
+        List<ChapterSummary> list = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId()).stream()
                 .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
                         c.getTranslationStatus(),
                         c.getTranslationError(), c.getPublishStatus(), (int) pages.countByChapterId(c.getId()),

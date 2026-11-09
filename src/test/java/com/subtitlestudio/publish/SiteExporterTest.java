@@ -330,6 +330,26 @@ class SiteExporterTest {
     }
 
     @Test
+    void chaptersFollowTheReadingOrderNotTheNumber() throws IOException {
+        long id = novel("summer", null, 3, 1, 2, 3);
+        tx.executeWithoutResult(s -> chapters.findByNovelIdOrderByChapterNo(id).forEach(c -> c.setSortOrder(
+                switch (c.getChapterNo()) {
+                    case 3 -> 1;
+                    case 1 -> 2;
+                    default -> 3;
+                })));
+
+        exporter.export(out, NOW);
+
+        JsonNode detail = readJson("data/novels/summer.json");
+        assertThat(detail.get("chapters")).extracting(n -> n.get("chapterNo").asInt()).containsExactly(3, 1, 2);
+        JsonNode one = readJson("data/novels/summer/1.json");
+        assertThat(one.get("prev").asInt()).isEqualTo(3);
+        assertThat(one.get("next").asInt()).isEqualTo(2);
+        assertThat(readJson("data/novels/summer/3.json").get("prev").isNull()).isTrue();
+    }
+
+    @Test
     void chapterListOnlyPublished() throws IOException {
         novel("summer", null, 3, 1, 3);
 

@@ -189,6 +189,11 @@ export async function reorderPages(id: number, pageIds: number[]): Promise<PageD
   return (await send(`/api/chapters/${id}/pages/order`, json('PUT', { pageIds }))).json();
 }
 
+/** Sets the reading order of a novel's chapters (chapter numbers never change). */
+export async function reorderChapters(novelId: number, chapterIds: number[]): Promise<ChapterSummary[]> {
+  return (await send(`/api/novels/${novelId}/chapters/order`, json('PUT', { chapterIds }))).json();
+}
+
 export async function deletePage(id: number, pageId: number): Promise<void> {
   await send(`/api/chapters/${id}/pages/${pageId}`, { method: 'DELETE' });
 }

@@ -64,7 +64,30 @@ public class ChapterService {
             throw new DuplicateChapterNumberException(no);
         }
         novel.touch(clock.instant());
-        return detail(chapters.save(new Chapter(novel, no, title, clock.instant())));
+        Chapter created = new Chapter(novel, no, title, clock.instant());
+        // New chapters go last in the reading order, whatever their number.
+        created.setSortOrder(existing.stream().mapToInt(Chapter::getSortOrder).max().orElse(0) + 1);
+        return detail(chapters.save(created));
+    }
+
+    /** Sets the reading order; the list must name every chapter of the novel exactly once. Any publish status. */
+    @Transactional
+    public void reorderChapters(long novelId, ChapterOrderRequest request) {
+        Novel novel = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
+        List<Chapter> all = chapters.findByNovelIdOrderByChapterNo(novelId);
+        List<Long> order = request == null || request.chapterIds() == null ? List.of() : request.chapterIds();
+        Map<Long, Chapter> byId = new HashMap<>();
+        all.forEach(c -> byId.put(c.getId(), c));
+        if (order.size() != all.size() || new HashSet<>(order).size() != order.size()
+                || !byId.keySet().containsAll(order)) {
+            throw new InvalidChapterException(List.of(new FieldError("chapterIds",
+                    "List every chapter of the novel exactly once.")));
+        }
+        for (int i = 0; i < order.size(); i++) {
+            byId.get(order.get(i)).setSortOrder(i + 1);
+        }
+        novel.touch(clock.instant());
+        chapters.flush();
     }
 
     @Transactional(readOnly = true)
@@ -311,7 +334,7 @@ public class ChapterService {
     }
 
     ChapterDetail detail(Chapter c) {
-        List<Chapter> all = chapters.findByNovelIdOrderByChapterNo(c.getNovel().getId());
+        List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(c.getNovel().getId());
         Long prev = null;
         Long next = null;
         for (int i = 0; i < all.size(); i++) {
