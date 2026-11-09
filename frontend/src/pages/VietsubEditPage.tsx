@@ -1,4 +1,4 @@
-import { FileUp, Languages, Save } from 'lucide-react';
+import { FileUp, Languages } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -296,7 +296,6 @@ function Editor({
               <SourceBadge source={video.viSource} />
               {dirty && <span className="muted">Unsaved changes</span>}
               <button className="button button--primary" type="button" disabled={!canSave} onClick={() => void save()}>
-                <Save className="icon icon--sm" aria-hidden="true" />
                 Save
               </button>
             </div>

@@ -139,20 +139,22 @@ export default function ProfilePage() {
 
         {profile && (
           <>
-            <header className="masthead pmasthead">
-              <h1 className="masthead__name">{profile.displayName}</h1>
-              {readOnly ? null : editing ? (
-                <button type="button" className="button button--primary" onClick={stopEditing}>
-                  <Check className="icon" aria-hidden="true" />
-                  Done
-                </button>
-              ) : (
-                <button type="button" className="button button--small" onClick={() => setEditing(true)}>
-                  <Pencil className="icon" aria-hidden="true" />
-                  Edit
-                </button>
-              )}
-            </header>
+            <h1 className="visually-hidden">{profile.displayName}</h1>
+            {!readOnly && (
+              <header className="masthead pmasthead">
+                {editing ? (
+                  <button type="button" className="button button--primary" onClick={stopEditing}>
+                    <Check className="icon" aria-hidden="true" />
+                    Done
+                  </button>
+                ) : (
+                  <button type="button" className="button button--small" onClick={() => setEditing(true)}>
+                    <Pencil className="icon" aria-hidden="true" />
+                    Edit
+                  </button>
+                )}
+              </header>
+            )}
 
             <ProfileBanner images={banner} />
             {editing && !readOnly && <BannerEditor slug={slug} images={banner} onChange={setBanner} />}

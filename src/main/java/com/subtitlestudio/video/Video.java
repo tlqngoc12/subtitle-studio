@@ -150,7 +150,9 @@ public class Video {
     /** Records the Vietsub that is now stored and where it came from. */
     public void updateVietsub(int count, Instant at, ViSource source) {
         this.viCueCount = count;
-        this.viUpdatedAt = at;
+        // Oracle keeps 6 fractional digits and rounds the 7th: keep only what it stores, so the value returned to the
+        // client (and sent back as the optimistic-lock token) equals the stored one.
+        this.viUpdatedAt = at == null ? null : at.truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         this.viSource = source;
     }
 

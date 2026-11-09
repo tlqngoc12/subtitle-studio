@@ -105,10 +105,6 @@ const overlay = { ignore: 'textarea' };
 const area = (n: number) => screen.getByRole('textbox', { name: `Line ${n} text` });
 const row = (n: number) => area(n).closest('tr') as HTMLElement;
 const highlighted = () => screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'));
-const caretAtEnd = (node: HTMLElement) => {
-  const el = node as HTMLTextAreaElement;
-  return el.selectionStart === el.value.length && el.selectionEnd === el.value.length;
-};
 
 describe('VietsubEditPage', () => {
   beforeEach(() => {
@@ -301,11 +297,12 @@ describe('VietsubEditPage', () => {
     });
 
     // Lines: 1 = 0-1 s, 2 = 1-2 s, 3 = 3-4.5 s; 2-3 s is a gap.
-    it('seeking backwards into a gap scrolls to, highlights and focuses the line before it', async () => {
+    it('seeking backwards into a gap scrolls to and highlights the line before it, without moving focus', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       player.currentMs = 3_200;
       const { rerender } = await renderEditor();
       spy.mockClear();
+      const before = document.activeElement;
 
       player.currentMs = 2_500;
       rerender(tree());
@@ -314,15 +311,16 @@ describe('VietsubEditPage', () => {
       expect(spy.mock.contexts.at(-1)).toBe(row(2));
       expect(row(2)).toHaveAttribute('aria-current', 'true');
       expect(highlighted()).toHaveLength(1);
-      expect(area(2)).toHaveFocus();
-      expect(caretAtEnd(area(2))).toBe(true);
+      expect(document.activeElement).toBe(before);
+      expect(document.activeElement).not.toBeInstanceOf(HTMLTextAreaElement);
     });
 
-    it('seeking forwards into a gap scrolls to, highlights and focuses the line before it', async () => {
+    it('seeking forwards into a gap scrolls to and highlights the line before it, without moving focus', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       player.currentMs = 100;
       const { rerender } = await renderEditor();
       spy.mockClear();
+      const before = document.activeElement;
 
       player.currentMs = 2_500;
       rerender(tree());
@@ -330,25 +328,30 @@ describe('VietsubEditPage', () => {
       await waitFor(() => expect(spy).toHaveBeenCalled());
       expect(spy.mock.contexts.at(-1)).toBe(row(2));
       expect(row(2)).toHaveAttribute('aria-current', 'true');
-      expect(area(2)).toHaveFocus();
+      expect(highlighted()).toHaveLength(1);
+      expect(document.activeElement).toBe(before);
     });
 
-    it('a seek into a line highlights and focuses that line, caret at the end, without scrolling by focus', async () => {
+    it('a seek into a line scrolls to and highlights it, without focusing or placing a caret', async () => {
       const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       player.currentMs = 3_200;
       const { rerender } = await renderEditor();
+      spy.mockClear();
+      const before = document.activeElement;
 
       player.currentMs = 1_300; // backwards into line 2
       rerender(tree());
 
-      await waitFor(() => expect(area(2)).toHaveFocus());
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      expect(spy.mock.contexts.at(-1)).toBe(row(2));
       expect(row(2)).toHaveAttribute('aria-current', 'true');
       expect(highlighted()).toHaveLength(1);
-      expect(caretAtEnd(area(2))).toBe(true);
-      expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+      expect(focus).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(before);
     });
 
-    it('a seek moves focus even from another textarea, and follows the table', async () => {
+    it('a seek while a textarea has focus scrolls and highlights, and focus stays in that textarea', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       player.currentMs = 3_200;
       const { rerender } = await renderEditor();
@@ -358,9 +361,11 @@ describe('VietsubEditPage', () => {
       player.currentMs = 500;
       rerender(tree());
 
-      await waitFor(() => expect(area(1)).toHaveFocus());
+      await waitFor(() => expect(spy).toHaveBeenCalled());
       expect(spy.mock.contexts.at(-1)).toBe(row(1));
       expect(row(1)).toHaveAttribute('aria-current', 'true');
+      expect(highlighted()).toHaveLength(1);
+      expect(area(3)).toHaveFocus();
     });
 
     it('normal playback highlights the next line but never moves focus', async () => {
@@ -379,15 +384,28 @@ describe('VietsubEditPage', () => {
       expect(document.body).toHaveFocus();
     });
 
-    it('the # button of a row seeks and focuses that row textarea', async () => {
+    it('the # button seeks and scrolls to the row at once, without focusing its textarea', async () => {
+      const user = userEvent.setup();
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      await renderEditor();
+      await act(async () => area(1).focus());
+      spy.mockClear();
+
+      await user.click(within(row(3)).getByRole('button', { name: 'Go to line 3' }));
+
+      expect(player.seekTo).toHaveBeenCalledWith(3_000);
+      expect(spy.mock.contexts).toContain(row(3)); // the mocked player keeps its time, so the highlight may scroll back
+      expect(area(3)).not.toHaveFocus();
+      expect(document.activeElement).not.toBeInstanceOf(HTMLTextAreaElement); // only the clicked button has focus
+    });
+
+    it('the # button without a focused textarea focuses no textarea', async () => {
       const user = userEvent.setup();
       await renderEditor();
 
       await user.click(within(row(3)).getByRole('button', { name: 'Go to line 3' }));
 
-      expect(player.seekTo).toHaveBeenCalledWith(3_000);
-      expect(area(3)).toHaveFocus();
-      expect(caretAtEnd(area(3))).toBe(true);
+      expect(document.activeElement).not.toBeInstanceOf(HTMLTextAreaElement);
     });
 
     it('focusing a textarea does not control the player, and Space types a space', async () => {
@@ -495,6 +513,12 @@ describe('VietsubEditPage', () => {
     const PUT = { method: 'PUT', path: `/api/videos/${ID}/vietsub/text` };
     const saved: VideoDto = { ...video, viSource: 'MANUAL', viUpdatedAt: '2026-11-09T12:00:00Z' };
     const saveButton = () => screen.getByRole('button', { name: 'Save' });
+
+    it('has a text-only Save button', async () => {
+      await renderEditor();
+
+      expect(saveButton().querySelector('svg')).toBeNull();
+    });
 
     it('keeps Save disabled until something changes, and disables it again for an empty or over-long line', async () => {
       await renderEditor();
