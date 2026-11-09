@@ -19,6 +19,9 @@ function renderBanner(images: BannerImage[] = IMAGES) {
   );
 }
 
+/** The image button inside the strip's row (the dots share the "Ảnh k/n" names). */
+const slide = (name: string) => within(document.querySelector('.filmstrip__row') as HTMLElement).getByRole('button', { name });
+
 describe('ProfileBanner', () => {
   it('renders nothing without images', () => {
     const { container } = renderBanner([]);
@@ -30,7 +33,14 @@ describe('ProfileBanner', () => {
     renderBanner();
 
     const region = screen.getByRole('region', { name: 'Ảnh banner' });
-    expect(within(region).getAllByRole('button', { name: /^(Fan meeting|Ảnh 2\/3|Backstage)$/ })).toHaveLength(3);
+    const row = region.querySelector('.filmstrip__row') as HTMLElement;
+    expect(
+      within(row).getAllByRole('button', {
+        name: /^(Fan meeting|Ảnh 2\/3|Backstage)$/,
+      }),
+    ).toHaveLength(3);
+    // Plus one dot per image below the row.
+    expect(region.querySelectorAll('.filmstrip__dot')).toHaveLength(3);
   });
 
   it('uses the alt text as the image alt and the item name', () => {
@@ -44,7 +54,7 @@ describe('ProfileBanner', () => {
   it('gives an image without a description alt="" and the neutral name "Ảnh k/n"', () => {
     renderBanner();
 
-    const second = screen.getByRole('button', { name: 'Ảnh 2/3' });
+    const second = slide('Ảnh 2/3');
     expect(second.querySelector('img')).toHaveAttribute('alt', '');
     // The name never includes the profile.
     expect(second).toHaveAccessibleName('Ảnh 2/3');
@@ -53,7 +63,7 @@ describe('ProfileBanner', () => {
   it('treats a blank description like none', () => {
     renderBanner([{ id: 1, mediaUrl: '/media/a.png', altText: '   ' }]);
 
-    expect(screen.getByRole('button', { name: 'Ảnh 1/1' }).querySelector('img')).toHaveAttribute('alt', '');
+    expect(slide('Ảnh 1/1').querySelector('img')).toHaveAttribute('alt', '');
   });
 
   it('opens the lightbox on the clicked image and browses it', async () => {
@@ -84,7 +94,7 @@ describe('ProfileBanner', () => {
     const user = userEvent.setup();
     renderBanner();
 
-    await user.click(screen.getByRole('button', { name: 'Ảnh 2/3' }));
+    await user.click(slide('Ảnh 2/3'));
 
     expect(screen.getByRole('dialog').querySelector('.lightbox__caption')).toBeNull();
   });
@@ -99,7 +109,7 @@ describe('ProfileBanner', () => {
     const user = userEvent.setup();
     renderBanner();
 
-    await user.click(screen.getByRole('button', { name: 'Ảnh 2/3' }));
+    await user.click(slide('Ảnh 2/3'));
 
     expect(within(screen.getByRole('dialog')).getByRole('img', { name: 'Ảnh 2/3' })).toBeInTheDocument();
   });
@@ -107,7 +117,7 @@ describe('ProfileBanner', () => {
   it('closes the lightbox with Esc and returns focus to the image that was opened', async () => {
     const user = userEvent.setup();
     renderBanner();
-    const opened = screen.getByRole('button', { name: 'Ảnh 2/3' });
+    const opened = slide('Ảnh 2/3');
     await user.click(opened);
 
     await user.keyboard('{Escape}');
