@@ -68,7 +68,50 @@ describe('NovelNewPage', () => {
       promptProfile: 'SummerLove',
       coverMediaId: null,
       sourceUrl: null,
+      trailerUrl: null,
     });
+  });
+
+  it('sends the pasted trailer link as typed (trimmed); the server extracts the video id', async () => {
+    const calls = fakeFetch([profiles, { method: 'POST', path: '/api/novels', status: 201, body: novelDetail() }]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Title'), 'X');
+    await user.type(screen.getByLabelText('Trailer (YouTube link)'), '  https://www.youtube.com/watch?v=dQw4w9WgXcQ ');
+    await user.click(screen.getByRole('button', { name: 'Create novel' }));
+
+    await screen.findByText('novel 3');
+    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body as string).trailerUrl).toBe(
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    );
+  });
+
+  it('shows a trailer error next to the Trailer field', async () => {
+    fakeFetch([
+      profiles,
+      {
+        method: 'POST',
+        path: '/api/novels',
+        status: 400,
+        body: {
+          ...problem(400, 'INVALID_NOVEL', 'Invalid novel'),
+          errors: [{ field: 'trailerUrl', message: 'Use a YouTube link (youtube.com or youtu.be).' }],
+        },
+      },
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Title'), 'X');
+    await user.type(screen.getByLabelText('Trailer (YouTube link)'), 'https://vimeo.com/1');
+    await user.click(screen.getByRole('button', { name: 'Create novel' }));
+
+    const trailer = screen.getByLabelText('Trailer (YouTube link)');
+    await waitFor(() => expect(trailer).toHaveAttribute('aria-invalid', 'true'));
+    expect(document.getElementById(trailer.getAttribute('aria-describedby')!)).toHaveTextContent(
+      'Use a YouTube link (youtube.com or youtu.be).',
+    );
   });
 
   it('shows a field error next to its input', async () => {

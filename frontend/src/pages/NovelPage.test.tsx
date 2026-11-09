@@ -94,6 +94,69 @@ describe('NovelPage', () => {
     expect(sent).toMatchObject({ title: 'Mới', slug: 'summer-love', tags: ['romance', 'BL'] });
   });
 
+  describe('trailer field', () => {
+    const withTrailer = { ...getNovel, body: novelDetail({ trailerVideoId: 'dQw4w9WgXcQ' }) };
+
+    async function openDetails(routes: Parameters<typeof fakeFetch>[0]) {
+      const calls = fakeFetch(routes);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      await userEvent.setup().click(screen.getByRole('tab', { name: 'Details' }));
+      return calls;
+    }
+
+    it('shows the stored trailer as a youtu.be link', async () => {
+      await openDetails([withTrailer, profiles]);
+
+      expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ');
+    });
+
+    it('is empty without a trailer', async () => {
+      await openDetails([getNovel, profiles]);
+
+      expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('');
+    });
+
+    it('clears the trailer when the field is emptied (sent as null)', async () => {
+      const user = userEvent.setup();
+      const calls = fakeFetch([
+        withTrailer,
+        profiles,
+        { method: 'PUT', path: '/api/novels/3', status: 200, body: novelDetail({ trailerVideoId: null }) },
+      ]);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      await user.click(screen.getByRole('tab', { name: 'Details' }));
+
+      await user.clear(screen.getByLabelText('Trailer (YouTube link)'));
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+      expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).trailerUrl).toBeNull();
+      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue(''));
+    });
+
+    it('shows the saved trailer as a youtu.be link after pasting another form of it', async () => {
+      const user = userEvent.setup();
+      const calls = fakeFetch([
+        getNovel,
+        profiles,
+        { method: 'PUT', path: '/api/novels/3', status: 200, body: novelDetail({ trailerVideoId: 'dQw4w9WgXcQ' }) },
+      ]);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      await user.click(screen.getByRole('tab', { name: 'Details' }));
+
+      await user.type(screen.getByLabelText('Trailer (YouTube link)'), 'https://www.youtube.com/shorts/dQw4w9WgXcQ');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ'));
+      expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).trailerUrl).toBe(
+        'https://www.youtube.com/shorts/dQw4w9WgXcQ',
+      );
+    });
+  });
+
   it('deletes the novel after confirming', async () => {
     const calls = fakeFetch([getNovel, profiles, { method: 'DELETE', path: '/api/novels/3', status: 204 }]);
     renderPage();

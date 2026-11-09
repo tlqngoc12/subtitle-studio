@@ -18,6 +18,11 @@ export function slugify(text: string): string {
     .slice(0, 60);
 }
 
+/** The link the form shows for a stored trailer id. */
+export function trailerLink(videoId: string | null | undefined): string {
+  return videoId ? `https://youtu.be/${videoId}` : '';
+}
+
 function blankToNull(value: string): string | null {
   const t = value.trim();
   return t ? t : null;
@@ -49,11 +54,16 @@ export function NovelForm({
   const [status, setStatus] = useState<NovelStatus>(initial?.novelStatus ?? 'ONGOING');
   const [credit, setCredit] = useState(initial?.translatorCredit ?? '');
   const [sourceUrl, setSourceUrl] = useState(initial?.sourceUrl ?? '');
+  const [trailer, setTrailer] = useState(trailerLink(initial?.trailerVideoId));
   const [profile, setProfile] = useState(initial?.promptProfile ?? '');
   const [profiles, setProfiles] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
+
+  // After a save the server's value wins: whatever form of the link was pasted, it shows as https://youtu.be/<id>.
+  const storedTrailer = initial?.trailerVideoId;
+  useEffect(() => setTrailer(trailerLink(storedTrailer)), [storedTrailer]);
 
   useEffect(() => {
     getNovelProfiles()
@@ -81,6 +91,7 @@ export function NovelForm({
         translatorCredit: blankToNull(credit),
         sourceUrl: blankToNull(sourceUrl),
         promptProfile: blankToNull(profile),
+        trailerUrl: blankToNull(trailer),
       });
     } catch (err) {
       setError(errorMessage(err));
@@ -225,6 +236,15 @@ export function NovelForm({
         children: (a) => (
           <input id={a.id} type="text" inputMode="url" maxLength={1000} placeholder="https://…" value={sourceUrl}
             aria-invalid={a.invalid} aria-describedby={a.describedBy} onChange={(e) => setSourceUrl(e.target.value)} />
+        ),
+      })}
+      {renderField({
+        name: 'trailerUrl',
+        label: 'Trailer (YouTube link)',
+        hint: 'Shown as a Trailer tab on the public novel page.',
+        children: (a) => (
+          <input id={a.id} type="text" inputMode="url" maxLength={1000} placeholder="https://youtu.be/…" value={trailer}
+            aria-invalid={a.invalid} aria-describedby={a.describedBy} onChange={(e) => setTrailer(e.target.value)} />
         ),
       })}
       {renderField({

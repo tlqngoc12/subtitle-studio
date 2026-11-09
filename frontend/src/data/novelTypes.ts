@@ -34,6 +34,8 @@ export interface PublicNovelDetail {
   novelStatus: NovelStatus;
   translatorCredit: string | null;
   sourceUrl: string | null;
+  /** YouTube video id of the trailer; null or missing without one (and in files published before trailers). */
+  trailerVideoId?: string | null;
   chapters: PublicChapterRef[];
 }
 

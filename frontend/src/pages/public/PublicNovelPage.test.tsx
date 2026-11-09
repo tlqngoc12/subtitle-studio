@@ -32,6 +32,7 @@ const DETAIL: PublicNovelDetail = {
   novelStatus: 'COMPLETED',
   translatorCredit: 'Dịch: @byZenQN',
   sourceUrl: 'https://example.com/book',
+  trailerVideoId: null,
   chapters: [
     { chapterNo: 1, title: 'Mở đầu' },
     { chapterNo: 3, title: null, label: 'Ngoại truyện 1' },
@@ -337,5 +338,151 @@ describe('PublicNovelPage reading progress', () => {
 
     expect(await screen.findByRole('link', { name: 'Bắt đầu đọc' })).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Danh sách chương' })).getAllByRole('link')).toHaveLength(2);
+  });
+});
+
+describe('PublicNovelPage trailer tab', () => {
+  const ID = 'dQw4w9WgXcQ';
+
+  function renderPage(over: Partial<PublicNovelDetail>, path = '/novels/summer') {
+    const s = source({ getNovel: async () => ({ ...DETAIL, ...over }) });
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={s} />} />
+        </Routes>
+        <Where />
+      </MemoryRouter>,
+    );
+  }
+
+  const tabNames = () => within(screen.getByRole('tablist')).getAllByRole('tab').map((t) => t.textContent);
+  const selected = () => screen.getAllByRole('tab').find((t) => t.getAttribute('aria-selected') === 'true')?.textContent;
+  const ready = () => screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+  it.each([
+    ['description and trailer', 'Mô tả', ID, ['Giới thiệu', 'Danh sách chương', 'Trailer']],
+    ['a description only', 'Mô tả', null, ['Giới thiệu', 'Danh sách chương']],
+    ['a trailer only', null, ID, ['Danh sách chương', 'Trailer']],
+  ])('lists the tabs in order for %s', async (_name, description, trailerVideoId, expected) => {
+    renderPage({ description, trailerVideoId });
+    await ready();
+
+    expect(tabNames()).toEqual(expected);
+    expect(selected()).toBe('Danh sách chương');
+  });
+
+  it('has no tablist with neither a description nor a trailer', async () => {
+    renderPage({ description: null, trailerVideoId: null });
+    await ready();
+
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Danh sách chương' })).toBeInTheDocument();
+  });
+
+  it('treats published data from before trailers existed as having none', async () => {
+    const old: Partial<PublicNovelDetail> = { ...DETAIL };
+    delete old.trailerVideoId;
+    const s = source({ getNovel: async () => old as PublicNovelDetail });
+    render(
+      <MemoryRouter initialEntries={['/novels/summer?tab=trailer']}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={s} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await ready();
+
+    expect(tabNames()).toEqual(['Giới thiệu', 'Danh sách chương']);
+    expect(selected()).toBe('Danh sách chương');
+  });
+
+  it('opens the Trailer tab with ?tab=trailer', async () => {
+    renderPage({ trailerVideoId: ID }, '/novels/summer?tab=trailer');
+    await ready();
+
+    expect(selected()).toBe('Trailer');
+    expect(screen.queryByRole('list', { name: 'Danh sách chương' })).not.toBeInTheDocument();
+  });
+
+  it('falls back to the chapter list for ?tab=trailer when there is no trailer', async () => {
+    renderPage({ trailerVideoId: null }, '/novels/summer?tab=trailer');
+    await ready();
+
+    expect(selected()).toBe('Danh sách chương');
+    expect(screen.queryByTitle(/Trailer/)).not.toBeInTheDocument();
+  });
+
+  it('falls back to the chapter list for ?tab=intro when there is no description', async () => {
+    renderPage({ description: null, trailerVideoId: ID }, '/novels/summer?tab=intro');
+    await ready();
+
+    expect(selected()).toBe('Danh sách chương');
+  });
+
+  it('names only the non-default tab in the URL', async () => {
+    const user = userEvent.setup();
+    renderPage({ trailerVideoId: ID });
+    await ready();
+
+    await user.click(screen.getByRole('tab', { name: 'Trailer' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/novels/summer?tab=trailer');
+    await user.click(screen.getByRole('tab', { name: 'Giới thiệu' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/novels/summer?tab=intro');
+    await user.click(screen.getByRole('tab', { name: 'Danh sách chương' }));
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/novels\/summer$/);
+  });
+
+  describe('embed', () => {
+    it('loads no iframe while another tab is open', async () => {
+      renderPage({ trailerVideoId: ID });
+      await ready();
+
+      expect(document.querySelector('iframe')).toBeNull();
+    });
+
+    it('creates the iframe only while the Trailer tab is open, and removes it when leaving', async () => {
+      const user = userEvent.setup();
+      renderPage({ trailerVideoId: ID });
+      await ready();
+
+      await user.click(screen.getByRole('tab', { name: 'Trailer' }));
+      expect(document.querySelectorAll('iframe')).toHaveLength(1);
+
+      await user.click(screen.getByRole('tab', { name: 'Danh sách chương' }));
+      expect(document.querySelector('iframe')).toBeNull();
+    });
+
+    it('embeds the nocookie player with a title and the required attributes', async () => {
+      renderPage({ trailerVideoId: ID }, '/novels/summer?tab=trailer');
+      await ready();
+
+      const frame = screen.getByTitle('Trailer: Tình Yêu Mùa Hạ');
+      expect(frame.tagName).toBe('IFRAME');
+      expect(frame).toHaveAttribute('src', `https://www.youtube-nocookie.com/embed/${ID}`);
+      expect(frame).toHaveAttribute('allow', 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+      expect(frame).toHaveAttribute('allowfullscreen');
+      expect(frame).toHaveAttribute('loading', 'lazy');
+      expect(frame).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      expect(frame).not.toHaveAttribute('autoplay');
+      expect(frame.getAttribute('src')).not.toMatch(/autoplay/);
+    });
+
+    it('never frames a value that is not an 11-character video id', async () => {
+      renderPage({ trailerVideoId: 'javascript:alert(1)' }, '/novels/summer?tab=trailer');
+      await ready();
+
+      expect(document.querySelector('iframe')).toBeNull();
+      expect(screen.queryByRole('tab', { name: 'Trailer' })).not.toBeInTheDocument();
+    });
+
+    it('is a responsive 16:9 frame with the frame radius and no shadow', () => {
+      const rule = css.match(/\.novel-trailer\s*\{[^}]*\}/)?.[0] ?? '';
+
+      expect(rule).toMatch(/aspect-ratio:\s*16\s*\/\s*9/);
+      expect(rule).toMatch(/width:\s*100%/);
+      expect(rule).toMatch(/border-radius:\s*var\(--radius-frame\)/);
+      expect(rule).not.toMatch(/shadow/);
+    });
   });
 });

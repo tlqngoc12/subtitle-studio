@@ -18,7 +18,10 @@ import { Cover } from '../../components/ui/Cover';
 import './PublicNovelPage.css';
 import '../../components/novel/ChapterList.css';
 
-/** A novel's public page: cover, the eight fields (description as plain text) and its published chapters. */
+/** The 11-character YouTube video id; anything else is never put in an iframe. */
+const TRAILER_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/** A novel's public page: cover, the eight fields (description as plain text), its published chapters and an optional trailer tab. */
 export default function PublicNovelPage({ source }: { source: NovelSource }) {
   const { slug = "" } = useParams();
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
@@ -59,10 +62,19 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
       ? undefined
       : novel.chapters.find((c) => c.chapterNo === stored);
   const read = new Set(readReadChapters(novel.slug));
-  // The chapter list is the default tab; the URL only names the other one (?tab=intro), so Back returns to it.
-  const tab = params.get("tab") === "intro" ? "intro" : "chapters";
+  // A tab exists only when it has content: the chapter list is always there and is the default, so the URL only
+  // names the other tabs (?tab=intro, ?tab=trailer), and Back returns to it. An unavailable tab falls back to it.
+  const hasIntro = Boolean(novel.description);
+  const trailerId = TRAILER_ID.test(novel.trailerVideoId ?? "") ? novel.trailerVideoId! : null;
+  const requested = params.get("tab");
+  const tab =
+    requested === "intro" && hasIntro
+      ? "intro"
+      : requested === "trailer" && trailerId
+        ? "trailer"
+        : "chapters";
   function changeTab(value: string) {
-    setParams(value === "intro" ? { tab: "intro" } : {});
+    setParams(value === "intro" || value === "trailer" ? { tab: value } : {});
   }
   const chapterClass =
     novel.chapters.length > 12
@@ -186,22 +198,45 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
         </div>
       </header>
 
-      {novel.description ? (
+      {hasIntro || trailerId ? (
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
           <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
-            <Tabs.Trigger className="tabs__tab" value="intro">
-              Giới thiệu
-            </Tabs.Trigger>
+            {hasIntro && (
+              <Tabs.Trigger className="tabs__tab" value="intro">
+                Giới thiệu
+              </Tabs.Trigger>
+            )}
             <Tabs.Trigger className="tabs__tab" value="chapters">
               Danh sách chương
             </Tabs.Trigger>
+            {trailerId && (
+              <Tabs.Trigger className="tabs__tab" value="trailer">
+                Trailer
+              </Tabs.Trigger>
+            )}
           </Tabs.List>
-          <Tabs.Content value="intro" className="tabs__panel">
-            <p className="novel-description">{novel.description}</p>
-          </Tabs.Content>
+          {hasIntro && (
+            <Tabs.Content value="intro" className="tabs__panel">
+              <p className="novel-description">{novel.description}</p>
+            </Tabs.Content>
+          )}
           <Tabs.Content value="chapters" className="tabs__panel">
             {chapterList}
           </Tabs.Content>
+          {trailerId && (
+            // Radix unmounts a tab's content while it is not selected, so YouTube is only loaded once Trailer opens.
+            <Tabs.Content value="trailer" className="tabs__panel">
+              <iframe
+                className="novel-trailer"
+                src={`https://www.youtube-nocookie.com/embed/${trailerId}`}
+                title={`Trailer: ${novel.title}`}
+                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </Tabs.Content>
+          )}
         </Tabs.Root>
       ) : (
         <>
