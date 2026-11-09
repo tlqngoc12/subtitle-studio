@@ -1,17 +1,24 @@
-import { BookOpen, Check, ExternalLink } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
-import { Breadcrumbs } from '../../components/Breadcrumbs';
-import type { NovelSource } from '../../data/novelSource';
-import type { PublicNovelDetail } from '../../data/novelTypes';
-import { readProgress, readReadChapters } from './readerPrefs';
-import { PUBLIC_ERROR_TITLE, PUBLIC_STATUS_LABEL, publicChapterLabel, useDocumentTitle } from './publicNames';
+import * as Tabs from "@radix-ui/react-tabs";
+import { BookOpen, Check, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router";
+import { Breadcrumbs } from "../../components/Breadcrumbs";
+import type { NovelSource } from "../../data/novelSource";
+import type { PublicNovelDetail } from "../../data/novelTypes";
+import { readProgress, readReadChapters } from "./readerPrefs";
+import {
+  PUBLIC_ERROR_TITLE,
+  PUBLIC_STATUS_LABEL,
+  publicChapterLabel,
+  useDocumentTitle,
+} from "./publicNames";
 
 /** A novel's public page: cover, the eight fields (description as plain text) and its published chapters. */
 export default function PublicNovelPage({ source }: { source: NovelSource }) {
-  const { slug = '' } = useParams();
+  const { slug = "" } = useParams();
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [params, setParams] = useSearchParams();
   useDocumentTitle(novel?.title ?? null);
 
   useEffect(() => {
@@ -43,16 +50,69 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
 
   const first = novel.chapters[0];
   const stored = readProgress(novel.slug);
-  const resume = stored === null ? undefined : novel.chapters.find((c) => c.chapterNo === stored);
+  const resume =
+    stored === null
+      ? undefined
+      : novel.chapters.find((c) => c.chapterNo === stored);
   const read = new Set(readReadChapters(novel.slug));
+  // The chapter list is the default tab; the URL only names the other one (?tab=intro), so Back returns to it.
+  const tab = params.get("tab") === "intro" ? "intro" : "chapters";
+  function changeTab(value: string) {
+    setParams(value === "intro" ? { tab: "intro" } : {});
+  }
+  const chapterClass =
+    novel.chapters.length > 12
+      ? "chapter-list chapter-list--public chapter-list--columns"
+      : "chapter-list chapter-list--public";
+  const chapterList = (
+    <ol className={chapterClass} aria-label="Danh sách chương">
+      {novel.chapters.map((c) => {
+        const isRead = read.has(c.chapterNo);
+        return (
+          <li
+            key={c.chapterNo}
+            className={
+              isRead
+                ? "chapter-list__item chapter-list__item--read"
+                : "chapter-list__item"
+            }
+          >
+            <div className="chapter-list__row">
+              <Link
+                className="chapter-list__open"
+                to={`/novels/${novel.slug}/${c.chapterNo}`}
+              >
+                {publicChapterLabel(c.chapterNo, c.title, c.label)}
+              </Link>
+              {c.chapterNo === stored && (
+                <span className="badge badge--info">Đang đọc</span>
+              )}
+              {isRead && (
+                <Check
+                  className="icon chapter-list__check"
+                  role="img"
+                  aria-label="Đã đọc"
+                />
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
   return (
     <main className="page">
-      <Breadcrumbs items={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]} />
+      <Breadcrumbs
+        items={[{ label: "Novels", to: "/novels" }, { label: novel.title }]}
+      />
       <header className="novel-hero">
         {novel.coverUrl ? (
           <img className="novel-hero__cover" src={novel.coverUrl} alt="" />
         ) : (
-          <span className="novel-hero__cover novel-card__cover--empty" aria-hidden="true">
+          <span
+            className="novel-hero__cover novel-card__cover--empty"
+            aria-hidden="true"
+          >
             <BookOpen className="icon" />
           </span>
         )}
@@ -88,22 +148,41 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
           <div className="novel-hero__actions">
             {resume ? (
               <>
-                <Link className="button button--primary" to={`/novels/${novel.slug}/${resume.chapterNo}`}>
-                  Đọc tiếp: {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                <Link
+                  className="button button--primary"
+                  to={`/novels/${novel.slug}/${resume.chapterNo}`}
+                >
+                  Đọc tiếp:{" "}
+                  {publicChapterLabel(
+                    resume.chapterNo,
+                    resume.title,
+                    resume.label,
+                  )}
                 </Link>
-                <Link className="button button--small" to={`/novels/${novel.slug}/${first.chapterNo}`}>
+                <Link
+                  className="button button--small"
+                  to={`/novels/${novel.slug}/${first.chapterNo}`}
+                >
                   Đọc từ đầu
                 </Link>
               </>
             ) : (
               first && (
-                <Link className="button button--primary" to={`/novels/${novel.slug}/${first.chapterNo}`}>
+                <Link
+                  className="button button--primary"
+                  to={`/novels/${novel.slug}/${first.chapterNo}`}
+                >
                   Bắt đầu đọc
                 </Link>
               )
             )}
             {novel.sourceUrl && (
-              <a className="button button--small" href={novel.sourceUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                className="button button--small"
+                href={novel.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <ExternalLink className="icon" aria-hidden="true" />
                 Truyện gốc
               </a>
@@ -112,28 +191,29 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
         </div>
       </header>
 
-      {novel.description && <p className="novel-description">{novel.description}</p>}
-
-      <h2 className="history__heading">Danh sách chương</h2>
-      <ol className="chapter-list" aria-label="Danh sách chương">
-        {novel.chapters.map((c) => {
-          const isRead = read.has(c.chapterNo);
-          return (
-            <li
-              key={c.chapterNo}
-              className={isRead ? 'chapter-list__item chapter-list__item--read' : 'chapter-list__item'}
-            >
-              <div className="chapter-list__row">
-                <Link className="chapter-list__open" to={`/novels/${novel.slug}/${c.chapterNo}`}>
-                  {publicChapterLabel(c.chapterNo, c.title, c.label)}
-                </Link>
-                {c.chapterNo === stored && <span className="badge badge--info">Đang đọc</span>}
-                {isRead && <Check className="icon chapter-list__check" role="img" aria-label="Đã đọc" />}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      {novel.description ? (
+        <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
+          <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
+            <Tabs.Trigger className="tabs__tab" value="intro">
+              Giới thiệu
+            </Tabs.Trigger>
+            <Tabs.Trigger className="tabs__tab" value="chapters">
+              Danh sách chương
+            </Tabs.Trigger>
+          </Tabs.List>
+          <Tabs.Content value="intro" className="tabs__panel">
+            <p className="novel-description">{novel.description}</p>
+          </Tabs.Content>
+          <Tabs.Content value="chapters" className="tabs__panel">
+            {chapterList}
+          </Tabs.Content>
+        </Tabs.Root>
+      ) : (
+        <>
+          <h2 className="history__heading">Danh sách chương</h2>
+          {chapterList}
+        </>
+      )}
     </main>
   );
 }

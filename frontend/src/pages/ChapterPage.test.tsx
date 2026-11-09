@@ -10,6 +10,8 @@ import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { chapterDetail } from '../test/novelFixtures';
 import ChapterPage, { AUTO_SAVE_MS } from './ChapterPage';
 
+const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
+
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
 
 /** Chapter 9 is the page under test; any other id stands for "navigated to another chapter". */
@@ -552,6 +554,26 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS * 2));
     ctrlS();
     expect(puts(calls)).toHaveLength(0);
+  });
+
+  it('puts Number, Chapter label and Chapter title in one wrapping row', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    const row = screen.getByLabelText('Number').closest('.chapter-meta__row')!;
+    expect(row).not.toBeNull();
+    expect(row.contains(screen.getByLabelText('Chapter label (optional)'))).toBe(true);
+    expect(row.contains(screen.getByLabelText('Chapter title (optional)'))).toBe(true);
+    expect([...row.querySelectorAll(':scope > .field')].map((f) => f.className)).toEqual([
+      'field chapter-meta__number',
+      'field chapter-meta__label',
+      'field chapter-meta__title',
+    ]);
+    const rule = (name: string) => new RegExp(`\\.chapter-meta__${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+    expect(/\.chapter-meta__row\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/.test(css)).toBe(true);
+    expect(rule('number')).toMatch(/flex:\s*0 0 1\d\dpx/);
+    expect(rule('label')).toMatch(/flex:\s*0 0 2[0-4]\dpx/);
+    expect(rule('title')).toMatch(/flex:\s*1 1 /);
   });
 
   it('explains Number and Chapter label with info tooltips instead of hint lines', async () => {

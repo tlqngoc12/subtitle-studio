@@ -11,6 +11,8 @@ import { expectTooltip } from '../test/tooltip';
 import VietsubPage from './VietsubPage';
 import { AppToaster } from '../components/AppToaster';
 
+const css = Object.values(import.meta.glob('../styles.css', { query: '?raw', import: 'default', eager: true })).join('');
+
 const ID = 'dQw4w9WgXcQ';
 
 function video(id: string, title: string, viCueCount: number, viUpdatedAt: string | null, viSource: 'AUTO' | 'MANUAL' = 'MANUAL'): VideoDto {
@@ -408,5 +410,11 @@ describe('VietsubPage', () => {
 
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
     expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('leaves space between the search/Filter toolbar and the top border of the video list', () => {
+    const toolbar = /\.toolbar\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+
+    expect(toolbar).toMatch(/margin-bottom:\s*(1[2-6])px/);
   });
 });

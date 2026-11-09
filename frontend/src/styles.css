@@ -1606,6 +1606,7 @@ p.vietsub-status,
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 14px;
 }
 
 .toolbar .searchbar {
@@ -2486,6 +2487,47 @@ a.tabs__tab {
   align-items: center;
 }
 
+/* Public novel page: one bordered box of compact rows with thin dividers; two columns on wide screens for long lists. */
+.chapter-list--public {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.chapter-list--public .chapter-list__item {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  /* The divider is a shadow, so the last row of each column (clipped by the box) has none. */
+  box-shadow: 0 1px 0 var(--rule);
+  break-inside: avoid;
+}
+
+.chapter-list--public .chapter-list__item:hover {
+  background: var(--hover, color-mix(in srgb, var(--brand-2) 12%, transparent));
+}
+
+.chapter-list--public .chapter-list__row {
+  padding: 0 12px 0 0;
+}
+
+.chapter-list--public .chapter-list__open {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: var(--step--1);
+}
+
+@media (min-width: 760px) {
+  .chapter-list--columns {
+    display: block;
+    column-count: 2;
+    column-gap: 0;
+    column-rule: 1px solid var(--rule);
+  }
+}
+
 .chapter-list__error {
   padding: 0 14px 10px;
 }
@@ -2570,20 +2612,35 @@ a.tabs__tab {
 }
 
 .chapter-meta {
-  display: grid;
-  gap: 12px;
-  max-width: 640px;
   margin-bottom: 16px;
 }
 
+/* Number, label and title on one row; the title takes the rest and wraps to its own line on narrow screens. */
 .chapter-meta__row {
-  display: grid;
-  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.chapter-meta__row > .chapter-meta__label:only-child {
-  grid-column: 1 / -1;
+.chapter-meta__number {
+  flex: 0 0 110px;
+  min-width: 0;
+}
+
+.chapter-meta__label {
+  flex: 0 0 220px;
+  min-width: 0;
+}
+
+.chapter-meta__title {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .chapter-meta__label {
+    flex: 1 1 0;
+  }
 }
 
 .field__label-row {
