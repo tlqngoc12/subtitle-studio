@@ -159,6 +159,54 @@ class VietsubControllerTest {
         expectProblem(mvc.perform(delete("/api/videos/" + ID + "/vietsub")), 404, "VIDEO_NOT_FOUND");
     }
 
+    private static final String TEXT_BODY =
+            "{\"baseUpdatedAt\":\"2026-11-02T11:00:00Z\",\"lines\":[{\"idx\":0,\"text\":\"Xin chào\"},{\"idx\":1,\"text\":\"Hi\"}]}";
+
+    private ResultActions putText() throws Exception {
+        return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .put("/api/videos/" + ID + "/vietsub/text")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TEXT_BODY));
+    }
+
+    @Test
+    void saveTextReturnsTheUpdatedVideo() throws Exception {
+        Video v = video();
+        v.updateVietsub(2, Instant.parse("2026-11-09T12:00:00Z"), ViSource.MANUAL);
+        when(service.saveText(org.mockito.ArgumentMatchers.eq(ID), org.mockito.ArgumentMatchers.any())).thenReturn(v);
+
+        putText()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ID))
+                .andExpect(jsonPath("$.viSource").value("MANUAL"))
+                .andExpect(jsonPath("$.viUpdatedAt").value("2026-11-09T12:00:00Z"));
+
+        org.mockito.ArgumentCaptor<VietsubTextRequest> captor = org.mockito.ArgumentCaptor.forClass(VietsubTextRequest.class);
+        verify(service).saveText(org.mockito.ArgumentMatchers.eq(ID), captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().baseUpdatedAt())
+                .isEqualTo(Instant.parse("2026-11-02T11:00:00Z"));
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().lines()).hasSize(2);
+    }
+
+    @Test
+    void saveTextMapsErrors() throws Exception {
+        when(service.saveText(org.mockito.ArgumentMatchers.eq(ID), org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new VietsubChangedException(ID))
+                .thenThrow(new com.subtitlestudio.translate.TranslationInProgressException(ID))
+                .thenThrow(new InvalidVietsubTextException(
+                        List.of(new com.subtitlestudio.profile.FieldError("lines[1].text", "Text is required"))))
+                .thenThrow(new NoVietsubException(ID))
+                .thenThrow(new VideoNotFoundException(ID));
+
+        expectProblem(putText(), 409, "VIETSUB_CHANGED");
+        expectProblem(putText(), 409, "TRANSLATION_IN_PROGRESS");
+        expectProblem(putText(), 400, "INVALID_VIETSUB_TEXT")
+                .andExpect(jsonPath("$.errors[0].field").value("lines[1].text"))
+                .andExpect(jsonPath("$.errors[0].message").value("Text is required"));
+        expectProblem(putText(), 404, "NO_VIETSUB");
+        expectProblem(putText(), 404, "VIDEO_NOT_FOUND");
+    }
+
     private static ResultActions expectProblem(ResultActions result, int status, String code) throws Exception {
         return result
                 .andExpect(status().is(status))

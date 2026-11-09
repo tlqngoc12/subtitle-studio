@@ -36,7 +36,9 @@ import com.subtitlestudio.translate.UnknownProfileException;
 import com.subtitlestudio.translate.VideoTooLongException;
 import com.subtitlestudio.translate.VietsubManualException;
 import com.subtitlestudio.video.FileTooLargeException;
+import com.subtitlestudio.video.InvalidVietsubTextException;
 import com.subtitlestudio.video.NoVietsubException;
+import com.subtitlestudio.video.VietsubChangedException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.ytdlp.YtDlpFailedException;
 import com.subtitlestudio.ytdlp.YtDlpTimeoutException;
@@ -255,6 +257,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(NoVietsubException.class)
     ProblemDetail noVietsub(NoVietsubException e) {
         return problem(HttpStatus.NOT_FOUND, "NO_VIETSUB", e.getMessage());
+    }
+
+    @ExceptionHandler(VietsubChangedException.class)
+    ProblemDetail vietsubChanged(VietsubChangedException e) {
+        return problem(HttpStatus.CONFLICT, "VIETSUB_CHANGED", e.getMessage());
+    }
+
+    /** Same shape as INVALID_BLOCK: {@code errors} lists every rejected field. */
+    @ExceptionHandler(InvalidVietsubTextException.class)
+    ProblemDetail invalidVietsubText(InvalidVietsubTextException e) {
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_VIETSUB_TEXT", e.getMessage());
+        pd.setProperty("errors", e.errors());
+        return pd;
     }
 
     @ExceptionHandler(UnknownProfileException.class)
