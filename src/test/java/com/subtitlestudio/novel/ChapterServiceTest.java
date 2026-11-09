@@ -31,7 +31,7 @@ import org.springframework.util.unit.DataSize;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterService.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterService.class, PageRotator.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
 class ChapterServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
@@ -80,6 +80,12 @@ class ChapterServiceTest {
 
     @Autowired
     private ChapterRepository chapters;
+
+    @Autowired
+    private ChapterPageRepository pageRepository;
+
+    @Autowired
+    private MediaService mediaService;
 
     @Autowired
     private NovelNotebookRepository notebooks;
@@ -387,5 +393,70 @@ class ChapterServiceTest {
 
         assertThat(cached).doesNotExist();
         assertThatThrownBy(() -> service.get(c.id())).isInstanceOf(ChapterNotFoundException.class);
+    }
+
+    private ChapterDetail landscapeChapter(int no, int pageCount) {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(no, null));
+        List<NamedImage> files = new ArrayList<>();
+        for (int i = 1; i <= pageCount; i++) {
+            files.add(new NamedImage("p" + i + ".jpg", TestImages.jpeg(300, 200)));
+        }
+        service.addPages(c.id(), files);
+        return service.get(c.id());
+    }
+
+    @Test
+    void rotatePageStoresNewMediaKeepsText() {
+        ChapterDetail c = landscapeChapter(1, 1);
+        PageDto before = c.pages().getFirst();
+        assertThat(before.landscape()).isTrue();
+        service.update(c.id(), new ChapterUpdateRequest(null, null,
+                List.of(new PageTextEdit(before.id(), "x")), null));
+
+        PageDto after = service.rotatePage(c.id(), before.id(), RotateDirection.RIGHT).getFirst();
+
+        assertThat(after.mediaUrl()).isNotEqualTo(before.mediaUrl());
+        assertThat(after.textVi()).isEqualTo("x");
+        assertThat(after.landscape()).isFalse();
+    }
+
+    @Test
+    void rotatePageRefusedWhenPublished() {
+        ChapterDetail c = landscapeChapter(1, 1);
+        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+
+        assertThatThrownBy(() -> service.rotatePage(c.id(), c.pages().getFirst().id(), RotateDirection.LEFT))
+                .isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.rotatePages(c.id(), RotateDirection.LEFT))
+                .isInstanceOf(ChapterPublishedException.class);
+    }
+
+    @Test
+    void rotateKeepsSharedMediaForOtherPage() {
+        ChapterDetail c = landscapeChapter(1, 1);
+        Chapter chapter = chapters.findById(c.id()).orElseThrow();
+        ChapterPage first = pageRepository.findByChapterIdOrderByPosition(c.id()).getFirst();
+        pageRepository.saveAndFlush(new ChapterPage(chapter, 2, first.getMedia()));
+        ChapterDetail two = service.get(c.id());
+        PageDto p1 = two.pages().get(0);
+        PageDto p2 = two.pages().get(1);
+        assertThat(p2.mediaUrl()).isEqualTo(p1.mediaUrl());
+
+        List<PageDto> after = service.rotatePage(c.id(), p1.id(), RotateDirection.RIGHT);
+
+        assertThat(after.get(1).mediaUrl()).isEqualTo(p2.mediaUrl());
+        assertThat(after.get(0).mediaUrl()).isNotEqualTo(p2.mediaUrl());
+        assertThat(after.get(1).landscape()).isTrue();
+        long oldId = Long.parseLong(p2.mediaUrl().substring("/api/media/".length()));
+        assertThat(mediaService.load(oldId).path()).exists();
+    }
+
+    @Test
+    void rotatePagesRotatesEveryPage() {
+        ChapterDetail c = landscapeChapter(1, 3);
+
+        List<PageDto> after = service.rotatePages(c.id(), RotateDirection.LEFT);
+
+        assertThat(after).hasSize(3).allMatch(p -> !p.landscape());
     }
 }

@@ -35,18 +35,20 @@ public class ChapterService {
     private final MediaService mediaService;
     private final ImageSniffer sniffer;
     private final RenderCache renderCache;
+    private final PageRotator rotator;
     private final long maxImageBytes;
     private final Clock clock;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
-                          SubtitleStudioProperties properties, Clock clock) {
+                          PageRotator rotator, SubtitleStudioProperties properties, Clock clock) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.mediaService = mediaService;
         this.sniffer = sniffer;
         this.renderCache = renderCache;
+        this.rotator = rotator;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
         this.clock = clock;
     }
@@ -197,6 +199,41 @@ public class ChapterService {
         mediaService.deleteIfUnreferenced(List.of(target.getMedia().getId()));
     }
 
+    /** Turns one page photo; its text stays. The photo is stored as a new file, the old one goes if no page uses it. */
+    @Transactional
+    public List<PageDto> rotatePage(long id, long pageId, RotateDirection direction) {
+        Chapter c = structural(id);
+        ChapterPage page = pages.findByChapterIdOrderByPosition(id).stream().filter(p -> p.getId() == pageId)
+                .findFirst().orElseThrow(() -> new PageNotFoundException(pageId));
+        Long oldId = rotateOne(page, direction);
+        touch(c);
+        pages.flush();
+        mediaService.deleteIfUnreferenced(List.of(oldId));
+        return pageDtos(id);
+    }
+
+    /** Turns every page photo of the chapter the same way. */
+    @Transactional
+    public List<PageDto> rotatePages(long id, RotateDirection direction) {
+        Chapter c = structural(id);
+        List<Long> old = new ArrayList<>();
+        for (ChapterPage page : pages.findByChapterIdOrderByPosition(id)) {
+            old.add(rotateOne(page, direction));
+        }
+        touch(c);
+        pages.flush();
+        mediaService.deleteIfUnreferenced(old);
+        return pageDtos(id);
+    }
+
+    /** Stores the rotated photo as new media, points the page at it, and returns the old media id. */
+    private Long rotateOne(ChapterPage page, RotateDirection direction) {
+        Media old = page.getMedia();
+        byte[] bytes = rotator.rotate(mediaService.load(old.getId()).path(), direction);
+        page.setMedia(mediaService.store(old.getOriginalName(), bytes));
+        return old.getId();
+    }
+
     Chapter find(long id) {
         return chapters.findById(id).orElseThrow(() -> new ChapterNotFoundException(id));
     }
@@ -255,8 +292,16 @@ public class ChapterService {
     private List<PageDto> pageDtos(long chapterId) {
         return pages.findByChapterIdOrderByPosition(chapterId).stream()
                 .map(p -> new PageDto(p.getId(), p.getPosition(), "/api/media/" + p.getMedia().getId(),
-                        p.getTextVi()))
+                        p.getTextVi(), null, landscape(p), false))
                 .toList();
+    }
+
+    private boolean landscape(ChapterPage p) {
+        try {
+            return PageImageSize.landscape(mediaService.load(p.getMedia().getId()).path());
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     ChapterDetail detail(Chapter c) {

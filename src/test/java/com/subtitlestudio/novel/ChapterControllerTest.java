@@ -32,7 +32,7 @@ class ChapterControllerTest {
 
     static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu", null,
             ChapterTranslationStatus.NONE, null, null, false, ChapterPublishStatus.DRAFT,
-            List.of(new PageDto(11, 1, "/api/media/5", null)), "", null, null);
+            List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null);
 
     @Autowired
     private MockMvc mvc;
@@ -83,8 +83,8 @@ class ChapterControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     void uploadsSeveralFiles() throws Exception {
-        when(service.addPages(eq(9L), any())).thenReturn(List.of(new PageDto(11, 1, "/api/media/5", null),
-                new PageDto(12, 2, "/api/media/6", null)));
+        when(service.addPages(eq(9L), any())).thenReturn(List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false),
+                new PageDto(12, 2, "/api/media/6", null, null, false, false)));
 
         mvc.perform(multipart("/api/chapters/9/pages")
                         .file(new MockMultipartFile("files", "p2.png", "image/png", TestImages.png()))
@@ -140,5 +140,24 @@ class ChapterControllerTest {
                         .content("{\"title\":\"x\",\"pages\":[{\"id\":11,\"textVi\":\"Chào\"}]}"))
                 .andExpect(status().isOk());
         verify(service).update(9L, new ChapterUpdateRequest(null, "x", List.of(new PageTextEdit(11, "Chào"))));
+    }
+
+    @Test
+    void rotateEndpoints() throws Exception {
+        when(service.rotatePage(9L, 11L, RotateDirection.RIGHT)).thenReturn(DETAIL.pages());
+        when(service.rotatePages(9L, RotateDirection.LEFT)).thenReturn(DETAIL.pages());
+
+        mvc.perform(post("/api/chapters/9/pages/11/rotate").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"direction\":\"RIGHT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(11));
+        mvc.perform(post("/api/chapters/9/pages/rotate").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"direction\":\"LEFT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(post("/api/chapters/9/pages/11/rotate").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/chapters/9/pages/rotate").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
     }
 }
