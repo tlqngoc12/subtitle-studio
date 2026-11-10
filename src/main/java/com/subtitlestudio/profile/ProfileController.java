@@ -22,8 +22,29 @@ public class ProfileController {
     }
 
     @GetMapping("/api/profiles")
-    public List<ProfileSummary> list() {
-        return service.list();
+    public ProfilePageDto page() {
+        return service.page();
+    }
+
+    @PutMapping("/api/profiles/order")
+    public List<ProfileDto> reorder(@RequestBody MemberOrderRequest request) {
+        return service.reorder(request);
+    }
+
+    @PostMapping("/api/profiles")
+    public ResponseEntity<ProfileDto> addMember(@RequestBody NewMemberRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.addMember(request));
+    }
+
+    @PutMapping("/api/profiles/{slug}/header")
+    public ProfileDto updateHeader(@PathVariable String slug, @RequestBody ProfileHeaderRequest request) {
+        return service.updateHeader(slug, request);
+    }
+
+    @DeleteMapping("/api/profiles/{slug}")
+    public ResponseEntity<Void> deleteMember(@PathVariable String slug) {
+        service.deleteMember(slug);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/api/profiles/{slug}")

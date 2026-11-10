@@ -66,6 +66,15 @@ class ProfileServiceTest {
     private ProfileBlockRepository blocks;
 
     @Autowired
+    private ProfileRepository profiles;
+
+    @Autowired
+    private ProfileBannerImageRepository bannerImages;
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Autowired
     private MutableClock clock;
 
     @BeforeEach
@@ -76,6 +85,11 @@ class ProfileServiceTest {
     @AfterEach
     void cleanUp() {
         blocks.deleteAll();
+        bannerImages.deleteAll();
+        jdbc.update("delete from t_profile where kind = 'MEMBER' and slug not in ('emi', 'bonnie')");
+        jdbc.update("update t_profile set portrait_media_id = null, tagline = null, full_name = null, "
+                + "display_name = case slug when 'emibonnie' then 'EmiBonnie' when 'emi' then 'Emi' else 'Bonnie' end, "
+                + "sort_order = case slug when 'emibonnie' then 0 when 'emi' then 1 else 2 end");
         media.deleteAll();
     }
 
@@ -118,8 +132,9 @@ class ProfileServiceTest {
 
     @Test
     void listsProfilesInSeedOrder() {
-        assertThat(service.list()).containsExactly(new ProfileSummary("emibonnie", "EmiBonnie"),
-                new ProfileSummary("emi", "Emi"), new ProfileSummary("bonnie", "Bonnie"));
+        ProfilePageDto page = service.page();
+        assertThat(page.group().slug()).isEqualTo("emibonnie");
+        assertThat(page.members()).extracting(ProfileDto::slug).containsExactly("emi", "bonnie");
     }
 
     @Test
@@ -276,5 +291,110 @@ class ProfileServiceTest {
 
         assertThat(service.move("emi", a, Direction.UP)).extracting(BlockDto::id).containsExactly(a, b);
         assertThat(service.move("emi", b, Direction.DOWN)).extracting(BlockDto::id).containsExactly(a, b);
+    }
+
+    private static ProfileHeaderRequest header(String name, String tagline, String fullName, Long portrait) {
+        return new ProfileHeaderRequest(name, tagline, fullName, portrait);
+    }
+
+    private static List<String> fields(Throwable t) {
+        return ((InvalidBlockException) t).errors().stream().map(FieldError::field).toList();
+    }
+
+    @Test
+    void pageReturnsGroupAndMembersInOrder() {
+        ProfilePageDto page = service.page();
+
+        assertThat(page.group().kind()).isEqualTo(ProfileKind.GROUP);
+        assertThat(page.members()).extracting(ProfileDto::slug).containsExactly("emi", "bonnie");
+    }
+
+    @Test
+    void updateHeaderValidatesLengthsAndMedia() {
+        assertThat(fields(catchThrowableOfType(InvalidBlockException.class,
+                () -> service.updateHeader("emi", header("Emi", "a".repeat(301), null, null)))))
+                .containsExactly("tagline");
+        assertThat(fields(catchThrowableOfType(InvalidBlockException.class,
+                () -> service.updateHeader("emi", header("Emi", null, "a".repeat(201), null)))))
+                .containsExactly("fullName");
+        assertThat(fields(catchThrowableOfType(InvalidBlockException.class,
+                () -> service.updateHeader("emi", header(" ", null, null, null))))).containsExactly("displayName");
+        assertThat(fields(catchThrowableOfType(InvalidBlockException.class,
+                () -> service.updateHeader("emi", header("Emi", null, null, 999_999L)))))
+                .containsExactly("portraitMediaId");
+    }
+
+    @Test
+    void blankHeaderFieldsStoredAsNull() {
+        long img = image();
+        ProfileDto saved = service.updateHeader("emi", header(" Emi ", "  ", " Full Name ", img));
+
+        assertThat(saved.displayName()).isEqualTo("Emi");
+        assertThat(saved.tagline()).isNull();
+        assertThat(saved.fullName()).isEqualTo("Full Name");
+        assertThat(saved.portraitMediaId()).isEqualTo(img);
+        assertThat(saved.portraitUrl()).isEqualTo("/api/media/" + img);
+    }
+
+    @Test
+    void replacingPortraitDeletesTheOldUnusedImage() {
+        long a = image();
+        long b = image();
+        service.updateHeader("emi", header("Emi", null, null, a));
+        service.updateHeader("emi", header("Emi", null, null, b));
+
+        assertThat(fileOf(a)).doesNotExist();
+        assertThat(fileOf(b)).exists();
+    }
+
+    @Test
+    void addMemberAppendsLast() {
+        ProfileDto added = service.addMember(new NewMemberRequest(" Any "));
+
+        assertThat(added.slug()).isEqualTo("any");
+        assertThat(added.displayName()).isEqualTo("Any");
+        assertThat(added.kind()).isEqualTo(ProfileKind.MEMBER);
+        assertThat(service.page().members()).extracting(ProfileDto::slug).containsExactly("emi", "bonnie", "any");
+        assertThat(fields(catchThrowableOfType(InvalidBlockException.class,
+                () -> service.addMember(new NewMemberRequest(" "))))).containsExactly("displayName");
+    }
+
+    @Test
+    void deleteMemberRemovesBlocksBannerAndUnusedMedia() {
+        long portrait = image();
+        long blockImage = image();
+        long bannerImage = image();
+        ProfileDto any = service.addMember(new NewMemberRequest("Any"));
+        service.updateHeader("any", header("Any", null, null, portrait));
+        service.addBlock("any", imageBlock(blockImage));
+        bannerImages.saveAndFlush(new ProfileBannerImage(profiles.findBySlug("any").orElseThrow(),
+                media.getReferenceById(bannerImage), 1, null, NOW));
+
+        service.deleteMember(any.slug());
+
+        assertThat(profiles.existsBySlug("any")).isFalse();
+        assertThat(blocks.count()).isZero();
+        assertThat(bannerImages.count()).isZero();
+        assertThat(fileOf(portrait)).doesNotExist();
+        assertThat(fileOf(blockImage)).doesNotExist();
+        assertThat(fileOf(bannerImage)).doesNotExist();
+    }
+
+    @Test
+    void deleteGroupIs409() {
+        assertThatThrownBy(() -> service.deleteMember("emibonnie")).isInstanceOf(GroupProfileException.class);
+        assertThatThrownBy(() -> service.deleteMember("nobody")).isInstanceOf(ProfileNotFoundException.class);
+    }
+
+    @Test
+    void reorderMustListEveryMemberOnce() {
+        for (List<String> bad : List.of(List.of("emi"), List.of("emi", "emi"), List.of("emi", "bonnie", "x"),
+                List.of("emibonnie", "emi", "bonnie"))) {
+            assertThat(fields(catchThrowableOfType(InvalidBlockException.class,
+                    () -> service.reorder(new MemberOrderRequest(bad))))).containsExactly("slugs");
+        }
+        List<ProfileDto> reordered = service.reorder(new MemberOrderRequest(List.of("bonnie", "emi")));
+        assertThat(reordered).extracting(ProfileDto::slug).containsExactly("bonnie", "emi");
+        assertThat(service.page().members()).extracting(ProfileDto::slug).containsExactly("bonnie", "emi");
     }
 }

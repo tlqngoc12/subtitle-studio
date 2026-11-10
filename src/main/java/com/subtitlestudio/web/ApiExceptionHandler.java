@@ -19,6 +19,7 @@ import com.subtitlestudio.playlist.PlaylistNotFoundException;
 import com.subtitlestudio.playlist.VideoHasNoVietsubException;
 import com.subtitlestudio.profile.BannerImageNotFoundException;
 import com.subtitlestudio.profile.BlockNotFoundException;
+import com.subtitlestudio.profile.GroupProfileException;
 import com.subtitlestudio.profile.InvalidBlockException;
 import com.subtitlestudio.profile.InvalidMediaException;
 import com.subtitlestudio.profile.MediaNotFoundException;
@@ -120,6 +121,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ProfileNotFoundException.class)
     ProblemDetail profileNotFound(ProfileNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(GroupProfileException.class)
+    ProblemDetail groupProfile(GroupProfileException e) {
+        return problem(HttpStatus.CONFLICT, "GROUP_PROFILE", e.getMessage());
     }
 
     @ExceptionHandler(BlockNotFoundException.class)
