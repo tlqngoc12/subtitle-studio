@@ -14,6 +14,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   EMBED: 'Music / Video',
   LINKS: 'Links',
   FACTS: 'Quick facts',
+  CHIPS: 'Chips',
 };
 
 interface Row {
@@ -91,6 +92,11 @@ export function BlockEditor({
         return {
           ...base,
           items: rows.map((r) => ({ label: blankToNull(r.label), value: null, mediaId: r.image?.mediaId ?? null })),
+        };
+      case 'CHIPS':
+        return {
+          ...base,
+          items: rows.map((r) => ({ label: blankToNull(r.label), value: null, mediaId: null })),
         };
       case 'LINKS':
       case 'FACTS':
@@ -231,6 +237,19 @@ export function BlockEditor({
               {field(`items[${i}].value`, 'Value', text(row.value, (v) => update({ value: v })))}
             </>
           )}
+        />
+      )}
+
+      {type === 'CHIPS' && (
+        <ItemListEditor
+          rows={rows}
+          onChange={setRows}
+          newRow={() => newRow()}
+          noun="chip"
+          legend={(i) => `Chip ${i + 1}`}
+          renderRow={(row, i, update) =>
+            field(`items[${i}].label`, 'Label', text(row.label, (v) => update({ label: v })))
+          }
         />
       )}
 

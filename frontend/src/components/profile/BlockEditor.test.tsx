@@ -68,6 +68,20 @@ describe('BlockEditor', () => {
     expect(onSave.mock.calls[0][0].items).toEqual([{ label: 'Ngày sinh', value: '13/05/1999', mediaId: null }]);
   });
 
+  it('offers label-only rows for chips', async () => {
+    const { onSave } = setup({ type: 'CHIPS' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add chip' }));
+    await userEvent.type(screen.getByLabelText('Label'), 'Reading');
+    expect(screen.queryByLabelText('Value')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: 'CHIPS',
+      items: [{ label: 'Reading', value: null, mediaId: null }],
+    });
+  });
+
   it('uploads an image and disables Save while uploading', async () => {
     let finish!: () => void;
     const delay = new Promise<void>((r) => (finish = r));

@@ -10,7 +10,7 @@ import { SiteProvider, type Site } from './data/SiteContext';
 import { createNovelSource, withChapterCache } from './data/novelSource';
 import { createStaticSource } from './data/staticSource';
 import NotFoundPage from './pages/NotFoundPage';
-import ProfilePage from './pages/ProfilePage';
+import ProfilePage, { ProfileRedirect } from './pages/ProfilePage';
 import PublicAllNovelsPage from './pages/public/PublicAllNovelsPage';
 import PublicNovelPage from './pages/public/PublicNovelPage';
 import PublicNovelsPage from './pages/public/PublicNovelsPage';
@@ -36,8 +36,8 @@ export default function PublicApp() {
             <Route path="/" element={<Navigate to="/vietsub/list" replace />} />
             <Route path="/vietsub/list" element={<VietsubListPage />} />
             <Route path="/vietsub/:id" element={<WatchPage />} />
-            <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
-            <Route path="/profiles/:slug" element={<ProfilePage />} />
+            <Route path="/profiles" element={<ProfilePage />} />
+            <Route path="/profiles/:slug" element={<ProfileRedirect />} />
             <Route path="/novels" element={<PublicNovelsPage source={novels} />} />
             <Route path="/novels/all" element={<PublicAllNovelsPage source={novels} />} />
             <Route path="/novels/:slug" element={<PublicNovelPage source={novels} />} />

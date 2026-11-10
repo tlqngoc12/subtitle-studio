@@ -1,8 +1,7 @@
-/* ---------- Profile pages ---------- */
-.pblocks {
+/* ---------- Profile page ---------- */
+.pmembers {
   display: grid;
-  gap: var(--space-5);
-  max-width: 760px;
+  gap: var(--space-16);
 }
 
 /* ---------- Profile edit mode ---------- */
@@ -12,6 +11,11 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+.pblocks {
+  display: grid;
+  gap: var(--space-5);
 }
 
 .pblock-wrap {

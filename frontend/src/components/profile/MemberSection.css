@@ -1,0 +1,129 @@
+/* One member of the Profile page: portrait column (about 1/3) and details column; sides alternate. */
+.member {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  scroll-margin-top: var(--space-8);
+}
+
+.member__aside {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  justify-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.member__portrait {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.member__portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member__portrait--empty {
+  display: grid;
+  place-items: center;
+  cursor: default;
+  color: var(--muted);
+  font-size: 4rem;
+  font-weight: 700;
+}
+
+.member__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.member__name {
+  margin: 0;
+  font-size: var(--step-3);
+  overflow-wrap: anywhere;
+}
+
+.member__tagline {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.member__details {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  min-width: 0;
+}
+
+.member__full-name {
+  margin: 0;
+  font-size: var(--step-2);
+  overflow-wrap: anywhere;
+}
+
+.social {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.social__link {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--brand);
+  border-radius: 50%;
+  color: var(--ink);
+}
+
+.social__link:hover,
+.social__link:focus-visible {
+  border-color: var(--brand-2);
+}
+
+.social__link .icon {
+  width: 20px;
+  height: 20px;
+}
+
+@media (min-width: 1024px) {
+  .member {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--space-10);
+    align-items: start;
+  }
+
+  .member--right {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .member--right .member__aside {
+    order: 2;
+  }
+
+  .member__aside {
+    position: sticky;
+    top: var(--space-6);
+  }
+}
