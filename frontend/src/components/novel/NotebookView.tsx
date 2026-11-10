@@ -5,6 +5,7 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { EmptyState } from '../EmptyState';
 import { chapterName } from './ChapterList';
 import { Alert } from '../ui/Alert';
+import { Select } from '../ui/Select';
 import { LoadingText } from '../ui/LoadingText';
 import './NotebookView.css';
 
@@ -90,17 +91,12 @@ export function NotebookView({
       {status}
       <div className="field notebook__version">
         <label htmlFor={`${id}-version`}>Version</label>
-        <select
+        <Select
           id={`${id}-version`}
-          value={view.afterChapterNo ?? ''}
-          onChange={(e) => void choose(Number(e.target.value))}
-        >
-          {view.versions.map((v) => (
-            <option key={v} value={v}>
-              After chapter {v}
-            </option>
-          ))}
-        </select>
+          value={view.afterChapterNo === null ? '' : String(view.afterChapterNo)}
+          onChange={(v) => void choose(Number(v))}
+          options={view.versions.map((v) => ({ value: String(v), label: `After chapter ${v}` }))}
+        />
       </div>
       {view.staleLaterVersions && (
         <p className="notebook__warning">

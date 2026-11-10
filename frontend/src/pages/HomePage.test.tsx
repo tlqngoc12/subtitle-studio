@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { answerConfirm } from '../test/confirm';
+import { optionNames, pickOption } from '../test/select';
 import { loadedRegion } from '../test/loadedRegion';
 import { expectTooltip } from '../test/tooltip';
 import { MemoryRouter, useLocation } from 'react-router';
@@ -128,11 +129,9 @@ describe('HomePage', () => {
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
       const select = await screen.findByLabelText('Translation profile');
-      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(3));
-      expect(within(select).getAllByRole('option').map((o) => o.textContent))
-        .toEqual(['— No translation —', 'EmiBonnie', 'Other']);
-      expect(select).toHaveValue('');
-      expect(select).toBeEnabled();
+      await waitFor(() => expect(select).toBeEnabled());
+      expect(await optionNames(userEvent.setup(), select)).toEqual(['— No translation —', 'EmiBonnie', 'Other']);
+      expect(select).toHaveTextContent('— No translation —');
     });
 
     it('disables profiles when Gemini is not configured', async () => {
@@ -153,9 +152,9 @@ describe('HomePage', () => {
       ]);
       render(<MemoryRouter><HomePage /></MemoryRouter>);
       const select = await screen.findByLabelText('Translation profile');
-      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
+      await waitFor(() => expect(select).toBeEnabled());
 
-      await userEvent.setup().selectOptions(select, 'EmiBonnie');
+      await pickOption(userEvent.setup(), select, 'EmiBonnie');
       await submit(ID);
 
       expect(calls.find((c) => c.method === 'POST')?.body).toBe(JSON.stringify({ url: ID, profile: 'EmiBonnie' }));
@@ -180,13 +179,13 @@ describe('HomePage', () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }, profilesRoute(true, ['EmiBonnie'])]);
       const first = render(<MemoryRouter><HomePage /></MemoryRouter>);
       const select = await screen.findByLabelText('Translation profile');
-      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
-      await userEvent.setup().selectOptions(select, 'EmiBonnie');
+      await waitFor(() => expect(select).toBeEnabled());
+      await pickOption(userEvent.setup(), select, 'EmiBonnie');
       first.unmount();
 
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
-      await waitFor(() => expect(screen.getByLabelText('Translation profile')).toHaveValue('EmiBonnie'));
+      await waitFor(() => expect(screen.getByLabelText('Translation profile')).toHaveTextContent('EmiBonnie'));
     });
 
     it('forgets a remembered profile that no longer exists', async () => {
@@ -195,8 +194,8 @@ describe('HomePage', () => {
       render(<MemoryRouter><HomePage /></MemoryRouter>);
 
       const select = await screen.findByLabelText('Translation profile');
-      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
-      expect(select).toHaveValue('');
+      await waitFor(() => expect(select).toBeEnabled());
+      expect(select).toHaveTextContent('— No translation —');
     });
   });
 
@@ -384,8 +383,8 @@ describe('HomePage', () => {
 
     async function chooseProfile() {
       const select = await screen.findByLabelText('Translation profile');
-      await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2));
-      await user().selectOptions(select, 'EmiBonnie');
+      await waitFor(() => expect(select).toBeEnabled());
+      await pickOption(user(), select, 'EmiBonnie');
     }
 
     async function openFromHistory() {

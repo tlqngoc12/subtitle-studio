@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { answerConfirm } from '../test/confirm';
+import { pickOption } from '../test/select';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../test/novelFixtures';
 import NovelPage from './NovelPage';
@@ -189,7 +190,7 @@ describe('NovelPage', () => {
     expect(screen.getByText('đang buồn')).toBeInTheDocument();
     expect(screen.getByText('Chapter 5:')).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Version'), '2');
+    await pickOption(user, screen.getByLabelText('Version'), 'After chapter 2');
 
     await waitFor(() => expect(calls.some((c) => c.path === '/api/novels/3/notebook?after=2')).toBe(true));
     expect(await screen.findByText('Notebook versions after chapter 2 were built from an older text.')).toBeInTheDocument();

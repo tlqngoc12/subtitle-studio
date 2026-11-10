@@ -96,29 +96,3 @@
   }
 }
 
-/* Translation profile picker inside the dark link frame. */
-.frame__select {
-  flex: none;
-  max-width: 11rem;
-  padding: var(--space-3) var(--space-3);
-  border: 0;
-  border-radius: var(--radius-control);
-  background: rgb(0 0 0 / 0.45);
-  color: var(--caption);
-  font: inherit;
-}
-
-.frame__select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.frame__select:focus-visible {
-  outline-color: var(--brand-2);
-}
-
-@media (max-width: 760px) {
-  .frame__select {
-    max-width: none;
-  }
-}

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { describe, expect, it, vi } from 'vitest';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
+import { pickOption } from '../test/select';
 import { expectTooltip } from '../test/tooltip';
 import ProfilesPage from './ProfilesPage';
 
@@ -66,7 +67,25 @@ describe('ProfilesPage', () => {
     expect(within(tabs).getByRole('link', { name: 'Profiles' })).toHaveAttribute('aria-current', 'page');
     expect(within(tabs).getByRole('link', { name: 'Videos' })).not.toHaveAttribute('aria-current');
     expect(await screen.findByText('34 videos · 612 corrected lines')).toBeInTheDocument();
-    expect(await screen.findByRole('combobox', { name: 'Profile' })).toHaveValue('EmiBonnie');
+    expect(await screen.findByRole('combobox', { name: 'Profile' })).toHaveTextContent('EmiBonnie');
+  });
+
+  it('loads a profile chosen in the list and clears it with "Choose a profile…"', async () => {
+    fakeFetch([list(), get()]);
+    renderPage('/vietsub/profiles');
+    const user = userEvent.setup();
+    const select = await screen.findByRole('combobox', { name: 'Profile' });
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(select).toHaveTextContent('Choose a profile…');
+
+    await pickOption(user, select, 'EmiBonnie');
+
+    expect(await screen.findByText('34 videos · 612 corrected lines')).toBeInTheDocument();
+    expect(select).toHaveTextContent('EmiBonnie');
+
+    await pickOption(user, select, 'Choose a profile…');
+
+    await waitFor(() => expect(screen.queryByText('34 videos · 612 corrected lines')).not.toBeInTheDocument());
   });
 
   it('disables Analyze with a reason when no profile is chosen', async () => {

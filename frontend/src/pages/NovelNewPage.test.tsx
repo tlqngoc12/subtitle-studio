@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { fakeFetch, problem } from '../test/fakeFetch';
+import { optionNames, pickOption } from '../test/select';
 import { novelDetail } from '../test/novelFixtures';
 import { slugify } from '../components/novel/NovelForm';
 import NovelNewPage from './NovelNewPage';
@@ -53,8 +54,8 @@ describe('NovelNewPage', () => {
     await user.type(screen.getByLabelText('Title'), 'Tình Yêu Mùa Hạ');
     await user.type(screen.getByLabelText('Original author (optional)'), 'ผู้เขียน');
     await user.type(screen.getByLabelText('Tags (optional)'), 'romance, BL');
-    await user.selectOptions(await screen.findByLabelText('Translation profile'), 'SummerLove');
-    await user.selectOptions(screen.getByLabelText('Status'), 'COMPLETED');
+    await pickOption(user, await screen.findByLabelText('Translation profile'), 'SummerLove');
+    await pickOption(user, screen.getByLabelText('Status'), 'Completed');
     await user.click(screen.getByRole('button', { name: 'Create novel' }));
 
     expect(await screen.findByText('novel 3')).toBeInTheDocument();
@@ -142,12 +143,30 @@ describe('NovelNewPage', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Check the highlighted fields.');
   });
 
+  it('sends no profile when None is picked again after a profile (the empty value round-trips)', async () => {
+    const calls = fakeFetch([profiles, { method: 'POST', path: '/api/novels', status: 201, body: novelDetail() }]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Title'), 'Tình Yêu Mùa Hạ');
+    const select = await screen.findByLabelText('Translation profile');
+    await pickOption(user, select, 'SummerLove');
+    expect(select).toHaveTextContent('SummerLove');
+    await pickOption(user, select, 'None (Translate is off)');
+    expect(select).toHaveTextContent('None (Translate is off)');
+    await user.click(screen.getByRole('button', { name: 'Create novel' }));
+
+    await screen.findByText('novel 3');
+    const sent = JSON.parse(calls.find((c) => c.method === 'POST')!.body as string);
+    expect(sent.promptProfile).toBeNull();
+  });
+
   it('offers no profile when none exist', async () => {
     fakeFetch([{ ...profiles, body: { configured: false, profiles: [] } }]);
     renderPage();
 
     const select = await screen.findByLabelText('Translation profile');
-    expect(select).toHaveValue('');
-    expect(screen.getByRole('option', { name: 'None (Translate is off)' })).toBeInTheDocument();
+    expect(select).toHaveTextContent('None (Translate is off)');
+    expect(await optionNames(userEvent.setup(), select)).toEqual(['None (Translate is off)']);
   });
 });
