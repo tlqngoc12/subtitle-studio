@@ -187,3 +187,10 @@
     display: none !important;
   }
 }
+
+/* Compact screens: the top bar keeps only the back arrow and the names; the controls live in the bottom bar. */
+@media (max-width: 767px) {
+  .reader-bar__right {
+    display: none;
+  }
+}

@@ -655,3 +655,71 @@ describe('ReaderPage preferences', () => {
     expect(reader(container).contains(screen.getByRole('radio', { name: 'Chữ lớn' }))).toBe(false);
   });
 });
+
+describe('ReaderPage mobile controls', () => {
+  function compact(on: boolean) {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: on && q.includes('max-width'),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+  }
+  const shield = (c: HTMLElement) => c.querySelector('.reader__shield') as HTMLElement;
+  const bottom = () => document.querySelector('.reader-bottom');
+
+  it('tap in the middle toggles the bars', async () => {
+    compact(true);
+    vi.stubGlobal('innerHeight', 800);
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(bottom()).not.toHaveAttribute('data-hidden');
+    fireEvent.click(shield(container), { clientY: 400 });
+    expect(bottom()).toHaveAttribute('data-hidden');
+    fireEvent.click(shield(container), { clientY: 400 });
+    expect(bottom()).not.toHaveAttribute('data-hidden');
+  });
+
+  it('tap in the bottom quarter scrolls down, top quarter scrolls up', async () => {
+    compact(true);
+    vi.stubGlobal('innerHeight', 800);
+    const spy = vi.fn();
+    vi.stubGlobal('scrollBy', spy);
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    fireEvent.click(shield(container), { clientY: 700 });
+    expect(spy).toHaveBeenLastCalledWith({ top: 720, behavior: 'smooth' });
+    fireEvent.click(shield(container), { clientY: 50 });
+    expect(spy).toHaveBeenLastCalledWith({ top: -720, behavior: 'smooth' });
+  });
+
+  it('tapping the slider or a bar button does not toggle or scroll', async () => {
+    compact(true);
+    vi.stubGlobal('innerHeight', 800);
+    const spy = vi.fn();
+    vi.stubGlobal('scrollBy', spy);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    fireEvent.click(screen.getByRole('slider', { name: 'Vị trí trong chương' }), { clientY: 700 });
+    fireEvent.click(screen.getAllByRole('link', { name: 'Chương sau' })[0], { clientY: 700 });
+    expect(bottom()).not.toHaveAttribute('data-hidden');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('shows the position and opens the settings sheet from Aa', async () => {
+    compact(true);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await waitFor(() => expect(screen.getByText('2/3')).toBeInTheDocument());
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Hiển thị' }));
+    expect(await screen.findByRole('dialog', { name: 'Hiển thị' })).toBeInTheDocument();
+  });
+
+  it('bottom bar is not rendered on desktop', async () => {
+    compact(false);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(bottom()).toBeNull();
+    expect(document.querySelector('.reader-progress')).not.toBeNull();
+  });
+});

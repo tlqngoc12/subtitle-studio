@@ -118,3 +118,27 @@
     margin-inline: calc(-1 * var(--gutter));
   }
 }
+
+/* Reading progress: a 3px line across the very top, above the site top bar. */
+.reader-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 11;
+  height: 3px;
+  background: var(--brand);
+  transform-origin: left;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  /* Leave room for the bottom bar under the end-of-chapter buttons. */
+  .reader-page {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-4));
+  }
+}
+
+@media print {
+  .reader-progress {
+    display: none;
+  }
+}

@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useId } from "react";
 import { IconButton } from "../../components/ui/IconButton";
-import { OWN_KEYS } from "./ReaderBar";
+import { OWN_KEYS } from "./readerKeys";
 import { READER_THEMES, type ReaderSize, type ReaderTheme } from "./readerPrefs";
 import "./ReaderSettings.css";
 

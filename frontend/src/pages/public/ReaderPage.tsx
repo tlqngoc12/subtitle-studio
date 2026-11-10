@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import type { NovelSource } from "../../data/novelSource";
@@ -9,13 +9,20 @@ import type {
 } from "../../data/novelTypes";
 import { recordRead } from "../../data/novelReads";
 import { useCopyGuard } from "../../lib/useCopyGuard";
+import { useReaderChrome } from "../../lib/useReaderChrome";
+import { scrollToProgress, useScrollProgress } from "../../lib/useScrollProgress";
+import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import {
   PUBLIC_ERROR_TITLE,
   publicChapterLabel,
   publicChapterName,
   useDocumentTitle,
 } from "./publicNames";
-import { OWN_KEYS, ReaderBar } from "./ReaderBar";
+import { ReaderBar } from "./ReaderBar";
+import { ReaderBottomBar } from "./ReaderBottomBar";
+import { ReaderTocDrawer } from "./ReaderTocDrawer";
+import { ReaderSettingsSheet } from "./ReaderSettings";
+import { OWN_KEYS } from "./readerKeys";
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
 import {
@@ -49,6 +56,35 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const [theme, setTheme] = useState<ReaderTheme>(readTheme);
   const [size, setSize] = useState<ReaderSize>(readSize);
   const compact = useMediaQuery(COMPACT_QUERY);
+  const reducedMotion = usePrefersReducedMotion();
+  const [tocOpen, setTocOpen] = useState(false);
+  const tocOpener = useRef<HTMLElement | null>(null);
+  const openToc = useCallback(() => {
+    tocOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setTocOpen(true);
+  }, []);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const chrome = useReaderChrome(tocOpen || settingsOpen || pinned);
+  const reader = useRef<HTMLDivElement>(null);
+  const progress = useScrollProgress(reader);
+  const onPinnedChange = useCallback((p: boolean) => setPinned(p), []);
+
+  // Reaching the end of the chapter brings the bars back, with the next-chapter controls.
+  const { show } = chrome;
+  useEffect(() => {
+    if (progress >= 0.98) show();
+  }, [progress, show]);
+
+  // Tap zones (compact screens): top quarter pages up, bottom quarter pages down, the middle toggles the bars.
+  function onShieldClick(e: MouseEvent<HTMLDivElement>) {
+    if (!compact || tocOpen || settingsOpen || e.target !== e.currentTarget) return;
+    const behavior = reducedMotion ? "auto" : "smooth";
+    const h = window.innerHeight;
+    if (e.clientY < h * 0.25) window.scrollBy({ top: -0.9 * h, behavior });
+    else if (e.clientY > h * 0.75) window.scrollBy({ top: 0.9 * h, behavior });
+    else chrome.toggle();
+  }
 
   function changeTheme(t: ReaderTheme) {
     saveTheme(t);
@@ -91,6 +127,9 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const to = (no: number) => `/novels/${slug}/${no}`;
   const prev = chapter?.prev ?? null;
   const next = chapter?.next ?? null;
+
+  const chapterIndex = novel ? novel.chapters.findIndex((c) => c.chapterNo === (chapter?.chapterNo ?? Number(chapterNo))) : -1;
+  const position = novel && chapterIndex >= 0 ? { index: chapterIndex + 1, total: novel.chapters.length } : null;
 
   const openedNo = chapter?.chapterNo;
   useEffect(() => {
@@ -153,13 +192,48 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         )}
         prev={prev}
         next={next}
-        chapters={novel?.chapters ?? []}
-        currentNo={chapter?.chapterNo ?? Number(chapterNo)}
+        hidden={chrome.hidden}
+        onPinnedChange={onPinnedChange}
+        onTocOpenChange={openToc}
+        settingsOpen={settingsOpen && !compact}
+        onSettingsOpenChange={setSettingsOpen}
         theme={theme}
         onTheme={changeTheme}
         size={size}
         onSize={changeSize}
       />
+      <div className="reader-progress" aria-hidden="true" style={{ transform: `scaleX(${progress})` }} />
+      <ReaderTocDrawer
+        open={tocOpen}
+        onOpenChange={setTocOpen}
+        restoreFocus={tocOpener}
+        slug={slug}
+        chapters={novel?.chapters ?? []}
+        currentNo={chapter?.chapterNo ?? Number(chapterNo)}
+      />
+      {compact && (
+        <ReaderSettingsSheet
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          theme={theme}
+          onTheme={changeTheme}
+          size={size}
+          onSize={changeSize}
+        />
+      )}
+      {compact && (
+        <ReaderBottomBar
+          slug={slug}
+          prev={prev}
+          next={next}
+          progress={progress}
+          onSeek={(p) => reader.current && scrollToProgress(reader.current, p)}
+          onToc={openToc}
+          onSettings={() => setSettingsOpen(true)}
+          hidden={chrome.hidden}
+          position={position}
+        />
+      )}
       {failed && (
         <Alert title={PUBLIC_ERROR_TITLE} />
       )}
@@ -168,6 +242,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         <>
           <h1 className="visually-hidden">{current}</h1>
           <div
+            ref={reader}
             className={["reader", hidden && "reader--hidden"].filter(Boolean).join(" ")}
             data-width={READER_COLUMNS[size]}
           >
@@ -182,7 +257,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                 loading={i === 0 ? "eager" : "lazy"}
               />
             ))}
-            <div className="reader__shield" aria-hidden="true" />
+            <div className="reader__shield" aria-hidden="true" onClick={onShieldClick} />
           </div>
           <p className="visually-hidden" aria-live="polite">
             {hidden ? "Nội dung tạm ẩn khi cửa sổ không hoạt động." : ""}
