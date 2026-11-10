@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-09
+> Cập nhật lần cuối: 2026-11-10
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -670,6 +670,17 @@ Nhánh `feature/public-manual-vietsub-only`. Chỉ đổi backend (`SiteExporter
 - **Playlist:** danh sách video, số lượng và ảnh bìa chỉ tính video Manual; playlist không còn video Manual nào thì không xuất (không có `data/playlists/<id>.json`, không có trong `playlists.json`).
 - **Test:** `SiteExporterTest` thêm 3 ca (video AI bị loại, playlist chỉ có AI bị bỏ, playlist hỗn hợp tính lại số lượng + bìa); các ca cũ dùng Vietsub Manual.
 - **Cần làm:** bấm **Publish lại** để bản public bỏ các video AI đã đăng trước đó.
+
+### 2026-11-10: Novel reader UX (trang đọc truyện public) ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-reader-ux.md](docs/superpowers/plans/2026-11-10-novel-reader-ux.md).
+
+- **Ảnh chương 3 khổ:** `NovelRenderer` (VERSION 5) vẽ mực đen trên giấy trong suốt, ba khổ s/m/l = 1080×4800, 820×3645, 700×3111; `RenderCache` băm riêng từng khổ; JSON chương có `formats`. Màu nền do CSS quyết định.
+- **Giao diện đọc:** 4 theme (Sáng/Giấy/Tối/Đen OLED) bằng CSS, cỡ chữ chọn được; trên mobile có thanh dưới, vùng chạm trái/phải, thanh tiến độ, bảng cài đặt dạng bottom sheet. Skeleton + fade khi tải chương, prefetch chương kế.
+- **Trang truyện:** trang chủ có hàng "Tủ sách" và "Mới cập nhật" (thời gian tương đối); trang "Tất cả truyện" dạng lưới bìa; trang chi tiết có nút thêm vào tủ và CTA đọc dính đáy trên mobile.
+- **Publish đếm file:** `PublishStatus.fileCount`; cảnh báo từ 16.000 file, chặn khi > 20.000 (giới hạn Cloudflare Pages Free). Một chương trung bình ~62 file, tức ~300 chương là chạm ngưỡng.
+- **Hướng sau:** chuyển ảnh chương sang R2 để hết giới hạn số file.
+- **Kiểm tra:** `mvn test`, `npm run build`, `npm run build:public`. Chưa kiểm tra bằng trình duyệt trên site thật (chưa publish).
 
 ## 9. Rủi ro đang theo dõi
 
