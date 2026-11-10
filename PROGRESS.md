@@ -661,6 +661,16 @@ Plan: [docs/superpowers/plans/2026-11-09-warm-palette.md](docs/superpowers/plans
 - **Khung video:** `UrlForm.css` và `VideoPlayer.css` dùng `--frame`/`--on-frame` thay hex.
 - **Test:** `contrast.test.ts` kiểm `--ink` ≥ 7:1 (AAA), chữ phụ/brand-ink/danger ≥ 4.5:1, viền ô nhập/focus ≥ 3:1, `--on-brand` trên `--brand-hover`, `--on-frame` 7:1. `--danger` và `--hover` giữ nguyên (đạt).
 
+### 2026-11-10: Dịch phim bộ chính xác hơn: ví dụ từ tập đã Done + mô tả YouTube ✅ (chưa merge, chưa deploy; cần deploy vì có V12)
+
+Nhánh `feat/translate-series-context`. Plan: [docs/superpowers/plans/2026-11-10-translate-series-context.md](docs/superpowers/plans/2026-11-10-translate-series-context.md). User đã duyệt, chọn (a): không chuyển hồ sơ của video cũ.
+
+- **Ví dụ Engsub/Vietsub (#1):** mỗi lần dịch, `ExampleSource` lấy tối đa 3 video Done (Manual) đã dịch bằng **cùng hồ sơ**, ghép câu theo `start_ms`, chọn tối đa 60 cặp / 6.000 ký tự (ưu tiên câu người dịch đã sửa so với `vi_auto.srt`, rồi câu có tên riêng/xưng hô, rồi câu dài). Gửi giữa hồ sơ và phụ đề, kèm một dòng trong `SYSTEM_RULES`. Không thêm request Gemini.
+- **Mô tả YouTube (#2):** Flyway **V12** `video.description CLOB`; `VideoInfoParser` đọc `description`, Get Engsub lưu lại; Translate again bổ sung một lần bằng `yt-dlp -J` nếu còn null (lỗi hoặc timeout thì bỏ qua). Làm sạch (bỏ URL/hashtag/Subscribe…, cắt 1.500 ký tự) rồi thêm khoá `description` vào JSON gửi Gemini. Không có trong `VideoDto`/`PublicVideo`.
+- **Lỗi ngữ cảnh không làm hỏng lượt dịch:** chỉ log rồi dịch tiếp; log không chứa nội dung phụ đề hay mô tả.
+- **Cách dùng:** nên tạo **một hồ sơ cho mỗi bộ phim** (vd `data/prompts/Moonshadow.md`) và dùng nhất quán cho mọi tập. Theo lựa chọn (a), video cũ không được chuyển hồ sơ nên ví dụ chỉ xuất hiện khi đã có tập dịch bằng hồ sơ đó và được đánh dấu Done; tập đầu của bộ phim chưa có ví dụ.
+- **Cần deploy** (V12 chạy khi app khởi động). Chưa kiểm tra bằng Gemini thật: sau deploy, dịch một tập có ít nhất một tập Done cùng hồ sơ và xem log `examples: ...`.
+
 ### 2026-11-10: Banner Profile tự chạy và lượt đọc truyện ✅ (chưa deploy)
 
 Plan: [docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md](docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md). Nhánh `feature/banner-autoplay-novel-reads`.
