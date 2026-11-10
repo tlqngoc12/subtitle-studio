@@ -137,6 +137,9 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - **Giới hạn file khi Publish:** `PublishStatus.fileCount` đếm file của site; cảnh báo từ 16.000, chặn khi > 20.000 (giới hạn Cloudflare Pages Free; ~62 file/chương, ~300 chương).
 - Test `WranglerClientImpl` bằng `FakeWrangler` (Java, `java -cp`, `-Dfake.mode=`), không gọi Cloudflare thật.
 
+### Sao lưu database và deploy
+- `scripts/backup-db.ps1` (Data Pump `expdp` schema `SUBTITLE_STUDIO` trong container `oracle`, chép `.dmp` + `.log` ra `data/backups/`, giữ 14 bản, ghi `data/backups/backup.log`) chạy mỗi ngày 12:00 qua tác vụ Windows `SubtitleStudio DB backup` (`scripts/register-backup-task.ps1`, chạy bù khi lỡ giờ). **Quy tắc deploy: chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi (mã thoát khác 0) thì dừng deploy.** Khôi phục: `scripts/restore-db.ps1` (xem README, mục Sao lưu và khôi phục). Script không in và không đọc mật khẩu từ `.env` (dùng `ORACLE_PASSWORD` có sẵn trong container, qua file tham số tạm).
+
 ### Locale
 - `String.format`, `toLowerCase`/`toUpperCase` và các hàm format khác phải truyền `Locale.ROOT`. Locale mặc định có thể sinh chữ số không phải ASCII và làm hỏng file `.srt`.
 

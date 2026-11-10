@@ -130,6 +130,7 @@ subtitle-studio:
 
 ```bash
 # chạy hằng ngày: Oracle + app (cần .env, xem .env.example)
+# trước khi deploy: powershell -ExecutionPolicy Bypass -File scripts\backup-db.ps1 (lỗi thì dừng)
 docker compose up -d --build
 
 # test nhanh (H2 in-memory MODE=Oracle, schema từ Flyway)

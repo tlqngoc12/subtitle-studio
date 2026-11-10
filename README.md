@@ -165,6 +165,30 @@ Quy tắc:
 
 Lưu ý free tier: nội dung gửi lên có thể được Google dùng để cải thiện sản phẩm; giới hạn số request xem trong AI Studio. Hết lượt thì app báo "Hết lượt miễn phí của Gemini, thử lại sau."
 
+## Sao lưu và khôi phục database (Oracle)
+
+Dữ liệu chính (video, Vietsub, truyện, profile) nằm trong schema `SUBTITLE_STUDIO` của container Oracle, trong volume Docker `subtitle-studio_oracle-data`. Script sao lưu bằng Oracle Data Pump (`expdp`) chạy **trong container**, chép file `.dmp` ra máy rồi xoá bản trong container (volume không phình ra). Chỉ chạy trên Windows PowerShell 5.1 trở lên; Docker Desktop phải đang chạy và container `oracle` phải `healthy`.
+
+- **Nơi lưu:** `data\backups\ss-<yyyyMMdd-HHmmss>.dmp` (+ `.log` của expdp). Thư mục này nằm trong `data/` nên git bỏ qua. Giữ **14 bản mới nhất**, bản cũ hơn bị xoá.
+- **Sao lưu tay:** `powershell -ExecutionPolicy Bypass -File scripts\backup-db.ps1` (chạy từ thư mục nào cũng được). Mã thoát 0 = xong, 1 = lỗi.
+- **Xem kết quả:** `data\backups\backup.log`, mỗi lần chạy một dòng: `<giờ ISO> OK ss-….dmp <MB>` hoặc `<giờ ISO> FAILED <lý do ngắn>` (vd `oracle not running`).
+- **Tự động mỗi ngày 12:00:** chạy một lần `powershell -ExecutionPolicy Bypass -File scripts\register-backup-task.ps1` để đăng ký tác vụ Windows **`SubtitleStudio DB backup`** (chạy lại script thì cập nhật tác vụ, không tạo thêm). Tác vụ chỉ chạy khi bạn đã đăng nhập Windows (Docker Desktop cần phiên của bạn) và có "chạy ngay khi có thể sau lần lỡ" nên máy tắt lúc 12:00 thì chạy bù khi bật máy. Kiểm tra: `Get-ScheduledTaskInfo -TaskName "SubtitleStudio DB backup"`; gỡ: `Unregister-ScheduledTask -TaskName "SubtitleStudio DB backup"`.
+- **Trước mỗi lần deploy** (`docker compose up -d --build`): chạy `scripts\backup-db.ps1`; lỗi thì **dừng deploy**.
+- **Mật khẩu:** script không đọc `.env`. Container đã có `ORACLE_PASSWORD` trong môi trường; bên trong container script ghi nó vào file tham số tạm (quyền 600) rồi xoá, nên mật khẩu không nằm trên dòng lệnh, trong log hay trên máy.
+- Sao lưu chỉ gồm database. Phụ đề, hồ sơ dịch và ảnh nằm ở `./data/` (`subs/`, `prompts/`, `media/`), hãy chép thư mục này riêng nếu cần.
+
+### Khôi phục
+
+1. **Thử bản sao lưu vào schema tạm** (không đụng dữ liệu thật): `powershell -ExecutionPolicy Bypass -File scripts\restore-db.ps1 -Dump data\backups\ss-….dmp -TargetSchema SS_RESTORE_TEST`. So sánh số dòng từng bảng giữa `SUBTITLE_STUDIO` và `SS_RESTORE_TEST` (SQL Developer hoặc `sqlplus`), xong thì xoá: `drop user SS_RESTORE_TEST cascade;` (đăng nhập `system`).
+2. **Khôi phục thật** (mất dữ liệu hiện tại của `SUBTITLE_STUDIO`):
+   ```powershell
+   docker compose stop subtitle-studio                      # app đang kết nối thì không xoá được schema
+   powershell -ExecutionPolicy Bypass -File scripts\restore-db.ps1 -Dump data\backups\ss-….dmp
+   docker compose start subtitle-studio
+   ```
+   Script hỏi gõ `RESTORE`, rồi xoá schema `SUBTITLE_STUDIO` (`drop user … cascade`) và nhập lại từ file dump (user, quyền và mật khẩu app nằm trong dump). Flyway thấy `flyway_schema_history` đã khớp nên không chạy lại migration.
+3. Khôi phục sang máy khác: cài stack mới (`docker compose up -d oracle`), chép file `.dmp` sang, chạy `restore-db.ps1` như bước 2.
+
 ## Phát triển
 
 **Màu giao diện:** mọi phần giao diện (kể cả toast, tab, thẻ, trang public) dùng 2 màu chủ đạo: **cam #F39A42** (`--brand`: hành động chính, nhấn mạnh, thành công) và **tím #D9A1D9** (`--brand-2`: mục đang chọn, thông tin). Chữ trên hai màu dùng chữ đậm tối (`--on-brand`), không dùng chữ trắng; đỏ chỉ dành cho lỗi/xoá. Token nằm đầu `frontend/src/styles.css`.
