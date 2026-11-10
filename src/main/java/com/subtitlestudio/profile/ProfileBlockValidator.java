@@ -22,6 +22,7 @@ public class ProfileBlockValidator {
     static final int MAX_LABEL = 200;
     static final int MAX_VALUE = 1000;
     static final int MAX_ITEMS = 50;
+    static final int MAX_CHIP = 100;
 
     private final EmbedUrlResolver embedUrls;
 
@@ -62,7 +63,7 @@ public class ProfileBlockValidator {
                     errors.add(new FieldError("embedUrl", "Only YouTube or Spotify links are supported"));
                 }
             }
-            case GALLERY, LINKS, FACTS -> items = items(type, request.items(), mediaExists, errors);
+            case GALLERY, LINKS, FACTS, CHIPS -> items = items(type, request.items(), mediaExists, errors);
         }
 
         if (!errors.isEmpty()) {
@@ -100,6 +101,15 @@ public class ProfileBlockValidator {
                 case FACTS -> items.add(new ValidItem(
                         required(r.label(), prefix + "label", MAX_LABEL, errors),
                         required(r.value(), prefix + "value", MAX_VALUE, errors), null));
+                case CHIPS -> {
+                    items.add(new ValidItem(required(r.label(), prefix + "label", MAX_CHIP, errors), null, null));
+                    if (r.value() != null && !r.value().isBlank()) {
+                        errors.add(new FieldError(prefix + "value", "Chips have a label only"));
+                    }
+                    if (r.mediaId() != null) {
+                        errors.add(new FieldError(prefix + "mediaId", "Chips have a label only"));
+                    }
+                }
                 default -> throw new IllegalStateException(type.name());
             }
         }

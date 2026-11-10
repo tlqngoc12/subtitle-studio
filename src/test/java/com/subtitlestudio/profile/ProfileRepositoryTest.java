@@ -51,6 +51,21 @@ class ProfileRepositoryTest {
     }
 
     @Test
+    void seededProfilesHaveKindsAndOrder() {
+        assertThat(profiles.findAllByOrderBySortOrderAscIdAsc()).extracting(Profile::getSlug, Profile::getKind,
+                Profile::getSortOrder).containsExactly(
+                org.assertj.core.groups.Tuple.tuple("emibonnie", ProfileKind.GROUP, 0),
+                org.assertj.core.groups.Tuple.tuple("emi", ProfileKind.MEMBER, 1),
+                org.assertj.core.groups.Tuple.tuple("bonnie", ProfileKind.MEMBER, 2));
+        assertThat(emi().getTagline()).isNull();
+        assertThat(emi().getFullName()).isNull();
+        assertThat(emi().getPortrait()).isNull();
+        assertThat(profiles.findByKind(ProfileKind.GROUP)).extracting(Profile::getSlug).containsExactly("emibonnie");
+        assertThat(profiles.existsBySlug("emi")).isTrue();
+        assertThat(profiles.maxSortOrder()).isEqualTo(2);
+    }
+
+    @Test
     void ordersBlocksByPositionThenId() {
         Profile p = emi();
         ProfileBlock a = block(p, 2, BlockType.TEXT);

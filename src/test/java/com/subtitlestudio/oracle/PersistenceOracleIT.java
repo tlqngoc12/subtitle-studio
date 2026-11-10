@@ -153,6 +153,17 @@ class PersistenceOracleIT {
     }
 
     @Test
+    void storesChipsBlockAndSeedsProfileKindsOnOracle() {
+        BlockDto chips = profileService.addBlock("emi", new BlockRequest(BlockType.CHIPS, "Hobbies", null, null, null,
+                null, List.of(new ItemRequest("Reading", null, null), new ItemRequest("Travel", null, null))));
+
+        assertThat(profileService.get("emi").blocks().get(0).items()).hasSize(2);
+        profileService.deleteBlock("emi", chips.id());
+        assertThat(jdbc.queryForList("select slug || ':' || kind || ':' || sort_order from t_profile order by sort_order",
+                String.class)).containsExactly("emibonnie:GROUP:0", "emi:MEMBER:1", "bonnie:MEMBER:2");
+    }
+
+    @Test
     void cascadesBlockItemsOnOracle() {
         BlockDto links = profileService.addBlock("emi", new BlockRequest(BlockType.LINKS, null, null, null, null, null,
                 List.of(new ItemRequest("A", "https://a.example", null), new ItemRequest("B", "https://b.example", null),
