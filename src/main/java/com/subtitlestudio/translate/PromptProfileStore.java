@@ -6,11 +6,19 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -76,6 +84,83 @@ public class PromptProfileStore {
     /** The profile text; throws {@link UnknownProfileException} when it is missing or unusable. */
     public String read(String name) {
         return load(name).orElseThrow(() -> new UnknownProfileException(name));
+    }
+
+    /** SHA-256 (lower-case hex) of the profile text as stored; the editor sends it back to detect a changed file. */
+    public String sha(String name) {
+        return sha256(read(name));
+    }
+
+    static String sha256(String text) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(text.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Replaces an existing profile. Fails with {@link ProfileChangedException} when the file no longer has
+     * {@code baseSha}. The old file is first copied to {@code .history/<name>-<yyyyMMdd-HHmmss>.md}, then the new text
+     * is written to a temporary file in the same folder and moved over the profile in one step.
+     *
+     * @return the SHA-256 of the new text
+     */
+    public synchronized String write(String name, String text, String baseSha) {
+        String current = read(name);
+        if (text == null || text.isBlank()) {
+            throw new InvalidProfileTextException("The profile text is empty");
+        }
+        byte[] bytes = encode(text);
+        if (bytes.length > MAX_BYTES) {
+            throw new InvalidProfileTextException("The profile text is larger than " + MAX_BYTES / 1024 + " KB");
+        }
+        if (!sha256(current).equals(baseSha)) {
+            throw new ProfileChangedException("The profile changed on disk since it was opened");
+        }
+        Path file = dir.resolve(name + ".md");
+        try {
+            Path history = Files.createDirectories(dir.resolve(".history"));
+            Files.copy(file, backupPath(history, name), StandardCopyOption.COPY_ATTRIBUTES);
+            Path temp = Files.createTempFile(dir, "." + name + "-", ".tmp");
+            try {
+                Files.write(temp, bytes);
+                try {
+                    Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } finally {
+                Files.deleteIfExists(temp);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return sha256(text);
+    }
+
+    private static byte[] encode(String text) {
+        CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+        try {
+            ByteBuffer buffer = encoder.encode(java.nio.CharBuffer.wrap(text));
+            byte[] bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+            return bytes;
+        } catch (CharacterCodingException e) {
+            throw new InvalidProfileTextException("The profile text is not valid UTF-8");
+        }
+    }
+
+    private static Path backupPath(Path history, String name) {
+        String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        Path path = history.resolve(name + "-" + stamp + ".md");
+        for (int n = 2; Files.exists(path); n++) {
+            path = history.resolve(name + "-" + stamp + "-" + n + ".md");
+        }
+        return path;
     }
 
     /** Copies the bundled {@code _example.md} the first time, when the prompts folder does not exist yet. */

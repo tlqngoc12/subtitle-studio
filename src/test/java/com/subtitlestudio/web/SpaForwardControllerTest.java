@@ -22,7 +22,7 @@ class SpaForwardControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"/vietsub", "/vietsub/", "/vietsub/list", "/vietsub/dQw4w9WgXcQ", "/vietsub/dQw4w9WgXcQ/",
         "/profiles", "/profiles/", "/profiles/emi", "/profiles/emibonnie/", "/vietsub/playlists", "/vietsub/playlists/12",
-        "/vietsub/playlists/12/", "/vietsub/dQw4w9WgXcQ/edit", "/vietsub/dQw4w9WgXcQ/edit/"})
+        "/vietsub/playlists/12/", "/vietsub/profiles", "/vietsub/profiles/", "/vietsub/dQw4w9WgXcQ/edit", "/vietsub/dQw4w9WgXcQ/edit/"})
     void forwardsVietsubRoutesToIndex(String path) throws Exception {
         mvc.perform(get(path))
                 .andExpect(status().isOk())

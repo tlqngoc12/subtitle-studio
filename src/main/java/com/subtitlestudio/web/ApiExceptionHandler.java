@@ -30,7 +30,12 @@ import com.subtitlestudio.subtitle.InvalidSrtException;
 import com.subtitlestudio.subtitle.NoEnglishSubtitleException;
 import com.subtitlestudio.subtitle.VttParseException;
 import com.subtitlestudio.url.InvalidUrlException;
+import com.subtitlestudio.translate.AnalysisInvalidException;
 import com.subtitlestudio.translate.GeminiNotConfiguredException;
+import com.subtitlestudio.translate.InvalidProfileTextException;
+import com.subtitlestudio.translate.NoCorrectionsException;
+import com.subtitlestudio.translate.ProfileChangedException;
+import com.subtitlestudio.translate.TranslationFailedException;
 import com.subtitlestudio.translate.TranslationInProgressException;
 import com.subtitlestudio.translate.UnknownProfileException;
 import com.subtitlestudio.translate.VideoTooLongException;
@@ -281,6 +286,32 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UnknownProfileException.class)
     ProblemDetail unknownProfile(UnknownProfileException e) {
         return problem(HttpStatus.BAD_REQUEST, "UNKNOWN_PROFILE", e.getMessage());
+    }
+
+    @ExceptionHandler(NoCorrectionsException.class)
+    ProblemDetail noCorrections(NoCorrectionsException e) {
+        return problem(HttpStatus.BAD_REQUEST, "NO_CORRECTIONS", e.getMessage());
+    }
+
+    @ExceptionHandler(AnalysisInvalidException.class)
+    ProblemDetail analysisInvalid(AnalysisInvalidException e) {
+        return problem(HttpStatus.BAD_GATEWAY, "ANALYSIS_INVALID", e.getMessage());
+    }
+
+    /** A Gemini call that failed (busy, out of quota, bad key...) during a request that waits for it; the message is for the user. */
+    @ExceptionHandler(TranslationFailedException.class)
+    ProblemDetail geminiFailed(TranslationFailedException e) {
+        return problem(HttpStatus.BAD_GATEWAY, "GEMINI_FAILED", e.userMessage());
+    }
+
+    @ExceptionHandler(ProfileChangedException.class)
+    ProblemDetail profileChanged(ProfileChangedException e) {
+        return problem(HttpStatus.CONFLICT, "PROFILE_CHANGED", e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidProfileTextException.class)
+    ProblemDetail invalidProfileText(InvalidProfileTextException e) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_PROFILE_TEXT", e.getMessage());
     }
 
     @ExceptionHandler(GeminiNotConfiguredException.class)
