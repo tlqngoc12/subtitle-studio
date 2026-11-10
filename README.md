@@ -242,4 +242,4 @@ Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_
 
 ## Lưu ý bản quyền
 
-Chỉ dùng cho mục đích cá nhân. Phụ đề thuộc về người đăng video; không công khai file phụ đề của video người khác. Thư mục `data/` đã nằm trong `.gitignore`, đừng commit nó.
+Chỉ dùng cho mục đích cá nhân. Phụ đề thuộc về người đăng video; không công khai file phụ đề của video người khác. Riêng `data/prompts/` và `data/subs/` được commit vào git theo lựa chọn của chủ repo (2026-11-10) dù repo công khai; phần còn lại của `data/` (DB dev, logs, media, novel-render) nằm trong `.gitignore`, đừng commit.
