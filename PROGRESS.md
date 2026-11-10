@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-10 (data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-10 (lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -739,6 +739,16 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 ### 2026-11-10: Sửa Analyze ở Vietsub › Profiles báo 0 video / 0 câu ✅ (chưa merge, chưa deploy)
 - Nguyên nhân: `ProfileAnalyzer` gọi `findExampleVideos(name, "", ...)`; Oracle coi `''` là NULL nên `v.id <> NULL` không bao giờ đúng, ra 0 dòng (H2 và test mock không bắt được). `ExampleSource` luôn truyền id video thật nên không bị.
 - Sửa: thêm `VideoRepository.findCorrectionVideos(profile)` (cùng bộ lọc và thứ tự, không có `excludeId`); `ProfileAnalyzer` dùng nó. Test mới `PersistenceOracleIT.findsEveryFinishedHandMadeVideoOfAProfileWithoutAnExcludedId` trên Oracle thật.
+
+### 2026-11-10: Lô cải tiến 2 (video dài, theater, cỡ chữ, backup Oracle, Select, cuộn đầu trang) ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enhancements-batch-2.md](docs/superpowers/plans/2026-11-10-enhancements-batch-2.md).
+
+- **Video dài dịch theo đoạn:** giới hạn 180 phút, đoạn tối đa 45 phút (`gemini.part-duration`), từ đoạn 2 kèm 8 dòng cuối đoạn trước; đoạn xong ghi vào `data/translate-partial/<id>.json`, Translate again dịch tiếp từ đoạn lỗi; trạng thái `Translating part 2/3 with Gemini (...)`.
+- **Trang xem:** chế độ rạp (nút + phím T) và cỡ chữ phụ đề S/M/L (mặc định S = cỡ cũ), nhớ trong localStorage, cả admin và public.
+- **Backup Oracle:** `scripts/backup-db.ps1` (expdp, giữ 14 bản trong `data/backups/`), `restore-db.ps1`, `register-backup-task.ps1` (tác vụ `SubtitleStudio DB backup` 12:00 hằng ngày, chạy bù). Quy tắc: backup trước mỗi lần deploy. Đã thử khôi phục vào schema tạm `SS_RESTORE_TEST`: 15 bảng, số dòng khớp hết, đã xoá schema tạm.
+- **Select dùng chung** (Radix) thay 5 `<select>` gốc; `ScrollToTop` cho cả hai app.
+- **Cần làm:** chạy `scripts/register-backup-task.ps1` trên máy khác nếu có; deploy không cần migration mới.
 
 ## 9. Rủi ro đang theo dõi
 
