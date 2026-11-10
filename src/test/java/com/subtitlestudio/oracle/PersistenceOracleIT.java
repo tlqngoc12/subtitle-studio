@@ -181,6 +181,16 @@ class PersistenceOracleIT {
     }
 
     @Test
+    void storesALongDescriptionInTheClobColumn() {
+        String description = "Dàn diễn viên ạ 😀\n".repeat(600); // far beyond a VARCHAR2 limit
+        Video v = video(ID, "t");
+        v.setDescription(description);
+        videos.save(v);
+
+        assertThat(videos.findById(ID).orElseThrow().getDescription()).isEqualTo(description);
+    }
+
+    @Test
     void storesEmojiAndLongThaiTitle() {
         String title = "ก".repeat(480) + "😀🎬🍓";
         videos.save(video(ID, title));

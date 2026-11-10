@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
@@ -68,6 +69,11 @@ public class Video {
     @Enumerated(EnumType.STRING)
     @Column(name = "edit_status", length = 12)
     private EditStatus editStatus;
+
+    /** The YouTube description (series context for translation); null = not fetched. Never sent to clients. */
+    @Lob
+    @Column(name = "description")
+    private String description;
 
     protected Video() {
         // for JPA
@@ -154,6 +160,14 @@ public class Video {
 
     public void setEditStatus(EditStatus editStatus) {
         this.editStatus = editStatus;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getTranslationProfile() {
