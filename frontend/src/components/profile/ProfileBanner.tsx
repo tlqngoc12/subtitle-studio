@@ -19,7 +19,7 @@ export function ProfileBanner({ images }: { images: BannerImage[] }) {
   if (images.length === 0) return null;
   return (
     <>
-      <FilmStrip images={strip} label="Ảnh banner" onOpen={setOpen} />
+      <FilmStrip images={strip} label="Ảnh banner" onOpen={setOpen} autoplayMs={5000} paused={open !== null} />
       <ImageLightbox
         images={strip.map((image) => ({ src: image.src ?? '', alt: image.description }))}
         index={open}
