@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
+import { ScrollToTop } from './components/ScrollToTop';
 import { TopbarSlotProvider } from './components/TopbarSlot';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteProvider, type Site } from './data/SiteContext';
@@ -28,6 +29,7 @@ export default function PublicApp() {
     <SiteProvider value={site}>
       <MotionConfig reducedMotion="user">
         <TopbarSlotProvider>
+          <ScrollToTop />
           <NavBar />
           <AppToaster />
           <Routes>

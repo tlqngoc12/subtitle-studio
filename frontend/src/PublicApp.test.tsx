@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import PublicApp from './PublicApp';
@@ -52,6 +53,18 @@ function renderAt(path: string) {
 }
 
 describe('PublicApp', () => {
+  it('opens a new page scrolled to the top', async () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    renderAt('/vietsub/list');
+    await screen.findByRole('tab', { name: 'Playlists' });
+    scrollTo.mockClear();
+
+    await userEvent.setup().click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Novels' }));
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
   it('rootOpensVietsubList', async () => {
     renderAt('/');
 
