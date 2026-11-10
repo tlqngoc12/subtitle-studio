@@ -1,4 +1,6 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { answerConfirm } from '../test/confirm';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
@@ -107,7 +109,8 @@ describe('ProfilePage', () => {
     fakeFetch([{ ...GET_PAGE, body: page([], PAGE.group) }]);
     renderAt('/profiles');
 
-    expect(await screen.findByText('Nothing here yet — check back soon.')).toBeInTheDocument();
+    expect(await screen.findByText(/No members yet/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add member' })).toBeInTheDocument();
     expect(await screen.findByRole('region', { name: 'Ảnh banner' })).toBeInTheDocument();
   });
 
@@ -150,5 +153,123 @@ describe('ProfilePage on the public site', () => {
 
     expect(await screen.findByText('Nothing here yet — check back soon.')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Ảnh banner' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ProfilePage edit mode', () => {
+  const A = block({ id: 2, type: 'TEXT', body: 'Khối A' });
+  const ADMIN_PAGE = page([profile('emi', 'Emi', [A]), BONNIE], profile('emibonnie', 'EmiBonnie', [], IMAGES));
+  const GET: FakeRoute = { method: 'GET', path: '/api/profiles', status: 200, body: ADMIN_PAGE };
+
+  async function openEditing(extra: FakeRoute[] = []) {
+    const calls = fakeFetch([GET, ...extra]);
+    renderAt('/profiles');
+    await screen.findByText('Khối A');
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    return calls;
+  }
+
+  it('shows member and block tools only while editing', async () => {
+    fakeFetch([GET]);
+    renderAt('/profiles');
+    await screen.findByText('Khối A');
+    expect(screen.queryByRole('button', { name: 'Edit block' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Emi menu' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getAllByRole('button', { name: 'Edit block' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Emi menu' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Banner' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('button', { name: 'Edit block' })).not.toBeInTheDocument();
+  });
+
+  it('adds a member and shows the new section', async () => {
+    const added = profile('any', 'Any', []);
+    const calls = await openEditing([{ method: 'POST', path: '/api/profiles', status: 201, body: added }]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add member' }));
+    await userEvent.type(screen.getByLabelText('Member name'), 'Any');
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add' }));
+
+    expect(await screen.findByRole('region', { name: 'Any' })).toHaveClass('member--left');
+    expect(JSON.parse(String(calls.find((c) => c.method === 'POST')?.body))).toEqual({ displayName: 'Any' });
+  });
+
+  it('deletes a member after confirming', async () => {
+    const calls = await openEditing([{ method: 'DELETE', path: '/api/profiles/emi', status: 204 }]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Emi menu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete member' }));
+    await answerConfirm('Delete member', 'Delete Emi?');
+
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Emi' })).not.toBeInTheDocument());
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
+  });
+
+  it('keeps the member when deletion is not confirmed', async () => {
+    const calls = await openEditing();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Emi menu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete member' }));
+    await answerConfirm('Cancel');
+
+    expect(screen.getByRole('region', { name: 'Emi' })).toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+  });
+
+  it('moves a member down', async () => {
+    const reordered = [BONNIE, profile('emi', 'Emi', [A])];
+    const calls = await openEditing([{ method: 'PUT', path: '/api/profiles/order', status: 200, body: reordered }]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Emi menu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Move down' }));
+
+    await waitFor(() => {
+      const ids = screen.getAllByRole('region', { name: /Emi|Bonnie/ }).map((s) => s.id);
+      expect(ids).toEqual(['bonnie', 'emi']);
+    });
+    expect(JSON.parse(String(calls.find((c) => c.method === 'PUT')?.body))).toEqual({ slugs: ['bonnie', 'emi'] });
+  });
+
+  it('edits a block in place', async () => {
+    const calls = await openEditing([
+      { method: 'PUT', path: '/api/profiles/emi/blocks/2', status: 200, body: { ...A, body: 'Khối A đã sửa' } },
+    ]);
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Edit block' })[0]);
+    const body = screen.getByLabelText('Content');
+    await userEvent.clear(body);
+    await userEvent.type(body, 'Khối A đã sửa');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Khối A đã sửa')).toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'PUT')).toBe(true);
+  });
+
+  it('adds a chips block to a member', async () => {
+    const chips = block({ id: 7, type: 'CHIPS', items: [{ label: 'Reading', value: null, mediaId: null, mediaUrl: null }] });
+    await openEditing([{ method: 'POST', path: '/api/profiles/emi/blocks', status: 201, body: chips }]);
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Add block' })[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Chips' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add chip' }));
+    await userEvent.type(screen.getByLabelText('Label'), 'Reading');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Reading')).toBeInTheDocument();
+  });
+
+  it('edits the header of a member', async () => {
+    const saved = profile('emi', 'Emi', [A], [], { tagline: 'New tag' });
+    await openEditing([{ method: 'PUT', path: '/api/profiles/emi/header', status: 200, body: saved }]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Emi menu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit header' }));
+    await userEvent.type(screen.getByLabelText('Tagline'), 'New tag');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('New tag')).toBeInTheDocument();
   });
 });

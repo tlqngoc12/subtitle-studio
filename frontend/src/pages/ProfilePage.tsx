@@ -1,13 +1,27 @@
-import { Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import * as Popover from '@radix-ui/react-popover';
+import { Check, Pencil, Sparkles, SquarePlus, UserPlus } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router';
-import type { ProfilePage as ProfilePageData } from '../api/profiles';
+import { toast } from 'sonner';
+import {
+  addMember,
+  deleteMember,
+  reorderMembers,
+  type BannerImage,
+  type Direction,
+  type Profile,
+  type ProfilePage as ProfilePageData,
+} from '../api/profiles';
 import { EmptyState } from '../components/EmptyState';
+import { BannerEditor } from '../components/profile/BannerEditor';
+import { MemberHeaderEditor } from '../components/profile/MemberHeaderEditor';
 import { MemberSection } from '../components/profile/MemberSection';
 import { ProfileBanner } from '../components/profile/ProfileBanner';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PopoverPanel } from '../components/ui/PopoverPanel';
+import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import './ProfilePage.css';
@@ -22,8 +36,13 @@ export function ProfileRedirect() {
 export default function ProfilePage() {
   const { source, readOnly } = useSite();
   const { hash } = useLocation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [data, setData] = useState<ProfilePageData | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [actionError, setActionError] = useState<ErrorMessage | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [groupHeaderOpen, setGroupHeaderOpen] = useState(false);
+  const [scrollTo, setScrollTo] = useState<string | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -44,31 +63,206 @@ export default function ProfilePage() {
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.({ block: 'start' });
   }, [data, hash]);
 
+  // A member that was just added scrolls into view once its section is rendered.
+  useEffect(() => {
+    if (!scrollTo || !data) return;
+    document.getElementById(scrollTo)?.scrollIntoView?.({ block: 'start' });
+    setScrollTo(null);
+  }, [scrollTo, data]);
+
+  const setMembers = (update: (members: Profile[]) => Profile[]) =>
+    setData((d) => (d ? { ...d, members: update(d.members) } : d));
+  const replaceMember = (profile: Profile) =>
+    setMembers((ms) => ms.map((m) => (m.slug === profile.slug ? profile : m)));
+  const setBanner = (banner: BannerImage[]) =>
+    setData((d) => (d ? { ...d, group: { ...d.group, banner } } : d));
+
+  async function run(action: () => Promise<void>) {
+    setActionError(null);
+    try {
+      await action();
+    } catch (e) {
+      setActionError(errorMessage(e));
+    }
+  }
+
+  const moveMember = (slug: string, direction: Direction) =>
+    run(async () => {
+      if (!data) return;
+      const slugs = data.members.map((m) => m.slug);
+      const i = slugs.indexOf(slug);
+      const j = direction === 'UP' ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= slugs.length) return;
+      [slugs[i], slugs[j]] = [slugs[j], slugs[i]];
+      const ordered = await reorderMembers(slugs);
+      setMembers(() => ordered);
+    });
+
+  const removeMember = async (member: Profile) => {
+    const ok = await confirm({
+      title: `Delete ${member.displayName}?`,
+      description: 'Their blocks and banner are removed.',
+      confirmLabel: 'Delete member',
+      destructive: true,
+    });
+    if (!ok) return;
+    void run(async () => {
+      await deleteMember(member.slug);
+      setMembers((ms) => ms.filter((m) => m.slug !== member.slug));
+      toast.success(`${member.displayName} deleted`);
+    });
+  };
+
+  const created = (member: Profile) => {
+    setMembers((ms) => [...ms, member]);
+    setEditing(true);
+    setScrollTo(member.slug);
+  };
+
   // Data published before the banner existed has no `banner` field.
   const banner = data?.group?.banner ?? [];
+  const admin = !readOnly;
 
   return (
     <main className="page">
-      <PageHeader title="Profile" />
+      {confirmDialog}
+      <PageHeader
+        title="Profile"
+        actions={
+          admin && (
+            <div className="pmasthead">
+              <AddMember onCreated={created} />
+              {editing ? (
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={() => {
+                    setEditing(false);
+                    setGroupHeaderOpen(false);
+                  }}
+                >
+                  <Check className="icon" aria-hidden="true" />
+                  Done
+                </button>
+              ) : (
+                <button type="button" className="button button--small" onClick={() => setEditing(true)}>
+                  <Pencil className="icon" aria-hidden="true" />
+                  Edit
+                </button>
+              )}
+            </div>
+          )
+        }
+      />
 
       {error && <Alert title={error.title} hint={error.hint} />}
+      {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
       {data === null && !error && <LoadingText>Loading profile…</LoadingText>}
 
       {data && (
         <>
           <ProfileBanner images={banner} />
+          {editing && admin && (
+            <div className="pgroup">
+              <BannerEditor slug={data.group.slug} images={banner} onChange={setBanner} />
+              {groupHeaderOpen ? (
+                <MemberHeaderEditor
+                  profile={data.group}
+                  onSaved={(saved) => {
+                    setData((d) => (d ? { ...d, group: { ...saved, banner: d.group.banner } } : d));
+                    setGroupHeaderOpen(false);
+                  }}
+                  onCancel={() => setGroupHeaderOpen(false)}
+                />
+              ) : (
+                <button type="button" className="button button--small" onClick={() => setGroupHeaderOpen(true)}>
+                  <Pencil className="icon" aria-hidden="true" />
+                  Edit EmiBonnie avatar
+                </button>
+              )}
+            </div>
+          )}
 
           {data.members.length === 0 ? (
-            <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
+            admin ? (
+              <EmptyState icon={SquarePlus}>No members yet. Choose Add member to add the first one.</EmptyState>
+            ) : (
+              <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
+            )
           ) : (
             <div className="pmembers">
               {data.members.map((m, i) => (
-                <MemberSection key={m.slug} profile={m} side={i % 2 === 0 ? 'left' : 'right'} />
+                <MemberSection
+                  key={m.slug}
+                  profile={m}
+                  side={i % 2 === 0 ? 'left' : 'right'}
+                  onChange={replaceMember}
+                  admin={
+                    editing && admin
+                      ? {
+                          isFirst: i === 0,
+                          isLast: i === data.members.length - 1,
+                          onMove: (d) => void moveMember(m.slug, d),
+                          onDelete: () => void removeMember(m),
+                        }
+                      : undefined
+                  }
+                />
               ))}
             </div>
           )}
         </>
       )}
     </main>
+  );
+}
+
+/** "Add member": a small popover asking for the name; the server makes the slug. */
+function AddMember({ onCreated }: { onCreated: (member: Profile) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const member = await addMember(name.trim());
+      setOpen(false);
+      setName('');
+      onCreated(member);
+    } catch (err) {
+      setError(errorMessage(err).title);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button type="button" className="button button--small">
+          <UserPlus className="icon" aria-hidden="true" />
+          Add member
+        </button>
+      </Popover.Trigger>
+      <PopoverPanel className="add-member">
+        <form className="add-member__form" onSubmit={submit}>
+          <label htmlFor="add-member-name">Member name</label>
+          <input id="add-member-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+          {error && (
+            <p className="field__error" role="alert">
+              {error}
+            </p>
+          )}
+          <button type="submit" className="button button--primary" disabled={saving || !name.trim()}>
+            Add
+          </button>
+        </form>
+      </PopoverPanel>
+    </Popover.Root>
   );
 }

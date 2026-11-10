@@ -15,12 +15,15 @@ export function ImagePicker({
   onBusyChange,
   invalid,
   describedBy,
+  maxSide,
 }: {
   value: PickedImage | null;
   onChange: (image: PickedImage) => void;
   onBusyChange: (busy: boolean) => void;
   invalid?: boolean;
   describedBy?: string;
+  /** Ask the server to shrink the image to this longest side (portraits). */
+  maxSide?: 400 | 1600;
 }) {
   const id = useId();
   const [busy, setBusy] = useState(false);
@@ -32,7 +35,7 @@ export function ImagePicker({
     setBusy(true);
     onBusyChange(true);
     try {
-      const uploaded = await uploadMedia(file);
+      const uploaded = await uploadMedia(file, maxSide);
       onChange({ mediaId: uploaded.id, mediaUrl: uploaded.url });
     } catch (e) {
       setError(errorMessage(e).title);
