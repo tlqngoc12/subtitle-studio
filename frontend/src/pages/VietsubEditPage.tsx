@@ -367,7 +367,9 @@ function Editor({
                       ? 'Wait until the translation finishes'
                       : dirty
                         ? 'Save your changes first'
-                        : saving || changingStatus
+                        : video.viSource !== 'MANUAL'
+                          ? 'Save an edit first'
+                          : saving || changingStatus
                           ? 'Please wait…'
                           : null
                   }

@@ -721,6 +721,21 @@ describe('VietsubEditPage', () => {
       await expectTooltip(markDone().parentElement as HTMLElement, 'Save your changes first');
     });
 
+    it('Mark as done is disabled for an AI Vietsub until a save makes it Manual', async () => {
+      await renderEditor(video);
+      expect(markDone()).toBeDisabled();
+      await expectTooltip(markDone().parentElement as HTMLElement, 'Save an edit first');
+      fakeFetch([
+        ...routes(video),
+        { method: 'PUT', path: `/api/videos/${ID}/vietsub/text`, status: 200, body: { ...video, viSource: 'MANUAL', editStatus: 'IN_PROGRESS' } },
+      ]);
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+      await user.click(screen.getByRole('button', { name: 'Save (Ctrl+S)' }));
+
+      await waitFor(() => expect(markDone()).toBeEnabled());
+    });
+
     it('Mark as done is disabled while Gemini translates', async () => {
       await renderEditor({ ...manual, translationStatus: 'TRANSLATING' });
 
