@@ -4,10 +4,11 @@ import { Link, useLocation } from 'react-router';
 const TABS = [
   { to: '/vietsub', label: 'Videos', isCurrent: (p: string) => p === '/vietsub' || p === '/vietsub/' },
   { to: '/vietsub/playlists', label: 'Playlists', isCurrent: (p: string) => p.startsWith('/vietsub/playlists') },
+  { to: '/vietsub/profiles', label: 'Profiles', isCurrent: (p: string) => p.startsWith('/vietsub/profiles') },
 ];
 
 /**
- * Videos · Playlists under the Vietsub heading. Each is its own page (links, so Back and new tabs work),
+ * Videos · Playlists · Profiles under the Vietsub heading. Each is its own page (links, so Back and new tabs work),
  * drawn as the same underline tabs as the Vietsub list page; the open one is underlined in orchid.
  */
 export function VietsubTabs({ children }: { children?: ReactNode }) {
