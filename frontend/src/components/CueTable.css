@@ -50,3 +50,10 @@
   max-width: 70ch;
   white-space: pre-line;
 }
+
+/* On phones the preview scrolls with the page instead of in a tall box of its own. */
+@media (max-width: 760px) {
+  .cues {
+    max-height: 60dvh;
+  }
+}

@@ -1,7 +1,8 @@
-import { ListVideo, Play } from 'lucide-react';
+import { ListVideo, Play, StepForward } from 'lucide-react';
 import { Link } from 'react-router';
 import { videoCountLabel } from '../api/playlists';
 import type { PublicPlaylistDetail } from '../data/types';
+import { continueIndex, useWatched } from '../data/watched';
 import './PlaylistHeader.css';
 
 interface Props {
@@ -17,6 +18,8 @@ const PREVIEW = 3;
 /** YouTube-like playlist card: cover (first video), name, description, count and Play all. */
 export function PlaylistHeader({ playlist, href, count }: Props) {
   const first = playlist.videos[0];
+  const resume = continueIndex(playlist.videos, useWatched());
+  const resumeVideo = resume === null ? undefined : playlist.videos[resume];
   // A card without a description previews its first videos instead of leaving the space empty.
   const preview = href && !playlist.description ? playlist.videos.slice(0, PREVIEW) : [];
   return (
@@ -39,17 +42,31 @@ export function PlaylistHeader({ playlist, href, count }: Props) {
             ))}
           </ol>
         )}
-        <p className="muted">{videoCountLabel(count ?? playlist.videos.length)}</p>
-        {first && (
-          <Link
-            className="button button--primary plcard__play"
-            to={`/vietsub/${first.id}?playlist=${playlist.id}`}
-            state={{ autoplay: true }}
-          >
-            <Play className="icon" aria-hidden="true" />
-            Play all
-          </Link>
-        )}
+        <div className="plcard__foot">
+          <p className="muted">{videoCountLabel(count ?? playlist.videos.length)}</p>
+          {first && (
+            <div className="plcard__actions">
+              <Link
+                className="button button--primary plcard__play"
+                to={`/vietsub/${first.id}?playlist=${playlist.id}`}
+                state={{ autoplay: true }}
+              >
+                <Play className="icon" aria-hidden="true" />
+                Play all
+              </Link>
+              {resumeVideo && resume !== null && (
+                <Link
+                  className="button plcard__play"
+                  to={`/vietsub/${resumeVideo.id}?playlist=${playlist.id}`}
+                  state={{ autoplay: true }}
+                >
+                  <StepForward className="icon" aria-hidden="true" />
+                  {`Continue: EP ${resume + 1}`}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
