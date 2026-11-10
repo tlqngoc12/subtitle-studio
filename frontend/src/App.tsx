@@ -11,6 +11,7 @@ import NovelPage from './pages/NovelPage';
 import NovelsPage from './pages/NovelsPage';
 import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
+import PhotosPage from './pages/PhotosPage';
 import ProfilePage, { ProfileRedirect } from './pages/ProfilePage';
 import ProfilesPage from './pages/ProfilesPage';
 import VietsubEditPage from './pages/VietsubEditPage';
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/vietsub/:id" element={<WatchPage />} />
           <Route path="/profiles" element={<ProfilePage />} />
           <Route path="/profiles/:slug" element={<ProfileRedirect />} />
+          <Route path="/photos" element={<PhotosPage />} />
           <Route path="/novels" element={<NovelsPage />} />
           <Route path="/novels/new" element={<NovelNewPage />} />
           <Route path="/novels/:id" element={<NovelPage />} />

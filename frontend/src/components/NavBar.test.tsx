@@ -44,12 +44,23 @@ describe('NavBar', () => {
     expect(within(nav).getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profiles');
   });
 
-  it('lists Novels after Profile and marks it current on chapter pages', () => {
+  it('lists the sections in order with Photos between Profile and Novels', () => {
+    render(
+      <MemoryRouter>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    const links = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
+    expect(links.slice(-5)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Photos', 'Novels']);
+    expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Photos' })).toHaveAttribute('href', '/photos');
+  });
+
+  it('lists Novels after Photos and marks it current on chapter pages', () => {
     expect(currentAt('/novels/3/chapters/9')).toEqual(['Novels']);
     cleanup();
     expect(currentAt('/novels')).toEqual(['Novels']);
     const links = within(screen.getAllByRole('navigation')[0]).getAllByRole('link').map((a) => a.textContent);
-    expect(links.indexOf('Novels')).toBe(links.indexOf('Profile') + 1);
+    expect(links.indexOf('Novels')).toBe(links.indexOf('Photos') + 1);
   });
 
   it('links the app name to the home page', () => {
@@ -68,6 +79,7 @@ describe('NavBar', () => {
     ['/vietsub/dQw4w9WgXcQ', 'Vietsub list'],
     ['/profiles', 'Profile'],
     ['/profiles/emi', 'Profile'],
+    ['/photos', 'Photos'],
   ])('marks exactly one current section at %s', (path, expected) => {
     expect(currentAt(path)).toEqual([expected]);
   });
