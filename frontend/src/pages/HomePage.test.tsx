@@ -28,6 +28,7 @@ const autoVideo: VideoDto = {
   translationError: null,
   translationProfile: null,
   translationModel: null,
+  editStatus: null,
 };
 
 const manualVideo: VideoDto = {

@@ -20,7 +20,8 @@ public record VideoDto(
         TranslationStatus translationStatus,
         String translationError,
         String translationProfile,
-        String translationModel) {
+        String translationModel,
+        EditStatus editStatus) {
 
     public static VideoDto from(Video v) {
         return from(v, null);
@@ -36,6 +37,7 @@ public record VideoDto(
                 "https://i.ytimg.com/vi/" + v.getId() + "/mqdefault.jpg",
                 v.getViCueCount(), v.getViUpdatedAt(),
                 v.getViSource(), v.getTranslationStatus(), v.getTranslationError(), v.getTranslationProfile(),
-                v.getTranslationStatus() == TranslationStatus.TRANSLATING ? activeModel : v.getTranslationModel());
+                v.getTranslationStatus() == TranslationStatus.TRANSLATING ? activeModel : v.getTranslationModel(),
+                v.getEditStatus());
     }
 }

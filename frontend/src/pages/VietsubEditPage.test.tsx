@@ -8,6 +8,7 @@ import type { ViCue, VideoDto } from '../api/client';
 import { SCROLL_RESUME_MS } from '../components/vietsub/CueEditorTable';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem } from '../test/fakeFetch';
+import { expectTooltip } from '../test/tooltip';
 import VietsubEditPage from './VietsubEditPage';
 
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
@@ -17,6 +18,7 @@ const player = vi.hoisted(() => ({
   state: 'ready' as 'loading' | 'ready' | 'playing' | 'paused' | 'ended',
   error: null as 'EMBED_BLOCKED' | 'LOAD_FAILED' | null,
   seekTo: vi.fn(),
+  play: vi.fn(),
 }));
 
 vi.mock('../player/useYouTubePlayer', () => ({
@@ -66,6 +68,7 @@ const video: VideoDto = {
   translationError: null,
   translationProfile: null,
   translationModel: null,
+  editStatus: null,
 };
 
 const cues: ViCue[] = [
@@ -112,6 +115,7 @@ describe('VietsubEditPage', () => {
     player.state = 'ready';
     player.error = null;
     player.seekTo = vi.fn();
+    player.play = vi.fn();
     polling.ids = [];
     polling.onUpdate = null;
     vi.mocked(toast.success).mockClear();
@@ -235,7 +239,7 @@ describe('VietsubEditPage', () => {
     await user.keyboard(' f{ArrowLeft}{ArrowRight}');
 
     expect(area(1)).toHaveValue('Xin chào f');
-    expect(player.seekTo).not.toHaveBeenCalled();
+    expect(player.seekTo).toHaveBeenCalledTimes(1); // only the click that focused line 1; the keys did nothing
     expect(screen.getByRole('button', { name: 'Full screen' })).toBeInTheDocument(); // f did not toggle it
   });
 
@@ -408,13 +412,13 @@ describe('VietsubEditPage', () => {
       expect(document.activeElement).not.toBeInstanceOf(HTMLTextAreaElement);
     });
 
-    it('focusing a textarea does not control the player, and Space types a space', async () => {
+    it('typing in a textarea does not control the player beyond the focus seek, and Space types a space', async () => {
       const user = userEvent.setup();
       await renderEditor();
       await user.click(area(1));
       await user.keyboard(' ');
 
-      expect(player.seekTo).not.toHaveBeenCalled();
+      expect(player.seekTo).toHaveBeenCalledTimes(1); // only the focus seek of line 1
       expect(area(1)).toHaveValue('Xin chào ');
     });
 
@@ -512,12 +516,14 @@ describe('VietsubEditPage', () => {
   describe('saving', () => {
     const PUT = { method: 'PUT', path: `/api/videos/${ID}/vietsub/text` };
     const saved: VideoDto = { ...video, viSource: 'MANUAL', viUpdatedAt: '2026-11-09T12:00:00Z' };
-    const saveButton = () => screen.getByRole('button', { name: 'Save' });
+    const saveButton = () => screen.getByRole('button', { name: 'Save (Ctrl+S)' });
 
-    it('has a text-only Save button', async () => {
+    it('has an icon Save button with a tooltip', async () => {
       await renderEditor();
 
-      expect(saveButton().querySelector('svg')).toBeNull();
+      expect(saveButton().querySelector('svg')).not.toBeNull();
+      expect(saveButton()).toHaveClass('button--icon');
+      await expectTooltip(saveButton(), 'Save (Ctrl+S)');
     });
 
     it('keeps Save disabled until something changes, and disables it again for an empty or over-long line', async () => {
@@ -672,6 +678,138 @@ describe('VietsubEditPage', () => {
     });
   });
 
+  describe('edit status', () => {
+    const manual: VideoDto = { ...video, viSource: 'MANUAL', editStatus: 'IN_PROGRESS' };
+    const STATUS = { method: 'PUT', path: `/api/videos/${ID}/edit-status` };
+    const markDone = () => screen.getByRole('button', { name: 'Mark as done' });
+
+    it('Mark as done sends DONE, toasts, and swaps to Reopen', async () => {
+      await renderEditor(manual);
+      const calls = fakeFetch([...routes(manual), { ...STATUS, status: 200, body: { ...manual, editStatus: 'DONE' } }]);
+      const user = userEvent.setup();
+      await expectTooltip(markDone(), 'Mark as done');
+
+      await user.click(markDone());
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Marked as done'));
+      expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string)).toEqual({ status: 'DONE' });
+      expect(screen.queryByRole('button', { name: 'Mark as done' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Reopen (back to In progress)' })).toBeInTheDocument();
+    });
+
+    it('Reopen sends IN_PROGRESS, toasts, and swaps back to Mark as done', async () => {
+      const done: VideoDto = { ...manual, editStatus: 'DONE' };
+      await renderEditor(done);
+      const calls = fakeFetch([...routes(done), { ...STATUS, status: 200, body: manual }]);
+      const user = userEvent.setup();
+      expect(screen.queryByRole('button', { name: 'Mark as done' })).not.toBeInTheDocument();
+      await expectTooltip(screen.getByRole('button', { name: 'Reopen (back to In progress)' }), 'Reopen (back to In progress)');
+
+      await user.click(screen.getByRole('button', { name: 'Reopen (back to In progress)' }));
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Reopened'));
+      expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string)).toEqual({ status: 'IN_PROGRESS' });
+      expect(markDone()).toBeEnabled();
+    });
+
+    it('Mark as done is disabled while there are unsaved changes, and says why', async () => {
+      await renderEditor(manual);
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+
+      expect(markDone()).toBeDisabled();
+      await expectTooltip(markDone().parentElement as HTMLElement, 'Save your changes first');
+    });
+
+    it('Mark as done is disabled for an AI Vietsub until a save makes it Manual', async () => {
+      await renderEditor(video);
+      expect(markDone()).toBeDisabled();
+      await expectTooltip(markDone().parentElement as HTMLElement, 'Save an edit first');
+      fakeFetch([
+        ...routes(video),
+        { method: 'PUT', path: `/api/videos/${ID}/vietsub/text`, status: 200, body: { ...video, viSource: 'MANUAL', editStatus: 'IN_PROGRESS' } },
+      ]);
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+      await user.click(screen.getByRole('button', { name: 'Save (Ctrl+S)' }));
+
+      await waitFor(() => expect(markDone()).toBeEnabled());
+    });
+
+    it('Mark as done is disabled while Gemini translates', async () => {
+      await renderEditor({ ...manual, translationStatus: 'TRANSLATING' });
+
+      expect(markDone()).toBeDisabled();
+    });
+
+    it('shows an alert when the server refuses', async () => {
+      await renderEditor(manual);
+      fakeFetch([...routes(manual), { ...STATUS, status: 409, body: problem(409, 'VIETSUB_NOT_MANUAL', 'no') }]);
+
+      await userEvent.setup().click(markDone());
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Only a Vietsub that has been edited');
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('seek and play on focus', () => {
+    it('focusing another line seeks the video to its start and plays; the same line again does not', async () => {
+      await renderEditor();
+      const user = userEvent.setup();
+
+      await user.click(area(3));
+      expect(player.seekTo).toHaveBeenCalledTimes(1);
+      expect(player.seekTo).toHaveBeenLastCalledWith(3_000);
+      expect(player.play).toHaveBeenCalledTimes(1);
+
+      await user.click(area(3)); // click inside the same line
+      await user.keyboard('{ArrowLeft}x');
+      expect(player.seekTo).toHaveBeenCalledTimes(1);
+
+      await user.tab({ shift: true }); // focus leaves the line; coming back to it is not a new line
+      await user.click(area(3));
+      expect(player.seekTo).toHaveBeenCalledTimes(1);
+
+      await user.click(area(1));
+      expect(player.seekTo).toHaveBeenCalledTimes(2);
+      expect(player.seekTo).toHaveBeenLastCalledWith(0);
+      expect(player.play).toHaveBeenCalledTimes(2);
+    });
+
+    it('the number button still only seeks (no play, no focus change)', async () => {
+      await renderEditor();
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Go to line 3' }));
+
+      expect(player.seekTo).toHaveBeenCalledWith(3_000);
+      expect(player.play).not.toHaveBeenCalled();
+    });
+
+    it('does not seek or play while Gemini translates', async () => {
+      await renderEditor({ ...video, translationStatus: 'TRANSLATING' });
+
+      await userEvent.setup().click(area(2));
+
+      expect(player.seekTo).not.toHaveBeenCalled();
+      expect(player.play).not.toHaveBeenCalled();
+    });
+
+    it('keeps the table still after the focus seek (the seek does not end the scroll wait)', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      const { rerender } = await renderEditor();
+      await act(async () => area(3).focus());
+      spy.mockClear();
+
+      player.currentMs = 3_000; // what the real player reports after the focus seek
+      rerender(tree());
+      player.currentMs = 3_100; // playback continues
+      rerender(tree());
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('unsaved changes guard', () => {
     it('asks the browser before closing the tab only while there are unsaved edits', async () => {
       await renderEditor();
@@ -714,7 +852,7 @@ describe('VietsubEditPage', () => {
       fakeFetch([...routes(), { method: 'PUT', path: `/api/videos/${ID}/vietsub/text`, status: 200, body: { ...video, viSource: 'MANUAL' } }]);
       const user = userEvent.setup();
       await user.type(area(1), '!');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Save (Ctrl+S)' }));
       await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
       await user.click(screen.getByRole('link', { name: 'Away' }));

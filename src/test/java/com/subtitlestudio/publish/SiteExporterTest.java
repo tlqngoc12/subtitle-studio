@@ -155,10 +155,16 @@ class SiteExporterTest {
         videos.saveAndFlush(v);
     }
 
-    /** A video with a hand-made (MANUAL) Vietsub: the only kind the public site shows. */
+    /** A video with a hand-made (MANUAL) Vietsub marked DONE: the only kind the public site shows. */
     private void withVietsub(String id, String title, Duration later, String... lines) {
+        withInProgressVietsub(id, title, later, lines);
+        jdbc.update("update video set edit_status = 'DONE' where id = ?", id);
+    }
+
+    /** A MANUAL Vietsub that is still being edited (IN_PROGRESS): not exported. */
+    private void withInProgressVietsub(String id, String title, Duration later, String... lines) {
         withAutoVietsub(id, title, later, lines);
-        jdbc.update("update video set vi_source = 'MANUAL' where id = ?", id);
+        jdbc.update("update video set vi_source = 'MANUAL', edit_status = 'IN_PROGRESS' where id = ?", id);
     }
 
     /** A video with an AI (AUTO) Vietsub: never exported. */
@@ -208,6 +214,42 @@ class SiteExporterTest {
         assertThat(list.get(0).get("id").asText()).isEqualTo("AAAAAAAAAA1");
         assertThat(out.resolve("data/videos/AAAAAAAAAA1.json")).exists();
         assertThat(out.resolve("data/videos/BBBBBBBBBB2.json")).doesNotExist();
+    }
+
+    @Test
+    void onlyDoneVideosAreExported() throws IOException {
+        withVietsub("AAAAAAAAAA1", "Done", Duration.ofMinutes(1), "a");
+        withInProgressVietsub("BBBBBBBBBB2", "In progress", Duration.ofMinutes(2), "b");
+        withVietsub("CCCCCCCCCC3", "Reopened", Duration.ofMinutes(3), "c");
+        jdbc.update("update video set edit_status = null where id = 'CCCCCCCCCC3'");
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/videos.json");
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("id").asText()).isEqualTo("AAAAAAAAAA1");
+        assertThat(out.resolve("data/videos/BBBBBBBBBB2.json")).doesNotExist();
+        assertThat(out.resolve("data/videos/CCCCCCCCCC3.json")).doesNotExist();
+        assertThat(read("data/videos.json")).doesNotContain("editStatus");
+    }
+
+    @Test
+    void aPlaylistKeepsOnlyDoneVideosAndIsLeftOutWhenNoneIsDone() throws IOException {
+        withVietsub("AAAAAAAAAA1", "Done", Duration.ZERO, "a");
+        withInProgressVietsub("BBBBBBBBBB2", "In progress", Duration.ofMinutes(1), "b");
+        long mixed = playlists.create("Mixed", null).id();
+        playlists.addVideo(mixed, "BBBBBBBBBB2");
+        playlists.addVideo(mixed, "AAAAAAAAAA1");
+        long draftOnly = playlists.create("Draft only", null).id();
+        playlists.addVideo(draftOnly, "BBBBBBBBBB2");
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/playlists.json");
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("videoCount").asInt()).isEqualTo(1);
+        assertThat(list.get(0).get("thumbnailUrl").asText()).contains("AAAAAAAAAA1");
+        assertThat(out.resolve("data/playlists/" + draftOnly + ".json")).doesNotExist();
     }
 
     @Test

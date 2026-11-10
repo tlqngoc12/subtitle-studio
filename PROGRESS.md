@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-09
+> Cập nhật lần cuối: 2026-11-10
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -670,6 +670,16 @@ Nhánh `feature/public-manual-vietsub-only`. Chỉ đổi backend (`SiteExporter
 - **Playlist:** danh sách video, số lượng và ảnh bìa chỉ tính video Manual; playlist không còn video Manual nào thì không xuất (không có `data/playlists/<id>.json`, không có trong `playlists.json`).
 - **Test:** `SiteExporterTest` thêm 3 ca (video AI bị loại, playlist chỉ có AI bị bỏ, playlist hỗn hợp tính lại số lượng + bìa); các ca cũ dùng Vietsub Manual.
 - **Cần làm:** bấm **Publish lại** để bản public bỏ các video AI đã đăng trước đó.
+
+### 2026-11-10: Trạng thái sửa Vietsub (In progress / Done), public chỉ xuất Done, tua và phát khi focus dòng ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/vietsub-edit-status`. Plan: [docs/superpowers/plans/2026-11-10-vietsub-edit-status-and-seek-on-focus.md](docs/superpowers/plans/2026-11-10-vietsub-edit-status-and-seek-on-focus.md).
+
+- **DB/backend:** Flyway **V11** thêm `video.edit_status` (`IN_PROGRESS` | `DONE`, nullable), video MANUAL có sẵn được gán `DONE`. Lưu text: `null` thành `IN_PROGRESS`, `DONE` giữ `DONE`; upload/Replace `.srt` gán `DONE`; Gemini không đổi. `PUT /api/videos/{id}/edit-status` (Mark as done / Reopen) chỉ cho Vietsub MANUAL, từ chối khi đang dịch.
+- **Public:** `SiteExporter` chỉ xuất video `DONE` (thay luật "chỉ MANUAL" cũ), playlist tính lại số lượng và ảnh bìa.
+- **Admin:** editor có nút Save (icon, cam), Mark as done (khoá khi còn thay đổi chưa lưu hoặc đang dịch) và Reopen, kèm toast; Manage Vietsub hiện icon trạng thái cạnh nhãn Manual (tím = In progress, cam = Done).
+- **Editor:** focus textarea của dòng khác dòng focus trước thì tua video tới dòng đó và phát (nhớ dòng trong ref); cùng dòng, readonly (đang dịch) thì không; nút `#` chỉ tua và cuộn.
+- **Cần làm:** deploy (có migration V11), rồi bấm **Publish lại**; chỉ các video đã Done mới lên bản public. Backlog: lọc Manage Vietsub theo trạng thái.
 
 ## 9. Rủi ro đang theo dõi
 

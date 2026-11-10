@@ -13,3 +13,4 @@ src/test/resources/golden/
 
 # Local secrets for docker compose (copy from .env.example)
 .env
+frontend/tsconfig.tsbuildinfo
