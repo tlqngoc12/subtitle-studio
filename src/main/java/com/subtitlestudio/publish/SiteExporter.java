@@ -13,7 +13,7 @@ import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaRepository;
 import com.subtitlestudio.profile.ProfileDto;
 import com.subtitlestudio.profile.ProfileService;
-import com.subtitlestudio.profile.ProfileSummary;
+import com.subtitlestudio.profile.ProfilePageDto;
 import com.subtitlestudio.video.EditStatus;
 import com.subtitlestudio.video.SubtitleService;
 import com.subtitlestudio.video.ViCue;
@@ -140,19 +140,22 @@ public class SiteExporter {
     }
 
     private void exportProfiles(Path dir, Map<Long, Optional<String>> publicUrls) {
-        List<ProfileSummary> list = profiles.list();
-        write(dir.resolve("data/profiles.json"), list);
-        for (ProfileSummary summary : list) {
-            ProfileDto profile = profiles.get(summary.slug());
-            List<BlockDto> blocks = profile.blocks().stream().map(b -> new BlockDto(b.id(), b.type(), b.title(),
-                    b.body(), b.mediaId(), publicUrl(b.mediaId(), dir, publicUrls), b.caption(), b.embedUrl(),
-                    b.items().stream().map(i -> new ItemDto(i.label(), i.value(), i.mediaId(),
-                            publicUrl(i.mediaId(), dir, publicUrls))).toList())).toList();
-            List<BannerImageDto> banner = profile.banner().stream().map(i -> new BannerImageDto(i.id(), null,
-                    publicUrl(i.mediaId(), dir, publicUrls), i.altText())).toList();
-            write(dir.resolve("data/profiles/" + profile.slug() + ".json"),
-                    new ProfileDto(profile.slug(), profile.displayName(), profile.updatedAt(), blocks, banner));
-        }
+        ProfilePageDto page = profiles.page();
+        write(dir.resolve("data/profiles.json"), new ProfilePageDto(publicProfile(page.group(), dir, publicUrls),
+                page.members().stream().map(m -> publicProfile(m, dir, publicUrls)).toList()));
+    }
+
+    /** Public shape of a profile: every image URL is the exported /media/ one and no media ids are left. */
+    private ProfileDto publicProfile(ProfileDto profile, Path dir, Map<Long, Optional<String>> publicUrls) {
+        List<BlockDto> blocks = profile.blocks().stream().map(b -> new BlockDto(b.id(), b.type(), b.title(),
+                b.body(), null, publicUrl(b.mediaId(), dir, publicUrls), b.caption(), b.embedUrl(),
+                b.items().stream().map(i -> new ItemDto(i.label(), i.value(), null,
+                        publicUrl(i.mediaId(), dir, publicUrls))).toList())).toList();
+        List<BannerImageDto> banner = profile.banner().stream().map(i -> new BannerImageDto(i.id(), null,
+                publicUrl(i.mediaId(), dir, publicUrls), i.altText())).toList();
+        return new ProfileDto(profile.slug(), profile.displayName(), profile.kind(), profile.tagline(),
+                profile.fullName(), null, publicUrl(profile.portraitMediaId(), dir, publicUrls), profile.updatedAt(),
+                blocks, banner);
     }
 
     /** Copies the image once and returns its public URL; null when there is no image or its file is gone. */

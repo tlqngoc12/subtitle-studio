@@ -143,6 +143,7 @@ class SiteExporterTest {
 
     @AfterEach
     void cleanUp() {
+        jdbc.update("update t_profile set portrait_media_id = null");
         for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
                 "vi_cue", "cue", "video")) {
             jdbc.update("delete from " + table);
@@ -185,6 +186,20 @@ class SiteExporterTest {
 
     private JsonNode readJson(String path) throws IOException {
         return json.readTree(read(path));
+    }
+
+    /** The member (or group) with this slug from the one-page data/profiles.json. */
+    private JsonNode profile(String slug) throws IOException {
+        JsonNode page = readJson("data/profiles.json");
+        if (page.get("group").get("slug").asText().equals(slug)) {
+            return page.get("group");
+        }
+        for (JsonNode m : page.get("members")) {
+            if (m.get("slug").asText().equals(slug)) {
+                return m;
+            }
+        }
+        throw new AssertionError("No profile " + slug);
     }
 
     @Test
@@ -349,12 +364,12 @@ class SiteExporterTest {
 
         exporter.export(out, NOW);
 
-        String emi = read("data/profiles/emi.json");
+        String emi = profile("emi").toString();
         assertThat(emi).contains("\"mediaUrl\":\"/media/" + used.getStorageKey() + ".png\"");
         assertThat(emi).doesNotContain("/api/media/");
         assertThat(out.resolve("media/" + used.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + unused.getStorageKey() + ".png")).doesNotExist();
-        assertThat(readJson("data/profiles.json").get(0).get("slug").asText()).isEqualTo("emibonnie");
+        assertThat(readJson("data/profiles.json").get("group").get("slug").asText()).isEqualTo("emibonnie");
     }
 
     @Test
@@ -370,18 +385,36 @@ class SiteExporterTest {
 
         exporter.export(out, NOW);
 
-        com.fasterxml.jackson.databind.JsonNode banner = readJson("data/profiles/emi.json").get("banner");
+        com.fasterxml.jackson.databind.JsonNode banner = profile("emi").get("banner");
         assertThat(banner).hasSize(3);
         assertThat(banner.get(0).get("mediaUrl").asText()).isEqualTo("/media/" + first.getStorageKey() + ".png");
         assertThat(banner.get(0).get("altText").asText()).isEqualTo("Fan meeting");
         assertThat(banner.get(1).get("altText").isNull()).isTrue();
         assertThat(banner.get(2).get("mediaUrl").isNull()).isTrue();
         assertThat(banner.get(0).has("mediaId")).isFalse();
-        assertThat(read("data/profiles/emi.json")).doesNotContain("/api/media/");
+        assertThat(read("data/profiles.json")).doesNotContain("/api/media/");
         assertThat(out.resolve("media/" + first.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + second.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + unused.getStorageKey() + ".png")).doesNotExist();
-        assertThat(readJson("data/profiles/bonnie.json").get("banner")).isEmpty();
+        assertThat(profile("bonnie").get("banner")).isEmpty();
+    }
+
+    @Test
+    void exportsProfilePageWithPublicImageUrls() throws IOException {
+        Media portrait = mediaService.store("p.png", PNG);
+        profiles.updateHeader("emi", new com.subtitlestudio.profile.ProfileHeaderRequest("Emi", "Tag", "Full Name",
+                portrait.getId()));
+
+        exporter.export(out, NOW);
+
+        JsonNode emi = readJson("data/profiles.json").get("members").get(0);
+        assertThat(emi.get("slug").asText()).isEqualTo("emi");
+        assertThat(emi.get("portraitUrl").asText()).isEqualTo("/media/" + portrait.getStorageKey() + ".png");
+        assertThat(emi.get("portraitMediaId").isNull()).isTrue();
+        assertThat(emi.get("tagline").asText()).isEqualTo("Tag");
+        assertThat(out.resolve("media/" + portrait.getStorageKey() + ".png")).exists();
+        assertThat(out.resolve("data/profiles")).doesNotExist();
+        assertThat(read("data/profiles.json")).doesNotContain("/api/media/");
     }
 
     @Test
