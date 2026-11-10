@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-10 (data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-10 (lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -130,6 +130,7 @@ subtitle-studio:
 
 ```bash
 # chạy hằng ngày: Oracle + app (cần .env, xem .env.example)
+# trước khi deploy: powershell -ExecutionPolicy Bypass -File scripts\backup-db.ps1 (lỗi thì dừng)
 docker compose up -d --build
 
 # test nhanh (H2 in-memory MODE=Oracle, schema từ Flyway)
@@ -739,6 +740,16 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 - Nguyên nhân: `ProfileAnalyzer` gọi `findExampleVideos(name, "", ...)`; Oracle coi `''` là NULL nên `v.id <> NULL` không bao giờ đúng, ra 0 dòng (H2 và test mock không bắt được). `ExampleSource` luôn truyền id video thật nên không bị.
 - Sửa: thêm `VideoRepository.findCorrectionVideos(profile)` (cùng bộ lọc và thứ tự, không có `excludeId`); `ProfileAnalyzer` dùng nó. Test mới `PersistenceOracleIT.findsEveryFinishedHandMadeVideoOfAProfileWithoutAnExcludedId` trên Oracle thật.
 
+### 2026-11-10: Lô cải tiến 2 (video dài, theater, cỡ chữ, backup Oracle, Select, cuộn đầu trang) ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enhancements-batch-2.md](docs/superpowers/plans/2026-11-10-enhancements-batch-2.md).
+
+- **Video dài dịch theo đoạn:** giới hạn 180 phút, đoạn tối đa 45 phút (`gemini.part-duration`), từ đoạn 2 kèm 8 dòng cuối đoạn trước; đoạn xong ghi vào `data/translate-partial/<id>.json`, Translate again dịch tiếp từ đoạn lỗi; trạng thái `Translating part 2/3 with Gemini (...)`.
+- **Trang xem:** chế độ rạp (nút + phím T) và cỡ chữ phụ đề S/M/L (mặc định S = cỡ cũ), nhớ trong localStorage, cả admin và public.
+- **Backup Oracle:** `scripts/backup-db.ps1` (expdp, giữ 14 bản trong `data/backups/`), `restore-db.ps1`, `register-backup-task.ps1` (tác vụ `SubtitleStudio DB backup` 12:00 hằng ngày, chạy bù). Quy tắc: backup trước mỗi lần deploy. Đã thử khôi phục vào schema tạm `SS_RESTORE_TEST`: 15 bảng, số dòng khớp hết, đã xoá schema tạm.
+- **Select dùng chung** (Radix) thay 5 `<select>` gốc; `ScrollToTop` cho cả hai app.
+- **Cần làm:** chạy `scripts/register-backup-task.ps1` trên máy khác nếu có; deploy không cần migration mới.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
@@ -761,10 +772,7 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 | Review Profile (Minor): kết quả thêm/di chuyển/xoá về muộn sau khi đổi tab bị áp vào profile mới; toolbar không khoá khi đang di chuyển (bấm nhanh 2 lần có thể hiện sai thứ tự); dọn ảnh lúc khởi động nằm trong `@Transactional` nên lỗi DB có thể chặn khởi động; `BlockView` tin mọi `embedUrl` không phải Spotify; YouTube `?t=` bị bỏ, chưa nhận `live`/`music.youtube`/Spotify episode/`spotify:`; cắt `original_name` có thể tách đôi emoji; `max-request-size` = `max-file-size` nên file sát 10 MB bị 413; nút "Xong" đóng form đang sửa mà không hỏi | Profile | final review nhánh `profiles` |
 | Review Phase 2 (Minor): số quá lớn trong `.srt` → 500; block bị bỏ qua không báo; file ≫5 MB có thể thành "lỗi mạng" (kiểm tra kích thước ở form); UTF-16 không BOM; player không hồi phục sau lỗi khi đổi video; lỗi YouTube 100 + timeout tải API; thêm Vietsub đồng thời → 500; sắp xếp danh sách dưới 1 giây | P2 | xem nhật ký Phase 2 |
 | Hồ sơ dịch lưu trong Oracle + sửa trên web | P4 | phase cải tiến (hiện là file `./data/prompts/*.md`) |
-| Video > 60 phút: chia đợt dịch Gemini | P4 | hiện bỏ qua với `VIDEO_TOO_LONG` |
 | `SUBTITLESTUDIO_PUBLISH_URL` (tuỳ chọn) | Public site | link hiện lấy từ tên project (`https://<project>.pages.dev`); khi Cloudflare thêm hậu tố (tên đã có người dùng) thì link trong app sai → cho phép đặt link thật |
-| **W9 Theater mode** (nút hoặc phím T: player rộng hết trang, panel playlist xuống dưới, lưu localStorage) | UI review 2026-11-10 | người dùng chọn để Backlog |
-| **Cỡ chữ phụ đề S/M/L** (hệ số 1 / 1,25 / 1,5, lưu localStorage, đặt trong popover phím tắt) | UI review 2026-11-10 | phần tuỳ chọn của W6, để Backlog |
 | **Kiểm tra fullscreen trên iPad thật** | UI review 2026-11-10 | Safari/iPad cũ chỉ có Fullscreen API tiền tố webkit: quy tắc W1 `.watch__main > .player:not(:fullscreen)` có thể vẫn giới hạn bề rộng player khi toàn màn hình (`:fullscreen` không khớp `:-webkit-full-screen`); cần thử trên iPad thật |
 | Nhãn Manual/AI trên trang public | Public site | dữ liệu đã có `viSource`; thêm badge nhỏ ở Vietsub list nếu muốn khách thấy |
 | Review Public site (Minor): Publish có thể kẹt PUBLISHING nếu executor từ chối/`Error`; tắt app phải chờ Publish đang chạy; ảnh Profile bị bỏ vẫn hiện khung zoom rỗng; code quản trị nằm trong bundle public (không chạy); `_redirects` có thể thừa với SPA mode của Pages; chèn meta noindex chỉ khớp `<head>`; đường dẫn file trong bundle lấy từ URI (percent-encoding); `mvn spring-boot:run` không có `public-site/` → lỗi chung chung; wrangler nhận toàn bộ env của app | Public site | final review nhánh `public-site` |

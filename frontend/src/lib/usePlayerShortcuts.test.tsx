@@ -9,6 +9,7 @@ function setup() {
     toggleMute: vi.fn(),
     toggleCaptions: vi.fn(),
     toggleHelp: vi.fn(),
+    toggleTheater: vi.fn(),
   };
   const view = renderHook(() => usePlayerShortcuts(h));
   return { h, ...view };
@@ -41,6 +42,19 @@ describe('usePlayerShortcuts', () => {
     expect(h.toggleCaptions).toHaveBeenCalledTimes(1);
     press('?', { shiftKey: true });
     expect(h.toggleHelp).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps T to theater mode, but not with a modifier or while typing', () => {
+    const { h } = setup();
+    press('t');
+    press('T');
+    expect(h.toggleTheater).toHaveBeenCalledTimes(2);
+    press('t', { ctrlKey: true });
+    press('t', { shiftKey: true });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    press('t', {}, input);
+    expect(h.toggleTheater).toHaveBeenCalledTimes(2);
   });
 
   it('is case-insensitive for letters', () => {

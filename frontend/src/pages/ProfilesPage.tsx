@@ -14,6 +14,7 @@ import { Tip } from '../components/Tip';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Select } from '../components/ui/Select';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -165,22 +166,19 @@ export default function ProfilesPage() {
           <div className="profiles__bar">
             <div className="field profiles__select">
               <label htmlFor={`${ids}-profile`}>Profile</label>
-              <select
+              <Select
                 id={`${ids}-profile`}
                 value={selected}
                 disabled={locked || profiles === null}
-                onChange={(e) => {
+                onChange={(name) => {
                   setError(null);
-                  setParams(e.target.value ? { profile: e.target.value } : {}, { replace: true });
+                  setParams(name ? { profile: name } : {}, { replace: true });
                 }}
-              >
-                <option value="">Choose a profile…</option>
-                {(profiles?.profiles ?? []).map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: 'Choose a profile…' },
+                  ...(profiles?.profiles ?? []).map((name) => ({ value: name, label: name })),
+                ]}
+              />
             </div>
             {details && (
               <p className="profiles__stats meta">

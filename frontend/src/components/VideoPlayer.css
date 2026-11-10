@@ -109,3 +109,10 @@ html.player-filled-open body {
   }
 }
 
+
+/* Theater mode is on: purple, the colour of "you are here" (dark text on it, like every brand fill). */
+.player__btn[aria-pressed='true'] {
+  background: var(--brand-2);
+  color: var(--on-brand);
+  opacity: 1;
+}

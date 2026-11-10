@@ -8,6 +8,7 @@ export interface PlayerShortcutHandlers {
   toggleMute: () => void;
   toggleCaptions: () => void;
   toggleHelp: () => void;
+  toggleTheater: () => void;
 }
 
 /** Elements that use Space themselves (activating them), so Space must not also pause the video. */
@@ -15,7 +16,7 @@ const ACTIVATES_ON_SPACE = 'button, a[href], summary, [role="button"], [role="sw
 
 /**
  * Page-level player keys (YouTube's own only work while the iframe has focus): K / Space play or pause,
- * J / L back or forward 10 s, Left / Right 5 s, M mute, C Vietsub on/off, ? the shortcut list.
+ * J / L back or forward 10 s, Left / Right 5 s, M mute, C Vietsub on/off, T theater mode, ? the shortcut list.
  * Ignored while typing, with Ctrl/Meta/Alt, with Shift on a letter (Shift+N / Shift+P are the playlist's) and
  * inside a dialog or popover. Space is left to buttons and links.
  */
@@ -64,6 +65,10 @@ export function usePlayerShortcuts(handlers: PlayerShortcutHandlers) {
         case 'c':
         case 'C':
           h.toggleCaptions();
+          break;
+        case 't':
+        case 'T':
+          h.toggleTheater();
           break;
         default:
           return;

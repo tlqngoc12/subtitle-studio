@@ -127,9 +127,20 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
 
     /** Gemini translation. A blank {@code apiKey} turns the feature off. Never log the key. */
     public record Gemini(String apiKey, @NotBlank String model, @NotNull Duration timeout,
-                         @NotNull Duration maxDuration, double temperature, List<String> fallbackModels) {
+                         @NotNull Duration maxDuration, @NotNull Duration partDuration, double temperature,
+                         List<String> fallbackModels) {
+
+        /** Videos up to this long are translated in one request; longer ones in parts of at most this length. */
+        public static final Duration DEFAULT_PART_DURATION = Duration.ofMinutes(45);
+
+        /** Same, with the default part duration. */
+        public Gemini(String apiKey, String model, Duration timeout, Duration maxDuration, double temperature,
+                      List<String> fallbackModels) {
+            this(apiKey, model, timeout, maxDuration, DEFAULT_PART_DURATION, temperature, fallbackModels);
+        }
 
         /** Models tried in order when the previous one is overloaded (HTTP 503); never null. */
+        @ConstructorBinding
         public Gemini {
             fallbackModels = fallbackModels == null ? List.of() : List.copyOf(fallbackModels);
         }

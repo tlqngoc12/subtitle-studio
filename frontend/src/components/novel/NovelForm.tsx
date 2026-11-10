@@ -4,6 +4,7 @@ import { getNovelProfiles, type NovelDetail, type NovelInput, type NovelStatus }
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImagePicker, type PickedImage } from '../profile/ImagePicker';
 import { Alert } from '../ui/Alert';
+import { Select } from '../ui/Select';
 import './NovelForm.css';
 
 /** "Tình Yêu Mùa Hạ" → "tinh-yeu-mua-ha": no accents, lowercase, single hyphens. */
@@ -215,11 +216,9 @@ export function NovelForm({
         name: 'novelStatus',
         label: 'Status',
         children: (a) => (
-          <select id={a.id} value={status} aria-invalid={a.invalid} aria-describedby={a.describedBy}
-            onChange={(e) => setStatus(e.target.value as NovelStatus)}>
-            <option value="ONGOING">Ongoing</option>
-            <option value="COMPLETED">Completed</option>
-          </select>
+          <Select id={a.id} value={status} aria-invalid={a.invalid} aria-describedby={a.describedBy}
+            onChange={(v) => setStatus(v as NovelStatus)}
+            options={[{ value: 'ONGOING', label: 'Ongoing' }, { value: 'COMPLETED', label: 'Completed' }]} />
         ),
       })}
       {renderField({
@@ -252,16 +251,13 @@ export function NovelForm({
         label: 'Translation profile',
         hint: 'A .md file in ./data/prompts/novels: source language, names, how characters address each other.',
         children: (a) => (
-          <select id={a.id} value={profile} aria-invalid={a.invalid} aria-describedby={a.describedBy}
-            onChange={(e) => setProfile(e.target.value)}>
-            <option value="">None (Translate is off)</option>
-            {profiles.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-            {profile && !profiles.includes(profile) && <option value={profile}>{profile}</option>}
-          </select>
+          <Select id={a.id} value={profile} aria-invalid={a.invalid} aria-describedby={a.describedBy}
+            onChange={setProfile}
+            options={[
+              { value: '', label: 'None (Translate is off)' },
+              ...profiles.map((p) => ({ value: p, label: p })),
+              ...(profile && !profiles.includes(profile) ? [{ value: profile, label: profile }] : []),
+            ]} />
         ),
       })}
       {error && (

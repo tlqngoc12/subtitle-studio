@@ -46,3 +46,44 @@
   font-size: var(--step--1);
   font-weight: 700;
 }
+
+/* Caption size: S / M / L radio group under the key list. */
+.shortcuts__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.shortcuts__sizes-label {
+  flex: 1 0 100%;
+  font-weight: 700;
+}
+
+.shortcuts__option {
+  flex: 1;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shortcuts__option:hover {
+  border-color: var(--brand-2);
+}
+
+.shortcuts__option:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.shortcuts__option[aria-checked='true'] {
+  border-color: var(--brand-2);
+  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
+}

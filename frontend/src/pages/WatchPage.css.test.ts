@@ -13,8 +13,22 @@ describe('watch page CSS', () => {
     expect(r).toMatch(/max-width:\s*calc\(\(100dvh[^;]*\)\s*\*\s*16\s*\/\s*9\)/);
   });
 
-  it('shows the Vietsub at least 14px tall', () => {
-    expect(rule('.overlay__line')).toMatch(/font-size:\s*clamp\(14px,/);
+  it('shows the Vietsub at least 14px tall, times the caption scale', () => {
+    expect(rule('.overlay__line')).toMatch(/font-size:\s*calc\(clamp\(14px,[^;]*\)\s*\*\s*var\(--caption-scale,\s*1\)\)/);
+  });
+
+  it('lets the player use the full width in theater mode and moves the playlist under it', () => {
+    expect(rule('.watch--theater > .watch__main > .player:not(:fullscreen):not(.player--filled)')).toMatch(/max-width:\s*none/);
+    expect(rule('.watch--theater.watch--playlist')).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  });
+
+  it('paints the active theater button purple', () => {
+    expect(rule('.player__btn[aria-pressed=\'true\']')).toMatch(/background:\s*var\(--brand-2\)/);
+  });
+
+  it('makes the caption size options 44px tall with the selected one purple', () => {
+    expect(rule('.shortcuts__option')).toMatch(/min-height:\s*44px/);
+    expect(rule('.shortcuts__option[aria-checked=\'true\']')).toMatch(/--brand-2/);
   });
 
   it('makes the player buttons 44px on phones', () => {

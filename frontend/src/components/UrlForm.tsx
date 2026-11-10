@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Tip } from './Tip';
+import { Select } from './ui/Select';
 import './UrlForm.css';
 
 interface Props {
@@ -28,20 +29,14 @@ export function UrlForm({ pending, onSubmit, profiles, configured, profile, onPr
   }
 
   const select = (
-    <select
+    <Select
       id="profile"
-      className="frame__select"
+      variant="frame"
       value={profile}
       disabled={!configured}
-      onChange={(e) => onProfileChange(e.target.value)}
-    >
-      <option value="">— No translation —</option>
-      {profiles.map((p) => (
-        <option key={p} value={p}>
-          {p}
-        </option>
-      ))}
-    </select>
+      onChange={onProfileChange}
+      options={[{ value: '', label: '— No translation —' }, ...profiles.map((p) => ({ value: p, label: p }))]}
+    />
   );
 
   return (

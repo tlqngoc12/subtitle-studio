@@ -32,7 +32,8 @@ class SubtitleStudioApplicationTests {
     @Test
     void bindsGeminiDefaults() {
         assertThat(properties.gemini().timeout()).isEqualTo(Duration.ofMinutes(3));
-        assertThat(properties.gemini().maxDuration()).isEqualTo(Duration.ofMinutes(60));
+        assertThat(properties.gemini().maxDuration()).isEqualTo(Duration.ofMinutes(180));
+        assertThat(properties.gemini().partDuration()).isEqualTo(Duration.ofMinutes(45));
         assertThat(properties.gemini().temperature()).isEqualTo(0.3);
         assertThat(properties.gemini().model()).isEqualTo("gemini-3.6-flash");
         assertThat(properties.gemini().fallbackModels()).containsExactly("gemini-3.5-flash-lite", "gemini-3.5-flash");

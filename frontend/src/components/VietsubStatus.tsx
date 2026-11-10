@@ -41,7 +41,7 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
     return (
       <p className="vietsub-status">
         <Loader2 className="icon icon--spin" aria-hidden="true" />
-        Translating with Gemini ({video.translationModel ? `${video.translationProfile}, ${video.translationModel}` : video.translationProfile})…
+        {`Translating${video.activePart ? ` part ${video.activePart}` : ''} with Gemini (${video.translationModel ? `${video.translationProfile}, ${video.translationModel}` : video.translationProfile})…`}
       </p>
     );
   }

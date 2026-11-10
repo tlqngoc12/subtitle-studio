@@ -57,7 +57,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @Import({TranslationService.class, VietsubService.class, SrtParser.class, SrtWriter.class, UrlParser.class,
-        SubtitleFileStore.class, PromptProfileStore.class, TranslationServiceTest.Config.class})
+        SubtitleFileStore.class, PromptProfileStore.class, PartialTranslationStore.class,
+        TranslationServiceTest.Config.class})
 @ExtendWith(OutputCaptureExtension.class)
 class TranslationServiceTest {
 
@@ -76,6 +77,7 @@ class TranslationServiceTest {
             Path dir = Files.createTempDirectory("translation-service-test");
             Files.createDirectories(dir.resolve("prompts"));
             Files.writeString(dir.resolve("prompts/EmiBonnie.md"), "## Xưng hô\nchị - em", StandardCharsets.UTF_8);
+            Files.writeString(dir.resolve("prompts/Other.md"), "## Khác", StandardCharsets.UTF_8);
             return dir;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -111,11 +113,15 @@ class TranslationServiceTest {
         GeminiTranslator behaviour;
         /** Reported through onTrying before the work; null = none. */
         String model;
+        /** When set, gives the model reported before each call (wins over {@code model}). */
+        java.util.function.Supplier<String> modelPerCall;
 
         @Override
         public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines,
                                               java.util.function.Consumer<String> onTrying) {
-            if (model != null) {
+            if (modelPerCall != null) {
+                onTrying.accept(modelPerCall.get());
+            } else if (model != null) {
                 onTrying.accept(model);
             }
             return translate(video, profile, lines);
@@ -139,6 +145,11 @@ class TranslationServiceTest {
         @Bean
         MutableClock clock() {
             return new MutableClock(NOW);
+        }
+
+        @Bean
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+            return new com.fasterxml.jackson.databind.ObjectMapper();
         }
 
         @Bean
@@ -188,15 +199,24 @@ class TranslationServiceTest {
     @Autowired
     private TransactionTemplate tx;
 
+    @Autowired
+    private PartialTranslationStore store;
+
     @BeforeEach
     void reset() {
         translator.calls.set(0);
         translator.behaviour = null;
         translator.model = null;
+        translator.modelPerCall = null;
         translator.lastContext = null;
         org.mockito.Mockito.reset(exampleSource, ytDlp);
         executor.hold = false;
         executor.pending.clear();
+        try {
+            Files.deleteIfExists(DATA_DIR.resolve("translate-partial/" + ID + ".json"));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private Video video(Integer durationSec) {
@@ -253,7 +273,7 @@ class TranslationServiceTest {
 
     @Test
     void tooLongSkipsFromFetch() {
-        video(3601);
+        video(3 * 3600 + 60); // 3h01
 
         assertThat(service.startFromFetch(ID, PROFILE)).isEqualTo(SkipReason.VIDEO_TOO_LONG);
         assertThat(translator.calls).hasValue(0);
@@ -338,7 +358,7 @@ class TranslationServiceTest {
 
     @Test
     void retranslateTooLongAndInProgress() {
-        video(4000);
+        video(3 * 3600 + 60);
         assertThatThrownBy(() -> service.retranslate(ID, PROFILE)).isInstanceOf(VideoTooLongException.class);
 
         Video v = reload();
@@ -568,8 +588,256 @@ class TranslationServiceTest {
 
     private TranslationService serviceWithKey(String key) {
         var g = properties.gemini();
-        var gemini = new SubtitleStudioProperties.Gemini(key, g.model(), g.timeout(), Duration.ofMinutes(60), g.temperature(), g.fallbackModels());
+        var gemini = new SubtitleStudioProperties.Gemini(key, g.model(), g.timeout(), g.maxDuration(), g.partDuration(), g.temperature(), g.fallbackModels());
         var props = new SubtitleStudioProperties(properties.ytdlp(), properties.dataDir(), gemini, properties.publish());
-        return new TranslationService(props, profiles, translator, videos, cues, vietsub, tx, executor, exampleSource, ytDlp);
+        return new TranslationService(props, profiles, translator, videos, cues, vietsub, tx, executor, exampleSource, ytDlp, store);
+    }
+
+    // --- long videos, translated in parts ---
+
+    private static final Path PARTIAL = DATA_DIR.resolve("translate-partial/" + ID + ".json");
+
+    /** One cue per minute, line N saying "SECRET-N"; the video lasts {@code minutes} minutes. */
+    private Video longVideo(int minutes) {
+        Video v = new Video(ID);
+        v.update("LONG", "CHANNEL", minutes * 60, "en", SourceType.MANUAL, minutes, NOW);
+        Video saved = videos.save(v);
+        for (int i = 0; i < minutes; i++) {
+            cues.save(new CueEntity(saved, i, i * 60_000L, i * 60_000L + 2_000, "SECRET-" + i));
+        }
+        videos.flush();
+        return saved;
+    }
+
+    /** What each translator call was asked: first and last line id, and the context's previous lines. */
+    record Call(int first, int last, List<ExamplePair> previous) {}
+
+    private List<Call> recordCalls() {
+        List<Call> calls = new ArrayList<>();
+        translator.behaviour = (v, p, lines) -> {
+            calls.add(new Call(lines.get(0).id(), lines.get(lines.size() - 1).id(), v.previousLines()));
+            return lines.stream().map(l -> new TranslatedLine(l.id(), "VI-" + l.id())).toList();
+        };
+        return calls;
+    }
+
+    @Test
+    void aHundredMinuteVideoIsTranslatedInThreePartsWithContext() {
+        longVideo(100);
+        List<Call> calls = recordCalls();
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(calls).hasSize(3);
+        assertThat(calls.get(0)).isEqualTo(new Call(0, 44, List.of()));
+        assertThat(calls.get(1).first()).isEqualTo(45);
+        assertThat(calls.get(1).last()).isEqualTo(89);
+        assertThat(calls.get(1).previous()).hasSize(8);
+        assertThat(calls.get(1).previous().get(0)).isEqualTo(new ExamplePair("SECRET-37", "VI-37"));
+        assertThat(calls.get(1).previous().get(7)).isEqualTo(new ExamplePair("SECRET-44", "VI-44"));
+        assertThat(calls.get(2).first()).isEqualTo(90);
+        assertThat(calls.get(2).previous().get(7)).isEqualTo(new ExamplePair("SECRET-89", "VI-89"));
+        assertThat(vietsub.getCues(ID)).hasSize(100);
+        assertThat(vietsub.getCues(ID).get(99)).isEqualTo(new ViCue(99 * 60_000L, 99 * 60_000L + 2_000, "VI-99"));
+        assertThat(reload().getTranslationStatus()).isNull();
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
+    void theStatusShowsThePartAndClearsItAtTheEnd() {
+        longVideo(100);
+        translator.model = "gemini-x";
+        List<String> seen = new ArrayList<>();
+        translator.behaviour = (v, p, lines) -> {
+            seen.add(service.activePart(ID) + "/" + service.activeModel(ID));
+            return lines.stream().map(l -> new TranslatedLine(l.id(), "x")).toList();
+        };
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(seen).containsExactly("1/3/gemini-x", "2/3/gemini-x", "3/3/gemini-x");
+        assertThat(service.activePart(ID)).isNull();
+        assertThat(service.activeModel(ID)).isNull();
+    }
+
+    @Test
+    void theStoredModelListsEachDistinctModelInOrder() {
+        longVideo(100);
+        String[] models = {"m1", "m1", "m2"};
+        int[] part = {0};
+        translator.behaviour = (v, p, lines) -> lines.stream().map(l -> new TranslatedLine(l.id(), "x")).toList();
+        translator.modelPerCall = () -> models[part[0]++];
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(reload().getTranslationModel()).isEqualTo("m1, m2");
+    }
+
+    @Test
+    void aFailedPartKeepsTheFinishedOnesAndTranslateAgainContinuesFromIt() {
+        longVideo(100);
+        int[] call = {0};
+        List<Call> calls = new ArrayList<>();
+        translator.behaviour = (v, p, lines) -> {
+            call[0]++;
+            calls.add(new Call(lines.get(0).id(), lines.get(lines.size() - 1).id(), v.previousLines()));
+            if (call[0] == 2) {
+                throw new TranslationFailedException("Gemini free quota is used up, try again later.");
+            }
+            return lines.stream().map(l -> new TranslatedLine(l.id(), "VI-" + l.id())).toList();
+        };
+
+        service.startFromFetch(ID, PROFILE);
+
+        Video failed = reload();
+        assertThat(failed.getTranslationStatus()).isEqualTo(TranslationStatus.FAILED);
+        assertThat(failed.getTranslationError()).contains("part 2/3").contains("quota is used up")
+                .contains("Translate again continues from part 2");
+        assertThat(service.activePart(ID)).isNull();
+        assertThat(service.activeModel(ID)).isNull();
+        assertThat(PARTIAL).exists();
+        assertThat(failed.getViSource()).isNull();
+
+        calls.clear();
+        service.retranslate(ID, PROFILE);
+
+        assertThat(calls).extracting(Call::first).containsExactly(45, 90); // part 1 is not asked again
+        assertThat(calls.get(0).previous().get(7)).isEqualTo(new ExamplePair("SECRET-44", "VI-44")); // from the file
+        assertThat(reload().getTranslationStatus()).isNull();
+        assertThat(vietsub.getCues(ID)).extracting(ViCue::text)
+                .containsExactlyElementsOf(java.util.stream.IntStream.range(0, 100).mapToObj(i -> "VI-" + i).toList());
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
+    void aPartialFileOfAnotherProfileIsDiscarded() {
+        longVideo(100);
+        int[] call = {0};
+        translator.behaviour = (v, p, lines) -> {
+            if (++call[0] == 2) {
+                throw new TranslationFailedException("busy");
+            }
+            return lines.stream().map(l -> new TranslatedLine(l.id(), "OLD")).toList();
+        };
+        service.startFromFetch(ID, PROFILE);
+        assertThat(PARTIAL).exists();
+
+        List<Call> calls = recordCalls();
+        service.retranslate(ID, "Other");
+
+        assertThat(calls).extracting(Call::first).containsExactly(0, 45, 90);
+        assertThat(vietsub.getCues(ID)).extracting(ViCue::text).doesNotContain("OLD");
+    }
+
+    @Test
+    void aPartialFileWithAnotherCueCountIsDiscarded() throws IOException {
+        longVideo(100);
+        Files.createDirectories(PARTIAL.getParent());
+        Files.writeString(PARTIAL, "{\"profile\":\"" + PROFILE + "\",\"cueCount\":99,\"parts\":[{\"index\":0,"
+                + "\"lines\":[{\"idx\":0,\"text\":\"OLD\"}],\"model\":\"m\"}]}");
+        List<Call> calls = recordCalls();
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(calls).extracting(Call::first).containsExactly(0, 45, 90);
+        assertThat(vietsub.getCues(ID)).extracting(ViCue::text).doesNotContain("OLD");
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
+    void aCompletePartialFileIsSavedWithoutAskingGeminiAgain() throws IOException {
+        longVideo(100);
+        // Every part finished earlier, but the run died before the Vietsub was saved.
+        int[][] ranges = {{0, 45}, {45, 90}, {90, 100}};
+        StringBuilder json = new StringBuilder("{\"profile\":\"" + PROFILE + "\",\"cueCount\":100,\"parts\":[");
+        for (int p = 0; p < ranges.length; p++) {
+            json.append(p > 0 ? "," : "").append("{\"index\":").append(p).append(",\"model\":\"m\",\"lines\":[");
+            for (int i = ranges[p][0]; i < ranges[p][1]; i++) {
+                json.append(i > ranges[p][0] ? "," : "").append("{\"idx\":").append(i).append(",\"text\":\"VI-").append(i).append("\"}");
+            }
+            json.append("]}");
+        }
+        json.append("]}");
+        Files.createDirectories(PARTIAL.getParent());
+        Files.writeString(PARTIAL, json.toString());
+        List<Call> calls = recordCalls();
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(calls).isEmpty();
+        assertThat(vietsub.getCues(ID)).extracting(ViCue::text)
+                .containsExactlyElementsOf(java.util.stream.IntStream.range(0, 100).mapToObj(i -> "VI-" + i).toList());
+        assertThat(reload().getTranslationStatus()).isNull();
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
+    void aVideoOfThreeHoursIsAcceptedAndOneMinuteMoreIsNot() {
+        longVideo(3);
+        Video v = reload();
+        v.update(v.getTitle(), v.getChannel(), 3 * 3600 - 60, v.getSubLang(), v.getSubSource(), 3, NOW);
+        videos.flush();
+
+        assertThat(service.startFromFetch(ID, PROFILE)).isNull();
+        assertThat(reload().getViSource()).isEqualTo(ViSource.AUTO);
+
+        v = reload();
+        v.update(v.getTitle(), v.getChannel(), 3 * 3600 + 60, v.getSubLang(), v.getSubSource(), 3, NOW);
+        videos.flush();
+        assertThatThrownBy(() -> service.retranslate(ID, PROFILE)).isInstanceOf(VideoTooLongException.class);
+    }
+
+    @Test
+    void aFortyMinuteVideoIsOneCallAndLeavesNoPartialFile() {
+        longVideo(40);
+        List<Call> calls = recordCalls();
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(calls).containsExactly(new Call(0, 39, List.of()));
+        assertThat(translator.calls).hasValue(1);
+        assertThat(service.activePart(ID)).isNull();
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
+    void aFailedOnePartVideoKeepsTheOldMessage() {
+        longVideo(40);
+        translator.behaviour = (v, p, lines) -> {
+            throw new TranslationFailedException("Gemini free quota is used up, try again later.");
+        };
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(reload().getTranslationError()).isEqualTo("Gemini free quota is used up, try again later.");
+    }
+
+    @Test
+    void removingTheVideoRemovesThePartialFile() throws IOException {
+        longVideo(100);
+        Files.createDirectories(PARTIAL.getParent());
+        Files.writeString(PARTIAL, "{}");
+
+        store.on(new com.subtitlestudio.video.VideoRemovalEvent(ID));
+
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
+    void partsNeverLogSubtitleText(CapturedOutput output) {
+        longVideo(100);
+        int[] call = {0};
+        translator.behaviour = (v, p, lines) -> {
+            if (++call[0] == 2) {
+                throw new TranslationFailedException("busy");
+            }
+            return lines.stream().map(l -> new TranslatedLine(l.id(), "VI-" + l.id())).toList();
+        };
+
+        service.startFromFetch(ID, PROFILE);
+        service.retranslate(ID, PROFILE);
+
+        assertThat(output).contains("translate " + ID + ": part 1/3, 45 lines").contains("part 3/3, 10 lines");
+        assertThat(output.getAll()).doesNotContain("SECRET-").doesNotContain("VI-");
     }
 }
