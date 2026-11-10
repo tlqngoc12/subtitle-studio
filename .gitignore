@@ -1,5 +1,8 @@
 target/
-/data/
+/data/*
+!/data/prompts/
+!/data/subs/
+/data/prompts/.history/
 .idea/
 *.iml
 .vscode/
