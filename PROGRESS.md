@@ -661,7 +661,7 @@ Plan: [docs/superpowers/plans/2026-11-09-warm-palette.md](docs/superpowers/plans
 - **Khung video:** `UrlForm.css` và `VideoPlayer.css` dùng `--frame`/`--on-frame` thay hex.
 - **Test:** `contrast.test.ts` kiểm `--ink` ≥ 7:1 (AAA), chữ phụ/brand-ink/danger ≥ 4.5:1, viền ô nhập/focus ≥ 3:1, `--on-brand` trên `--brand-hover`, `--on-frame` 7:1. `--danger` và `--hover` giữ nguyên (đạt).
 
-### 2026-11-10: Dịch phim bộ chính xác hơn: ví dụ từ tập đã Done + mô tả YouTube ✅ (chưa merge, chưa deploy; cần deploy vì có V12)
+### 2026-11-10: Dịch phim bộ chính xác hơn: ví dụ từ tập đã Done + mô tả YouTube ✅ (đã merge PR #8, chưa deploy; cần deploy vì có V12)
 
 Nhánh `feat/translate-series-context`. Plan: [docs/superpowers/plans/2026-11-10-translate-series-context.md](docs/superpowers/plans/2026-11-10-translate-series-context.md). User đã duyệt, chọn (a): không chuyển hồ sơ của video cũ.
 
@@ -670,6 +670,16 @@ Nhánh `feat/translate-series-context`. Plan: [docs/superpowers/plans/2026-11-10
 - **Lỗi ngữ cảnh không làm hỏng lượt dịch:** chỉ log rồi dịch tiếp; log không chứa nội dung phụ đề hay mô tả.
 - **Cách dùng:** nên tạo **một hồ sơ cho mỗi bộ phim** (vd `data/prompts/Moonshadow.md`) và dùng nhất quán cho mọi tập. Theo lựa chọn (a), video cũ không được chuyển hồ sơ nên ví dụ chỉ xuất hiện khi đã có tập dịch bằng hồ sơ đó và được đánh dấu Done; tập đầu của bộ phim chưa có ví dụ.
 - **Cần deploy** (V12 chạy khi app khởi động). Chưa kiểm tra bằng Gemini thật: sau deploy, dịch một tập có ít nhất một tập Done cùng hồ sơ và xem log `examples: ...`.
+
+### 2026-11-10: Vietsub › Profiles (phân tích câu đã sửa) + sửa viền focus của tab ✅ (chưa merge, chưa deploy)
+
+Nhánh `fix/tab-focus-ring-on-click`, một PR cho cả hai phần. Plan: [docs/superpowers/plans/2026-11-10-profiles-analyze-corrections.md](docs/superpowers/plans/2026-11-10-profiles-analyze-corrections.md) (user đã duyệt). **PR #8 (V12) đã merge nhưng chưa deploy, nên lần deploy tới gồm V12 + nhánh này.** Nhánh này không có migration.
+
+- **Viền focus khi click tab:** nguyên nhân là Radix Tabs 1.2.1 gọi `event.currentTarget.focus()` bằng script trong `onMouseDown`, Chromium coi focus do script là `:focus-visible` nên viền xuất hiện khi click chuột (dựng lại bằng Edge headless + CDP: sau click `matches(':focus-visible')` = true, outline 3px). `components/ui/TabTrigger` đánh dấu `data-pointer` lúc `pointerdown`, CSS `.tabs__tab[data-pointer]:focus-visible { outline: none }`; phím hoặc blur xoá dấu nên Tab/mũi tên vẫn hiện viền. Dùng ở trang truyện public, Vietsub list và trang Novel (admin).
+- **Backend:** `CorrectionReader` tách khỏi `ExampleSource` (hành vi `ExampleSource` giữ nguyên, test cũ xanh); `PromptProfileStore` thêm `sha`/`write` (backup `.history/`, ghi atomic, 20 KB, 409 `PROFILE_CHANGED`); `ProfileAnalyzer` + 3 endpoint (GET, POST analyze, PUT) trong `PromptProfileController`; `/vietsub/profiles` thêm vào `SpaForwardController`. Chi tiết trong CLAUDE.md.
+- **Frontend:** tab **Profiles** ở `VietsubTabs`, trang `ProfilesPage` (chọn hồ sơ lưu ở `?profile=`, nút Analyze corrections có lý do khi tắt, danh sách quy tắc ×N, diff highlight bằng thư viện `diff` qua `lib/profileDiff.ts`, Edit before saving với diff debounce 300 ms, xác nhận khi Save/Cancel đã sửa, toast, 409 → Alert).
+- **Khác plan:** lỗi Gemini lúc phân tích dùng mã mới `GEMINI_FAILED` (502) vì trước đây `TranslationFailedException` chưa có handler đồng bộ; nút Analyze dùng `aria-disabled` thay `disabled` để tooltip lý do vẫn hiện; dropdown hồ sơ bị khoá khi đang phân tích hoặc đang có kết quả (phải Cancel hoặc Save trước khi đổi hồ sơ).
+- **Chưa kiểm tra với Gemini thật.** Sau deploy (khi user cho phép): Analyze `EmiBonnie` (34 video), xem diff, thử Edit rồi Cancel; chỉ Save khi muốn.
 
 ### 2026-11-10: Banner Profile tự chạy và lượt đọc truyện ✅ (chưa deploy)
 
