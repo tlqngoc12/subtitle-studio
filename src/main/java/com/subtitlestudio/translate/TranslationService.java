@@ -10,6 +10,7 @@ import com.subtitlestudio.video.Video;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.video.VideoRepository;
 import com.subtitlestudio.video.VietsubService;
+import com.subtitlestudio.ytdlp.YtDlpClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,13 +44,16 @@ public class TranslationService {
     private final VietsubService vietsub;
     private final TransactionTemplate tx;
     private final Executor executor;
+    private final ExampleSource exampleSource;
+    private final YtDlpClient ytDlp;
     /** The model being asked right now, per video that is TRANSLATING; removed when the run ends. */
     private final ConcurrentHashMap<String, String> activeModel = new ConcurrentHashMap<>();
 
     public TranslationService(SubtitleStudioProperties properties, PromptProfileStore profiles,
                               GeminiTranslator translator, VideoRepository videos, CueRepository cues,
                               VietsubService vietsub, TransactionTemplate tx,
-                              @Qualifier("translationExecutor") Executor executor) {
+                              @Qualifier("translationExecutor") Executor executor,
+                              ExampleSource exampleSource, YtDlpClient ytDlp) {
         this.gemini = properties.gemini();
         this.profiles = profiles;
         this.translator = translator;
@@ -58,6 +62,8 @@ public class TranslationService {
         this.vietsub = vietsub;
         this.tx = tx;
         this.executor = executor;
+        this.exampleSource = exampleSource;
+        this.ytDlp = ytDlp;
     }
 
     /**
@@ -82,7 +88,7 @@ public class TranslationService {
         if (video.getViSource() == ViSource.AUTO) {
             return SkipReason.VIETSUB_EXISTS;
         }
-        if (begin(video, profile)) {
+        if (begin(video, profile, false)) {
             return null;
         }
         return find(videoId).getViSource() == ViSource.MANUAL
@@ -105,7 +111,7 @@ public class TranslationService {
         if (video.getTranslationStatus() == TranslationStatus.TRANSLATING) {
             throw new TranslationInProgressException(videoId);
         }
-        if (!begin(video, profile)) {
+        if (!begin(video, profile, true)) {
             if (find(videoId).getViSource() == ViSource.MANUAL) {
                 throw new VietsubManualException(videoId);
             }
@@ -124,31 +130,33 @@ public class TranslationService {
         tx.execute(status -> videos.failAllTranslating(INTERRUPTED));
     }
 
-    private boolean begin(Video video, String profile) {
+    private boolean begin(Video video, String profile, boolean fillDescription) {
         String id = video.getId();
-        VideoContext context = new VideoContext(video.getTitle(), video.getChannel());
         Integer updated = tx.execute(status -> videos.markTranslating(id, profile));
         if (updated == null || updated == 0) {
             return false;
         }
-        executor.execute(() -> run(id, profile, context));
+        executor.execute(() -> run(video, profile, fillDescription));
         return true;
     }
 
-    private void run(String id, String profile, VideoContext context) {
+    private void run(Video video, String profile, boolean fillDescription) {
+        String id = video.getId();
         try {
-            runTranslation(id, profile, context);
+            runTranslation(video, profile, fillDescription);
         } finally {
             activeModel.remove(id);
         }
     }
 
-    private void runTranslation(String id, String profile, VideoContext context) {
+    private void runTranslation(Video video, String profile, boolean fillDescription) {
+        String id = video.getId();
         String[] lastTried = {null};
         try {
             String profileText = profiles.read(profile);
             List<CueEntity> english = cues.findByVideo_IdOrderByIdxAsc(id);
             List<SourceLine> lines = english.stream().map(c -> new SourceLine(c.getIdx(), c.getTextEn())).toList();
+            VideoContext context = context(video, profile, fillDescription);
             List<TranslatedLine> translated = translator.translate(context, profileText, lines, model -> {
                 lastTried[0] = model;
                 activeModel.put(id, model);
@@ -167,6 +175,39 @@ public class TranslationService {
         } catch (RuntimeException e) {
             log.warn("Translation of {} failed: {}", id, e.getClass().getName());
             fail(id, "Could not translate: " + e.getClass().getSimpleName() + ".");
+        }
+    }
+
+    /**
+     * Title, channel, cleaned description and approved examples. Context only helps, so any error here is logged
+     * (never with subtitle or description text) and the translation goes on without that part.
+     */
+    private VideoContext context(Video video, String profile, boolean fillDescription) {
+        String id = video.getId();
+        String description = video.getDescription();
+        if (description == null && fillDescription) {
+            description = fetchDescription(id);
+        }
+        List<ExamplePair> examples = List.of();
+        try {
+            examples = exampleSource.examplesFor(profile, id);
+        } catch (RuntimeException e) {
+            log.warn("Could not build examples for {}: {}", id, e.getClass().getSimpleName());
+        }
+        return new VideoContext(video.getTitle(), video.getChannel(), DescriptionCleaner.clean(description), examples);
+    }
+
+    /** Older videos have no description yet: ask yt-dlp once and keep it. Failure just means no description. */
+    private String fetchDescription(String id) {
+        try {
+            String description = ytDlp.fetchInfo(id).description();
+            if (description != null) {
+                tx.executeWithoutResult(status -> videos.findById(id).ifPresent(v -> v.setDescription(description)));
+            }
+            return description;
+        } catch (RuntimeException e) {
+            log.warn("Could not fetch the description of {}: {}", id, e.getClass().getSimpleName());
+            return null;
         }
     }
 
