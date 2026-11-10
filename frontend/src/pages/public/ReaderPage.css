@@ -47,12 +47,26 @@
 }
 
 /* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
+.reader-loading-title {
+  max-width: var(--reader-width, 600px);
+  margin: 0 auto 12px;
+  font-size: 1.1rem;
+}
+
+@keyframes reader-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .reader {
+  animation: reader-in 180ms ease-out;
   position: relative;
   display: grid;
   gap: 0;
   max-width: var(--reader-width, 600px);
   margin-inline: auto;
+  background: var(--reader-paper);
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -63,8 +77,9 @@
   width: 100%;
   height: auto;
   /* Reserve the page's space before it loads, so the chapter does not jump. */
-  aspect-ratio: auto 1080 / 1600;
   pointer-events: none;
+  filter: var(--reader-img-filter);
+  opacity: var(--reader-img-opacity);
   transition: filter 0.2s;
 }
 
@@ -85,16 +100,7 @@
 }
 
 .reader--hidden .reader__page {
-  filter: blur(24px);
-}
-
-/* Night mode: invert the paper to dark and turn the hues back, so the text is light on dark. */
-.reader--night .reader__page {
-  filter: invert(0.88) hue-rotate(180deg);
-}
-
-.reader--night.reader--hidden .reader__page {
-  filter: invert(0.88) hue-rotate(180deg) blur(24px);
+  filter: var(--reader-img-filter) blur(24px);
 }
 
 .reader-print-note {
@@ -113,7 +119,43 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .reader {
+    animation: none;
+  }
+
   .reader__page {
     transition: none;
+  }
+}
+
+/* Compact screens: the paper runs edge to edge, out of the page gutter. */
+@media (max-width: 767px) {
+  .reader {
+    max-width: none;
+    margin-inline: calc(-1 * var(--gutter));
+  }
+}
+
+/* Reading progress: a 3px line across the very top, above the site top bar. */
+.reader-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 11;
+  height: 3px;
+  background: var(--brand);
+  transform-origin: left;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  /* Leave room for the bottom bar under the end-of-chapter buttons. */
+  .reader-page {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-4));
+  }
+}
+
+@media print {
+  .reader-progress {
+    display: none;
   }
 }

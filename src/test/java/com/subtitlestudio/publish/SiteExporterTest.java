@@ -588,6 +588,27 @@ class SiteExporterTest {
     }
 
     @Test
+    void chapterFileListsEveryFormat() throws IOException {
+        novel("summer", null, 1, 1);
+
+        exporter.export(out, NOW);
+
+        JsonNode chapter = readJson("data/novels/summer/1.json");
+        JsonNode formats = chapter.get("formats");
+        assertThat(formats).hasSize(3);
+        assertThat(formats.get(0).get("key").asText()).isEqualTo("s");
+        assertThat(formats.get(1).get("key").asText()).isEqualTo("m");
+        assertThat(formats.get(1).get("width").asInt()).isEqualTo(820);
+        assertThat(chapter.get("images")).isEqualTo(formats.get(0).get("images"));
+        for (JsonNode format : formats) {
+            assertThat(format.get("images")).isNotEmpty();
+            for (JsonNode image : format.get("images")) {
+                assertThat(out.resolve(image.asText().substring(1))).exists();
+            }
+        }
+    }
+
+    @Test
     void warnsAboveFileLimit(CapturedOutput output) {
         novel("summer", null, 1, 1);
         SiteExporter small = new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository,

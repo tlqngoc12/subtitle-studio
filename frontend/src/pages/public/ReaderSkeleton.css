@@ -1,0 +1,36 @@
+.reader-skeleton {
+  box-sizing: border-box;
+  max-width: var(--reader-width, 600px);
+  margin-inline: auto;
+  aspect-ratio: 2 / 3;
+  padding: 24px;
+  background: var(--reader-paper);
+  overflow: hidden;
+}
+
+.reader-skeleton__bar {
+  display: block;
+  height: 12px;
+  margin-bottom: 10px; /* 12px bar + 10px gap = 22px pitch */
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--reader-ink, currentColor) 14%, transparent);
+  animation: reader-shimmer 1.2s ease-in-out infinite;
+}
+
+.reader-skeleton__bar--title {
+  width: 55%;
+  height: 20px;
+  margin-bottom: 24px;
+}
+
+@keyframes reader-shimmer {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-skeleton__bar {
+    animation: none;
+  }
+}

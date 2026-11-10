@@ -39,6 +39,14 @@ export interface PublicNovelDetail {
   chapters: PublicChapterRef[];
 }
 
+/** One rendering of a chapter's pages at a given size. */
+export interface PublicPageFormat {
+  key: 's' | 'm' | 'l';
+  width: number;
+  height: number;
+  images: string[];
+}
+
 /** A chapter as drawn images; there is no text in it. */
 export interface PublicChapterFile {
   chapterNo: number;
@@ -47,4 +55,6 @@ export interface PublicChapterFile {
   prev: number | null;
   next: number | null;
   images: string[];
+  /** Missing in files published before formats. */
+  formats?: PublicPageFormat[];
 }

@@ -58,14 +58,11 @@ public class SiteExporter {
     private final NovelExporter novels;
     private final int fileWarning;
 
-    /** Cloudflare Pages Free allows 20,000 files per site; warn a little before. */
-    static final int FILE_WARNING = 18_000;
-
     @Autowired
     public SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
                         ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
                         ObjectMapper mapper, NovelExporter novels) {
-        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, FILE_WARNING);
+        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, PublishService.FILE_WARNING);
     }
 
     SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,

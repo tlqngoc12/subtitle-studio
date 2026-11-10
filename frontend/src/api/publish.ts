@@ -10,6 +10,8 @@ export interface PublishStatus {
   url: string | null;
   /** Why the last publish failed (safe to show). */
   error: string | null;
+  /** Files in the site of the latest publish; null before the first one. */
+  fileCount?: number | null;
 }
 
 export async function getPublishStatus(): Promise<PublishStatus> {

@@ -47,6 +47,16 @@ export function publicDate(iso: string): string {
   return VIETNAM_DATE.format(new Date(iso));
 }
 
+/** "vừa xong", "5 phút trước", "3 giờ trước", "2 ngày trước"; from 30 days on the plain date. */
+export function relativeTime(iso: string, now: Date = new Date()): string {
+  const sec = Math.max(0, Math.floor((now.getTime() - Date.parse(iso)) / 1000));
+  if (sec < 60) return 'vừa xong';
+  if (sec < 3600) return `${Math.floor(sec / 60)} phút trước`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)} giờ trước`;
+  if (sec < 30 * 86400) return `${Math.floor(sec / 86400)} ngày trước`;
+  return publicDate(iso);
+}
+
 /** What guests see for any load error, whatever the cause. */
 export const PUBLIC_ERROR_TITLE = 'Không tải được. Vui lòng thử lại sau.';
 

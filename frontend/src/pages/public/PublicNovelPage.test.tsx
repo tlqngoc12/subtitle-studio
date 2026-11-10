@@ -87,7 +87,7 @@ describe('PublicNovelsPage', () => {
     const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
     const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText('2/5 chương')).toBeInTheDocument();
+    expect(within(card).getByText(/^2\/5 chương · /)).toBeInTheDocument();
   });
 });
 
@@ -128,6 +128,8 @@ describe('PublicNovelPage', () => {
     const chapters = within(screen.getByRole('list', { name: 'Danh sách chương' })).getAllByRole('link');
     expect(chapters.map((a) => a.textContent)).toEqual(['Chương 1: Mở đầu', 'Ngoại truyện 1']);
     expect(chapters[1]).toHaveAttribute('href', '/novels/summer/3');
+    expect(screen.getAllByRole('link', { name: 'Bắt đầu đọc' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /tủ sách/ })).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Bắt đầu đọc' })).toHaveAttribute('href', '/novels/summer/1');
   });
 
@@ -484,5 +486,52 @@ describe('PublicNovelPage trailer tab', () => {
       expect(rule).toMatch(/border-radius:\s*var\(--radius-frame\)/);
       expect(rule).not.toMatch(/shadow/);
     });
+  });
+});
+
+describe('PublicNovelPage shelf button', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  function renderPage() {
+    return render(
+      <MemoryRouter initialEntries={['/novels/summer']}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={source()} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('shelf button toggles aria-pressed and persists across remount', async () => {
+    const user = userEvent.setup();
+    const first = renderPage();
+    const add = await screen.findByRole('button', { name: 'Thêm vào tủ sách' });
+    expect(add).toHaveAttribute('aria-pressed', 'false');
+    await user.click(add);
+    expect(screen.getByRole('button', { name: 'Đã lưu vào tủ sách' })).toHaveAttribute('aria-pressed', 'true');
+    expect(JSON.parse(localStorage.getItem('novel-shelf')!)).toEqual(['summer']);
+    first.unmount();
+
+    renderPage();
+    const saved = await screen.findByRole('button', { name: 'Đã lưu vào tủ sách' });
+    expect(saved).toHaveAttribute('aria-pressed', 'true');
+    await user.click(saved);
+    expect(screen.getByRole('button', { name: 'Thêm vào tủ sách' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shelf button works with blocked storage', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Thêm vào tủ sách' }));
+    expect(screen.getByRole('button', { name: 'Đã lưu vào tủ sách' })).toHaveAttribute('aria-pressed', 'true');
   });
 });

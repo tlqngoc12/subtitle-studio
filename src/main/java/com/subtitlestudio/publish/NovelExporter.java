@@ -8,8 +8,10 @@ import com.subtitlestudio.novel.ChapterPublishStatus;
 import com.subtitlestudio.novel.ChapterRepository;
 import com.subtitlestudio.novel.Novel;
 import com.subtitlestudio.novel.NovelRepository;
+import com.subtitlestudio.novel.render.PageFormat;
 import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.novel.render.RenderInput;
+import com.subtitlestudio.novel.render.RenderedFormat;
 import com.subtitlestudio.publish.PublicNovelDetail.PublicChapterRef;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -70,9 +72,11 @@ public class NovelExporter {
                 Chapter c = published.get(i);
                 Integer prev = i > 0 ? published.get(i - 1).getChapterNo() : null;
                 Integer next = i < published.size() - 1 ? published.get(i + 1).getChapterNo() : null;
-                List<String> images = images(dir, n, c, watermark);
+                List<PublicPageFormat> formats = formats(dir, n, c, watermark);
+                List<String> images = formats.stream().filter(f -> PageFormat.S.key().equals(f.key()))
+                        .findFirst().orElseThrow().images();
                 write.accept(dir.resolve("data/novels/" + n.getSlug() + "/" + c.getChapterNo() + ".json"),
-                        new PublicChapterFile(c.getChapterNo(), c.getTitle(), c.getLabel(), prev, next, images));
+                        new PublicChapterFile(c.getChapterNo(), c.getTitle(), c.getLabel(), prev, next, images, formats));
             }
             write.accept(dir.resolve("data/novels/" + n.getSlug() + ".json"), new PublicNovelDetail(n.getSlug(),
                     n.getTitle(), cover, n.getOriginalAuthor(), n.getDescription(), tags, n.getNovelStatus(),
@@ -90,22 +94,26 @@ public class NovelExporter {
                 .orElse(null);
     }
 
-    private List<String> images(Path dir, Novel n, Chapter c, String watermark) {
+    private List<PublicPageFormat> formats(Path dir, Novel n, Chapter c, String watermark) {
         String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
-        List<Path> files = renderCache.imagesFor(c.getId(),
+        List<RenderedFormat> rendered = renderCache.imagesFor(c.getId(),
                 new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark));
-        List<String> urls = new ArrayList<>();
         Path target = dir.resolve("novels").resolve(n.getSlug());
+        List<PublicPageFormat> result = new ArrayList<>();
         try {
             Files.createDirectories(target);
-            for (Path f : files) {
-                Files.copy(f, target.resolve(f.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-                urls.add("/novels/" + n.getSlug() + "/" + f.getFileName());
+            for (RenderedFormat r : rendered) {
+                List<String> urls = new ArrayList<>();
+                for (Path f : r.files()) {
+                    Files.copy(f, target.resolve(f.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+                    urls.add("/novels/" + n.getSlug() + "/" + f.getFileName());
+                }
+                result.add(new PublicPageFormat(r.format().key(), r.format().width(), r.format().height(), urls));
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Could not copy chapter images of " + n.getSlug(), e);
         }
-        return urls;
+        return result;
     }
 
     /** The configured watermark, or the public site's host. */

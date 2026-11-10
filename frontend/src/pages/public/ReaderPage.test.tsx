@@ -89,6 +89,47 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('ReaderPage page format and theme', () => {
+  const FORMATS = [
+    { key: 's' as const, width: 1080, height: 1600, images: ['/s-1.webp', '/s-2.webp'] },
+    { key: 'm' as const, width: 820, height: 1215, images: ['/m-1.webp', '/m-2.webp'] },
+    { key: 'l' as const, width: 640, height: 948, images: ['/l-1.webp', '/l-2.webp'] },
+  ];
+  const fmtSource: NovelSource = {
+    ...source,
+    getChapter: async (_s, no) => ({ ...chapter(no), formats: FORMATS }),
+  };
+
+  it('renders the m images on a compact screen', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
+    renderAt('/novels/summer/3', fmtSource);
+    const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(imgs.map((i) => i.getAttribute('src'))).toEqual(['/m-1.webp', '/m-2.webp']);
+  });
+
+  it('sets data-reader-theme from the stored theme', async () => {
+    localStorage.setItem('reader-theme', 'oled');
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(container.querySelector('main')).toHaveAttribute('data-reader-theme', 'oled');
+    expect(document.documentElement.dataset.readerTheme).toBe('oled');
+  });
+
+  it('clears the html theme attribute on unmount', async () => {
+    const { unmount } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    unmount();
+    expect(document.documentElement.dataset.readerTheme).toBeUndefined();
+  });
+
+  it('img aspect-ratio follows the picked format', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
+    renderAt('/novels/summer/3', fmtSource);
+    const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(imgs[0].style.aspectRatio).toBe('auto 820 / 1215');
+  });
+});
+
 describe('ReaderPage', () => {
   it('shows every page image, not draggable, the first eager and the rest lazy', async () => {
     renderAt('/novels/summer/3');
@@ -196,18 +237,18 @@ describe('ReaderPage', () => {
     expect(bar().querySelector('.reader-bar__chapter')?.textContent).toBe('Special');
   });
 
-  it('lays the bar text out on the left with ellipsis, and A-/A+ resize the page column', async () => {
+  it('lays the bar text out on the left with ellipsis, and the size radio resizes the page column', async () => {
     const { container } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
     expect(/\.reader-bar__text\s*\{[^}]*min-width:\s*0/.test(css)).toBe(true);
     expect(/\.reader-bar__novel,\s*\.reader-bar__chapter\s*\{[^}]*text-overflow:\s*ellipsis/.test(css)).toBe(true);
     const column = container.querySelector('.reader-page') as HTMLElement;
-    expect(column.style.getPropertyValue('--reader-width')).toBe('600px');
+    expect(column.style.getPropertyValue('--reader-width')).toBe('640px');
     expect(column.contains(container.querySelector('.reader'))).toBe(true);
     await openSettings();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
-    expect(column.style.getPropertyValue('--reader-width')).toBe('760px');
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Chữ lớn' }));
+    expect(column.style.getPropertyValue('--reader-width')).toBe('720px');
   });
 
   it('disables (does not hide) previous on the first chapter and next on the last', async () => {
@@ -514,6 +555,8 @@ describe('ReaderPage preferences', () => {
     expect(JSON.parse(localStorage.getItem('novel-read:summer')!)).toEqual([3, 4]);
   });
 
+  const main = (container: HTMLElement) => container.querySelector('main') as HTMLElement;
+
   it('renders with defaults when localStorage throws', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
@@ -525,100 +568,82 @@ describe('ReaderPage preferences', () => {
     const { container } = renderAt('/novels/summer/3');
 
     expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
-    expect(reader(container)).toHaveAttribute('data-width', '600');
+    expect(reader(container)).toHaveAttribute('data-width', '640');
     await openSettings(user);
-    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'false');
-    await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
-    await user.click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
-    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
-    expect(reader(container)).toHaveAttribute('data-width', '760');
+    expect(screen.getByRole('radio', { name: 'Giấy' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Tối' }));
+    await user.click(screen.getByRole('radio', { name: 'Chữ lớn' }));
+    expect(screen.getByRole('radio', { name: 'Tối' })).toBeChecked();
+    expect(reader(container)).toHaveAttribute('data-width', '720');
   });
 
-  it('toggles night mode, flips aria-pressed and the reader class, and remembers it', async () => {
+  it('switches the theme from the swatches and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     await openSettings(user);
-    const toggle = screen.getByRole('button', { name: 'Chế độ đêm' });
 
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(reader(container)).not.toHaveClass('reader--night');
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(reader(container)).toHaveClass('reader--night');
-    expect(localStorage.getItem('reader-night')).toBe('on');
+    expect(main(container)).toHaveAttribute('data-reader-theme', 'sepia');
+    await user.click(screen.getByRole('radio', { name: 'Tối' }));
+    expect(main(container)).toHaveAttribute('data-reader-theme', 'dark');
+    expect(localStorage.getItem('reader-theme')).toBe('dark');
 
     unmount();
     const again = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(again.container)).toHaveClass('reader--night');
+    expect(main(again.container)).toHaveAttribute('data-reader-theme', 'dark');
     await openSettings(user);
-    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
-
-    await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
-    expect(localStorage.getItem('reader-night')).toBe('off');
-    expect(reader(again.container)).not.toHaveClass('reader--night');
+    expect(screen.getByRole('radio', { name: 'Tối' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Đen OLED' }));
+    expect(localStorage.getItem('reader-theme')).toBe('oled');
   });
 
-  it('defaults to night mode when the theme is dark, and a stored choice overrides it', async () => {
+  it('defaults to the dark theme when the app theme is dark, and a stored theme overrides it', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     const dark = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(dark.container)).toHaveClass('reader--night');
+    expect(main(dark.container)).toHaveAttribute('data-reader-theme', 'dark');
     dark.unmount();
 
-    localStorage.setItem('reader-night', 'off');
+    localStorage.setItem('reader-theme', 'light');
     const overridden = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(overridden.container)).not.toHaveClass('reader--night');
+    expect(main(overridden.container)).toHaveAttribute('data-reader-theme', 'light');
   });
 
-  it('follows the OS dark setting when no theme is forced', async () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
-    const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-
-    expect(reader(container)).toHaveClass('reader--night');
-  });
-
-  it('keeps the night filter when the window is inactive', async () => {
-    localStorage.setItem('reader-night', 'on');
+  it('keeps the theme when the window is inactive', async () => {
+    localStorage.setItem('reader-theme', 'oled');
     const { container } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
     fireEvent(window, new Event('blur'));
 
-    expect(reader(container)).toHaveClass('reader--night');
+    expect(main(container)).toHaveAttribute('data-reader-theme', 'oled');
     expect(reader(container)).toHaveClass('reader--hidden');
   });
 
-  it('steps the width 600 / 760 / 900, disables the buttons at the ends and remembers it', async () => {
+  it('blurs through the theme filter and has no night class in the css', () => {
+    expect(css).toContain('filter: var(--reader-img-filter) blur(24px)');
+    expect(css).not.toContain('reader--night');
+  });
+
+  it('picks the size 560 / 640 / 720 and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     await openSettings(user);
-    const smaller = screen.getByRole('button', { name: 'Chữ nhỏ hơn' });
-    const larger = screen.getByRole('button', { name: 'Chữ lớn hơn' });
 
-    expect(reader(container)).toHaveAttribute('data-width', '600');
-    expect(smaller).toBeDisabled();
-    expect(larger).toBeEnabled();
-
-    await user.click(larger);
-    expect(reader(container)).toHaveAttribute('data-width', '760');
-    expect(smaller).toBeEnabled();
-    await user.click(larger);
-    expect(reader(container)).toHaveAttribute('data-width', '900');
-    expect(larger).toBeDisabled();
-    expect(localStorage.getItem('reader-width')).toBe('900');
-
-    await user.click(smaller);
-    expect(reader(container)).toHaveAttribute('data-width', '760');
+    expect(reader(container)).toHaveAttribute('data-width', '640');
+    await user.click(screen.getByRole('radio', { name: 'Chữ lớn' }));
+    expect(reader(container)).toHaveAttribute('data-width', '720');
+    expect(localStorage.getItem('reader-size')).toBe('2');
+    await user.click(screen.getByRole('radio', { name: 'Chữ nhỏ' }));
+    expect(reader(container)).toHaveAttribute('data-width', '560');
 
     unmount();
     const again = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(again.container)).toHaveAttribute('data-width', '760');
+    expect(reader(again.container)).toHaveAttribute('data-width', '560');
   });
 
   it('keeps the preference buttons outside the copy-guarded reader', async () => {
@@ -626,7 +651,163 @@ describe('ReaderPage preferences', () => {
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     await openSettings();
 
-    expect(reader(container).contains(screen.getByRole('button', { name: 'Chế độ đêm' }))).toBe(false);
-    expect(reader(container).contains(screen.getByRole('button', { name: 'Chữ lớn hơn' }))).toBe(false);
+    expect(reader(container).contains(screen.getByRole('radio', { name: 'Tối' }))).toBe(false);
+    expect(reader(container).contains(screen.getByRole('radio', { name: 'Chữ lớn' }))).toBe(false);
+  });
+});
+
+describe('ReaderPage mobile controls', () => {
+  function compact(on: boolean) {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: on && q.includes('max-width'),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+  }
+  const shield = (c: HTMLElement) => c.querySelector('.reader__shield') as HTMLElement;
+  const bottom = () => document.querySelector('.reader-bottom');
+
+  it('tap in the middle toggles the bars', async () => {
+    compact(true);
+    vi.stubGlobal('innerHeight', 800);
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(bottom()).not.toHaveAttribute('data-hidden');
+    fireEvent.click(shield(container), { clientY: 400 });
+    expect(bottom()).toHaveAttribute('data-hidden');
+    fireEvent.click(shield(container), { clientY: 400 });
+    expect(bottom()).not.toHaveAttribute('data-hidden');
+  });
+
+  it('tap in the bottom quarter scrolls down, top quarter scrolls up', async () => {
+    compact(true);
+    vi.stubGlobal('innerHeight', 800);
+    const spy = vi.fn();
+    vi.stubGlobal('scrollBy', spy);
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    fireEvent.click(shield(container), { clientY: 700 });
+    expect(spy).toHaveBeenLastCalledWith({ top: 720, behavior: 'smooth' });
+    fireEvent.click(shield(container), { clientY: 50 });
+    expect(spy).toHaveBeenLastCalledWith({ top: -720, behavior: 'smooth' });
+  });
+
+  it('tapping the slider or a bar button does not toggle or scroll', async () => {
+    compact(true);
+    vi.stubGlobal('innerHeight', 800);
+    const spy = vi.fn();
+    vi.stubGlobal('scrollBy', spy);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    fireEvent.click(screen.getByRole('slider', { name: 'Vị trí trong chương' }), { clientY: 700 });
+    fireEvent.click(screen.getAllByRole('link', { name: 'Chương sau' })[0], { clientY: 700 });
+    expect(bottom()).not.toHaveAttribute('data-hidden');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('shows the position and opens the settings sheet from Aa', async () => {
+    compact(true);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await waitFor(() => expect(screen.getByText('2/3')).toBeInTheDocument());
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Hiển thị' }));
+    expect(await screen.findByRole('dialog', { name: 'Hiển thị' })).toBeInTheDocument();
+  });
+
+  it('returns focus to the Aa button when the settings sheet closes', async () => {
+    compact(true);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const user = userEvent.setup();
+    const aa = screen.getByRole('button', { name: 'Hiển thị' });
+    await user.click(aa);
+    await screen.findByRole('dialog', { name: 'Hiển thị' });
+    await user.click(within(screen.getByRole('dialog', { name: 'Hiển thị' })).getByRole('button', { name: 'Đóng' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Hiển thị' })).not.toBeInTheDocument());
+    expect(aa).toHaveFocus();
+  });
+
+  it('bottom bar is not rendered on desktop', async () => {
+    compact(false);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(bottom()).toBeNull();
+    expect(document.querySelector('.reader-progress')).not.toBeNull();
+  });
+});
+
+describe('ReaderPage loading and prefetch', () => {
+  function spied() {
+    const getChapter = vi.fn(source.getChapter);
+    return { getChapter, s: { ...source, getChapter } as NovelSource };
+  }
+  /** Makes the reader 4000px tall and follows the fake scroll position. */
+  function tall() {
+    vi.stubGlobal('innerHeight', 800);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const height = this.classList.contains('reader') ? 4000 : 0;
+      return { top: -window.scrollY, height, bottom: 0, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON() {} } as DOMRect;
+    });
+  }
+
+  it('shows the skeleton and the chapter title from the novel while loading', async () => {
+    renderAt('/novels/summer/3', { ...source, getChapter: () => new Promise(() => {}) });
+    expect(document.querySelector('.reader-skeleton')).not.toBeNull();
+    expect(screen.getByText('Đang tải chương…')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Mưa/ })).toBeInTheDocument();
+  });
+
+  it('prefetches the next chapter once at 70%', async () => {
+    tall();
+    const { getChapter, s } = spied();
+    renderAt('/novels/summer/3', s);
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+    scrollTo(2000);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+    scrollTo(2300);
+    await waitFor(() => expect(getChapter).toHaveBeenCalledTimes(2));
+    expect(getChapter).toHaveBeenLastCalledWith('summer', 4);
+    scrollTo(3000);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not prefetch from the previous chapter's progress after opening the next one", async () => {
+    tall();
+    const getChapter = vi.fn(async (slug: string, no: number) => {
+      // The new chapter opens at its top, as the browser does, without a scroll event in between.
+      if (no === 3) Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+      return source.getChapter(slug, no);
+    });
+    renderAt('/novels/summer/1', { ...source, getChapter } as NovelSource);
+    await screen.findAllByRole('img', { name: /Chương 1, trang/ });
+    scrollTo(3300);
+    await waitFor(() => expect(getChapter).toHaveBeenCalledWith('summer', 3));
+    getChapter.mockClear();
+    fireEvent.click(screen.getAllByRole('link', { name: 'Chương sau' })[0]);
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await new Promise((r) => setTimeout(r, 80));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+    expect(getChapter).toHaveBeenCalledWith('summer', 3);
+    expect(getChapter).not.toHaveBeenCalledWith('summer', 4);
+  });
+
+  it('prefetches at once when the chapter is shorter than the screen', async () => {
+    const { getChapter, s } = spied();
+    renderAt('/novels/summer/3', s);
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await waitFor(() => expect(getChapter).toHaveBeenCalledWith('summer', 4));
+  });
+
+  it('no prefetch on the last chapter', async () => {
+    const { getChapter, s } = spied();
+    renderAt('/novels/summer/4', s);
+    await screen.findAllByRole('img', { name: /trang/ });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(1);
   });
 });

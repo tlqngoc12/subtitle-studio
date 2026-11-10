@@ -21,7 +21,7 @@ public class NovelRenderConfig {
 
     @Bean
     NovelRenderer novelRenderer(SubtitleStudioProperties properties) {
-        return new NovelRenderer(properties.novel().render());
+        return new NovelRenderer(properties.novel().render().fontSize());
     }
 
     @Bean

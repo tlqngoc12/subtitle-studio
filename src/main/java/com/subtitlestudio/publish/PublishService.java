@@ -2,11 +2,13 @@ package com.subtitlestudio.publish;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.stream.Stream;
@@ -30,6 +32,10 @@ public class PublishService {
     private final PublicSiteBundle bundle;
     private final WranglerClient wrangler;
     private final ReadCountsFunctions readCounts;
+    /** Cloudflare Pages Free plan: at most 20,000 files per deployment; the admin is warned from 16,000. */
+    public static final int FILE_LIMIT = 20_000;
+    public static final int FILE_WARNING = 16_000;
+
     private final SubtitleStudioProperties.Publish settings;
     private final Path tempRoot;
     private final Clock clock;
@@ -38,6 +44,7 @@ public class PublishService {
     private String status = "IDLE";
     private Instant lastPublishedAt;
     private String error;
+    private Integer fileCount;
 
     public PublishService(SiteExporter exporter, PublicSiteBundle bundle, WranglerClient wrangler,
                           ReadCountsFunctions readCounts, SubtitleStudioProperties properties, Clock clock,
@@ -54,7 +61,8 @@ public class PublishService {
 
     public synchronized PublishStatus status() {
         boolean configured = settings.configured();
-        return new PublishStatus(status, configured, lastPublishedAt, configured ? settings.url() : null, error);
+        return new PublishStatus(status, configured, lastPublishedAt, configured ? settings.url() : null, error,
+                fileCount);
     }
 
     public synchronized PublishStatus start() {
@@ -83,6 +91,13 @@ public class PublishService {
             exporter.export(dir, now);
             bundle.writeTo(dir, settings.indexable());
             readCounts.prepare(dir);
+            long files = countFiles(dir);
+            recordFileCount((int) files);
+            if (files > FILE_LIMIT) {
+                throw new PublishFailedException("Site has " + files + " files, over the "
+                        + String.format(Locale.ROOT, "%,d", FILE_LIMIT)
+                        + " file limit of Cloudflare Pages (Free plan).");
+            }
             wrangler.deploy(dir);
             finish("DONE", now, null);
         } catch (PublishFailedException e) {
@@ -93,6 +108,21 @@ public class PublishService {
         } finally {
             deleteRecursively(dir);
             readCounts.clean(tempRoot);
+        }
+    }
+
+    private synchronized void recordFileCount(int count) {
+        fileCount = count;
+    }
+
+    private static long countFiles(Path dir) {
+        if (!Files.exists(dir)) {
+            return 0;
+        }
+        try (Stream<Path> paths = Files.walk(dir)) {
+            return paths.filter(Files::isRegularFile).count();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

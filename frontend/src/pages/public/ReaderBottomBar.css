@@ -1,0 +1,65 @@
+/* Thumb-zone bar of the mobile reader: 56px row plus the safe area, slides down out of view. */
+.reader-bottom {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  height: calc(56px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  transform: translateY(0);
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.reader-bottom[data-hidden] {
+  transform: translateY(100%);
+  transition: transform 160ms ease-in;
+}
+
+.reader-bottom__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 56px;
+  padding-inline: var(--space-2);
+}
+
+.reader-bottom__row .button--icon {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.reader-bottom__seek {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-items: center;
+}
+
+.reader-bottom__seek input[type='range'] {
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  accent-color: var(--brand);
+}
+
+.reader-bottom__pos {
+  color: var(--muted);
+  font-size: var(--step--1);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-bottom,
+  .reader-bottom[data-hidden] {
+    transition: none;
+  }
+}
+
+@media print {
+  .reader-bottom {
+    display: none;
+  }
+}

@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import type { NovelSource } from "../../data/novelSource";
@@ -9,25 +9,34 @@ import type {
 } from "../../data/novelTypes";
 import { recordRead } from "../../data/novelReads";
 import { useCopyGuard } from "../../lib/useCopyGuard";
+import { useReaderChrome } from "../../lib/useReaderChrome";
+import { scrollToProgress, useScrollProgress } from "../../lib/useScrollProgress";
+import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import {
   PUBLIC_ERROR_TITLE,
   publicChapterLabel,
   publicChapterName,
   useDocumentTitle,
 } from "./publicNames";
-import { OWN_KEYS, ReaderBar } from "./ReaderBar";
+import { ReaderSkeleton } from "./ReaderSkeleton";
+import { ReaderBar } from "./ReaderBar";
+import { ReaderBottomBar } from "./ReaderBottomBar";
+import { ReaderTocDrawer } from "./ReaderTocDrawer";
+import { ReaderSettingsSheet } from "./ReaderSettings";
+import { OWN_KEYS } from "./readerKeys";
 import { Alert } from '../../components/ui/Alert';
-import { LoadingText } from '../../components/ui/LoadingText';
 import {
-  READER_WIDTHS,
-  isDarkTheme,
-  readNight,
-  readWidth,
+  readSize,
+  readTheme,
   recordProgress,
-  saveNight,
-  saveWidth,
-  type ReaderWidth,
+  saveSize,
+  saveTheme,
+  type ReaderSize,
+  type ReaderTheme,
 } from "./readerPrefs";
+import { READER_COLUMNS, pickFormat } from "./readerLayout";
+import { COMPACT_QUERY, useMediaQuery } from "../../lib/useMediaQuery";
+import './readerThemes.css';
 import './ReaderPage.css';
 
 /**
@@ -44,22 +53,62 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [chapter, setChapter] = useState<PublicChapterFile | null>(null);
   const [failed, setFailed] = useState(false);
-  // Night mode: the reader's own choice, else on exactly when the app theme is dark.
-  const [night, setNight] = useState(() => readNight() ?? isDarkTheme());
-  const [width, setWidth] = useState<ReaderWidth>(readWidth);
-  const widthStep = READER_WIDTHS.indexOf(width);
+  const [theme, setTheme] = useState<ReaderTheme>(readTheme);
+  const [size, setSize] = useState<ReaderSize>(readSize);
+  const compact = useMediaQuery(COMPACT_QUERY);
+  const reducedMotion = usePrefersReducedMotion();
+  const [tocOpen, setTocOpen] = useState(false);
+  const tocOpener = useRef<HTMLElement | null>(null);
+  const openToc = useCallback(() => {
+    tocOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setTocOpen(true);
+  }, []);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpener = useRef<HTMLElement | null>(null);
+  const openSettings = useCallback(() => {
+    settingsOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSettingsOpen(true);
+  }, []);
+  const [pinned, setPinned] = useState(false);
+  const chrome = useReaderChrome(tocOpen || settingsOpen || pinned);
+  const reader = useRef<HTMLDivElement>(null);
+  // Progress is tied to the chapter it was measured in, so the last chapter's 100% never leaks into the next one.
+  const progress = useScrollProgress(reader, chapterNo);
+  const onPinnedChange = useCallback((p: boolean) => setPinned(p), []);
 
-  function toggleNight() {
-    saveNight(!night);
-    setNight(!night);
+  // Reaching the end of the chapter brings the bars back, with the next-chapter controls.
+  const { show } = chrome;
+  useEffect(() => {
+    if (progress >= 0.98) show();
+  }, [progress, show]);
+
+  // Tap zones (compact screens): top quarter pages up, bottom quarter pages down, the middle toggles the bars.
+  function onShieldClick(e: MouseEvent<HTMLDivElement>) {
+    if (!compact || tocOpen || settingsOpen || e.target !== e.currentTarget) return;
+    const behavior = reducedMotion ? "auto" : "smooth";
+    const h = window.innerHeight;
+    if (e.clientY < h * 0.25) window.scrollBy({ top: -0.9 * h, behavior });
+    else if (e.clientY > h * 0.75) window.scrollBy({ top: 0.9 * h, behavior });
+    else chrome.toggle();
   }
 
-  function stepWidth(delta: number) {
-    const next = READER_WIDTHS[widthStep + delta];
-    if (next === undefined) return;
-    saveWidth(next);
-    setWidth(next);
+  function changeTheme(t: ReaderTheme) {
+    saveTheme(t);
+    setTheme(t);
   }
+
+  function changeSize(s: ReaderSize) {
+    saveSize(s);
+    setSize(s);
+  }
+
+  // The same theme on <html> so the page behind the reader (and the overscroll) takes the paper colour too.
+  useEffect(() => {
+    document.documentElement.dataset.readerTheme = theme;
+    return () => {
+      delete document.documentElement.dataset.readerTheme;
+    };
+  }, [theme]);
 
   useEffect(() => {
     source
@@ -80,9 +129,13 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       .catch(() => setFailed(true));
   }, [source, slug, chapterNo]);
 
+  const format = chapter ? pickFormat(chapter, compact, size) : null;
   const to = (no: number) => `/novels/${slug}/${no}`;
   const prev = chapter?.prev ?? null;
   const next = chapter?.next ?? null;
+
+  const chapterIndex = novel ? novel.chapters.findIndex((c) => c.chapterNo === (chapter?.chapterNo ?? Number(chapterNo))) : -1;
+  const position = novel && chapterIndex >= 0 ? { index: chapterIndex + 1, total: novel.chapters.length } : null;
 
   const openedNo = chapter?.chapterNo;
   useEffect(() => {
@@ -117,6 +170,25 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [prev, next, slug, navigate]);
 
+  // Prefetch the next chapter once per chapter, the first time the reader passes 70% (or at once when it fits the screen).
+  const prefetched = useRef(false);
+  useEffect(() => {
+    prefetched.current = false;
+  }, [chapterNo]);
+  useEffect(() => {
+    if (!chapter || next === null || progress < 0.7 || prefetched.current) return;
+    prefetched.current = true;
+    source
+      .getChapter(slug, next)
+      .then((c) => {
+        const first = pickFormat(c, compact, size).images[0];
+        if (first) new Image().src = first;
+      })
+      .catch(() => {});
+  }, [chapter, next, progress, source, slug, compact, size]);
+
+  const loadingTitle = novel?.chapters.find((c) => c.chapterNo === Number(chapterNo));
+
   const crumbs = [
     { label: "Novels", to: "/novels" },
     { label: novel?.title ?? "Về trang truyện", to: `/novels/${slug}` },
@@ -132,7 +204,8 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
     <main
       ref={area}
       className="page reader-page"
-      style={{ "--reader-width": `${width}px` } as CSSProperties}
+      data-reader-theme={theme}
+      style={{ "--reader-width": `${READER_COLUMNS[size]}px` } as CSSProperties}
     >
       <Breadcrumbs items={crumbs} />
       <ReaderBar
@@ -144,41 +217,83 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         )}
         prev={prev}
         next={next}
+        hidden={chrome.hidden}
+        onPinnedChange={onPinnedChange}
+        onTocOpenChange={openToc}
+        settingsOpen={settingsOpen && !compact}
+        onSettingsOpenChange={setSettingsOpen}
+        theme={theme}
+        onTheme={changeTheme}
+        size={size}
+        onSize={changeSize}
+      />
+      <div className="reader-progress" aria-hidden="true" style={{ transform: `scaleX(${progress})` }} />
+      <ReaderTocDrawer
+        open={tocOpen}
+        onOpenChange={setTocOpen}
+        restoreFocus={tocOpener}
+        slug={slug}
         chapters={novel?.chapters ?? []}
         currentNo={chapter?.chapterNo ?? Number(chapterNo)}
-        night={night}
-        onToggleNight={toggleNight}
-        width={width}
-        onStepWidth={stepWidth}
       />
+      {compact && (
+        <ReaderSettingsSheet
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          restoreFocus={settingsOpener}
+          theme={theme}
+          onTheme={changeTheme}
+          size={size}
+          onSize={changeSize}
+        />
+      )}
+      {compact && (
+        <ReaderBottomBar
+          slug={slug}
+          prev={prev}
+          next={next}
+          progress={progress}
+          onSeek={(p) => reader.current && scrollToProgress(reader.current, p)}
+          onToc={openToc}
+          onSettings={openSettings}
+          hidden={chrome.hidden}
+          position={position}
+        />
+      )}
       {failed && (
         <Alert title={PUBLIC_ERROR_TITLE} />
       )}
-      {!chapter && !failed && <LoadingText>Đang tải chương…</LoadingText>}
-      {chapter && (
+      {!chapter && !failed && (
+        <>
+          {loadingTitle && (
+            <h1 className="reader-loading-title">
+              {publicChapterLabel(loadingTitle.chapterNo, loadingTitle.title, loadingTitle.label)}
+            </h1>
+          )}
+          <ReaderSkeleton />
+        </>
+      )}
+      {chapter && format && (
         <>
           <h1 className="visually-hidden">{current}</h1>
           <div
-            className={[
-              "reader",
-              hidden && "reader--hidden",
-              night && "reader--night",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            data-width={width}
+            key={chapterNo}
+            ref={reader}
+            className={["reader", hidden && "reader--hidden"].filter(Boolean).join(" ")}
+            data-width={READER_COLUMNS[size]}
           >
-            {chapter.images.map((src, i) => (
+            {format.images.map((src, i) => (
               <img
                 key={src}
                 className="reader__page"
                 src={src}
-                alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${chapter.images.length}`}
+                alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${format.images.length}`}
+                style={{ aspectRatio: `auto ${format.width} / ${format.height}` }}
                 draggable={false}
                 loading={i === 0 ? "eager" : "lazy"}
               />
             ))}
-            <div className="reader__shield" aria-hidden="true" />
+            <div className="reader__shield" aria-hidden="true" onClick={onShieldClick} />
           </div>
           <p className="visually-hidden" aria-live="polite">
             {hidden ? "Nội dung tạm ẩn khi cửa sổ không hoạt động." : ""}

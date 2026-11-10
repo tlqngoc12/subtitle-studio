@@ -71,8 +71,6 @@ subtitle-studio:
     max-page-image-size: 10MB
     # How chapters are drawn as images for the public site (px).
     render:
-      width: 1080
-      height: 1600
       font-size: 44
     # Watermark on public chapter images; empty = the public site's host (<project>.pages.dev).
     watermark-text: ${SUBTITLESTUDIO_NOVEL_WATERMARK:}

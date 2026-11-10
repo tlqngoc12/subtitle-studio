@@ -1,34 +1,20 @@
-import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
 import {
   ArrowLeft,
-  Check,
   ChevronLeft,
   ChevronRight,
   List,
-  Moon,
   Settings,
-  Sun,
-  X,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
+import { useEffect, useLayoutEffect, useState, type FocusEvent } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router";
 import { useTopbarSlot } from "../../components/TopbarSlot";
-import type { PublicChapterRef } from "../../data/novelTypes";
-import { useHideOnScroll } from "../../lib/useHideOnScroll";
-import { publicChapterLabel } from "./publicNames";
-import {
-  READER_WIDTHS,
-  readReadChapters,
-  type ReaderWidth,
-} from "./readerPrefs";
+import type { ReaderSize, ReaderTheme } from "./readerPrefs";
+import { OWN_KEYS } from "./readerKeys";
+import { ReaderSettingsPanel } from "./ReaderSettings";
 import { IconButton, IconLink } from '../../components/ui/IconButton';
 import { PopoverPanel } from '../../components/ui/PopoverPanel';
 import './ReaderBar.css';
-
-/** Attribute that marks a popover whose keys (the arrows) belong to it, not to chapter navigation. */
-export const OWN_KEYS = "data-own-keys";
 
 interface Props {
   slug: string;
@@ -37,12 +23,18 @@ interface Props {
   chapterName: string;
   prev: number | null;
   next: number | null;
-  chapters: PublicChapterRef[];
-  currentNo: number;
-  night: boolean;
-  onToggleNight: () => void;
-  width: ReaderWidth;
-  onStepWidth: (delta: number) => void;
+  /** Whether the site top bar slides away (decided by the page). */
+  hidden: boolean;
+  /** Reports keyboard focus inside the bar, which keeps the bars shown. */
+  onPinnedChange: (pinned: boolean) => void;
+  onTocOpenChange: (open: boolean) => void;
+  /** Desktop settings popover. */
+  settingsOpen: boolean;
+  onSettingsOpenChange: (open: boolean) => void;
+  theme: ReaderTheme;
+  onTheme: (theme: ReaderTheme) => void;
+  size: ReaderSize;
+  onSize: (size: ReaderSize) => void;
 }
 
 /**
@@ -57,18 +49,17 @@ export function ReaderBar({
   chapterName,
   prev,
   next,
-  chapters,
-  currentNo,
-  night,
-  onToggleNight,
-  width,
-  onStepWidth,
+  hidden,
+  onPinnedChange,
+  onTocOpenChange,
+  settingsOpen,
+  onSettingsOpenChange,
+  theme,
+  onTheme,
+  size,
+  onSize,
 }: Props) {
-  const [tocOpen, setTocOpen] = useState(false);
-  const drawer = useRef<HTMLDivElement>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [focusIn, setFocusIn] = useState(false);
-  const hidden = useHideOnScroll(tocOpen || settingsOpen || focusIn);
   const { target, setActive, setHidden } = useTopbarSlot();
 
   // Claim the top bar while mounted; hand it back (menu again, not slid away) on leaving.
@@ -80,6 +71,7 @@ export function ReaderBar({
     };
   }, [setActive, setHidden]);
   useEffect(() => setHidden(hidden), [hidden, setHidden]);
+  useEffect(() => onPinnedChange(focusIn), [focusIn, onPinnedChange]);
   const to = (no: number) => `/novels/${slug}/${no}`;
 
   function onFocus(e: FocusEvent<HTMLElement>) {
@@ -106,7 +98,6 @@ export function ReaderBar({
     )
   );
 
-  const widthStep = READER_WIDTHS.indexOf(width);
   const bar = (
     <nav
       className="reader-bar"
@@ -126,42 +117,9 @@ export function ReaderBar({
           {step(prev, "Chương trước", ChevronLeft)}
           {step(next, "Chương sau", ChevronRight)}
 
-          <Dialog.Root open={tocOpen} onOpenChange={setTocOpen}>
-            <Dialog.Trigger asChild>
-              <IconButton label="Mục lục" icon={List} />
-            </Dialog.Trigger>
-            <Dialog.Portal>
-              <Dialog.Overlay className="drawer__overlay" />
-              <Dialog.Content
-                ref={drawer}
-                className="drawer"
-                {...{ [OWN_KEYS]: "" }}
-                aria-describedby={undefined}
-                // Land on the drawer itself, not on the close button: its tooltip would take the first Esc.
-                onOpenAutoFocus={(e) => {
-                  e.preventDefault();
-                  drawer.current?.focus();
-                }}
-              >
-                <div className="drawer__head">
-                  <Dialog.Title className="drawer__title">Mục lục</Dialog.Title>
-                  <Dialog.Close asChild>
-                    <IconButton label="Đóng" icon={X} />
-                  </Dialog.Close>
-                </div>
-                <div className="drawer__body">
-                  <ChapterToc
-                    slug={slug}
-                    chapters={chapters}
-                    currentNo={currentNo}
-                    onPick={() => setTocOpen(false)}
-                  />
-                </div>
-              </Dialog.Content>
-            </Dialog.Portal>
-          </Dialog.Root>
+          <IconButton label="Mục lục" icon={List} onClick={() => onTocOpenChange(true)} />
 
-          <Popover.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <Popover.Root open={settingsOpen} onOpenChange={onSettingsOpenChange}>
             <Popover.Trigger asChild>
               <IconButton label="Cài đặt" icon={Settings} />
             </Popover.Trigger>
@@ -170,39 +128,7 @@ export function ReaderBar({
               {...{ [OWN_KEYS]: "" }}
               aria-label="Cài đặt"
             >
-              <button
-                type="button"
-                className="button button--small"
-                aria-pressed={night}
-                onClick={onToggleNight}
-              >
-                {night ? (
-                  <Sun className="icon" aria-hidden="true" />
-                ) : (
-                  <Moon className="icon" aria-hidden="true" />
-                )}
-                Chế độ đêm
-              </button>
-              <div className="reader-settings__size">
-                <button
-                  type="button"
-                  className="button button--small"
-                  aria-label="Chữ nhỏ hơn"
-                  disabled={widthStep <= 0}
-                  onClick={() => onStepWidth(-1)}
-                >
-                  A−
-                </button>
-                <button
-                  type="button"
-                  className="button button--small"
-                  aria-label="Chữ lớn hơn"
-                  disabled={widthStep >= READER_WIDTHS.length - 1}
-                  onClick={() => onStepWidth(1)}
-                >
-                  A+
-                </button>
-              </div>
+              <ReaderSettingsPanel theme={theme} onTheme={onTheme} size={size} onSize={onSize} />
             </PopoverPanel>
           </Popover.Root>
         </div>
@@ -210,63 +136,4 @@ export function ReaderBar({
     </nav>
   );
   return target ? createPortal(bar, target) : bar;
-}
-
-function ChapterToc({
-  slug,
-  chapters,
-  currentNo,
-  onPick,
-}: {
-  slug: string;
-  chapters: PublicChapterRef[];
-  currentNo: number;
-  onPick: () => void;
-}) {
-  const read = new Set(readReadChapters(slug));
-  const currentRef = useRef<HTMLAnchorElement>(null);
-  // Mounted when the drawer opens: bring the chapter being read to the middle of the scrolling drawer body.
-  useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: "center" });
-  }, []);
-
-  return (
-    <ol className="reader-toc__list" aria-label="Danh sách chương">
-      {chapters.map((c) => {
-        const current = c.chapterNo === currentNo;
-        return (
-          <li
-            key={c.chapterNo}
-            className={
-              current
-                ? "reader-toc__item reader-toc__item--current"
-                : "reader-toc__item"
-            }
-          >
-            <Link
-              ref={current ? currentRef : undefined}
-              className={
-                current
-                  ? "reader-toc__link reader-toc__link--current"
-                  : "reader-toc__link"
-              }
-              to={`/novels/${slug}/${c.chapterNo}`}
-              aria-current={current ? "true" : undefined}
-              onClick={onPick}
-            >
-              {publicChapterLabel(c.chapterNo, c.title, c.label)}
-            </Link>
-            {current && <span className="badge badge--info">Đang đọc</span>}
-            {!current && read.has(c.chapterNo) && (
-              <Check
-                className="icon chapter-list__check"
-                role="img"
-                aria-label="Đã đọc"
-              />
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
 }

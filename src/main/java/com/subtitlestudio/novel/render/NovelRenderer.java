@@ -1,6 +1,5 @@
 package com.subtitlestudio.novel.render;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Font;
@@ -30,8 +29,7 @@ import java.util.List;
 public class NovelRenderer {
 
     /** Bump when the drawing changes so cached images are redrawn. */
-    static final int VERSION = 4;
-    static final int MARGIN = 64;
+    static final int VERSION = 6;
     /**
      * Top of the first line box on pages 2+; the first page keeps {@link #FIRST_TOP} for the heading. A line box
      * has about 18 px of built-in leading above the glyphs, so a slightly negative value leaves ~12 px of paper.
@@ -43,36 +41,33 @@ public class NovelRenderer {
     static final double LINE_SPACING = 1.7;
     static final float WATERMARK_ALPHA = 0.06f;
 
-    private static final Color PAPER = new Color(0xFB, 0xF8, 0xF1);
-    private static final Color INK = new Color(0x22, 0x22, 0x22);
-
-    private final SubtitleStudioProperties.Novel.Render size;
+    private final int fontSize;
     private final Font body;
     private final Font title;
     private final Font small;
 
-    public NovelRenderer(SubtitleStudioProperties.Novel.Render size) {
-        this.size = size;
+    public NovelRenderer(int fontSize) {
+        this.fontSize = fontSize;
         Font base = load();
-        this.body = base.deriveFont((float) size.fontSize());
-        this.title = base.deriveFont(Font.BOLD, size.fontSize() * 1.3f);
-        this.small = base.deriveFont(size.fontSize() * 0.55f);
+        this.body = base.deriveFont((float) fontSize);
+        this.title = base.deriveFont(Font.BOLD, fontSize * 1.3f);
+        this.small = base.deriveFont(fontSize * 0.55f);
     }
 
     Font font() {
         return body;
     }
 
-    SubtitleStudioProperties.Novel.Render size() {
-        return size;
+    public int fontSize() {
+        return fontSize;
     }
 
-    /** One image per page; at least one (the title page). */
-    public List<BufferedImage> render(RenderInput input) {
+    /** One image per page in the given format; at least one (the title page). */
+    public List<BufferedImage> render(RenderInput input, PageFormat format) {
         FontRenderContext frc = new FontRenderContext(new AffineTransform(), true, true);
-        float wrap = size.width() - 2f * MARGIN;
-        float bottom = size.height() - BOTTOM;
-        float lineHeight = (float) (size.fontSize() * LINE_SPACING);
+        float wrap = format.width() - 2f * format.margin();
+        float bottom = format.height() - BOTTOM;
+        float lineHeight = (float) (fontSize * LINE_SPACING);
 
         List<List<Line>> pages = new ArrayList<>();
         List<Line> page = new ArrayList<>();
@@ -81,7 +76,7 @@ public class NovelRenderer {
         for (TextLayout layout : layouts(heading(input), title, frc, wrap)) {
             y += layout.getAscent();
             page.add(new Line(layout, y));
-            y += layout.getDescent() + layout.getLeading() + size.fontSize() * 0.3f;
+            y += layout.getDescent() + layout.getLeading() + fontSize * 0.3f;
         }
         y += lineHeight * 0.6f;
 
@@ -109,42 +104,51 @@ public class NovelRenderer {
 
         List<BufferedImage> images = new ArrayList<>();
         for (int k = 0; k < pages.size(); k++) {
-            images.add(draw(pages.get(k), input));
+            List<Line> lines = pages.get(k);
+            int height = format.height();
+            if (k == pages.size() - 1) {
+                // The last page ends just below its last line (plus the side margin), not at the full format height.
+                double lastBottom = 0;
+                for (Line line : lines) {
+                    lastBottom = Math.max(lastBottom, line.baseline() + line.layout().getDescent());
+                }
+                height = (int) Math.max(1, Math.min(height, Math.ceil(lastBottom + format.margin())));
+            }
+            images.add(draw(lines, input, format, height));
         }
         return images;
     }
 
     private record Line(TextLayout layout, float baseline) {}
 
-    private BufferedImage draw(List<Line> lines, RenderInput input) {
-        BufferedImage img = new BufferedImage(size.width(), size.height(), BufferedImage.TYPE_INT_RGB);
+    private BufferedImage draw(List<Line> lines, RenderInput input, PageFormat format, int height) {
+        // Transparent paper: the reader colours it with CSS.
+        BufferedImage img = new BufferedImage(format.width(), height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g.setColor(PAPER);
-        g.fillRect(0, 0, size.width(), size.height());
-        watermark(g, nfc(input.watermark()) + " · " + nfc(input.novelTitle()));
+        watermark(g, nfc(input.watermark()) + " · " + nfc(input.novelTitle()), format, height);
 
-        g.setColor(INK);
+        g.setColor(Color.BLACK);
         for (Line line : lines) {
-            line.layout().draw(g, MARGIN, line.baseline());
+            line.layout().draw(g, format.margin(), line.baseline());
         }
 
         g.dispose();
         return img;
     }
 
-    private void watermark(Graphics2D g, String text) {
+    private void watermark(Graphics2D g, String text, PageFormat format, int height) {
         Graphics2D w = (Graphics2D) g.create();
         w.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, WATERMARK_ALPHA));
         w.setColor(Color.BLACK);
         w.setFont(small);
-        w.rotate(Math.toRadians(-30), size.width() / 2.0, size.height() / 2.0);
+        w.rotate(Math.toRadians(-30), format.width() / 2.0, height / 2.0);
         float advance = new TextLayout(text, small, w.getFontRenderContext()).getAdvance() + 120;
-        int step = size.fontSize() * 5;
-        int reach = Math.max(size.width(), size.height()) * 2;
+        int step = fontSize * 5;
+        int reach = Math.max(format.width(), height) * 2;
         int row = 0;
         for (int y = -reach / 2; y < reach; y += step, row++) {
             float offset = (row % 2) * advance / 2;

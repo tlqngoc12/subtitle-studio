@@ -27,7 +27,7 @@ class PublishControllerTest {
 
     @Test
     void startReturns202WithStatus() throws Exception {
-        when(service.start()).thenReturn(new PublishStatus("PUBLISHING", true, null, "https://fans.pages.dev", null));
+        when(service.start()).thenReturn(new PublishStatus("PUBLISHING", true, null, "https://fans.pages.dev", null, null));
 
         mvc.perform(post("/api/publish")).andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("PUBLISHING"))
@@ -53,7 +53,7 @@ class PublishControllerTest {
     @Test
     void getReturnsStatus() throws Exception {
         when(service.status()).thenReturn(new PublishStatus("DONE", true, Instant.parse("2026-11-04T10:00:30Z"),
-                "https://fans.pages.dev", null));
+                "https://fans.pages.dev", null, null));
 
         mvc.perform(get("/api/publish")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DONE"))

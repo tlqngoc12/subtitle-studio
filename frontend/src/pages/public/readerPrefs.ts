@@ -3,9 +3,6 @@
  * (private mode, blocked storage): reads then give the defaults and writes are silently skipped.
  */
 
-export const READER_WIDTHS = [600, 760, 900] as const;
-export type ReaderWidth = (typeof READER_WIDTHS)[number];
-
 function get(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -52,23 +49,47 @@ export function recordProgress(slug: string, chapterNo: number) {
   if (!read.includes(chapterNo)) set(`novel-read:${slug}`, JSON.stringify([...read, chapterNo]));
 }
 
-/** The reader's own night-mode choice, or null when they never chose. */
-export function readNight(): boolean | null {
-  const v = get('reader-night');
-  return v === 'on' ? true : v === 'off' ? false : null;
+export type ReaderTheme = 'light' | 'sepia' | 'dark' | 'oled';
+export const READER_THEMES: readonly ReaderTheme[] = ['light', 'sepia', 'dark', 'oled'];
+
+/** The stored theme; else the legacy night switch (on -> dark, off -> light); else dark/sepia by the app theme. */
+export function readTheme(): ReaderTheme {
+  const stored = get('reader-theme');
+  const found = READER_THEMES.find((t) => t === stored);
+  if (found) return found;
+  const night = get('reader-night');
+  if (night === 'on') return 'dark';
+  if (night === 'off') return 'light';
+  return isDarkTheme() ? 'dark' : 'sepia';
 }
 
-export function saveNight(on: boolean) {
-  set('reader-night', on ? 'on' : 'off');
+export function saveTheme(theme: ReaderTheme) {
+  set('reader-theme', theme);
 }
 
-export function readWidth(): ReaderWidth {
-  const n = Number(get('reader-width'));
-  return READER_WIDTHS.find((w) => w === n) ?? READER_WIDTHS[0];
+export type ReaderSize = 0 | 1 | 2;
+
+export function readSize(): ReaderSize {
+  const raw = get('reader-size');
+  return raw === '0' ? 0 : raw === '2' ? 2 : 1;
 }
 
-export function saveWidth(width: ReaderWidth) {
-  set('reader-width', String(width));
+export function saveSize(size: ReaderSize) {
+  set('reader-size', String(size));
+}
+
+/** Slugs on the reader's shelf, newest first. */
+export function readShelf(): string[] {
+  const v = json('novel-shelf');
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
+
+/** Adds the novel to the shelf (front) or removes it; true when it is on the shelf afterwards. */
+export function toggleShelf(slug: string): boolean {
+  const shelf = readShelf();
+  const on = !shelf.includes(slug);
+  set('novel-shelf', JSON.stringify(on ? [slug, ...shelf] : shelf.filter((s) => s !== slug)));
+  return on;
 }
 
 /** Same rule as the CSS tokens: `data-theme` forces a theme, otherwise the OS setting decides. */

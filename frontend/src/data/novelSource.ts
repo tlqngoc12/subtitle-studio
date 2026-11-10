@@ -21,3 +21,21 @@ export function createNovelSource(base = '/'): NovelSource {
       ),
   };
 }
+
+/** Remembers each chapter's promise so prefetching and re-opening do not fetch twice; failures are not kept. */
+export function withChapterCache(source: NovelSource): NovelSource {
+  const cache = new Map<string, Promise<PublicChapterFile>>();
+  return {
+    ...source,
+    getChapter: (slug, chapterNo) => {
+      const key = `${slug}/${chapterNo}`;
+      let p = cache.get(key);
+      if (!p) {
+        p = source.getChapter(slug, chapterNo);
+        cache.set(key, p);
+        p.catch(() => cache.delete(key));
+      }
+      return p;
+    },
+  };
+}

@@ -127,4 +127,24 @@ describe('PublishButton', () => {
 
     await expectTooltip(button.parentElement!, 'Not published yet');
   });
+
+  it('warns at 16000 files', async () => {
+    serve([{ ...idle, fileCount: 16000 }], idle);
+    renderButton();
+
+    expect(
+      await screen.findByText(
+        'Site đang có 16.000/20.000 file (giới hạn Cloudflare Free). Sắp đầy, nên tính chuyển ảnh chương sang R2.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('no warning at 15999', async () => {
+    serve([{ ...idle, fileCount: 15999 }], idle);
+    renderButton();
+    const button = await screen.findByRole('button', { name: 'Publish' });
+    await waitFor(() => expect(button).toBeEnabled());
+
+    expect(screen.queryByText(/Sắp đầy/)).not.toBeInTheDocument();
+  });
 });

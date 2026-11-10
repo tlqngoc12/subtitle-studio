@@ -1,0 +1,151 @@
+.reader-settings-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.rs-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.rs-group__label {
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.rs-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.rs-row--sizes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.rs-swatch,
+.rs-size {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+}
+
+/* Visually hidden but still focusable and operable. */
+.rs-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The 40px disc sits in a 44px tap area. */
+.rs-swatch {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.rs-swatch__disc {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.rs-swatch__name {
+  font-size: var(--step--1);
+}
+
+.rs-input:checked + .rs-swatch__disc {
+  border: 2px solid var(--brand);
+}
+
+.rs-input:focus-visible + .rs-swatch__disc,
+.rs-input:focus-visible + .rs-size__box {
+  outline: 2px solid var(--brand-2);
+  outline-offset: 2px;
+}
+
+.rs-size__box {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.rs-size__box--0 { font-size: 14px; }
+.rs-size__box--1 { font-size: 18px; }
+.rs-size__box--2 { font-size: 24px; }
+
+.rs-input:checked + .rs-size__box {
+  border: 2px solid var(--brand);
+}
+
+/* Bottom sheet (Radix Dialog) for narrow screens. */
+.sheet__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 41;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 16px 16px 0 0;
+  animation: sheet-in 240ms ease-out;
+}
+
+.sheet[data-state='closed'] {
+  animation: sheet-out 200ms ease-in;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheet__title {
+  margin: 0;
+  font-size: var(--step-1);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none !important;
+  }
+}

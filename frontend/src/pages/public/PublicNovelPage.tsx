@@ -1,13 +1,14 @@
 import * as Tabs from "@radix-ui/react-tabs";
-import { Check, ExternalLink } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, Check, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Link, useParams, useSearchParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import type { NovelSource } from "../../data/novelSource";
 import type { PublicNovelDetail } from "../../data/novelTypes";
 import { useReadCounts } from "../../data/novelReads";
 import { ReadsMeta } from "./ReadsMeta";
-import { readProgress, readReadChapters } from "./readerPrefs";
+import { readProgress, readReadChapters, readShelf, toggleShelf } from "./readerPrefs";
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
 import {
@@ -30,7 +31,17 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   const [failed, setFailed] = useState(false);
   const [params, setParams] = useSearchParams();
   const reads = useReadCounts();
+  // Shelf state lives here so the button still flips for the session when storage is blocked.
+  const [onShelf, setOnShelf] = useState(() => readShelf().includes(slug));
+  useEffect(() => setOnShelf(readShelf().includes(slug)), [slug]);
   useDocumentTitle(novel?.title ?? null);
+
+  function flipShelf() {
+    const next = !onShelf;
+    toggleShelf(slug);
+    setOnShelf(next);
+    toast.success(next ? "Đã thêm vào tủ sách" : "Đã bỏ khỏi tủ sách");
+  }
 
   useEffect(() => {
     setNovel(null);
@@ -120,7 +131,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
     </ol>
   );
   return (
-    <main className="page">
+    <main className="page novel-page">
       <Breadcrumbs
         items={[{ label: "Novels", to: "/novels" }, { label: novel.title }]}
       />
@@ -157,35 +168,47 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
             </ul>
           )}
           <div className="novel-hero__actions">
-            {resume ? (
-              <>
+            {/* In the hero on desktop; under 768px the stylesheet pins it to the bottom of the screen as a full-width bar. */}
+            <div className="novel-cta">
+              {resume ? (
                 <Link
-                  className="button button--primary"
+                  className="button button--primary novel-cta__read"
                   to={`/novels/${novel.slug}/${resume.chapterNo}`}
                 >
                   Đọc tiếp:{" "}
-                  {publicChapterLabel(
-                    resume.chapterNo,
-                    resume.title,
-                    resume.label,
-                  )}
+                  {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
                 </Link>
-                <Link
-                  className="button button--small"
-                  to={`/novels/${novel.slug}/${first.chapterNo}`}
-                >
-                  Đọc từ đầu
-                </Link>
-              </>
-            ) : (
-              first && (
-                <Link
-                  className="button button--primary"
-                  to={`/novels/${novel.slug}/${first.chapterNo}`}
-                >
-                  Bắt đầu đọc
-                </Link>
-              )
+              ) : (
+                first && (
+                  <Link
+                    className="button button--primary novel-cta__read"
+                    to={`/novels/${novel.slug}/${first.chapterNo}`}
+                  >
+                    Bắt đầu đọc
+                  </Link>
+                )
+              )}
+              <button
+                type="button"
+                className="button button--icon novel-cta__shelf"
+                aria-pressed={onShelf}
+                aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
+                onClick={flipShelf}
+              >
+                {onShelf ? (
+                  <BookmarkCheck className="icon" aria-hidden="true" />
+                ) : (
+                  <BookmarkPlus className="icon" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+            {resume && (
+              <Link
+                className="button button--small"
+                to={`/novels/${novel.slug}/${first.chapterNo}`}
+              >
+                Đọc từ đầu
+              </Link>
             )}
             {novel.sourceUrl && (
               <a
@@ -201,7 +224,6 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
           </div>
         </div>
       </header>
-
       {hasIntro || trailerId ? (
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
           <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
