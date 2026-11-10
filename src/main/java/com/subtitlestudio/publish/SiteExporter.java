@@ -2,6 +2,8 @@ package com.subtitlestudio.publish;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.photo.PhotoPostDto;
+import com.subtitlestudio.photo.PhotoService;
 import com.subtitlestudio.playlist.PlaylistDetail;
 import com.subtitlestudio.playlist.PlaylistService;
 import com.subtitlestudio.playlist.PlaylistSummary;
@@ -56,18 +58,20 @@ public class SiteExporter {
     private final SubtitleStudioProperties properties;
     private final ObjectMapper mapper;
     private final NovelExporter novels;
+    private final PhotoService photos;
     private final int fileWarning;
 
     @Autowired
     public SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
                         ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
-                        ObjectMapper mapper, NovelExporter novels) {
-        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, PublishService.FILE_WARNING);
+                        ObjectMapper mapper, NovelExporter novels, PhotoService photos) {
+        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, photos,
+                PublishService.FILE_WARNING);
     }
 
     SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
                  ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
-                 ObjectMapper mapper, NovelExporter novels, int fileWarning) {
+                 ObjectMapper mapper, NovelExporter novels, PhotoService photos, int fileWarning) {
         this.subtitles = subtitles;
         this.vietsub = vietsub;
         this.playlists = playlists;
@@ -76,6 +80,7 @@ public class SiteExporter {
         this.properties = properties;
         this.mapper = mapper;
         this.novels = novels;
+        this.photos = photos;
         this.fileWarning = fileWarning;
     }
 
@@ -100,6 +105,7 @@ public class SiteExporter {
         exportPlaylists(dir);
         Map<Long, Optional<String>> publicUrls = new HashMap<>();
         exportProfiles(dir, publicUrls);
+        exportPhotos(dir, publicUrls);
         novels.export(dir, id -> publicUrl(id, dir, publicUrls), this::write);
         warnAboutFileCount(dir);
     }
@@ -143,6 +149,22 @@ public class SiteExporter {
         ProfilePageDto page = profiles.page();
         write(dir.resolve("data/profiles.json"), new ProfilePageDto(publicProfile(page.group(), dir, publicUrls),
                 page.members().stream().map(m -> publicProfile(m, dir, publicUrls)).toList()));
+    }
+
+    /** Posts whose image file is gone are left out; the others point at the copied /media/ file. */
+    private void exportPhotos(Path dir, Map<Long, Optional<String>> publicUrls) {
+        List<PhotoPostDto> exported = new java.util.ArrayList<>();
+        for (PhotoPostDto p : photos.list()) {
+            long mediaId = Long.parseLong(p.imageUrl().substring(p.imageUrl().lastIndexOf('/') + 1));
+            String url = publicUrl(mediaId, dir, publicUrls);
+            if (url == null) {
+                log.warn("Photo post {} has no image file; left out of the public site", p.id());
+                continue;
+            }
+            exported.add(new PhotoPostDto(p.id(), p.instagramUrl(), url, p.width(), p.height(), p.title(), p.takenOn(),
+                    p.takenUntil(), p.source(), p.photoCount(), p.profiles()));
+        }
+        write(dir.resolve("data/photos.json"), exported);
     }
 
     /** Public shape of a profile: every image URL is the exported /media/ one and no media ids are left. */

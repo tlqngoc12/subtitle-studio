@@ -99,6 +99,12 @@ class SiteExporterTest {
     private com.subtitlestudio.profile.ProfileService profiles;
 
     @Autowired
+    private com.subtitlestudio.photo.PhotoService photoService;
+
+    @Autowired
+    private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
+
+    @Autowired
     private com.subtitlestudio.profile.ProfileBannerService bannerService;
 
     @Autowired
@@ -143,6 +149,7 @@ class SiteExporterTest {
 
     @AfterEach
     void cleanUp() {
+        photoPosts.deleteAll();
         jdbc.update("update t_profile set portrait_media_id = null");
         for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
                 "vi_cue", "cue", "video")) {
@@ -417,6 +424,36 @@ class SiteExporterTest {
         assertThat(read("data/profiles.json")).doesNotContain("/api/media/");
     }
 
+    private Media resizedImage() throws IOException {
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(40, 60, java.awt.image.BufferedImage.TYPE_INT_RGB),
+                "png", png);
+        return mediaService.storeResized("a.png", png.toByteArray(), 1600);
+    }
+
+    @Test
+    void exportsPhotosWithPublicImages() throws IOException {
+        Media kept = resizedImage();
+        Media gone = resizedImage();
+        photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/AAA/",
+                kept.getId(), "Kept", java.time.LocalDate.parse("2026-11-09"), null,
+                com.subtitlestudio.photo.PhotoSource.OFFICIAL, 2, List.of("emi")));
+        photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/BBB/",
+                gone.getId(), "Gone", java.time.LocalDate.parse("2026-11-08"), null,
+                com.subtitlestudio.photo.PhotoSource.FAN, null, List.of()));
+        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".webp"));
+
+        exporter.export(out, NOW);
+
+        JsonNode photos = readJson("data/photos.json");
+        assertThat(photos).hasSize(1);
+        assertThat(photos.get(0).get("title").asText()).isEqualTo("Kept");
+        assertThat(photos.get(0).get("takenOn").asText()).isEqualTo("2026-11-09");
+        assertThat(photos.get(0).get("imageUrl").asText()).isEqualTo("/media/" + kept.getStorageKey() + ".webp");
+        assertThat(photos.get(0).get("profiles").get(0).asText()).isEqualTo("emi");
+        assertThat(out.resolve("media/" + kept.getStorageKey() + ".webp")).exists();
+    }
+
     @Test
     void skipsMissingImageFileWithWarning(CapturedOutput output) throws IOException {
         Media used = mediaService.store("a.png", PNG);
@@ -645,7 +682,7 @@ class SiteExporterTest {
     void warnsAboveFileLimit(CapturedOutput output) {
         novel("summer", null, 1, 1);
         SiteExporter small = new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository,
-                properties, appMapper, novelExporter, 3);
+                properties, appMapper, novelExporter, photoService, 3);
 
         small.export(out, NOW);
 
