@@ -6,9 +6,13 @@ import {
   readProgress,
   readReadChapters,
   readWidth,
+  readShelf,
+  readSize,
+  readTheme,
   recordProgress,
   saveNight,
   saveWidth,
+  toggleShelf,
 } from './readerPrefs';
 
 beforeEach(() => localStorage.clear());
@@ -94,5 +98,56 @@ describe('night mode and width preferences', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     expect(isDarkTheme()).toBe(false);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('theme, size and shelf preferences', () => {
+  it('readTheme migrates night on → dark, off → light', () => {
+    localStorage.setItem('reader-night', 'on');
+    expect(readTheme()).toBe('dark');
+    localStorage.setItem('reader-night', 'off');
+    expect(readTheme()).toBe('light');
+  });
+
+  it('readTheme defaults to sepia, or dark when the app theme is dark', () => {
+    expect(readTheme()).toBe('sepia');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    expect(readTheme()).toBe('dark');
+  });
+
+  it('readTheme ignores an unknown stored value', () => {
+    localStorage.setItem('reader-theme', 'neon');
+    expect(readTheme()).toBe('sepia');
+    localStorage.setItem('reader-theme', 'oled');
+    expect(readTheme()).toBe('oled');
+  });
+
+  it('readSize defaults to 1 and ignores 7', () => {
+    expect(readSize()).toBe(1);
+    localStorage.setItem('reader-size', '7');
+    expect(readSize()).toBe(1);
+    localStorage.setItem('reader-size', '2');
+    expect(readSize()).toBe(2);
+  });
+
+  it('toggleShelf adds then removes; newest first', () => {
+    expect(toggleShelf('a')).toBe(true);
+    expect(toggleShelf('b')).toBe(true);
+    expect(readShelf()).toEqual(['b', 'a']);
+    expect(toggleShelf('b')).toBe(false);
+    expect(readShelf()).toEqual(['a']);
+  });
+
+  it('blocked storage: defaults and toggleShelf does not throw', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(readTheme()).toBe('sepia');
+    expect(readSize()).toBe(1);
+    expect(readShelf()).toEqual([]);
+    expect(() => toggleShelf('a')).not.toThrow();
   });
 });

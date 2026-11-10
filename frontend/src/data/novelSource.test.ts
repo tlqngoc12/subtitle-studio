@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
-import { createNovelSource } from './novelSource';
+import { createNovelSource, withChapterCache } from './novelSource';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -45,5 +45,23 @@ describe('createNovelSource', () => {
     const error = await createNovelSource().getNovel('nope').catch((e) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect(error.code).toBe('NOVEL_NOT_FOUND');
+  });
+});
+
+describe('withChapterCache', () => {
+  it('returns the same promise twice and retries after a rejection', async () => {
+    const getChapter = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({ chapterNo: 1 });
+    const source = withChapterCache({ listNovels: vi.fn(), getNovel: vi.fn(), getChapter });
+
+    const first = source.getChapter('a', 1);
+    await expect(first).rejects.toThrow('boom');
+    const second = source.getChapter('a', 1);
+    expect(second).not.toBe(first);
+    await second;
+    expect(source.getChapter('a', 1)).toBe(second);
+    expect(getChapter).toHaveBeenCalledTimes(2);
   });
 });

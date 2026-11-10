@@ -5,7 +5,7 @@ import { NavBar } from './components/NavBar';
 import { TopbarSlotProvider } from './components/TopbarSlot';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteProvider, type Site } from './data/SiteContext';
-import { createNovelSource } from './data/novelSource';
+import { createNovelSource, withChapterCache } from './data/novelSource';
 import { createStaticSource } from './data/staticSource';
 import NotFoundPage from './pages/NotFoundPage';
 import ProfilePage from './pages/ProfilePage';
@@ -22,7 +22,7 @@ export default function PublicApp() {
     () => ({ source: createStaticSource(), readOnly: true, homePath: '/vietsub/list' }),
     [],
   );
-  const novels = useMemo(() => createNovelSource(), []);
+  const novels = useMemo(() => withChapterCache(createNovelSource()), []);
   return (
     <SiteProvider value={site}>
       <MotionConfig reducedMotion="user">
