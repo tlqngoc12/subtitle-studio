@@ -44,6 +44,17 @@ public interface VideoRepository extends JpaRepository<Video, String> {
              where v.translationStatus = com.subtitlestudio.video.TranslationStatus.TRANSLATING""")
     int failAllTranslating(@Param("message") String message);
 
+    /** The finished (DONE), hand-made videos translated with {@code profile}, most recently saved first. */
+    @Query("""
+            select v from Video v
+             where v.translationProfile = :profile
+               and v.editStatus = com.subtitlestudio.video.EditStatus.DONE
+               and v.viSource = com.subtitlestudio.video.ViSource.MANUAL
+               and v.id <> :excludeId
+             order by v.viUpdatedAt desc, v.id""")
+    List<Video> findExampleVideos(@Param("profile") String profile, @Param("excludeId") String excludeId,
+                                  org.springframework.data.domain.Pageable page);
+
     /** Loads the video with a row lock, held until the surrounding transaction ends. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Video v where v.id = :id")
