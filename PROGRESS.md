@@ -740,6 +740,16 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 - Nguyên nhân: `ProfileAnalyzer` gọi `findExampleVideos(name, "", ...)`; Oracle coi `''` là NULL nên `v.id <> NULL` không bao giờ đúng, ra 0 dòng (H2 và test mock không bắt được). `ExampleSource` luôn truyền id video thật nên không bị.
 - Sửa: thêm `VideoRepository.findCorrectionVideos(profile)` (cùng bộ lọc và thứ tự, không có `excludeId`); `ProfileAnalyzer` dùng nó. Test mới `PersistenceOracleIT.findsEveryFinishedHandMadeVideoOfAProfileWithoutAnExcludedId` trên Oracle thật.
 
+### 2026-11-10: Profile thành một trang (Flyway V13) ✅ (chưa merge, chưa deploy)
+Spec: [docs/superpowers/specs/2026-11-10-profile-single-page-design.md](docs/superpowers/specs/2026-11-10-profile-single-page-design.md), plan: [docs/superpowers/plans/2026-11-10-profile-single-page.md](docs/superpowers/plans/2026-11-10-profile-single-page.md). Nhánh `feat/profile-single-page` (một PR chung với Photos và Works). **Migration `V13__profile_single_page.sql` chưa chạy trên DB thật nào.** Sau khi deploy: tải ảnh chân dung cho Emi, Bonnie (và avatar EmiBonnie) rồi Publish again.
+- **Trang `/profiles` duy nhất** thay ba tab: tiêu đề `Profile`, banner EmiBonnie (`FilmStrip`), rồi mỗi thành viên một `MemberSection` (chân dung 3:4 bên trái/phải xen kẽ, tên, tagline, icon mạng xã hội lấy từ các khối LINKS; bên kia là họ tên đầy đủ và các khối). FACTS thành lưới 2 cột (1 cột dưới 520px, khối FACTS đầu tiên ẩn tiêu đề), khối mới **CHIPS** (nhãn dạng viên thuốc, tối đa 50, nhãn 1-100 ký tự). `/profiles/:slug` chuyển sang `/profiles#slug`, cuộn tới mục sau khi tải; hash lạ bị bỏ qua. `ProfileTabs` đã xoá.
+- **Schema V13:** `t_profile` thêm `kind` (GROUP/MEMBER, check), `sort_order`, `tagline`, `full_name`, `portrait_media_id` (FK `t_media`); `t_media` thêm `width`/`height` (chỉ ảnh upload có `maxSide` mới có); check `block_type` thêm `CHIPS`. Đúng một dòng GROUP (`emibonnie`), API không tạo/xoá được.
+- **API:** `GET /api/profiles` trả `{group, members}`; `PUT /api/profiles/{slug}/header`; `POST /api/profiles` (slug sinh từ tên bởi `SlugGenerator`: bỏ dấu, `-`, tối đa 20, trùng thì `-2`, không có chữ Latin hoặc là `order` thì `member-N`); `DELETE /api/profiles/{slug}` (409 `GROUP_PROFILE` với GROUP); `PUT /api/profiles/order`. `POST /api/media?maxSide=400|1600` thu nhỏ bằng `ImageResizer` rồi mã hoá WebP lossy 0.82 (JPEG 0.85 nếu máy không có writer WebP), không phóng to, GIF bị từ chối, kiểm tra 10 MB trước khi giải mã; trả thêm `width`/`height`.
+- **Bản public:** `data/profiles.json` = `{group, members}` với mọi URL ảnh đổi sang `/media/...` và id bị bỏ; không còn `data/profiles/*.json`.
+- **Admin:** nút `Add member`, menu từng thành viên (Edit header, Move up/down, Delete member có xác nhận), form header (tên, tagline, họ tên, chân dung upload `maxSide=1600`), banner gắn vào dòng GROUP, nút "Edit EmiBonnie avatar" (avatar dùng ở bộ lọc Photos/Works).
+- **Quy tắc ảnh:** mọi bảng trỏ tới `t_media` phải được thêm vào `MediaRepository.isReferenced` và `findUnreferencedCreatedBefore`, nếu không ảnh bị dọn sau 24 giờ (chân dung là bảng mới nhất).
+- **Test:** `mvn test -Dskip.npm` 960 pass; `npm test` 85 file / 1002 test; `PersistenceOracleIT` (xem mục Oracle trong PR). Ảnh chụp màn hình chụp một lần ở cuối nhánh cho cả ba phần.
+
 ### 2026-11-10: Lô cải tiến 2 (video dài, theater, cỡ chữ, backup Oracle, Select, cuộn đầu trang) ✅ (chưa merge, chưa deploy)
 
 Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enhancements-batch-2.md](docs/superpowers/plans/2026-11-10-enhancements-batch-2.md).
@@ -763,7 +773,6 @@ Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enh
 
 | Mục | Nguồn | Ghi chú |
 |---|---|---|
-| **Thêm / xoá profile** (hiện cố định 3 profile seed trong V2) | Profile | người dùng yêu cầu để phase sau; cần trang quản lý danh sách profile |
 | Phân quyền sửa profile (hiện ai mở được app cũng sửa được) | Profile | đi cùng dự án con 2 (tài khoản) |
 | Kéo thả sắp xếp khối, ảnh thumbnail, upload file nhạc | Profile | ngoài phạm vi spec Profile |
 | `UrlParser` hỗ trợ `music.youtube.com/watch?v=ID` | T02 | thêm host vào whitelist + test |
