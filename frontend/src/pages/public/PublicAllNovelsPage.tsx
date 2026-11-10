@@ -6,13 +6,13 @@ import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
 import { useReadCounts } from '../../data/novelReads';
-import { NovelCard } from './NovelCard';
+import { NovelTile } from './NovelTile';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
 import { PageHeader } from '../../components/ui/PageHeader';
 
-/** `/novels/all`: every public novel as the small cards of the home page, newest update first. */
+/** `/novels/all`: every public novel as large-cover tiles, newest update first. */
 export default function PublicAllNovelsPage({ source }: { source: NovelSource }) {
   const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
@@ -43,9 +43,9 @@ export default function PublicAllNovelsPage({ source }: { source: NovelSource })
       ) : sorted.length === 0 ? (
         <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
       ) : (
-        <ul className="novel-grid" aria-label="Tất cả truyện">
+        <ul className="novel-tiles" aria-label="Tất cả truyện">
           {sorted.map((n) => (
-            <NovelCard key={n.slug} novel={n} reads={reads?.[n.slug]} />
+            <NovelTile key={n.slug} novel={n} reads={reads?.[n.slug]} />
           ))}
         </ul>
       )}

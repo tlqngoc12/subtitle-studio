@@ -7,7 +7,8 @@ import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
 import FeaturedNovels from './FeaturedNovels';
 import { useReadCounts } from '../../data/novelReads';
-import { NovelCard } from './NovelCard';
+import { NovelRow } from './NovelRow';
+import { readProgress, readShelf } from './readerPrefs';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
@@ -17,7 +18,7 @@ const FEATURED = 5;
 const LATEST = 6;
 
 /**
- * Public Novels home: a featured banner, then the latest updates as small cards (and a link to all of them).
+ * Public Novels home: a featured banner, then the latest updates as list rows (and a link to all of them).
  * Both are ordered by the latest published chapter, newest first. Copy is Vietnamese.
  */
 export default function PublicNovelsPage({ source }: { source: NovelSource }) {
@@ -39,6 +40,12 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   const sorted = useMemo(() => (novels === null ? null : byLatestUpdate(novels)), [novels]);
   const featured = useMemo(() => sorted?.slice(0, FEATURED) ?? [], [sorted]);
 
+  const shelved = useMemo(() => {
+    if (novels === null) return [];
+    const bySlug = new Map(novels.map((n) => [n.slug, n]));
+    return readShelf().flatMap((slug) => bySlug.get(slug) ?? []);
+  }, [novels]);
+
   return (
     <main className="page">
       <h1 className="visually-hidden">Truyện</h1>
@@ -52,6 +59,18 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
       ) : (
         <>
           <FeaturedNovels novels={featured} source={source} />
+          {shelved.length > 0 && (
+            <section className="history" aria-labelledby="shelf-heading">
+              <h2 className="history__heading" id="shelf-heading">
+                Tủ sách
+              </h2>
+              <ul className="novel-rows">
+                {shelved.map((n) => (
+                  <NovelRow key={n.slug} novel={n} continueNo={readProgress(n.slug)} reads={reads?.[n.slug]} />
+                ))}
+              </ul>
+            </section>
+          )}
           <section className="history" aria-labelledby="latest-heading">
             <div className="section-head">
               <h2 className="history__heading" id="latest-heading">
@@ -59,9 +78,9 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
               </h2>
               <Link to="/novels/all">Xem tất cả</Link>
             </div>
-            <ul className="novel-grid">
+            <ul className="novel-rows">
               {sorted.slice(0, LATEST).map((n) => (
-                <NovelCard key={n.slug} novel={n} reads={reads?.[n.slug]} />
+                <NovelRow key={n.slug} novel={n} reads={reads?.[n.slug]} />
               ))}
             </ul>
           </section>

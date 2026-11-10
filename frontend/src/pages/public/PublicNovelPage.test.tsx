@@ -87,7 +87,7 @@ describe('PublicNovelsPage', () => {
     const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
     const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText('2/5 chương')).toBeInTheDocument();
+    expect(within(card).getByText(/^2\/5 chương · /)).toBeInTheDocument();
   });
 });
 

@@ -84,9 +84,33 @@ describe('PublicNovelsPage (home)', () => {
     expect(cards.map((li) => within(li).getByRole('link').getAttribute('href'))).toEqual([
       '/novels/n8', '/novels/n7', '/novels/n6', '/novels/n5', '/novels/n4', '/novels/n3',
     ]);
-    expect(within(cards[0]).getByText('1/8 chương')).toBeInTheDocument();
+    expect(within(cards[0]).getByText(/^1\/8 chương · /)).toBeInTheDocument();
     expect(within(cards[0]).getByText('Đang ra')).toBeInTheDocument();
     expect(within(section).getByRole('link', { name: 'Xem tất cả' })).toHaveAttribute('href', '/novels/all');
+  });
+
+  it('shows Tủ sách only with shelved novels', async () => {
+    const { unmount } = renderHome();
+    await screen.findByRole('region', { name: 'Mới cập nhật' });
+    expect(screen.queryByRole('region', { name: 'Tủ sách' })).not.toBeInTheDocument();
+    unmount();
+
+    localStorage.setItem('novel-shelf', JSON.stringify(['n2', 'gone', 'n5']));
+    localStorage.setItem('novel-progress:n2', JSON.stringify({ chapterNo: 1 }));
+    renderHome();
+    const shelf = await screen.findByRole('region', { name: 'Tủ sách' });
+    const rows = within(shelf).getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]).getByText('Truyện 2')).toBeInTheDocument();
+    expect(within(rows[0]).getByRole('link', { name: /Đọc tiếp: Chương 1/ })).toHaveAttribute('href', '/novels/n2/1');
+    expect(within(rows[1]).queryByText(/Đọc tiếp/)).not.toBeInTheDocument();
+  });
+
+  it('Mới cập nhật renders rows with relative time', async () => {
+    const recent = novel(1, { lastPublishedAt: new Date(Date.now() - 3 * 3600e3).toISOString() });
+    renderHome([recent]);
+    const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
+    expect(within(section).getByText(/chương · 3 giờ trước/)).toBeInTheDocument();
   });
 
   it('still shows a novel with a single published chapter', async () => {
@@ -108,7 +132,7 @@ describe('PublicNovelsPage (home)', () => {
     expect(within(section).getAllByRole('listitem').map((li) => within(li).getByRole('link').getAttribute('href'))).toEqual([
       '/novels/n3', '/novels/n2', '/novels/n1',
     ]);
-    expect(within(section).getAllByText('1/1 chương')).toHaveLength(3); // y falls back to the published count
+    expect(within(section).getAllByText(/^1\/1 chương · /)).toHaveLength(3); // y falls back to the published count
   });
 
   it('keeps the empty state and the Truyện heading and tab title', async () => {
