@@ -422,6 +422,17 @@ describe('HomePage', () => {
       expect(within(result).getByText('Translating with Gemini (EmiBonnie, gemini-x)…')).toBeInTheDocument();
     });
 
+    it('shows the part of a long video that is being translated', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [{ ...translating, translationModel: 'gemini-x', activePart: '2/3' }] },
+        profiles,
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const result = await openFromHistory();
+      expect(within(result).getByText('Translating part 2/3 with Gemini (EmiBonnie, gemini-x)…')).toBeInTheDocument();
+    });
+
     it('shows Translated by <model> next to an AI Vietsub', async () => {
       fakeFetch([
         { method: 'GET', path: '/api/videos', status: 200, body: [{ ...done, translationModel: 'gemini-x, gemini-y' }] },

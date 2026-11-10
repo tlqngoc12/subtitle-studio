@@ -51,7 +51,10 @@ subtitle-studio:
       - gemini-3.5-flash-lite
       - gemini-3.5-flash
     timeout: 3m
-    max-duration: 60m
+    # Longer videos are not translated automatically.
+    max-duration: 180m
+    # Videos up to this long go in one request; longer ones are split at cue boundaries into parts this long.
+    part-duration: 45m
     temperature: 0.3
   # Public read-only site on Cloudflare Pages (Publish button). Empty token, account id or project = off.
   publish:

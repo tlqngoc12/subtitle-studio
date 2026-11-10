@@ -95,6 +95,24 @@ class GeminiTranslatorImplTest {
     }
 
     @Test
+    void sendsThePreviousPartBeforeTheLinesOnlyWhenThereIsOne() {
+        server.replyText(GOOD, "STOP");
+        VideoContext part2 = new VideoContext("VLOG OF US", "EMIBONNIE", null, List.of(),
+                List.of(new ExamplePair("See you soon", "Hẹn gặp lại")));
+
+        translator().translate(part2, PROFILE, LINES);
+
+        String body = server.lastBody();
+        assertThat(body).contains("# Đoạn ngay trước (để giữ mạch, KHÔNG dịch lại)").contains("Hẹn gặp lại");
+        assertThat(body.indexOf("Hẹn gặp lại")).isLessThan(body.indexOf("Hungry"));
+        assertThat(body).contains("Đoạn ngay trước");
+
+        translator().translate(VIDEO, PROFILE, LINES); // part 1: no previous lines
+
+        assertThat(server.lastBody()).doesNotContain("# Đoạn ngay trước (để giữ mạch");
+    }
+
+    @Test
     void parsesStructuredOutput() {
         server.replyText(GOOD, "STOP");
 

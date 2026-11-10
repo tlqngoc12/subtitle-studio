@@ -106,7 +106,8 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.gemini.model` | `SUBTITLESTUDIO_GEMINI_MODEL` | `gemini-3.6-flash` | Model Gemini (nên dùng bản Flash có free tier) |
 | `subtitle-studio.gemini.fallback-models` | `SUBTITLESTUDIO_GEMINI_FALLBACKMODELS` | `gemini-3.5-flash-lite`, `gemini-3.5-flash` | Thử lần lượt khi model trước quá tải (HTTP 503) hoặc hết quota free (HTTP 429, quota tính riêng từng model, khoảng 20 request/ngày); không thử lại cùng model |
 | `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
-| `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `60m` | Video dài hơn không dịch tự động |
+| `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `180m` | Video dài hơn không dịch tự động |
+| `subtitle-studio.gemini.part-duration` | `SUBTITLESTUDIO_GEMINI_PARTDURATION` | `45m` | Video tới độ dài này dịch bằng một request; dài hơn thì chia theo ranh giới câu thành các đoạn tối đa bằng này, dịch lần lượt |
 | `subtitle-studio.publish.cloudflare-api-token` | `CLOUDFLARE_API_TOKEN` | (trống = tắt Publish) | API token Cloudflare (quyền Cloudflare Pages: Edit) |
 | `subtitle-studio.publish.cloudflare-account-id` | `CLOUDFLARE_ACCOUNT_ID` | (trống) | Account ID Cloudflare |
 | `subtitle-studio.publish.cloudflare-d1-database-id` | `CLOUDFLARE_D1_DATABASE_ID` | (trống = tắt đếm lượt đọc) | ID database D1 `novel-reads`; có thì Publish kèm Pages Functions đếm lượt đọc truyện |
@@ -159,7 +160,7 @@ Quy tắc:
 
 - Vietsub **tự upload không bao giờ bị Gemini ghi đè**. Muốn dịch bằng Gemini cho video đó thì xoá Vietsub tự upload ở trang Vietsub trước.
 - Dán lại link đã có Vietsub thì không gọi Gemini nữa (không tốn lượt); muốn dịch lại thì bấm **Dịch lại**.
-- Chỉ dịch video ≤ 60 phút. Mỗi video là một request.
+- Chỉ dịch video ≤ 3 giờ. Video tới 45 phút là một request; dài hơn thì chia thành các đoạn tối đa 45 phút, dịch lần lượt (từ đoạn 2 có kèm 8 dòng cuối của đoạn trước để giữ mạch). Một đoạn lỗi thì các đoạn đã xong được giữ trong `./data/translate-partial/<id>.json`, bấm **Dịch lại** sẽ dịch tiếp từ đoạn lỗi.
 - File lưu ở `./data/subs/`: `<id>.en.srt`, `<id>.vi_auto.srt` (Gemini), `<id>.vi_manual.srt` (bản tự upload, giữ nguyên file gốc).
 
 Lưu ý free tier: nội dung gửi lên có thể được Google dùng để cải thiện sản phẩm; giới hạn số request xem trong AI Studio. Hết lượt thì app báo "Hết lượt miễn phí của Gemini, thử lại sau."

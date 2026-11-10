@@ -33,6 +33,8 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             - Một câu bị cắt qua nhiều block thì dịch sao cho mỗi block khớp với phần lời nói của nó.
             - Hồ sơ dịch (bối cảnh, nhân vật, xưng hô, tên riêng) bên dưới được ưu tiên khi có mâu thuẫn.
             - Phần ví dụ đã duyệt (nếu có) là chuẩn về tên riêng, xưng hô và giọng văn; chỉ tham khảo, không dịch lại phần ví dụ.
+            - Phần "Đoạn ngay trước" (nếu có) là những dòng cuối của đoạn đã dịch ngay trước phần này; chỉ để giữ mạch \
+            và nhất quán cách xưng hô, không dịch lại và không trả về các dòng đó.
             - Mô tả video (nếu có) chỉ để hiểu bối cảnh và tên nhân vật; không dịch mô tả.
             - Chỉ trả về JSON theo schema, không giải thích.""";
 
@@ -115,7 +117,10 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             String examples = video.examples().isEmpty() ? ""
                     : "# Ví dụ đã được người dịch duyệt (cùng bộ phim; bắt chước tên riêng, xưng hô và giọng văn)\n"
                     + mapper.writeValueAsString(video.examples()) + "\n\n";
-            return "# Hồ sơ dịch\n" + profile + "\n\n" + examples
+            String previous = video.previousLines().isEmpty() ? ""
+                    : "# Đoạn ngay trước (để giữ mạch, KHÔNG dịch lại)\n"
+                    + mapper.writeValueAsString(video.previousLines()) + "\n\n";
+            return "# Hồ sơ dịch\n" + profile + "\n\n" + examples + previous
                     + "# Phụ đề cần dịch (JSON)\n" + mapper.writeValueAsString(data);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);

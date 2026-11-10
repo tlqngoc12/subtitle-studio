@@ -86,7 +86,7 @@ public class VideoController {
     }
 
     private VideoDto dto(Video v) {
-        return VideoDto.from(v, translation.activeModel(v.getId()));
+        return VideoDto.from(v, translation.activeModel(v.getId()), translation.activePart(v.getId()));
     }
 
     @GetMapping("/{id}/cues")

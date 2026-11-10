@@ -21,7 +21,8 @@ public record VideoDto(
         String translationError,
         String translationProfile,
         String translationModel,
-        EditStatus editStatus) {
+        EditStatus editStatus,
+        String activePart) {
 
     public static VideoDto from(Video v) {
         return from(v, null);
@@ -32,12 +33,18 @@ public record VideoDto(
      * (null until the first model is tried); otherwise the model stored by the last successful translation.
      */
     public static VideoDto from(Video v, String activeModel) {
+        return from(v, activeModel, null);
+    }
+
+    /** {@code activePart}: "2/3" while a long video is translated in parts; null otherwise. */
+    public static VideoDto from(Video v, String activeModel, String activePart) {
         return new VideoDto(v.getId(), v.getTitle(), v.getChannel(), v.getDurationSec(), v.getSubLang(),
                 v.getSubSource(), v.getCueCount(), v.getFetchedAt(),
                 "https://i.ytimg.com/vi/" + v.getId() + "/mqdefault.jpg",
                 v.getViCueCount(), v.getViUpdatedAt(),
                 v.getViSource(), v.getTranslationStatus(), v.getTranslationError(), v.getTranslationProfile(),
                 v.getTranslationStatus() == TranslationStatus.TRANSLATING ? activeModel : v.getTranslationModel(),
-                v.getEditStatus());
+                v.getEditStatus(),
+                v.getTranslationStatus() == TranslationStatus.TRANSLATING ? activePart : null);
     }
 }

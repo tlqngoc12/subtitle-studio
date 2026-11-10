@@ -42,6 +42,8 @@ export interface VideoDto {
   translationModel: string | null;
   /** How far the hand-editing of the Vietsub has got; null = not edited yet. Only DONE videos are published. */
   editStatus: EditStatus | null;
+  /** "2/3" while part 2 of 3 of a long video is being translated; null/absent otherwise. */
+  activePart?: string | null;
 }
 
 /** One Vietsub line, timed by the uploaded .srt file. */
