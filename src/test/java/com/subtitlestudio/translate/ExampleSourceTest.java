@@ -39,7 +39,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({ExampleSource.class, SrtParser.class, SubtitleFileStore.class, ExampleSourceTest.Config.class})
+@Import({ExampleSource.class, CorrectionReader.class, SrtParser.class, SubtitleFileStore.class, ExampleSourceTest.Config.class})
 @ExtendWith(OutputCaptureExtension.class)
 class ExampleSourceTest {
 
