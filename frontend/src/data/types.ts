@@ -1,5 +1,6 @@
 import type { ViCue, VideoDto } from '../api/client';
 import type { PlaylistDetail, PlaylistSummary } from '../api/playlists';
+import type { PhotoPost } from '../api/photos';
 import type { ProfilePage } from '../api/profiles';
 
 /**
@@ -23,4 +24,5 @@ export interface ReadSource {
   listPlaylists(): Promise<PublicPlaylistSummary[]>;
   getPlaylist(id: number): Promise<PublicPlaylistDetail>;
   getProfilePage(): Promise<ProfilePage>;
+  listPhotos(): Promise<PhotoPost[]>;
 }

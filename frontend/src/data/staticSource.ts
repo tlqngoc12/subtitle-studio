@@ -1,4 +1,5 @@
 import { ApiError, type ViCue } from '../api/client';
+import type { PhotoPost } from '../api/photos';
 import type { ProfilePage } from '../api/profiles';
 import type { PublicPlaylistDetail, PublicPlaylistSummary, PublicVideo, ReadSource } from './types';
 
@@ -54,5 +55,6 @@ export function createStaticSource(base = '/'): ReadSource {
     listPlaylists: () => read<PublicPlaylistSummary[]>('playlists.json'),
     getPlaylist: (id) => read<PublicPlaylistDetail>(`playlists/${id}.json`, 'PLAYLIST_NOT_FOUND'),
     getProfilePage: () => read<ProfilePage>('profiles.json', 'PROFILE_NOT_FOUND'),
+    listPhotos: () => read<PhotoPost[]>('photos.json'),
   };
 }

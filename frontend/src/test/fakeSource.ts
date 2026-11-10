@@ -14,6 +14,7 @@ export function fakeSource(overrides: Partial<ReadSource>): ReadSource {
     listPlaylists: async () => [],
     getPlaylist: notFound('PLAYLIST_NOT_FOUND'),
     getProfilePage: notFound('PROFILE_NOT_FOUND'),
+    listPhotos: async () => [],
     ...overrides,
   };
 }

@@ -103,4 +103,11 @@ describe('staticSource', () => {
 
     expect(await createStaticSource().getProfilePage()).toEqual(page);
   });
+
+  it('reads photos', async () => {
+    const photos = [{ id: 1, title: 'T', takenOn: '2026-11-09' }];
+    serve({ '/data/photos.json': photos });
+
+    expect(await createStaticSource().listPhotos()).toEqual(photos);
+  });
 });

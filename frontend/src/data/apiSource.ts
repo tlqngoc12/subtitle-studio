@@ -1,5 +1,6 @@
 import { getVideo, getVietsub, listVideos } from '../api/client';
 import { getPlaylist, listPlaylists } from '../api/playlists';
+import { listPhotos } from '../api/photos';
 import { getProfilePage } from '../api/profiles';
 import type { ReadSource } from './types';
 
@@ -11,4 +12,5 @@ export const apiSource: ReadSource = {
   listPlaylists: () => listPlaylists(),
   getPlaylist,
   getProfilePage,
+  listPhotos,
 };
