@@ -17,6 +17,7 @@ import com.subtitlestudio.profile.ProfileSummary;
 import com.subtitlestudio.video.SubtitleService;
 import com.subtitlestudio.video.ViCue;
 import com.subtitlestudio.video.VideoDto;
+import com.subtitlestudio.video.ViSource;
 import com.subtitlestudio.video.VietsubService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -90,7 +91,7 @@ public class SiteExporter {
         List<PublicVideo> videos = subtitles.list().stream()
                 .map(VideoDto::from)
                 .map(PublicVideo::from)
-                .filter(v -> v.viCueCount() > 0)
+                .filter(SiteExporter::isPublic)
                 .sorted(NEWEST_VIETSUB_FIRST)
                 .toList();
         write(dir.resolve("data/videos.json"), videos);
@@ -116,18 +117,26 @@ public class SiteExporter {
         }
     }
 
+    /** Guests only see videos with a hand-made (MANUAL) Vietsub; AI (AUTO) ones stay in the admin app. */
+    private static boolean isPublic(PublicVideo v) {
+        return v.viCueCount() > 0 && v.viSource() == ViSource.MANUAL;
+    }
+
     private void exportPlaylists(Path dir) {
         List<PublicPlaylistSummary> summaries = new java.util.ArrayList<>();
         for (PlaylistSummary s : playlists.list(null)) {
             PlaylistDetail detail = playlists.get(s.id());
             List<PublicVideo> videos = detail.videos().stream()
                     .map(PublicVideo::from)
-                    .filter(v -> v.viCueCount() > 0)
+                    .filter(SiteExporter::isPublic)
                     .toList();
+            if (videos.isEmpty()) {
+                continue; // nothing a guest could watch: leave the playlist out
+            }
             write(dir.resolve("data/playlists/" + s.id() + ".json"),
                     new PublicPlaylistDetail(detail.id(), detail.name(), detail.description(), detail.updatedAt(), videos));
             summaries.add(new PublicPlaylistSummary(s.id(), s.name(), s.description(), videos.size(),
-                    videos.isEmpty() ? null : videos.get(0).thumbnailUrl(), s.updatedAt()));
+                    videos.get(0).thumbnailUrl(), s.updatedAt()));
         }
         write(dir.resolve("data/playlists.json"), summaries);
     }

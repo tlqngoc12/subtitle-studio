@@ -662,6 +662,15 @@ Plan: [docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md](docs/su
 - **Việc làm tay một lần:** (1) Cloudflare dashboard, Storage & Databases, D1, tạo database tên `novel-reads`; (2) copy Database ID vào `.env` (`CLOUDFLARE_D1_DATABASE_ID=...`) rồi chạy lại app; (3) bấm Publish; nếu deploy báo lỗi binding thì cấp cho API token thêm quyền Account, D1, Edit.
 - **Test:** `FilmStrip`/`ProfileBanner` (fake timers), `publicFunctions.test.ts` (function với D1 giả), `novelReads.test.ts`, `NovelReads.test.tsx`, `NovelsPage`; Java: `ReadCountsFunctionsTest`, `PublishServiceTest`, `NovelReadsServiceTest`, `NovelReadsControllerTest`.
 
+### 2026-11-10: Trang public chỉ hiện Vietsub Manual ✅ (chưa deploy)
+
+Nhánh `feature/public-manual-vietsub-only`. Chỉ đổi backend (`SiteExporter`), admin không đổi.
+
+- **Lọc:** chỉ video `viSource == MANUAL` (và có cue) vào `data/videos.json` và `data/videos/<id>.json`; video Vietsub AI không xuất nên mở thẳng `/vietsub/:id` ra "Not found".
+- **Playlist:** danh sách video, số lượng và ảnh bìa chỉ tính video Manual; playlist không còn video Manual nào thì không xuất (không có `data/playlists/<id>.json`, không có trong `playlists.json`).
+- **Test:** `SiteExporterTest` thêm 3 ca (video AI bị loại, playlist chỉ có AI bị bỏ, playlist hỗn hợp tính lại số lượng + bìa); các ca cũ dùng Vietsub Manual.
+- **Cần làm:** bấm **Publish lại** để bản public bỏ các video AI đã đăng trước đó.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

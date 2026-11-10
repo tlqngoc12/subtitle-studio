@@ -155,7 +155,14 @@ class SiteExporterTest {
         videos.saveAndFlush(v);
     }
 
+    /** A video with a hand-made (MANUAL) Vietsub: the only kind the public site shows. */
     private void withVietsub(String id, String title, Duration later, String... lines) {
+        withAutoVietsub(id, title, later, lines);
+        jdbc.update("update video set vi_source = 'MANUAL' where id = ?", id);
+    }
+
+    /** A video with an AI (AUTO) Vietsub: never exported. */
+    private void withAutoVietsub(String id, String title, Duration later, String... lines) {
         video(id, title);
         clock.reset();
         clock.advance(later);
@@ -190,6 +197,58 @@ class SiteExporterTest {
     }
 
     @Test
+    void aiVietsubVideosAreNotExportedAtAll() throws IOException {
+        withVietsub("AAAAAAAAAA1", "Manual", Duration.ofMinutes(1), "a");
+        withAutoVietsub("BBBBBBBBBB2", "Ai", Duration.ofMinutes(5), "b");
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/videos.json");
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("id").asText()).isEqualTo("AAAAAAAAAA1");
+        assertThat(out.resolve("data/videos/AAAAAAAAAA1.json")).exists();
+        assertThat(out.resolve("data/videos/BBBBBBBBBB2.json")).doesNotExist();
+    }
+
+    @Test
+    void aPlaylistWithOnlyAiVideosIsLeftOut() throws IOException {
+        withVietsub("AAAAAAAAAA1", "Manual", Duration.ZERO, "a");
+        withAutoVietsub("BBBBBBBBBB2", "Ai", Duration.ofMinutes(1), "b");
+        long mixed = playlists.create("Mixed", null).id();
+        playlists.addVideo(mixed, "AAAAAAAAAA1");
+        long aiOnly = playlists.create("Ai only", null).id();
+        playlists.addVideo(aiOnly, "BBBBBBBBBB2");
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/playlists.json");
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("id").asLong()).isEqualTo(mixed);
+        assertThat(out.resolve("data/playlists/" + aiOnly + ".json")).doesNotExist();
+        assertThat(out.resolve("data/playlists/" + mixed + ".json")).exists();
+    }
+
+    @Test
+    void aMixedPlaylistKeepsOnlyManualVideosWithCountAndCoverRecomputed() throws IOException {
+        withAutoVietsub("AAAAAAAAAA1", "Ai first", Duration.ZERO, "a");
+        withVietsub("BBBBBBBBBB2", "Manual", Duration.ofMinutes(1), "b");
+        withAutoVietsub("CCCCCCCCCC3", "Ai last", Duration.ofMinutes(2), "c");
+        long id = playlists.create("Mixed", null).id();
+        playlists.addVideo(id, "AAAAAAAAAA1");
+        playlists.addVideo(id, "BBBBBBBBBB2");
+        playlists.addVideo(id, "CCCCCCCCCC3");
+
+        exporter.export(out, NOW);
+
+        JsonNode summary = readJson("data/playlists.json").get(0);
+        assertThat(summary.get("videoCount").asInt()).isEqualTo(1);
+        assertThat(summary.get("thumbnailUrl").asText()).contains("BBBBBBBBBB2");
+        JsonNode detail = readJson("data/playlists/" + id + ".json");
+        assertThat(detail.get("videos")).hasSize(1);
+        assertThat(detail.get("videos").get(0).get("id").asText()).isEqualTo("BBBBBBBBBB2");
+    }
+
+    @Test
     void videoFilesNeverContainInternalFields() throws IOException {
         withVietsub("AAAAAAAAAA1", "Title", Duration.ZERO, "a");
 
@@ -198,7 +257,7 @@ class SiteExporterTest {
         for (String text : List.of(read("data/videos.json"), read("data/videos/AAAAAAAAAA1.json"))) {
             assertThat(text).doesNotContain("\"subLang\"", "\"subSource\"", "\"cueCount\"", "\"fetchedAt\"",
                     "\"translationStatus\"", "\"translationError\"", "\"translationProfile\"");
-            assertThat(text).contains("\"viSource\":\"AUTO\"");
+            assertThat(text).contains("\"viSource\":\"MANUAL\"");
         }
     }
 
