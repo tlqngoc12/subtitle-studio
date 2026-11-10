@@ -6,6 +6,7 @@ import type { ViCue, VideoDto } from '../api/client';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { detail, vsVideo } from '../test/playlistFixtures';
 import WatchPage from './WatchPage';
+import { resetWatched } from '../data/watched';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource, publicSite } from '../test/fakeSource';
 
@@ -16,6 +17,9 @@ const player = vi.hoisted(() => ({
   /** Reports 'ended' only for this video, like a real player that starts fresh on the next one. */
   endedFor: null as string | null,
   calls: [] as { videoId: string; autoplay: boolean | undefined }[],
+  togglePlay: vi.fn(),
+  seekBy: vi.fn(),
+  toggleMute: vi.fn(),
 }));
 
 vi.mock('../player/useYouTubePlayer', () => ({
@@ -74,7 +78,11 @@ describe('WatchPage', () => {
     player.error = null;
     player.endedFor = null;
     player.calls = [];
+    player.togglePlay.mockClear();
+    player.seekBy.mockClear();
+    player.toggleMute.mockClear();
     localStorage.clear();
+    resetWatched();
   });
 
   afterEach(() => {
@@ -236,6 +244,152 @@ describe('WatchPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('This video is no longer in the list');
   });
 
+  describe('layout', () => {
+    it('puts the title under the video, so the video is the first thing on the page', async () => {
+      renderPage();
+
+      const heading = await screen.findByRole('heading', { name: 'Học Spring Boot' });
+      const frame = document.querySelector('.player')!;
+      expect(frame.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
+
+  describe('player shortcuts', () => {
+    it('K and Space play or pause, J/L and the arrows seek, M mutes', async () => {
+      renderPage();
+      await screen.findByRole('heading', { name: 'Học Spring Boot' });
+      const user = userEvent.setup();
+
+      await user.keyboard('k');
+      await user.keyboard(' ');
+      expect(player.togglePlay).toHaveBeenCalledTimes(2);
+      await user.keyboard('l');
+      expect(player.seekBy).toHaveBeenLastCalledWith(10);
+      await user.keyboard('{ArrowLeft}');
+      expect(player.seekBy).toHaveBeenLastCalledWith(-5);
+      await user.keyboard('m');
+      expect(player.toggleMute).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not react while typing', async () => {
+      renderPage();
+      await screen.findByRole('heading', { name: 'Học Spring Boot' });
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+
+      await userEvent.setup().keyboard('klm');
+
+      expect(player.togglePlay).not.toHaveBeenCalled();
+      expect(player.toggleMute).not.toHaveBeenCalled();
+      input.remove();
+    });
+
+    it('lists the shortcuts in a popover, opened by the button or by ?', async () => {
+      renderPage();
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByRole('button', { name: 'Keyboard shortcuts' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+      expect(within(dialog).getByText('Play / pause')).toBeInTheDocument();
+      expect(within(dialog).getByText('Show / hide Vietsub')).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+      await user.keyboard('?');
+      expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
+    });
+  });
+
+  describe('Vietsub on/off', () => {
+    beforeEach(() => {
+      player.currentMs = 1_500;
+    });
+
+    it('C hides and shows the Vietsub, and the button reflects it', async () => {
+      renderPage();
+      expect(await screen.findByText('Tạm biệt')).toBeInTheDocument();
+      const user = userEvent.setup();
+
+      await user.keyboard('c');
+      expect(screen.queryByText('Tạm biệt')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Show Vietsub' })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Show Vietsub' }));
+      expect(screen.getByText('Tạm biệt')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Hide Vietsub' })).toBeInTheDocument();
+    });
+
+    it('puts the button inside the player frame so it works in fullscreen', async () => {
+      renderPage();
+      const button = await screen.findByRole('button', { name: 'Hide Vietsub' });
+      expect(button.closest('.player')).not.toBeNull();
+    });
+
+    it('remembers the choice', async () => {
+      renderPage();
+      await screen.findByText('Tạm biệt');
+      await userEvent.setup().keyboard('c');
+      cleanup();
+
+      renderPage();
+
+      expect(await screen.findByRole('button', { name: 'Show Vietsub' })).toBeInTheDocument();
+      expect(screen.queryByText('Tạm biệt')).not.toBeInTheDocument();
+    });
+
+    it('still works when storage is blocked', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('blocked');
+      });
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('blocked');
+      });
+      renderPage();
+      expect(await screen.findByText('Tạm biệt')).toBeInTheDocument();
+
+      await userEvent.setup().keyboard('c');
+
+      expect(screen.queryByText('Tạm biệt')).not.toBeInTheDocument();
+      vi.restoreAllMocks();
+    });
+  });
+
+  describe('watched', () => {
+    const watchedIds = () => JSON.parse(localStorage.getItem('subtitle-studio.watched') ?? '[]') as string[];
+
+    it('does not mark a video that has only just started', async () => {
+      player.currentMs = 5_000;
+      renderPage();
+      await screen.findByRole('heading', { name: 'Học Spring Boot' });
+      expect(watchedIds()).toEqual([]);
+    });
+
+    it('marks a video that ended', async () => {
+      player.state = 'ended';
+      renderPage();
+      await screen.findByRole('heading', { name: 'Học Spring Boot' });
+      expect(watchedIds()).toEqual([ID]);
+    });
+
+    it('marks a video played past 90% of its duration (754 s)', async () => {
+      player.currentMs = 700_000;
+      renderPage();
+      await screen.findByRole('heading', { name: 'Học Spring Boot' });
+      expect(watchedIds()).toEqual([ID]);
+    });
+
+    it('does not break the page when storage is blocked', async () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('blocked');
+      });
+      player.state = 'ended';
+      renderPage();
+      expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
+      vi.restoreAllMocks();
+    });
+  });
+
   describe('playlist mode', () => {
     const A = vsVideo('aaaaaaaaaaa', 'Alpha');
     const B = vsVideo('bbbbbbbbbbb', 'Bravo');
@@ -354,6 +508,28 @@ describe('WatchPage', () => {
       input.remove();
     });
 
+    it('shows what plays next', async () => {
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+
+      expect(within(await panel()).getByText(/Up next/)).toHaveTextContent('Up next: Charlie');
+    });
+
+    it('shows no Up next on the last video', async () => {
+      renderAt(`/vietsub/${C.id}?playlist=4`);
+
+      await panel();
+      expect(screen.queryByText(/Up next/)).not.toBeInTheDocument();
+    });
+
+    it('marks the videos watched before in the panel', async () => {
+      localStorage.setItem('subtitle-studio.watched', JSON.stringify([A.id]));
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+
+      const links = within(await panel()).getAllByRole('link');
+      expect(within(links[0]).getByText('Watched')).toBeInTheDocument();
+      expect(within(links[2]).queryByText('Watched')).not.toBeInTheDocument();
+    });
+
     it('shows the normal page when the playlist does not exist', async () => {
       renderAt(`/vietsub/${A.id}?playlist=4`, {
         method: 'GET',
@@ -410,6 +586,14 @@ describe('WatchPage on the public site', () => {
     renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
 
     expect(await screen.findByRole('heading', { name: video.title })).toBeInTheDocument();
+  });
+
+  it('records a watched video on the public site too', async () => {
+    player.state = 'ended';
+    renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
+
+    await screen.findByRole('heading', { name: video.title });
+    expect(JSON.parse(localStorage.getItem('subtitle-studio.watched')!)).toEqual([ID]);
   });
 
   it('readOnlyEmptyStateHasNoAddLink', async () => {

@@ -4,7 +4,7 @@ import type { YTPlayerEvent, YTPlayerOptions } from './youtube';
 import { useYouTubePlayer } from './useYouTubePlayer';
 
 /** A fake window.YT whose player time the test controls. */
-const fake = { time: 0, options: null as YTPlayerOptions | null, destroyed: false, created: 0, calls: [] as string[] };
+const fake = { time: 0, duration: 0, playerState: -1, muted: false, options: null as YTPlayerOptions | null, destroyed: false, created: 0, calls: [] as string[] };
 
 const unloaded: string[] = [];
 const target = {
@@ -16,6 +16,12 @@ const target = {
   },
   seekTo: () => {},
   playVideo: () => {},
+  pauseVideo: () => {},
+  getPlayerState: () => fake.playerState,
+  getDuration: () => fake.duration,
+  mute: () => {},
+  unMute: () => {},
+  isMuted: () => fake.muted,
   cueVideoById: (id: string) => {
     fake.calls.push(`cue ${id}`);
   },
@@ -40,6 +46,9 @@ describe('useYouTubePlayer', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     fake.time = 0;
+    fake.duration = 0;
+    fake.playerState = -1;
+    fake.muted = false;
     fake.options = null;
     fake.destroyed = false;
     fake.created = 0;
@@ -65,6 +74,26 @@ describe('useYouTubePlayer', () => {
         }
         playVideo() {
           fake.calls.push('play');
+        }
+        pauseVideo() {
+          fake.calls.push('pause');
+        }
+        getPlayerState() {
+          return fake.playerState;
+        }
+        getDuration() {
+          return fake.duration;
+        }
+        mute() {
+          fake.calls.push('mute');
+          fake.muted = true;
+        }
+        unMute() {
+          fake.calls.push('unmute');
+          fake.muted = false;
+        }
+        isMuted() {
+          return fake.muted;
         }
         seekTo(seconds: number, allowSeekAhead: boolean) {
           fake.calls.push(`seek ${seconds} ${allowSeekAhead}`);
@@ -128,6 +157,60 @@ describe('useYouTubePlayer', () => {
     act(() => result.current.play());
 
     expect(fake.calls).toContain('play');
+  });
+
+  it('togglePlay pauses a playing video, plays otherwise, and does nothing before ready', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => result.current.togglePlay());
+    expect(fake.calls).not.toContain('play');
+
+    await ready();
+    fake.playerState = 1; // playing
+    act(() => result.current.togglePlay());
+    expect(fake.calls).toContain('pause');
+
+    fake.playerState = 2; // paused
+    act(() => result.current.togglePlay());
+    expect(fake.calls).toContain('play');
+  });
+
+  it('seekBy moves relative to the current time, never below 0 or past the end', async () => {
+    const { result } = setup();
+    await ready();
+    fake.duration = 100;
+    fake.time = 50;
+    act(() => result.current.seekBy(10));
+    expect(fake.calls).toContain('seek 60 true');
+    expect(result.current.currentMs).toBe(60_000);
+
+    fake.time = 3;
+    act(() => result.current.seekBy(-10));
+    expect(fake.calls).toContain('seek 0 true');
+
+    fake.time = 95;
+    act(() => result.current.seekBy(10));
+    expect(fake.calls).toContain('seek 100 true');
+  });
+
+  it('seekBy does nothing before the player is ready', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => result.current.seekBy(10));
+    expect(fake.calls.some((c) => c.startsWith('seek'))).toBe(false);
+  });
+
+  it('toggleMute mutes, then unmutes', async () => {
+    const { result } = setup();
+    await ready();
+    act(() => result.current.toggleMute());
+    expect(fake.calls).toContain('mute');
+    act(() => result.current.toggleMute());
+    expect(fake.calls).toContain('unmute');
   });
 
   it('turns off YouTube built-in captions so only the Vietsub overlay shows', async () => {

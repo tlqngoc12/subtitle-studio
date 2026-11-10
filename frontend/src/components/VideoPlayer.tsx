@@ -1,4 +1,4 @@
-import { Maximize, Minimize } from 'lucide-react';
+import { Captions, CaptionsOff, Maximize, Minimize } from 'lucide-react';
 import { isTyping } from '../lib/keyboard';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { ViCue } from '../api/client';
@@ -19,6 +19,10 @@ interface Props {
   containerRef: RefObject<HTMLDivElement | null>;
   cue: ViCue | null;
   error: PlayerError | null;
+  /** The Vietsub overlay is shown (default). */
+  captionsOn?: boolean;
+  /** When given, a button in the frame turns the Vietsub on and off. */
+  onToggleCaptions?: () => void;
 }
 
 /**
@@ -30,7 +34,7 @@ interface Props {
  * the Vietsub overlay), so there the frame instead fills the viewport ("filled" mode); Escape or the button
  * leaves it.
  */
-export function VideoPlayer({ containerRef, cue, error }: Props) {
+export function VideoPlayer({ containerRef, cue, error, captionsOn = true, onToggleCaptions }: Props) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [filled, setFilled] = useState(false);
@@ -91,16 +95,30 @@ export function VideoPlayer({ containerRef, cue, error }: Props) {
   return (
     <div className={filled ? 'player player--filled' : 'player'} ref={frameRef}>
       {error ? <p className="player__error">{ERROR_TEXT[error]}</p> : <div className="player__video" ref={containerRef} />}
-      <SubtitleOverlay cue={cue} />
-      <button
-        className="player__fs"
-        type="button"
-        onClick={toggle}
-        aria-label={expanded ? 'Exit full screen' : 'Full screen'}
-        title={expanded ? 'Exit full screen (f)' : 'Full screen (f)'}
-      >
-        {expanded ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}
-      </button>
+      <SubtitleOverlay cue={captionsOn ? cue : null} />
+      {/* title, not <Tip>: the tooltip portal renders outside the fullscreen frame, so it would never show there. */}
+      <div className="player__tools">
+        {onToggleCaptions && (
+          <button
+            className="player__btn"
+            type="button"
+            onClick={onToggleCaptions}
+            aria-label={captionsOn ? 'Hide Vietsub' : 'Show Vietsub'}
+            title={captionsOn ? 'Hide Vietsub (c)' : 'Show Vietsub (c)'}
+          >
+            {captionsOn ? <Captions aria-hidden="true" /> : <CaptionsOff aria-hidden="true" />}
+          </button>
+        )}
+        <button
+          className="player__btn player__fs"
+          type="button"
+          onClick={toggle}
+          aria-label={expanded ? 'Exit full screen' : 'Full screen'}
+          title={expanded ? 'Exit full screen (f)' : 'Full screen (f)'}
+        >
+          {expanded ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}
+        </button>
+      </div>
     </div>
   );
 }

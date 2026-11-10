@@ -3,12 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import type { ViCue } from '../api/client';
 import { useSite } from '../data/SiteContext';
+import { countsAsWatched, markWatched } from '../data/watched';
 import type { PublicVideo } from '../data/types';
 import { PlaylistPanel } from '../components/PlaylistPanel';
+import { ShortcutsHelp } from '../components/ShortcutsHelp';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { findActiveCue } from '../lib/findActiveCue';
 import { isTyping } from '../lib/keyboard';
+import { useCaptionsPref } from '../lib/useCaptionsPref';
+import { usePlayerShortcuts } from '../lib/usePlayerShortcuts';
 import { usePlaylistMode } from '../lib/usePlaylistMode';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
 import { Alert } from '../components/ui/Alert';
@@ -18,6 +22,8 @@ import './WatchPage.css';
 /**
  * The end result of the workflow: the YouTube video playing with its Vietsub. With `?playlist=` it also shows
  * the playlist panel, plays the next video when one ends (Autoplay) and answers Shift+N / Shift+P.
+ * Also answers the player keys (K/Space, J/L, arrows, M, C, ?), can hide the Vietsub, and remembers which
+ * videos were watched (ended, or past 90%) so lists can show it.
  */
 export default function WatchPage() {
   const { id = '' } = useParams();
@@ -30,6 +36,8 @@ export default function WatchPage() {
   const startPlaying = (location.state as { autoplay?: boolean } | null)?.autoplay === true;
   const player = useYouTubePlayer(playerRef, id, { autoplay: startPlaying });
   const mode = usePlaylistMode(id);
+  const [captionsOn, toggleCaptions] = useCaptionsPref();
+  const [helpOpen, setHelpOpen] = useState(false);
   const isLast = mode !== null && mode.index === mode.playlist.videos.length - 1;
 
   useEffect(() => {
@@ -49,6 +57,21 @@ export default function WatchPage() {
   useEffect(() => {
     if (ended && mode && mode.autoplay && !isLast) mode.go(mode.index + 1);
   }, [ended, mode, isLast]);
+
+  // Watched: the video ended, or played past 90% of its length. Works the same on the public site.
+  const durationSec = video?.id === id ? video.durationSec : null;
+  const watched = countsAsWatched({ ended, currentMs: player.currentMs, durationSec });
+  useEffect(() => {
+    if (watched) markWatched(id);
+  }, [watched, id]);
+
+  usePlayerShortcuts({
+    togglePlay: player.togglePlay,
+    seekBy: player.seekBy,
+    toggleMute: player.toggleMute,
+    toggleCaptions,
+    toggleHelp: () => setHelpOpen((open) => !open),
+  });
 
   useEffect(() => {
     if (!mode) return;
@@ -77,19 +100,34 @@ export default function WatchPage() {
         <Alert title={error.title} hint={error.hint} />
       )}
 
-      {video && (
-        <PageHeader className="masthead--watch" title={video.title} lede={video.channel} />
-      )}
-
-      {video && video.viCueCount === 0 && (
-        <p className="muted">
-          This video has no Vietsub yet.
-        </p>
-      )}
-
       {/* The player keeps its place in the tree when switching videos, so page fullscreen stays on. */}
       <div className={mode ? 'watch watch--playlist' : 'watch'}>
-        {!error && <VideoPlayer containerRef={playerRef} cue={cue} error={player.error} />}
+        <div className="watch__main">
+          {!error && (
+            <VideoPlayer
+              containerRef={playerRef}
+              cue={cue}
+              error={player.error}
+              captionsOn={captionsOn}
+              onToggleCaptions={toggleCaptions}
+            />
+          )}
+
+          {video && (
+            <PageHeader
+              className="masthead--watch"
+              title={video.title}
+              lede={video.channel}
+              actions={<ShortcutsHelp open={helpOpen} onOpenChange={setHelpOpen} playlist={mode !== null} />}
+            />
+          )}
+
+          {video && video.viCueCount === 0 && (
+            <p className="muted">
+              This video has no Vietsub yet.
+            </p>
+          )}
+        </div>
         {mode && (
           <PlaylistPanel
             playlist={mode.playlist}

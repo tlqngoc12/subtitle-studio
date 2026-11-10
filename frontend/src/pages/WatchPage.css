@@ -1,9 +1,27 @@
-/* Watch page in playlist mode: player + playlist panel (right on desktop, below on phones). */
-.watch--playlist {
+/* Watch page: the player first, then the title (like YouTube); in playlist mode the panel sits at the right on
+   desktop and below on phones. */
+.watch {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   gap: var(--space-4);
   align-items: start;
+}
+
+.watch--playlist {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+}
+
+.watch__main {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* The player never gets taller than the screen: without a playlist it is 16:9 at the page width, which on a
+   laptop pushes its bottom edge below the fold. Not applied when it fills the screen (fullscreen / "filled"). */
+.watch__main > .player:not(:fullscreen):not(.player--filled) {
+  width: 100%;
+  max-width: calc((100dvh - var(--topbar-h, 56px) - var(--space-12)) * 16 / 9);
+  justify-self: center;
 }
 
 @media (max-width: 760px) {
