@@ -53,4 +53,18 @@ describe('useScrollProgress', () => {
     scrollToProgress(el, 0.5);
     expect(spy).toHaveBeenCalledWith({ top: 600 });
   });
+
+  it('stops re-rendering when nothing scrolls', async () => {
+    const el = setup(0, 2000, 1000);
+    let renders = 0;
+    renderHook(() => {
+      renders++;
+      return useScrollProgress({ current: el }, 'a');
+    });
+    await frame();
+    const settled = renders;
+    for (let i = 0; i < 10; i++) await frame();
+    expect(renders - settled).toBeLessThanOrEqual(1);
+    expect(renders).toBeLessThanOrEqual(4);
+  });
 });

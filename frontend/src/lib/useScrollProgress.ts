@@ -17,7 +17,8 @@ function measure(el: HTMLElement | null): number {
  */
 export function useScrollProgress(ref: RefObject<HTMLElement | null>, key = ''): number {
   const [state, setState] = useState({ key, value: 0 });
-  const setProgress = (value: number) => setState({ key, value });
+  // Bail out when nothing changed, so the per-render re-measure below does not re-render every frame.
+  const setProgress = (value: number) => setState((s) => (s.key === key && s.value === value ? s : { key, value }));
 
   useEffect(() => {
     let frame = 0;
