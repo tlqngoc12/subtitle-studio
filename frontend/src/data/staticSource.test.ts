@@ -110,4 +110,14 @@ describe('staticSource', () => {
 
     expect(await createStaticSource().listPhotos()).toEqual(photos);
   });
+
+  it('reads works and a work, mapping a missing file to WORK_NOT_FOUND', async () => {
+    serve({ '/data/works.json': [{ id: 3, title: 'T' }], '/data/works/3.json': { id: 3, title: 'T' } });
+    const source = createStaticSource();
+
+    expect(await source.listWorks()).toEqual([{ id: 3, title: 'T' }]);
+    expect((await source.getWork(3)).title).toBe('T');
+    const error = await source.getWork(99).catch((e: unknown) => e);
+    expect((error as ApiError).code).toBe('WORK_NOT_FOUND');
+  });
 });

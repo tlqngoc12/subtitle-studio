@@ -1,0 +1,18 @@
+.wlinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wlinks__link {
+  text-decoration: none;
+}
+
+.wlinks__external {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}

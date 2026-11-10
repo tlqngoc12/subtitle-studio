@@ -51,7 +51,7 @@ describe('NavBar', () => {
       </MemoryRouter>,
     );
     const links = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
-    expect(links.slice(-5)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Photos', 'Novels']);
+    expect(links.slice(-6)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Works', 'Photos', 'Novels']);
     expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Photos' })).toHaveAttribute('href', '/photos');
   });
 
@@ -80,6 +80,8 @@ describe('NavBar', () => {
     ['/profiles', 'Profile'],
     ['/profiles/emi', 'Profile'],
     ['/photos', 'Photos'],
+    ['/works', 'Works'],
+    ['/works/3', 'Works'],
   ])('marks exactly one current section at %s', (path, expected) => {
     expect(currentAt(path)).toEqual([expected]);
   });

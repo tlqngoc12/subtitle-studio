@@ -81,7 +81,7 @@ describe('PublicApp', () => {
     renderAt('/vietsub/list');
 
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile', 'Photos', 'Novels']);
+    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile', 'Works', 'Photos', 'Novels']);
     expect(screen.queryByRole('button', { name: /Publish/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toHaveAttribute('href', '/vietsub/list');
     await screen.findByText(/No playlists yet\./);

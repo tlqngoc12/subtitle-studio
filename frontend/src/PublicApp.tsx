@@ -11,6 +11,8 @@ import { createNovelSource, withChapterCache } from './data/novelSource';
 import { createStaticSource } from './data/staticSource';
 import NotFoundPage from './pages/NotFoundPage';
 import PhotosPage from './pages/PhotosPage';
+import WorkDetailPage from './pages/WorkDetailPage';
+import WorksPage from './pages/WorksPage';
 import ProfilePage, { ProfileRedirect } from './pages/ProfilePage';
 import PublicAllNovelsPage from './pages/public/PublicAllNovelsPage';
 import PublicNovelPage from './pages/public/PublicNovelPage';
@@ -40,6 +42,8 @@ export default function PublicApp() {
             <Route path="/profiles" element={<ProfilePage />} />
             <Route path="/profiles/:slug" element={<ProfileRedirect />} />
             <Route path="/photos" element={<PhotosPage />} />
+            <Route path="/works" element={<WorksPage />} />
+            <Route path="/works/:id" element={<WorkDetailPage />} />
             <Route path="/novels" element={<PublicNovelsPage source={novels} />} />
             <Route path="/novels/all" element={<PublicAllNovelsPage source={novels} />} />
             <Route path="/novels/:slug" element={<PublicNovelPage source={novels} />} />
