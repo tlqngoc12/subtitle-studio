@@ -13,6 +13,7 @@ public class SpaForwardController {
     @GetMapping({"/vietsub", "/vietsub/", "/vietsub/{id}", "/vietsub/{id}/", "/vietsub/{id}/edit", "/vietsub/{id}/edit/",
         "/vietsub/playlists/{id}", "/vietsub/playlists/{id}/", "/vietsub/profiles", "/vietsub/profiles/",
         "/profiles", "/profiles/", "/profiles/{slug}", "/profiles/{slug}/", "/photos", "/photos/",
+        "/works", "/works/", "/works/{id}", "/works/{id}/", "/works/{id}/edit", "/works/{id}/edit/",
         "/novels", "/novels/", "/novels/{id}", "/novels/{id}/",
         "/novels/{id}/chapters/{chapterId}", "/novels/{id}/chapters/{chapterId}/"})
     public String spa() {

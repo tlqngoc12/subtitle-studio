@@ -105,6 +105,18 @@ class SiteExporterTest {
     private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
 
     @Autowired
+    private com.subtitlestudio.work.WorkService workService;
+
+    @Autowired
+    private com.subtitlestudio.work.PersonService personService;
+
+    @Autowired
+    private com.subtitlestudio.work.WorkRepository workRepository;
+
+    @Autowired
+    private com.subtitlestudio.work.PersonRepository personRepository;
+
+    @Autowired
     private com.subtitlestudio.profile.ProfileBannerService bannerService;
 
     @Autowired
@@ -150,6 +162,8 @@ class SiteExporterTest {
     @AfterEach
     void cleanUp() {
         photoPosts.deleteAll();
+        workRepository.deleteAll();
+        personRepository.deleteAll();
         jdbc.update("update t_profile set portrait_media_id = null");
         for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
                 "vi_cue", "cue", "video")) {
@@ -455,6 +469,38 @@ class SiteExporterTest {
     }
 
     @Test
+    void exportsWorksListAndDetailsWithPublicImages() throws IOException {
+        Media cover = resizedImage();
+        Media avatar = resizedImage();
+        long bonnie = personService.create(new com.subtitlestudio.work.PersonRequest("Bonnie", avatar.getId())).id();
+        var created = workService.create(new com.subtitlestudio.work.WorkRequest("Love Story", cover.getId(),
+                java.time.LocalDate.parse("2026-04-24"), com.subtitlestudio.work.WorkCategory.FILM_TV, "Drama", "emi",
+                "Synopsis", List.of(new com.subtitlestudio.work.WorkLinkRequest(com.subtitlestudio.work.LinkKind.TRAILER,
+                        null, "https://youtu.be/dQw4w9WgXcQ", null)),
+                List.of(new com.subtitlestudio.work.WorkCreditRequest(bonnie, "Lead", "Key"))));
+        workService.create(new com.subtitlestudio.work.WorkRequest("Soon", null, null,
+                com.subtitlestudio.work.WorkCategory.MUSIC, null, null, null, List.of(), List.of()));
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/works.json");
+        assertThat(list).hasSize(2);
+        assertThat(list.get(0).get("title").asText()).isEqualTo("Soon");
+        assertThat(list.get(0).get("releaseDate").isNull()).isTrue();
+        assertThat(list.get(1).get("coverUrl").asText()).isEqualTo("/media/" + cover.getStorageKey() + ".webp");
+        JsonNode detail = readJson("data/works/" + created.id() + ".json");
+        assertThat(detail.get("coverMediaId").isNull()).isTrue();
+        assertThat(detail.get("trailerVideoId").asText()).isEqualTo("dQw4w9WgXcQ");
+        JsonNode person = detail.get("credits").get(0).get("person");
+        assertThat(person.get("avatarMediaId").isNull()).isTrue();
+        assertThat(person.get("avatarUrl").asText()).isEqualTo("/media/" + avatar.getStorageKey() + ".webp");
+        assertThat(detail.get("credits").get(0).get("characterName").asText()).isEqualTo("Key");
+        assertThat(out.resolve("media/" + cover.getStorageKey() + ".webp")).exists();
+        assertThat(out.resolve("media/" + avatar.getStorageKey() + ".webp")).exists();
+        assertThat(read("data/works.json") + read("data/works/" + created.id() + ".json")).doesNotContain("/api/media/");
+    }
+
+    @Test
     void skipsMissingImageFileWithWarning(CapturedOutput output) throws IOException {
         Media used = mediaService.store("a.png", PNG);
         profiles.addBlock("emi", new BlockRequest(BlockType.IMAGE, null, null, used.getId(), null, null, null));
@@ -682,7 +728,7 @@ class SiteExporterTest {
     void warnsAboveFileLimit(CapturedOutput output) {
         novel("summer", null, 1, 1);
         SiteExporter small = new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository,
-                properties, appMapper, novelExporter, photoService, 3);
+                properties, appMapper, novelExporter, photoService, workService, 3);
 
         small.export(out, NOW);
 
