@@ -19,7 +19,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -142,7 +141,7 @@ public class ProfileAnalyzer {
 
     private List<List<Correction>> correctionsPerVideo(String name) {
         List<List<Correction>> out = new ArrayList<>();
-        for (Video video : videos.findExampleVideos(name, "", Pageable.unpaged())) {
+        for (Video video : videos.findCorrectionVideos(name)) {
             List<Correction> corrected = reader.readCorrected(video.getId());
             if (!corrected.isEmpty()) {
                 out.add(corrected);

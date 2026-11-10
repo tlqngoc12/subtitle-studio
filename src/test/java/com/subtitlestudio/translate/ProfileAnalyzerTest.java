@@ -2,8 +2,6 @@ package com.subtitlestudio.translate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +38,7 @@ class ProfileAnalyzerTest {
         Path prompts = Files.createDirectories(root.resolve("prompts"));
         Files.writeString(prompts.resolve("EmiBonnie.md"), "## Xưng hô\nEmi gọi Bonnie là em.");
         store = new PromptProfileStore(prompts);
-        when(videos.findExampleVideos(eq("EmiBonnie"), eq(""), any())).thenReturn(found);
+        when(videos.findCorrectionVideos("EmiBonnie")).thenReturn(found);
     }
 
     @AfterEach

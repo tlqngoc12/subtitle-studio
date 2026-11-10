@@ -735,6 +735,10 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 - **Hướng sau:** chuyển ảnh chương sang R2 để hết giới hạn số file.
 - **Kiểm tra:** `mvn test`, `npm run build`, `npm run build:public`. Chưa kiểm tra bằng trình duyệt trên site thật (chưa publish).
 
+### 2026-11-10: Sửa Analyze ở Vietsub › Profiles báo 0 video / 0 câu ✅ (chưa merge, chưa deploy)
+- Nguyên nhân: `ProfileAnalyzer` gọi `findExampleVideos(name, "", ...)`; Oracle coi `''` là NULL nên `v.id <> NULL` không bao giờ đúng, ra 0 dòng (H2 và test mock không bắt được). `ExampleSource` luôn truyền id video thật nên không bị.
+- Sửa: thêm `VideoRepository.findCorrectionVideos(profile)` (cùng bộ lọc và thứ tự, không có `excludeId`); `ProfileAnalyzer` dùng nó. Test mới `PersistenceOracleIT.findsEveryFinishedHandMadeVideoOfAProfileWithoutAnExcludedId` trên Oracle thật.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

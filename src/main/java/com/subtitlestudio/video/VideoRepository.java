@@ -55,6 +55,18 @@ public interface VideoRepository extends JpaRepository<Video, String> {
     List<Video> findExampleVideos(@Param("profile") String profile, @Param("excludeId") String excludeId,
                                   org.springframework.data.domain.Pageable page);
 
+    /**
+     * Every finished (DONE), hand-made video translated with {@code profile}, most recently saved first. Has no
+     * "exclude id" parameter on purpose: Oracle reads '' as NULL, so {@code id <> ''} matches nothing.
+     */
+    @Query("""
+            select v from Video v
+             where v.translationProfile = :profile
+               and v.editStatus = com.subtitlestudio.video.EditStatus.DONE
+               and v.viSource = com.subtitlestudio.video.ViSource.MANUAL
+             order by v.viUpdatedAt desc, v.id""")
+    List<Video> findCorrectionVideos(@Param("profile") String profile);
+
     /** Loads the video with a row lock, held until the surrounding transaction ends. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Video v where v.id = :id")
