@@ -10,6 +10,17 @@ describe('SubtitleOverlay', () => {
     expect(line.textContent).toBe('dòng 1\ndòng 2');
   });
 
+  it('scales the text by the caption size (S 1, M 1.25, L 1.5)', () => {
+    const cue = { startMs: 0, endMs: 1_000, text: 'xin chào' };
+    const { rerender } = render(<SubtitleOverlay cue={cue} size="s" />);
+    const scale = () => screen.getByText('xin chào').parentElement!.style.getPropertyValue('--caption-scale');
+    expect(scale()).toBe('1');
+    rerender(<SubtitleOverlay cue={cue} size="m" />);
+    expect(scale()).toBe('1.25');
+    rerender(<SubtitleOverlay cue={cue} size="l" />);
+    expect(scale()).toBe('1.5');
+  });
+
   it('shows nothing without a cue', () => {
     const { container } = render(<SubtitleOverlay cue={null} />);
 

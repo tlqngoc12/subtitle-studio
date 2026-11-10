@@ -1,6 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import { Keyboard } from 'lucide-react';
 import { useId } from 'react';
+import { useCaptionSize, type CaptionSize } from '../lib/viewerPrefs';
 import { Tip } from './Tip';
 import { PopoverPanel } from './ui/PopoverPanel';
 import './ShortcutsHelp.css';
@@ -19,13 +20,17 @@ const KEYS: { keys: string[]; action: string; playlistOnly?: boolean }[] = [
   { keys: ['M'], action: 'Mute / unmute' },
   { keys: ['C'], action: 'Show / hide Vietsub' },
   { keys: ['F'], action: 'Full screen' },
+  { keys: ['T'], action: 'Theater mode' },
   { keys: ['Shift+P', 'Shift+N'], action: 'Previous / next video', playlistOnly: true },
   { keys: ['?'], action: 'This list' },
 ];
 
-/** The keyboard shortcuts of the watch page, in a popover opened by a button or by the ? key. */
+const SIZES: CaptionSize[] = ['s', 'm', 'l'];
+
+/** The keyboard shortcuts of the watch page, plus the caption size, in a popover opened by a button or by the ? key. */
 export function ShortcutsHelp({ open, onOpenChange, playlist }: Props) {
   const titleId = useId();
+  const [size, setSize] = useCaptionSize();
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Tip label="Keyboard shortcuts (?)">
@@ -51,6 +56,23 @@ export function ShortcutsHelp({ open, onOpenChange, playlist }: Props) {
             </div>
           ))}
         </dl>
+        <div className="shortcuts__sizes" role="radiogroup" aria-label="Caption size">
+          <span className="shortcuts__sizes-label" aria-hidden="true">
+            Caption size
+          </span>
+          {SIZES.map((s) => (
+            <button
+              key={s}
+              className="shortcuts__option"
+              type="button"
+              role="radio"
+              aria-checked={s === size}
+              onClick={() => setSize(s)}
+            >
+              {s.toUpperCase()}
+            </button>
+          ))}
+        </div>
       </PopoverPanel>
     </Popover.Root>
   );

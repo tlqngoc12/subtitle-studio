@@ -24,6 +24,16 @@
   justify-self: center;
 }
 
+/* Theater mode: the player gets the full content width (no screen-height cap) and the playlist panel goes
+   below it. On phones everything is already stacked. */
+.watch--theater > .watch__main > .player:not(:fullscreen):not(.player--filled) {
+  max-width: none;
+}
+
+.watch--theater.watch--playlist {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* The shortcuts button stays at the right of the title instead of wrapping under it. */
 .watch__main > .masthead--watch > div {
   flex: 1;

@@ -1,5 +1,6 @@
-import { Captions, CaptionsOff, Maximize, Minimize } from 'lucide-react';
+import { Captions, CaptionsOff, Maximize, Minimize, RectangleHorizontal } from 'lucide-react';
 import { isTyping } from '../lib/keyboard';
+import type { CaptionSize } from '../lib/viewerPrefs';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { ViCue } from '../api/client';
 import type { PlayerError } from '../player/useYouTubePlayer';
@@ -23,6 +24,11 @@ interface Props {
   captionsOn?: boolean;
   /** When given, a button in the frame turns the Vietsub on and off. */
   onToggleCaptions?: () => void;
+  /** The Vietsub size (S / M / L); default S. */
+  captionSize?: CaptionSize;
+  /** When given, a button in the frame turns theater mode on and off. */
+  theater?: boolean;
+  onToggleTheater?: () => void;
 }
 
 /**
@@ -34,7 +40,16 @@ interface Props {
  * the Vietsub overlay), so there the frame instead fills the viewport ("filled" mode); Escape or the button
  * leaves it.
  */
-export function VideoPlayer({ containerRef, cue, error, captionsOn = true, onToggleCaptions }: Props) {
+export function VideoPlayer({
+  containerRef,
+  cue,
+  error,
+  captionsOn = true,
+  onToggleCaptions,
+  captionSize,
+  theater = false,
+  onToggleTheater,
+}: Props) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [filled, setFilled] = useState(false);
@@ -95,7 +110,7 @@ export function VideoPlayer({ containerRef, cue, error, captionsOn = true, onTog
   return (
     <div className={filled ? 'player player--filled' : 'player'} ref={frameRef}>
       {error ? <p className="player__error">{ERROR_TEXT[error]}</p> : <div className="player__video" ref={containerRef} />}
-      <SubtitleOverlay cue={captionsOn ? cue : null} />
+      <SubtitleOverlay cue={captionsOn ? cue : null} size={captionSize} />
       {/* title, not <Tip>: the tooltip portal renders outside the fullscreen frame, so it would never show there. */}
       <div className="player__tools">
         {onToggleCaptions && (
@@ -107,6 +122,18 @@ export function VideoPlayer({ containerRef, cue, error, captionsOn = true, onTog
             title={captionsOn ? 'Hide Vietsub (c)' : 'Show Vietsub (c)'}
           >
             {captionsOn ? <Captions aria-hidden="true" /> : <CaptionsOff aria-hidden="true" />}
+          </button>
+        )}
+        {onToggleTheater && (
+          <button
+            className="player__btn"
+            type="button"
+            onClick={onToggleTheater}
+            aria-label={theater ? 'Exit theater mode' : 'Theater mode'}
+            aria-pressed={theater}
+            title={theater ? 'Exit theater mode (t)' : 'Theater mode (t)'}
+          >
+            <RectangleHorizontal aria-hidden="true" />
           </button>
         )}
         <button

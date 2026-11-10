@@ -7,6 +7,7 @@ import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { detail, vsVideo } from '../test/playlistFixtures';
 import WatchPage from './WatchPage';
 import { resetWatched } from '../data/watched';
+import { resetViewerPrefs } from '../lib/viewerPrefs';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource, publicSite } from '../test/fakeSource';
 
@@ -83,6 +84,7 @@ describe('WatchPage', () => {
     player.toggleMute.mockClear();
     localStorage.clear();
     resetWatched();
+    resetViewerPrefs();
   });
 
   afterEach(() => {
@@ -355,6 +357,115 @@ describe('WatchPage', () => {
     });
   });
 
+  describe('theater mode', () => {
+    const theaterOn = (container: HTMLElement) => container.querySelector('.watch--theater') !== null;
+
+    it('the T key and the button both toggle it, and the button reflects it', async () => {
+      const { container } = renderPage();
+      const button = await screen.findByRole('button', { name: 'Theater mode' });
+      expect(button).toHaveAttribute('aria-pressed', 'false');
+      expect(theaterOn(container)).toBe(false);
+      const user = userEvent.setup();
+
+      await user.keyboard('t');
+      expect(screen.getByRole('button', { name: 'Exit theater mode' })).toHaveAttribute('aria-pressed', 'true');
+      expect(theaterOn(container)).toBe(true);
+
+      await user.click(screen.getByRole('button', { name: 'Exit theater mode' }));
+      expect(screen.getByRole('button', { name: 'Theater mode' })).toHaveAttribute('aria-pressed', 'false');
+      expect(theaterOn(container)).toBe(false);
+    });
+
+    it('puts the button inside the player frame so it works in fullscreen', async () => {
+      renderPage();
+      const button = await screen.findByRole('button', { name: 'Theater mode' });
+      expect(button.closest('.player')).not.toBeNull();
+    });
+
+    it('remembers the choice after the page is opened again', async () => {
+      renderPage();
+      await screen.findByRole('button', { name: 'Theater mode' });
+      await userEvent.setup().keyboard('t');
+      cleanup();
+
+      const { container } = renderPage();
+
+      expect(await screen.findByRole('button', { name: 'Exit theater mode' })).toHaveAttribute('aria-pressed', 'true');
+      expect(theaterOn(container)).toBe(true);
+      expect(localStorage.getItem('subtitle-studio.theater')).toBe('on');
+    });
+
+    it('ignores T while typing in a field', async () => {
+      renderPage();
+      await screen.findByRole('button', { name: 'Theater mode' });
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+
+      await userEvent.setup().keyboard('t');
+
+      expect(screen.getByRole('button', { name: 'Theater mode' })).toHaveAttribute('aria-pressed', 'false');
+      input.remove();
+    });
+
+    it('lists the T key in the shortcuts', async () => {
+      renderPage();
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Keyboard shortcuts' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+      expect(within(dialog).getByText('Theater mode')).toBeInTheDocument();
+    });
+  });
+
+  describe('caption size', () => {
+    beforeEach(() => {
+      player.currentMs = 1_500;
+    });
+
+    const lineScale = () => screen.getByText('Tạm biệt').parentElement!.style.getPropertyValue('--caption-scale');
+
+    async function openSizes() {
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: 'Keyboard shortcuts' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+      return { user, group: within(dialog).getByRole('radiogroup', { name: 'Caption size' }) };
+    }
+
+    it('is S (1, the size before this setting) until the viewer chooses', async () => {
+      renderPage();
+      await screen.findByText('Tạm biệt');
+      expect(lineScale()).toBe('1');
+      const { group } = await openSizes();
+      expect(within(group).getByRole('radio', { name: 'S' })).toBeChecked();
+    });
+
+    it('choosing L makes the captions 1.5 times bigger and is remembered', async () => {
+      renderPage();
+      await screen.findByText('Tạm biệt');
+      const { user, group } = await openSizes();
+
+      await user.click(within(group).getByRole('radio', { name: 'L' }));
+
+      expect(within(group).getByRole('radio', { name: 'L' })).toBeChecked();
+      expect(lineScale()).toBe('1.5');
+      expect(localStorage.getItem('subtitle-studio.captionSize')).toBe('l');
+      cleanup();
+
+      renderPage();
+      await screen.findByText('Tạm biệt');
+      expect(lineScale()).toBe('1.5');
+    });
+
+    it('choosing M makes the captions 1.25 times bigger', async () => {
+      renderPage();
+      await screen.findByText('Tạm biệt');
+      const { user, group } = await openSizes();
+
+      await user.click(within(group).getByRole('radio', { name: 'M' }));
+
+      expect(lineScale()).toBe('1.25');
+    });
+  });
+
   describe('watched', () => {
     const watchedIds = () => JSON.parse(localStorage.getItem('subtitle-studio.watched') ?? '[]') as string[];
 
@@ -594,6 +705,16 @@ describe('WatchPage on the public site', () => {
 
     await screen.findByRole('heading', { name: video.title });
     expect(JSON.parse(localStorage.getItem('subtitle-studio.watched')!)).toEqual([ID]);
+  });
+
+  it('has theater mode and the caption size on the public site too', async () => {
+    player.currentMs = 1_500;
+    renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Theater mode' }));
+    expect(screen.getByRole('button', { name: 'Exit theater mode' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
+    expect(await screen.findByRole('radiogroup', { name: 'Caption size' })).toBeInTheDocument();
   });
 
   it('readOnlyEmptyStateHasNoAddLink', async () => {

@@ -12,6 +12,7 @@ import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { findActiveCue } from '../lib/findActiveCue';
 import { isTyping } from '../lib/keyboard';
 import { useCaptionsPref } from '../lib/useCaptionsPref';
+import { useCaptionSize, useTheater } from '../lib/viewerPrefs';
 import { usePlayerShortcuts } from '../lib/usePlayerShortcuts';
 import { usePlaylistMode } from '../lib/usePlaylistMode';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
@@ -38,6 +39,8 @@ export default function WatchPage() {
   const mode = usePlaylistMode(id);
   const [captionsOn, toggleCaptions] = useCaptionsPref();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [theater, toggleTheater] = useTheater();
+  const [captionSize] = useCaptionSize();
   const isLast = mode !== null && mode.index === mode.playlist.videos.length - 1;
 
   useEffect(() => {
@@ -71,6 +74,7 @@ export default function WatchPage() {
     toggleMute: player.toggleMute,
     toggleCaptions,
     toggleHelp: () => setHelpOpen((open) => !open),
+    toggleTheater,
   });
 
   useEffect(() => {
@@ -101,7 +105,7 @@ export default function WatchPage() {
       )}
 
       {/* The player keeps its place in the tree when switching videos, so page fullscreen stays on. */}
-      <div className={mode ? 'watch watch--playlist' : 'watch'}>
+      <div className={['watch', mode && 'watch--playlist', theater && 'watch--theater'].filter(Boolean).join(' ')}>
         <div className="watch__main">
           {!error && (
             <VideoPlayer
@@ -110,6 +114,9 @@ export default function WatchPage() {
               error={player.error}
               captionsOn={captionsOn}
               onToggleCaptions={toggleCaptions}
+              captionSize={captionSize}
+              theater={theater}
+              onToggleTheater={toggleTheater}
             />
           )}
 
