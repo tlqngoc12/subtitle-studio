@@ -64,10 +64,16 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
     setTocOpen(true);
   }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpener = useRef<HTMLElement | null>(null);
+  const openSettings = useCallback(() => {
+    settingsOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSettingsOpen(true);
+  }, []);
   const [pinned, setPinned] = useState(false);
   const chrome = useReaderChrome(tocOpen || settingsOpen || pinned);
   const reader = useRef<HTMLDivElement>(null);
-  const progress = useScrollProgress(reader);
+  // Progress is tied to the chapter it was measured in, so the last chapter's 100% never leaks into the next one.
+  const progress = useScrollProgress(reader, chapterNo);
   const onPinnedChange = useCallback((p: boolean) => setPinned(p), []);
 
   // Reaching the end of the chapter brings the bars back, with the next-chapter controls.
@@ -234,6 +240,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         <ReaderSettingsSheet
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
+          restoreFocus={settingsOpener}
           theme={theme}
           onTheme={changeTheme}
           size={size}
@@ -248,7 +255,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
           progress={progress}
           onSeek={(p) => reader.current && scrollToProgress(reader.current, p)}
           onToc={openToc}
-          onSettings={() => setSettingsOpen(true)}
+          onSettings={openSettings}
           hidden={chrome.hidden}
           position={position}
         />
@@ -281,7 +288,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                 className="reader__page"
                 src={src}
                 alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${format.images.length}`}
-                style={{ aspectRatio: `${format.width} / ${format.height}` }}
+                style={{ aspectRatio: `auto ${format.width} / ${format.height}` }}
                 draggable={false}
                 loading={i === 0 ? "eager" : "lazy"}
               />

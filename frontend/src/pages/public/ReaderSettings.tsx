@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useId } from "react";
+import { useId, type RefObject } from "react";
 import { IconButton } from "../../components/ui/IconButton";
 import { OWN_KEYS } from "./readerKeys";
 import { READER_THEMES, type ReaderSize, type ReaderTheme } from "./readerPrefs";
@@ -86,13 +86,26 @@ export function ReaderSettingsPanel({ theme, onTheme, size, onSize }: PanelProps
 export function ReaderSettingsSheet({
   open,
   onOpenChange,
+  restoreFocus,
   ...panel
-}: PanelProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
+}: PanelProps & {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** The element that opened the sheet; focus goes back to it on close. */
+  restoreFocus?: RefObject<HTMLElement | null>;
+}) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="sheet__overlay" />
-        <Dialog.Content className="sheet" {...{ [OWN_KEYS]: "" }} aria-describedby={undefined}>
+        <Dialog.Content className="sheet" {...{ [OWN_KEYS]: "" }} 
+          aria-describedby={undefined}
+          onCloseAutoFocus={(e) => {
+            if (!restoreFocus?.current) return;
+            e.preventDefault();
+            restoreFocus.current.focus();
+          }}
+        >
           <div className="sheet__head">
             <Dialog.Title className="sheet__title">Hiển thị</Dialog.Title>
             <Dialog.Close asChild>

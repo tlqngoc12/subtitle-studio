@@ -2,28 +2,47 @@
    invert(0) (not none) keeps `filter: var(--reader-img-filter) blur(24px)` valid for the copy guard. */
 [data-reader-theme="light"] {
   --reader-paper: #FAF8F5;
+  --reader-ink: #1F1B24;
+  --reader-muted: #5E5666;
   --reader-img-filter: invert(0);
   --reader-img-opacity: 0.88;
 }
 
 [data-reader-theme="sepia"] {
   --reader-paper: #F4ECD8;
+  --reader-ink: #3B2F24;
+  --reader-muted: #6B5D4D;
   --reader-img-filter: invert(0);
   --reader-img-opacity: 0.85;
 }
 
 [data-reader-theme="dark"] {
   --reader-paper: #16121B;
+  --reader-ink: #E6E1E8;
+  --reader-muted: #A9A1B4;
   --reader-img-filter: invert(1);
   --reader-img-opacity: 0.88;
 }
 
 [data-reader-theme="oled"] {
   --reader-paper: #000000;
+  --reader-ink: #BDB6C2;
+  --reader-muted: #8A8390;
   --reader-img-filter: invert(1);
   --reader-img-opacity: 0.72;
 }
 
 html[data-reader-theme] body {
   background: var(--reader-paper);
+}
+
+/* Text that sits directly on the paper (breadcrumbs, loading title, skeleton, footer) follows the reader theme.
+   The bars, drawer and sheet keep the app's --surface, so they keep the app's --ink/--muted too. */
+html[data-reader-theme] .breadcrumbs,
+html[data-reader-theme] .reader-loading-title,
+html[data-reader-theme] .reader-skeleton,
+html[data-reader-theme] .site-footer {
+  --ink: var(--reader-ink);
+  --muted: var(--reader-muted);
+  color: var(--reader-ink);
 }

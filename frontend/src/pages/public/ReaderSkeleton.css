@@ -13,7 +13,7 @@
   height: 12px;
   margin-bottom: 10px; /* 12px bar + 10px gap = 22px pitch */
   border-radius: 4px;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: color-mix(in srgb, var(--reader-ink, currentColor) 14%, transparent);
   animation: reader-shimmer 1.2s ease-in-out infinite;
 }
 

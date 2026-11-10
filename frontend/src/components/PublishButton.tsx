@@ -9,7 +9,7 @@ import './PublishButton.css';
 
 const NOT_CONFIGURED_TIP = 'Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and SUBTITLESTUDIO_PUBLISH_PROJECT in .env';
 
-/** Matches PublishService.FILE_WARNING on the server. */
+/** Keep in sync with `PublishService.FILE_WARNING` on the server (the single source of the Pages file limits). */
 const FILE_WARNING = 16000;
 
 function tipFor(state: PublishStatus | null): string {

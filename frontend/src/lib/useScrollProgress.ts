@@ -10,9 +10,14 @@ function measure(el: HTMLElement | null): number {
   return Math.min(1, Math.max(0, p));
 }
 
-/** How far through the element the viewport has scrolled, 0..1; updated at most once per animation frame. */
-export function useScrollProgress(ref: RefObject<HTMLElement | null>): number {
-  const [progress, setProgress] = useState(0);
+/**
+ * How far through the element the viewport has scrolled, 0..1; updated at most once per animation frame. A value is
+ * stored with the `key` it was measured for (e.g. the chapter number) and reads as 0 once the key has changed, until
+ * the new key has been measured.
+ */
+export function useScrollProgress(ref: RefObject<HTMLElement | null>, key = ''): number {
+  const [state, setState] = useState({ key, value: 0 });
+  const setProgress = (value: number) => setState({ key, value });
 
   useEffect(() => {
     let frame = 0;
@@ -31,7 +36,7 @@ export function useScrollProgress(ref: RefObject<HTMLElement | null>): number {
       window.removeEventListener('resize', schedule);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [ref]);
+  }, [ref, key]);
 
   // The element may mount after the hook (the chapter loads later): re-measure after every render.
   useEffect(() => {
@@ -39,7 +44,7 @@ export function useScrollProgress(ref: RefObject<HTMLElement | null>): number {
     return () => cancelAnimationFrame(frame);
   });
 
-  return progress;
+  return state.key === key ? state.value : 0;
 }
 
 /** Scrolls the window so that `p` (0..1) of the element has been passed. */

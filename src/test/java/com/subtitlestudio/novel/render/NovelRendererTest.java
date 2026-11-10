@@ -39,11 +39,38 @@ class NovelRendererTest {
     @Test
     void drawsEachFormatAtItsSize() {
         for (PageFormat format : PageFormat.ALL) {
-            assertThat(renderer.render(input(text(3)), format)).isNotEmpty().allSatisfy(img -> {
+            List<BufferedImage> pages = renderer.render(input(text(60)), format);
+            assertThat(pages.size()).isGreaterThan(1);
+            assertThat(pages).allSatisfy(img -> {
                 assertThat(img.getWidth()).isEqualTo(format.width());
-                assertThat(img.getHeight()).isEqualTo(format.height());
                 assertThat(img.getColorModel().hasAlpha()).isTrue();
             });
+            // Only the last page is cropped to its text.
+            assertThat(pages.subList(0, pages.size() - 1)).allSatisfy(img -> assertThat(img.getHeight()).isEqualTo(format.height()));
+            assertThat(pages.getLast().getHeight()).isBetween(1, format.height());
+        }
+    }
+
+    @Test
+    void lastPageIsCroppedToItsText() {
+        for (PageFormat format : PageFormat.ALL) {
+            List<BufferedImage> pages = renderer.render(input("Một dòng ngắn."), format);
+            assertThat(pages).hasSize(1);
+            BufferedImage img = pages.getFirst();
+            assertThat(img.getHeight()).isPositive().isLessThan(format.height());
+            int lowestInk = -1;
+            for (int y = img.getHeight() - 1; y >= 0 && lowestInk < 0; y--) {
+                for (int x = 0; x < img.getWidth(); x++) {
+                    int argb = img.getRGB(x, y);
+                    if ((argb >>> 24) > 200 && (argb & 0xffffff) == 0) {
+                        lowestInk = y;
+                        break;
+                    }
+                }
+            }
+            assertThat(lowestInk).isGreaterThan(0);
+            // Ink ends within a margin (plus descender rounding) of the bottom edge: one line of space, no more.
+            assertThat(img.getHeight() - lowestInk).isLessThanOrEqualTo(format.margin() + 60);
         }
     }
 
@@ -162,7 +189,7 @@ class NovelRendererTest {
 
     @Test
     void versionIsBumpedSoCachedImagesAreRedrawn() {
-        assertThat(NovelRenderer.VERSION).isEqualTo(5);
+        assertThat(NovelRenderer.VERSION).isEqualTo(6);
     }
 
     @Test
@@ -199,8 +226,8 @@ class NovelRendererTest {
     void noFooterIsDrawnUnderAShortText() {
         BufferedImage img = renderer.render(input(PARAGRAPH), PageFormat.S).getFirst();
 
-        // The old footer sat in the last 64 px; a one-paragraph chapter has nothing there now.
-        for (int y = img.getHeight() - 120; y < img.getHeight(); y++) {
+        // The old footer sat in the last 64 px; the cropped page ends one margin below its last line, nothing there.
+        for (int y = img.getHeight() - 60; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
                 assertThat(isInk(img.getRGB(x, y))).as("ink at %d,%d", x, y).isFalse();
             }

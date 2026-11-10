@@ -126,7 +126,7 @@ describe('ReaderPage page format and theme', () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
     renderAt('/novels/summer/3', fmtSource);
     const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(imgs[0].style.aspectRatio).toBe('820 / 1215');
+    expect(imgs[0].style.aspectRatio).toBe('auto 820 / 1215');
   });
 });
 
@@ -715,6 +715,19 @@ describe('ReaderPage mobile controls', () => {
     expect(await screen.findByRole('dialog', { name: 'Hiển thị' })).toBeInTheDocument();
   });
 
+  it('returns focus to the Aa button when the settings sheet closes', async () => {
+    compact(true);
+    renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const user = userEvent.setup();
+    const aa = screen.getByRole('button', { name: 'Hiển thị' });
+    await user.click(aa);
+    await screen.findByRole('dialog', { name: 'Hiển thị' });
+    await user.click(within(screen.getByRole('dialog', { name: 'Hiển thị' })).getByRole('button', { name: 'Đóng' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Hiển thị' })).not.toBeInTheDocument());
+    expect(aa).toHaveFocus();
+  });
+
   it('bottom bar is not rendered on desktop', async () => {
     compact(false);
     renderAt('/novels/summer/3');
@@ -761,6 +774,26 @@ describe('ReaderPage loading and prefetch', () => {
     scrollTo(3000);
     await new Promise((r) => setTimeout(r, 50));
     expect(getChapter).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not prefetch from the previous chapter's progress after opening the next one", async () => {
+    tall();
+    const getChapter = vi.fn(async (slug: string, no: number) => {
+      // The new chapter opens at its top, as the browser does, without a scroll event in between.
+      if (no === 3) Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+      return source.getChapter(slug, no);
+    });
+    renderAt('/novels/summer/1', { ...source, getChapter } as NovelSource);
+    await screen.findAllByRole('img', { name: /Chương 1, trang/ });
+    scrollTo(3300);
+    await waitFor(() => expect(getChapter).toHaveBeenCalledWith('summer', 3));
+    getChapter.mockClear();
+    fireEvent.click(screen.getAllByRole('link', { name: 'Chương sau' })[0]);
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await new Promise((r) => setTimeout(r, 80));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+    expect(getChapter).toHaveBeenCalledWith('summer', 3);
+    expect(getChapter).not.toHaveBeenCalledWith('summer', 4);
   });
 
   it('prefetches at once when the chapter is shorter than the screen', async () => {

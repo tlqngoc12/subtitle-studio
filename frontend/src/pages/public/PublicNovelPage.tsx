@@ -168,6 +168,40 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
             </ul>
           )}
           <div className="novel-hero__actions">
+            {/* In the hero on desktop; under 768px the stylesheet pins it to the bottom of the screen as a full-width bar. */}
+            <div className="novel-cta">
+              {resume ? (
+                <Link
+                  className="button button--primary novel-cta__read"
+                  to={`/novels/${novel.slug}/${resume.chapterNo}`}
+                >
+                  Đọc tiếp:{" "}
+                  {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                </Link>
+              ) : (
+                first && (
+                  <Link
+                    className="button button--primary novel-cta__read"
+                    to={`/novels/${novel.slug}/${first.chapterNo}`}
+                  >
+                    Bắt đầu đọc
+                  </Link>
+                )
+              )}
+              <button
+                type="button"
+                className="button button--icon novel-cta__shelf"
+                aria-pressed={onShelf}
+                aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
+                onClick={flipShelf}
+              >
+                {onShelf ? (
+                  <BookmarkCheck className="icon" aria-hidden="true" />
+                ) : (
+                  <BookmarkPlus className="icon" aria-hidden="true" />
+                )}
+              </button>
+            </div>
             {resume && (
               <Link
                 className="button button--small"
@@ -190,41 +224,6 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
           </div>
         </div>
       </header>
-      {/* A direct child of <main> so that on mobile it can stick to the bottom for the whole page. */}
-      <div className="novel-cta">
-        {resume ? (
-          <Link
-            className="button button--primary novel-cta__read"
-            to={`/novels/${novel.slug}/${resume.chapterNo}`}
-          >
-            Đọc tiếp:{" "}
-            {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
-          </Link>
-        ) : (
-          first && (
-            <Link
-              className="button button--primary novel-cta__read"
-              to={`/novels/${novel.slug}/${first.chapterNo}`}
-            >
-              Bắt đầu đọc
-            </Link>
-          )
-        )}
-        <button
-          type="button"
-          className="button button--icon novel-cta__shelf"
-          aria-pressed={onShelf}
-          aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
-          onClick={flipShelf}
-        >
-          {onShelf ? (
-            <BookmarkCheck className="icon" aria-hidden="true" />
-          ) : (
-            <BookmarkPlus className="icon" aria-hidden="true" />
-          )}
-        </button>
-      </div>
-
       {hasIntro || trailerId ? (
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
           <Tabs.List className="tabs__list" aria-label="Thông tin truyện">

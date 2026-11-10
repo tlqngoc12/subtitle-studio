@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * A page size the public reader can pick: image size plus the side margin the text keeps. Tall pages keep a chapter
- * at about 57 files across all formats (Cloudflare Pages Free allows 20,000 files per site).
+ * at about 62 images (plus 1 JSON) for a ~30,000-character chapter across all formats (Cloudflare Pages Free allows 20,000 files per site).
  */
 public record PageFormat(String key, int width, int height, int margin) {
 

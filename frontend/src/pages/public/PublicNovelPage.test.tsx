@@ -128,6 +128,8 @@ describe('PublicNovelPage', () => {
     const chapters = within(screen.getByRole('list', { name: 'Danh sách chương' })).getAllByRole('link');
     expect(chapters.map((a) => a.textContent)).toEqual(['Chương 1: Mở đầu', 'Ngoại truyện 1']);
     expect(chapters[1]).toHaveAttribute('href', '/novels/summer/3');
+    expect(screen.getAllByRole('link', { name: 'Bắt đầu đọc' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /tủ sách/ })).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Bắt đầu đọc' })).toHaveAttribute('href', '/novels/summer/1');
   });
 

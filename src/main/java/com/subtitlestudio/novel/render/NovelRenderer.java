@@ -29,7 +29,7 @@ import java.util.List;
 public class NovelRenderer {
 
     /** Bump when the drawing changes so cached images are redrawn. */
-    static final int VERSION = 5;
+    static final int VERSION = 6;
     /**
      * Top of the first line box on pages 2+; the first page keeps {@link #FIRST_TOP} for the heading. A line box
      * has about 18 px of built-in leading above the glyphs, so a slightly negative value leaves ~12 px of paper.
@@ -104,22 +104,32 @@ public class NovelRenderer {
 
         List<BufferedImage> images = new ArrayList<>();
         for (int k = 0; k < pages.size(); k++) {
-            images.add(draw(pages.get(k), input, format));
+            List<Line> lines = pages.get(k);
+            int height = format.height();
+            if (k == pages.size() - 1) {
+                // The last page ends just below its last line (plus the side margin), not at the full format height.
+                double lastBottom = 0;
+                for (Line line : lines) {
+                    lastBottom = Math.max(lastBottom, line.baseline() + line.layout().getDescent());
+                }
+                height = (int) Math.max(1, Math.min(height, Math.ceil(lastBottom + format.margin())));
+            }
+            images.add(draw(lines, input, format, height));
         }
         return images;
     }
 
     private record Line(TextLayout layout, float baseline) {}
 
-    private BufferedImage draw(List<Line> lines, RenderInput input, PageFormat format) {
+    private BufferedImage draw(List<Line> lines, RenderInput input, PageFormat format, int height) {
         // Transparent paper: the reader colours it with CSS.
-        BufferedImage img = new BufferedImage(format.width(), format.height(), BufferedImage.TYPE_INT_ARGB);
+        BufferedImage img = new BufferedImage(format.width(), height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        watermark(g, nfc(input.watermark()) + " · " + nfc(input.novelTitle()), format);
+        watermark(g, nfc(input.watermark()) + " · " + nfc(input.novelTitle()), format, height);
 
         g.setColor(Color.BLACK);
         for (Line line : lines) {
@@ -130,15 +140,15 @@ public class NovelRenderer {
         return img;
     }
 
-    private void watermark(Graphics2D g, String text, PageFormat format) {
+    private void watermark(Graphics2D g, String text, PageFormat format, int height) {
         Graphics2D w = (Graphics2D) g.create();
         w.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, WATERMARK_ALPHA));
         w.setColor(Color.BLACK);
         w.setFont(small);
-        w.rotate(Math.toRadians(-30), format.width() / 2.0, format.height() / 2.0);
+        w.rotate(Math.toRadians(-30), format.width() / 2.0, height / 2.0);
         float advance = new TextLayout(text, small, w.getFontRenderContext()).getAdvance() + 120;
         int step = fontSize * 5;
-        int reach = Math.max(format.width(), format.height()) * 2;
+        int reach = Math.max(format.width(), height) * 2;
         int row = 0;
         for (int y = -reach / 2; y < reach; y += step, row++) {
             float offset = (row % 2) * advance / 2;
