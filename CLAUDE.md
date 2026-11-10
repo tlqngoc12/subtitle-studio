@@ -104,6 +104,7 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Không sửa migration đã push hoặc đã chạy trên DB thật; thay đổi schema = file mới `V{n}__mo_ta.sql` viết bằng SQL Oracle.
 - Cột chuỗi luôn `VARCHAR2(n CHAR)` (Oracle mặc định đếm byte; chữ Thái/Việt 2–3 byte/ký tự). Cột số nguyên dùng placeholder `${bigint}` / `${int}` (H2 báo `NUMBER` là `NUMERIC`, Hibernate validate không nhận).
 - Oracle lưu chuỗi rỗng `''` thành `NULL`: giá trị cho cột `NOT NULL` không bao giờ được rỗng (lọc hoặc thay trước khi lưu).
+- Không truyền `''` làm tham số truy vấn để nói "không có" (vd `id <> :excludeId` với `""`): Oracle coi nó là NULL nên điều kiện không bao giờ đúng và trả 0 dòng (H2 và mock không bắt được). Viết query riêng không có tham số đó và có `*OracleIT` kiểm chứng.
 - Hibernate chỉ `validate`; không bật `ddl-auto` khác. Id dùng `SEQUENCE` với `allocationSize` khớp `INCREMENT BY` của sequence.
 - Thay đổi liên quan DB: chạy cả `mvn test` và `mvn verify -Poracle -Dskip.npm` trước khi commit.
 - Nhiều nhánh có thể cùng thêm migration: trước khi merge, kiểm tra số version không trùng (đã từng trùng `V2`), đổi số trên nhánh chưa merge.
