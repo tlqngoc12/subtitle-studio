@@ -1,6 +1,6 @@
 import type { ViCue, VideoDto } from '../api/client';
 import type { PlaylistDetail, PlaylistSummary } from '../api/playlists';
-import type { Profile, ProfileSummary } from '../api/profiles';
+import type { ProfilePage } from '../api/profiles';
 
 /**
  * What the public site knows about a video: exactly the fields the backend exports (PublicVideo.java).
@@ -22,6 +22,5 @@ export interface ReadSource {
   getVietsub(id: string): Promise<ViCue[]>;
   listPlaylists(): Promise<PublicPlaylistSummary[]>;
   getPlaylist(id: number): Promise<PublicPlaylistDetail>;
-  listProfiles(): Promise<ProfileSummary[]>;
-  getProfile(slug: string): Promise<Profile>;
+  getProfilePage(): Promise<ProfilePage>;
 }

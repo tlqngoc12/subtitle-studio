@@ -13,8 +13,7 @@ export function fakeSource(overrides: Partial<ReadSource>): ReadSource {
     getVietsub: notFound('VIDEO_NOT_FOUND'),
     listPlaylists: async () => [],
     getPlaylist: notFound('PLAYLIST_NOT_FOUND'),
-    listProfiles: async () => [],
-    getProfile: notFound('PROFILE_NOT_FOUND'),
+    getProfilePage: notFound('PROFILE_NOT_FOUND'),
     ...overrides,
   };
 }

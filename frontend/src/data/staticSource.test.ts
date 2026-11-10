@@ -56,7 +56,7 @@ describe('staticSource', () => {
     for (const [call, code] of [
       [() => source.getVideo('nope'), 'VIDEO_NOT_FOUND'],
       [() => source.getPlaylist(9), 'PLAYLIST_NOT_FOUND'],
-      [() => source.getProfile('nobody'), 'PROFILE_NOT_FOUND'],
+      [() => source.getProfilePage(), 'PROFILE_NOT_FOUND'],
     ] as const) {
       const error = await call().catch((e: unknown) => e);
       expect(error).toBeInstanceOf(ApiError);
@@ -76,7 +76,7 @@ describe('staticSource', () => {
     for (const [call, code] of [
       [() => source.getVideo('removed'), 'VIDEO_NOT_FOUND'],
       [() => source.getPlaylist(9), 'PLAYLIST_NOT_FOUND'],
-      [() => source.getProfile('nobody'), 'PROFILE_NOT_FOUND'],
+      [() => source.getProfilePage(), 'PROFILE_NOT_FOUND'],
     ] as const) {
       const error = await call().catch((e: unknown) => e);
       expect(error).toBeInstanceOf(ApiError);
@@ -94,14 +94,13 @@ describe('staticSource', () => {
     expect((error as ApiError).code).toBe('NETWORK');
   });
 
-  it('reads profiles', async () => {
-    serve({
-      '/data/profiles.json': [{ slug: 'emi', displayName: 'Emi' }],
-      '/data/profiles/emi.json': { slug: 'emi', displayName: 'Emi', updatedAt: 'x', blocks: [] },
-    });
-    const source = createStaticSource();
+  it('reads the profile page', async () => {
+    const page = {
+      group: { slug: 'emibonnie', displayName: 'EmiBonnie', kind: 'GROUP' },
+      members: [{ slug: 'emi', displayName: 'Emi', kind: 'MEMBER' }],
+    };
+    serve({ '/data/profiles.json': page });
 
-    expect(await source.listProfiles()).toEqual([{ slug: 'emi', displayName: 'Emi' }]);
-    expect((await source.getProfile('emi')).displayName).toBe('Emi');
+    expect(await createStaticSource().getProfilePage()).toEqual(page);
   });
 });

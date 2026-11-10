@@ -1,7 +1,7 @@
 /** Typed client for the profile pages API (profiles spec section 5). */
 import { send } from './client';
 
-export type BlockType = 'TEXT' | 'IMAGE' | 'GALLERY' | 'EMBED' | 'LINKS' | 'FACTS';
+export type BlockType = 'TEXT' | 'IMAGE' | 'GALLERY' | 'EMBED' | 'LINKS' | 'FACTS' | 'CHIPS';
 
 export interface ProfileItem {
   label: string | null;
@@ -30,18 +30,35 @@ export interface BannerImage {
   altText: string | null;
 }
 
+export type ProfileKind = 'GROUP' | 'MEMBER';
+
 export interface Profile {
   slug: string;
   displayName: string;
+  /** GROUP is EmiBonnie (banner and avatar only); MEMBER rows are the sections of the page. */
+  kind: ProfileKind;
+  tagline: string | null;
+  fullName: string | null;
+  /** Null on the public site, where only `portraitUrl` is exported. */
+  portraitMediaId: number | null;
+  portraitUrl: string | null;
   updatedAt: string;
   blocks: ProfileBlock[];
   /** In display order. Profile data published before the banner existed has none. */
   banner: BannerImage[];
 }
 
-export interface ProfileSummary {
-  slug: string;
+/** The whole Profile page: the EmiBonnie group (banner) and the members in page order. */
+export interface ProfilePage {
+  group: Profile;
+  members: Profile[];
+}
+
+export interface ProfileHeaderInput {
   displayName: string;
+  tagline: string | null;
+  fullName: string | null;
+  portraitMediaId: number | null;
 }
 
 /** What the editor sends; the server ignores fields that do not belong to `type`. */
@@ -57,12 +74,25 @@ function json(method: string, body: unknown): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }
 
-export async function listProfiles(): Promise<ProfileSummary[]> {
+export async function getProfilePage(): Promise<ProfilePage> {
   return (await send('/api/profiles')).json();
 }
 
-export async function getProfile(slug: string): Promise<Profile> {
-  return (await send(base(slug))).json();
+export async function updateProfileHeader(slug: string, input: ProfileHeaderInput): Promise<Profile> {
+  return (await send(`${base(slug)}/header`, json('PUT', input))).json();
+}
+
+export async function addMember(displayName: string): Promise<Profile> {
+  return (await send('/api/profiles', json('POST', { displayName }))).json();
+}
+
+export async function deleteMember(slug: string): Promise<void> {
+  await send(base(slug), { method: 'DELETE' });
+}
+
+/** `slugs` lists every member once, in the new order. */
+export async function reorderMembers(slugs: string[]): Promise<Profile[]> {
+  return (await send('/api/profiles/order', json('PUT', { slugs }))).json();
 }
 
 export async function addBlock(slug: string, input: BlockInput): Promise<ProfileBlock> {
@@ -101,8 +131,18 @@ export async function reorderBanner(slug: string, imageIds: number[]): Promise<B
   return (await send(`${base(slug)}/banner/order`, json('PUT', { imageIds }))).json();
 }
 
-export async function uploadMedia(file: File): Promise<{ id: number; url: string }> {
+export interface UploadedMedia {
+  id: number;
+  url: string;
+  /** Set when the server resized the image (`maxSide` given). */
+  width: number | null;
+  height: number | null;
+}
+
+/** With `maxSide` the server shrinks the image to that longest side and re-encodes it. */
+export async function uploadMedia(file: File, maxSide?: 400 | 1600): Promise<UploadedMedia> {
   const form = new FormData();
   form.append('file', file);
-  return (await send('/api/media', { method: 'POST', body: form })).json();
+  const query = maxSide ? `?maxSide=${maxSide}` : '';
+  return (await send(`/api/media${query}`, { method: 'POST', body: form })).json();
 }
