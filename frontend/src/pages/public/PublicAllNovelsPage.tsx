@@ -5,6 +5,7 @@ import { EmptyState } from '../../components/EmptyState';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
+import { useReadCounts } from '../../data/novelReads';
 import { NovelCard } from './NovelCard';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
@@ -13,6 +14,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 
 /** `/novels/all`: every public novel as the small cards of the home page, newest update first. */
 export default function PublicAllNovelsPage({ source }: { source: NovelSource }) {
+  const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
   useDocumentTitle('Tất cả truyện');
@@ -43,7 +45,7 @@ export default function PublicAllNovelsPage({ source }: { source: NovelSource })
       ) : (
         <ul className="novel-grid" aria-label="Tất cả truyện">
           {sorted.map((n) => (
-            <NovelCard key={n.slug} novel={n} />
+            <NovelCard key={n.slug} novel={n} reads={reads?.[n.slug]} />
           ))}
         </ul>
       )}

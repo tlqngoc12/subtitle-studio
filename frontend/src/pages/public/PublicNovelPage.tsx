@@ -5,6 +5,8 @@ import { Link, useParams, useSearchParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import type { NovelSource } from "../../data/novelSource";
 import type { PublicNovelDetail } from "../../data/novelTypes";
+import { useReadCounts } from "../../data/novelReads";
+import { ReadsMeta } from "./ReadsMeta";
 import { readProgress, readReadChapters } from "./readerPrefs";
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
@@ -27,6 +29,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [failed, setFailed] = useState(false);
   const [params, setParams] = useSearchParams();
+  const reads = useReadCounts();
   useDocumentTitle(novel?.title ?? null);
 
   useEffect(() => {
@@ -143,6 +146,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
               </div>
             )}
           </dl>
+          <ReadsMeta reads={reads?.[novel.slug]} />
           {novel.tags.length > 0 && (
             <ul className="tag-list" aria-label="Thể loại">
               {novel.tags.map((t) => (
