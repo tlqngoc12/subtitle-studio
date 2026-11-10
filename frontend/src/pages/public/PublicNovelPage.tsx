@@ -1,4 +1,5 @@
 import * as Tabs from "@radix-ui/react-tabs";
+import { TabTrigger } from "../../components/ui/TabTrigger";
 import { BookmarkCheck, BookmarkPlus, Check, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -228,17 +229,17 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
           <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
             {hasIntro && (
-              <Tabs.Trigger className="tabs__tab" value="intro">
+              <TabTrigger className="tabs__tab" value="intro">
                 Giới thiệu
-              </Tabs.Trigger>
+              </TabTrigger>
             )}
-            <Tabs.Trigger className="tabs__tab" value="chapters">
+            <TabTrigger className="tabs__tab" value="chapters">
               Danh sách chương
-            </Tabs.Trigger>
+            </TabTrigger>
             {trailerId && (
-              <Tabs.Trigger className="tabs__tab" value="trailer">
+              <TabTrigger className="tabs__tab" value="trailer">
                 Trailer
-              </Tabs.Trigger>
+              </TabTrigger>
             )}
           </Tabs.List>
           {hasIntro && (

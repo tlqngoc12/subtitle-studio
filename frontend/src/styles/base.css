@@ -297,6 +297,12 @@ a:not([class]):hover {
   color: var(--ink);
 }
 
+/* A click on a Radix tab moves focus by script, which the browser treats as keyboard focus. TabTrigger marks
+   pointer presses with data-pointer, so only that focus hides the ring; Tab and the arrow keys still show it. */
+.tabs__tab[data-pointer]:focus-visible {
+  outline: none;
+}
+
 /* Below a tab bar the page content keeps the usual section rhythm. */
 .tabs__body {
   display: grid;
@@ -452,10 +458,6 @@ label.button:has(input:focus-visible) {
   width: 14px;
   height: 14px;
   stroke-width: 1.5;
-}
-
-.reader-bar .button--icon {
-  border-radius: 999px;
 }
 
 .reader-settings .button[aria-pressed='true'] {

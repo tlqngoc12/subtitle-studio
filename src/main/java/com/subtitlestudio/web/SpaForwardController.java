@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class SpaForwardController {
 
     @GetMapping({"/vietsub", "/vietsub/", "/vietsub/{id}", "/vietsub/{id}/", "/vietsub/{id}/edit", "/vietsub/{id}/edit/",
-        "/vietsub/playlists/{id}", "/vietsub/playlists/{id}/",
+        "/vietsub/playlists/{id}", "/vietsub/playlists/{id}/", "/vietsub/profiles", "/vietsub/profiles/",
         "/profiles", "/profiles/", "/profiles/{slug}", "/profiles/{slug}/",
         "/novels", "/novels/", "/novels/{id}", "/novels/{id}/",
         "/novels/{id}/chapters/{chapterId}", "/novels/{id}/chapters/{chapterId}/"})

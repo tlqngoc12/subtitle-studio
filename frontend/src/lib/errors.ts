@@ -120,6 +120,19 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Only videos with Vietsub can be added to a playlist.' };
     case 'INVALID_PLAYLIST_ORDER':
       return { title: 'The playlist changed meanwhile. It has been reloaded.' };
+    case 'NO_CORRECTIONS':
+      return { title: 'No corrected lines yet.', hint: 'Finish and correct a few Vietsub videos with this profile first.' };
+    case 'ANALYSIS_INVALID':
+      return { title: 'Gemini returned an unusable profile.', hint: 'Try Analyze again.' };
+    case 'GEMINI_FAILED':
+      return { title: 'Gemini could not finish the analysis.', hint: error.detail };
+    case 'PROFILE_CHANGED':
+      return {
+        title: 'The file changed on disk since you opened it.',
+        hint: 'Reload and analyze again.',
+      };
+    case 'INVALID_PROFILE_TEXT':
+      return { title: 'The profile text is empty or larger than 20 KB.' };
     case 'NETWORK':
       return {
         title: 'Cannot reach the server.',

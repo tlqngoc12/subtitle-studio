@@ -1,12 +1,17 @@
 /* Vietsub editor: the player stays in view while the lines scroll beside or below it. */
 .vedit {
   max-width: 1440px;
+  /* A long title must not widen the page: the breadcrumb ellipsis and the title wrap inside the screen. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
+/* Right-aligned beside the title, and still on the right when the group wraps below it on narrow screens. */
 .vedit__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
   gap: var(--space-3);
 }
 

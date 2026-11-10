@@ -1,4 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
+import { TabTrigger } from '../components/ui/TabTrigger';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -112,15 +113,15 @@ export default function NovelPage() {
 
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
             <Tabs.List className="tabs__list" aria-label="Novel sections">
-              <Tabs.Trigger className="tabs__tab" value="chapters">
+              <TabTrigger className="tabs__tab" value="chapters">
                 Chapters
-              </Tabs.Trigger>
-              <Tabs.Trigger className="tabs__tab" value="details">
+              </TabTrigger>
+              <TabTrigger className="tabs__tab" value="details">
                 Details
-              </Tabs.Trigger>
-              <Tabs.Trigger className="tabs__tab" value="notebook">
+              </TabTrigger>
+              <TabTrigger className="tabs__tab" value="notebook">
                 Notebook
-              </Tabs.Trigger>
+              </TabTrigger>
             </Tabs.List>
 
             <Tabs.Content value="chapters" className="tabs__panel">

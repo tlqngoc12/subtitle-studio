@@ -18,7 +18,7 @@ interface Section {
 const VIETSUB_LIST: Section = {
   to: '/vietsub/list',
   label: 'Vietsub list',
-  isCurrent: (p) => /^\/vietsub\/[^/]+\/?$/.test(p) && !/^\/vietsub\/playlists\/?$/.test(p),
+  isCurrent: (p) => /^\/vietsub\/[^/]+\/?$/.test(p) && !/^\/vietsub\/(playlists|profiles)\/?$/.test(p),
 };
 const PROFILE: Section = { to: '/profiles', label: 'Profile', isCurrent: (p) => p === '/profiles' || p.startsWith('/profiles/') };
 
@@ -30,7 +30,7 @@ const PUBLIC_SECTIONS: Section[] = [VIETSUB_LIST, PROFILE, NOVELS];
 const ADMIN_SECTIONS: Section[] = [
   { to: '/', label: 'Get Engsub', isCurrent: (p: string) => p === '/' },
   // The playlist pages (/vietsub/playlists, /vietsub/playlists/:id) are part of managing Vietsub.
-  { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => /^\/vietsub(\/|\/playlists(\/.*)?)?$/.test(p) },
+  { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => /^\/vietsub(\/|\/playlists(\/.*)?|\/profiles\/?)?$/.test(p) },
   VIETSUB_LIST,
   PROFILE,
   NOVELS,

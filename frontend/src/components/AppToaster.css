@@ -13,8 +13,17 @@
   color: var(--brand-2-ink);
 }
 
-/* The close button sits in the top-right corner (sonner puts it top-left; 2.0.8 has no option for the side). */
-[data-sonner-toast].toast [data-close-button] {
+/* The close button sits in the top-right corner. Sonner 2.0.8 has no option for the side: it places the button with
+   the variables below (left in LTR) through a rule of the same specificity as ours, so the winner depended on which
+   stylesheet loaded last. Setting the variables on the toast itself wins by proximity, whatever the load order; the
+   explicit rule (one attribute more) backs it up. */
+[data-sonner-toast].toast {
+  --toast-close-button-start: unset;
+  --toast-close-button-end: 0;
+  --toast-close-button-transform: translate(35%, -35%);
+}
+
+[data-sonner-toast][data-styled='true'].toast [data-close-button] {
   right: 0;
   left: auto;
   top: 0;

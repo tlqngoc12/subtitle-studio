@@ -124,14 +124,15 @@ describe('VietsubPage', () => {
     expect(within(items[1]).getByText('Video cũ hơn')).toBeInTheDocument();
   });
 
-  it('wraps long titles to two lines and hints that the row opens the editor', async () => {
+  it('wraps long titles to two lines and has no trailing chevron on the row', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
 
     const list = await loadedRegion('Manage Vietsub');
     expect(within(list).getByText('Học Spring Boot')).toHaveClass('title-clamp');
     const row = within(list).getByRole('link', { name: /^Học Spring Boot/ });
-    expect(row.querySelector('svg.history__chevron')).not.toBeNull();
+    expect(row.querySelector('svg.history__chevron')).toBeNull();
+    expect(row).toHaveAttribute('href', '/vietsub/' + newer.id + '/edit');
   });
 
   it('keeps the Manage Vietsub heading for screen readers only (the page heading above already says Vietsub)', async () => {

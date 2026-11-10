@@ -1,4 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
+import { TabTrigger } from '../components/ui/TabTrigger';
 import { ArrowLeft, CircleCheck, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -150,12 +151,12 @@ export default function VietsubListPage() {
       ) : (
         <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
           <Tabs.List className="tabs__list" aria-label="Vietsub list views">
-            <Tabs.Trigger className="tabs__tab" value="playlists">
+            <TabTrigger className="tabs__tab" value="playlists">
               Playlists
-            </Tabs.Trigger>
-            <Tabs.Trigger className="tabs__tab" value="all">
+            </TabTrigger>
+            <TabTrigger className="tabs__tab" value="all">
               All videos
-            </Tabs.Trigger>
+            </TabTrigger>
           </Tabs.List>
           <Tabs.Content value="playlists">
             <PlaylistsTab query={query} playlists={playlists} />

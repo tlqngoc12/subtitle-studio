@@ -16,7 +16,7 @@ import { AppToaster } from './AppToaster';
 
 describe('AppToaster', () => {
   it('puts the close button in the top-right corner of the toast (sonner 2.0.8 has no option, so CSS)', () => {
-    const rule = /\[data-sonner-toast\]\.toast \[data-close-button\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const rule = /\[data-sonner-toast\]\[data-styled='true'\]\.toast \[data-close-button\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
 
     expect(rule).toMatch(/right:\s*/);
     expect(rule).toMatch(/left:\s*auto/);
