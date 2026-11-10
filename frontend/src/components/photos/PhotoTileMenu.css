@@ -1,0 +1,10 @@
+.photo-menu {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+}
+
+.photo-menu .button--icon {
+  background: var(--surface);
+}

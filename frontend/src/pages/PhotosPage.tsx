@@ -1,14 +1,18 @@
-import { Camera } from 'lucide-react';
+import { Camera, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import type { PhotoPost } from '../api/photos';
+import { toast } from 'sonner';
+import { deletePhoto, type PhotoPost } from '../api/photos';
 import type { ProfilePage } from '../api/profiles';
 import { EmptyState } from '../components/EmptyState';
+import { PhotoPostDialog } from '../components/photos/PhotoPostDialog';
 import { PhotoTile } from '../components/photos/PhotoTile';
+import { PhotoTileMenu } from '../components/photos/PhotoTileMenu';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter, type Person } from '../components/ui/PeopleFilter';
+import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import '../components/photos/PhotoTile.css';
@@ -31,6 +35,9 @@ export default function PhotosPage() {
   const [page, setPage] = useState<ProfilePage | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [shown, setShown] = useState(PAGE_SIZE);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const [dialog, setDialog] = useState<{ post?: PhotoPost } | null>(null);
+  const [actionError, setActionError] = useState<ErrorMessage | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -60,9 +67,47 @@ export default function PhotosPage() {
     [posts, who],
   );
 
+  const saved = (post: PhotoPost) => {
+    setPosts((all) => {
+      const rest = (all ?? []).filter((p) => p.id !== post.id);
+      // Same order as the server: newest date first, then newest id.
+      return [...rest, post].sort((a, b) => b.takenOn.localeCompare(a.takenOn) || b.id - a.id);
+    });
+    setDialog(null);
+    toast.success('Post saved');
+  };
+
+  const remove = async (post: PhotoPost) => {
+    const ok = await confirm({
+      title: `Delete “${post.title}”?`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    setActionError(null);
+    try {
+      await deletePhoto(post.id);
+      setPosts((all) => (all ?? []).filter((p) => p.id !== post.id));
+    } catch (e) {
+      setActionError(errorMessage(e));
+    }
+  };
+
   return (
     <main className="page">
-      <PageHeader title="Photos" lede="Official, media and fan photos" />
+      {confirmDialog}
+      <PageHeader
+        title="Photos"
+        lede="Official, media and fan photos"
+        actions={
+          !readOnly && (
+            <button type="button" className="button button--primary" onClick={() => setDialog({})}>
+              <Plus className="icon" aria-hidden="true" />
+              Add post
+            </button>
+          )
+        }
+      />
 
       {people.length > 0 && (
         <PeopleFilter
@@ -73,6 +118,7 @@ export default function PhotosPage() {
       )}
 
       {error && <Alert title={error.title} hint={error.hint} />}
+      {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
       {posts === null && !error && <LoadingText>Loading photos…</LoadingText>}
 
       {posts !== null && visible.length === 0 && !error && (
@@ -82,7 +128,11 @@ export default function PhotosPage() {
       {visible.length > 0 && (
         <ul className="photo-grid" aria-label="Photos">
           {visible.slice(0, shown).map((post) => (
-            <PhotoTile key={post.id} post={post} />
+            <PhotoTile key={post.id} post={post}>
+              {!readOnly && (
+                <PhotoTileMenu post={post} onEdit={() => setDialog({ post })} onDelete={() => void remove(post)} />
+              )}
+            </PhotoTile>
           ))}
         </ul>
       )}
@@ -93,6 +143,15 @@ export default function PhotosPage() {
             Load more
           </button>
         </div>
+      )}
+      {!readOnly && (
+        <PhotoPostDialog
+          open={dialog !== null}
+          post={dialog?.post}
+          people={people}
+          onSaved={saved}
+          onOpenChange={(open) => !open && setDialog(null)}
+        />
       )}
     </main>
   );
