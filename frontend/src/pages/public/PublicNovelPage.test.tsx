@@ -486,3 +486,50 @@ describe('PublicNovelPage trailer tab', () => {
     });
   });
 });
+
+describe('PublicNovelPage shelf button', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  function renderPage() {
+    return render(
+      <MemoryRouter initialEntries={['/novels/summer']}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={source()} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('shelf button toggles aria-pressed and persists across remount', async () => {
+    const user = userEvent.setup();
+    const first = renderPage();
+    const add = await screen.findByRole('button', { name: 'Thêm vào tủ sách' });
+    expect(add).toHaveAttribute('aria-pressed', 'false');
+    await user.click(add);
+    expect(screen.getByRole('button', { name: 'Đã lưu vào tủ sách' })).toHaveAttribute('aria-pressed', 'true');
+    expect(JSON.parse(localStorage.getItem('novel-shelf')!)).toEqual(['summer']);
+    first.unmount();
+
+    renderPage();
+    const saved = await screen.findByRole('button', { name: 'Đã lưu vào tủ sách' });
+    expect(saved).toHaveAttribute('aria-pressed', 'true');
+    await user.click(saved);
+    expect(screen.getByRole('button', { name: 'Thêm vào tủ sách' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shelf button works with blocked storage', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Thêm vào tủ sách' }));
+    expect(screen.getByRole('button', { name: 'Đã lưu vào tủ sách' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});

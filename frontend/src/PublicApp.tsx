@@ -1,6 +1,7 @@
 import { MotionConfig } from 'motion/react';
 import { useMemo } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
+import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
 import { TopbarSlotProvider } from './components/TopbarSlot';
 import { SiteFooter } from './components/SiteFooter';
@@ -28,6 +29,7 @@ export default function PublicApp() {
       <MotionConfig reducedMotion="user">
         <TopbarSlotProvider>
           <NavBar />
+          <AppToaster />
           <Routes>
             <Route path="/" element={<Navigate to="/vietsub/list" replace />} />
             <Route path="/vietsub/list" element={<VietsubListPage />} />
