@@ -39,6 +39,7 @@ import com.subtitlestudio.video.FileTooLargeException;
 import com.subtitlestudio.video.InvalidVietsubTextException;
 import com.subtitlestudio.video.NoVietsubException;
 import com.subtitlestudio.video.VietsubChangedException;
+import com.subtitlestudio.video.VietsubNotManualException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.ytdlp.YtDlpFailedException;
 import com.subtitlestudio.ytdlp.YtDlpTimeoutException;
@@ -137,6 +138,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(NovelNotFoundException.class)
     ProblemDetail novelNotFound(NovelNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "NOVEL_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(VietsubNotManualException.class)
+    ProblemDetail vietsubNotManual(VietsubNotManualException e) {
+        return problem(HttpStatus.CONFLICT, "VIETSUB_NOT_MANUAL", e.getMessage());
     }
 
     /** Same shape as INVALID_BLOCK: {@code errors} lists every rejected field. */

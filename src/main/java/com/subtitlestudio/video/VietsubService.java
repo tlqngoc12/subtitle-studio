@@ -82,6 +82,7 @@ public class VietsubService {
             }
             viCues.saveAll(entities);
             video.updateVietsub(cues.size(), clock.instant(), ViSource.MANUAL);
+            video.setEditStatus(EditStatus.DONE); // an uploaded file is a finished Vietsub
             return video;
         });
         files.writeViManual(id, srt); // the upload exactly as received
@@ -172,10 +173,38 @@ public class VietsubService {
                 written.add(new Cue(c.startMs(), c.endMs(), c.text()));
             }
             video.updateVietsub(cues.size(), clock.instant(), ViSource.MANUAL);
+            if (video.getEditStatus() == null) {
+                video.setEditStatus(EditStatus.IN_PROGRESS); // DONE and IN_PROGRESS stay as they are
+            }
             return video;
         });
         files.writeViManual(id, srtWriter.toBytes(written, false));
         return saved;
+    }
+
+    /**
+     * Marks the Vietsub as done or back in progress. Does not touch the text or {@code viUpdatedAt}. Refused with
+     * {@link NoVietsubException} when there is no Vietsub, {@link TranslationInProgressException} while Gemini is
+     * translating, and {@link VietsubNotManualException} for an AI (AUTO) Vietsub.
+     */
+    public Video setEditStatus(String id, EditStatus status) {
+        if (status == null) {
+            throw new InvalidVietsubTextException(List.of(new FieldError("status", "Status is required")));
+        }
+        return tx.execute(s -> {
+            Video video = videos.findForUpdate(id).orElseThrow(() -> new VideoNotFoundException(id));
+            if (video.getViCueCount() == 0) {
+                throw new NoVietsubException(id);
+            }
+            if (video.getTranslationStatus() == TranslationStatus.TRANSLATING) {
+                throw new TranslationInProgressException(id);
+            }
+            if (video.getViSource() != ViSource.MANUAL) {
+                throw new VietsubNotManualException(id);
+            }
+            video.setEditStatus(status);
+            return video;
+        });
     }
 
     /** Checks count and order, then trims each text (NFC, LF) and checks 1..1000 characters. */
