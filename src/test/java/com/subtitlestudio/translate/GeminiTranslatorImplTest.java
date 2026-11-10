@@ -69,6 +69,32 @@ class GeminiTranslatorImplTest {
     }
 
     @Test
+    void sendsApprovedExamplesAndDescriptionBetweenProfileAndSubtitles() {
+        server.replyText(GOOD, "STOP");
+        VideoContext context = new VideoContext("VLOG OF US", "EMIBONNIE", "Cast: Emi as Mon",
+                List.of(new ExamplePair("Did you see Mon?", "Em thấy Mon không?")));
+
+        translator().translate(context, PROFILE, LINES);
+
+        String body = server.lastBody();
+        assertThat(body).contains("# Ví dụ đã được người dịch duyệt").contains("Did you see Mon?")
+                .contains("Em thấy Mon không?");
+        assertThat(body).contains("Cast: Emi as Mon").contains("description");
+        assertThat(body.indexOf("Emi gọi Bonnie là")).isLessThan(body.indexOf("Did you see Mon?"));
+        assertThat(body.indexOf("Did you see Mon?")).isLessThan(body.indexOf("Hungry"));
+        assertThat(body).contains("Phần ví dụ đã duyệt").contains("không dịch mô tả");
+    }
+
+    @Test
+    void omitsExamplesAndDescriptionWhenThereAreNone() {
+        server.replyText(GOOD, "STOP");
+
+        translator().translate(new VideoContext("VLOG OF US", "EMIBONNIE", null, List.of()), PROFILE, LINES);
+
+        assertThat(server.lastBody()).doesNotContain("# Ví dụ đã được người dịch duyệt").doesNotContain("description");
+    }
+
+    @Test
     void parsesStructuredOutput() {
         server.replyText(GOOD, "STOP");
 
