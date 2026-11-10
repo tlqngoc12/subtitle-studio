@@ -105,8 +105,18 @@ class PersistenceOracleIT {
     @Autowired
     private MediaRepository media;
 
+    @Autowired
+    private com.subtitlestudio.photo.PhotoService photoService;
+
+    @Autowired
+    private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
+
+    @Autowired
+    private com.subtitlestudio.profile.MediaService mediaService;
+
     @AfterEach
     void cleanUp() {
+        photoPosts.deleteAll();
         blocks.deleteAll();
         media.deleteAll();
         viCues.deleteAll();
@@ -126,7 +136,7 @@ class PersistenceOracleIT {
         // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
                 .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_PAGE", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
-                        "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
+                        "T_PHOTO_POST", "T_PHOTO_POST_PROFILE", "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
                         "T_PROFILE_BLOCK_ITEM", "VIDEO",
                         "VI_CUE", "flyway_schema_history");
     }
@@ -161,6 +171,27 @@ class PersistenceOracleIT {
         profileService.deleteBlock("emi", chips.id());
         assertThat(jdbc.queryForList("select slug || ':' || kind || ':' || sort_order from t_profile order by sort_order",
                 String.class)).containsExactly("emibonnie:GROUP:0", "emi:MEMBER:1", "bonnie:MEMBER:2");
+    }
+
+    @Test
+    void storesPhotoPostWithDatesAndProfilesOnOracle() throws Exception {
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(40, 60, java.awt.image.BufferedImage.TYPE_INT_RGB),
+                "png", png);
+        long mediaId = mediaService.storeResized("a.png", png.toByteArray(), 1600).getId();
+
+        com.subtitlestudio.photo.PhotoPostDto saved = photoService.create(new com.subtitlestudio.photo.PhotoPostRequest(
+                "https://www.instagram.com/p/DQx1abc/", mediaId, "เอมี่ Fan meeting",
+                java.time.LocalDate.parse("2026-10-31"), java.time.LocalDate.parse("2026-11-01"),
+                com.subtitlestudio.photo.PhotoSource.FAN, 4, List.of("emibonnie", "emi")));
+
+        com.subtitlestudio.photo.PhotoPostDto loaded = photoService.list().get(0);
+        assertThat(loaded.id()).isEqualTo(saved.id());
+        assertThat(loaded.takenOn()).isEqualTo(java.time.LocalDate.parse("2026-10-31"));
+        assertThat(loaded.takenUntil()).isEqualTo(java.time.LocalDate.parse("2026-11-01"));
+        assertThat(loaded.profiles()).containsExactly("emibonnie", "emi");
+        assertThat(loaded.width()).isEqualTo(40);
+        assertThatThrownBy(() -> jdbc.update("update t_photo_post set source = 'X'")).isInstanceOf(Exception.class);
     }
 
     @Test

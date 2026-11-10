@@ -17,6 +17,8 @@ import com.subtitlestudio.playlist.InvalidPlaylistException;
 import com.subtitlestudio.playlist.InvalidPlaylistOrderException;
 import com.subtitlestudio.playlist.PlaylistNotFoundException;
 import com.subtitlestudio.playlist.VideoHasNoVietsubException;
+import com.subtitlestudio.photo.PhotoPostExistsException;
+import com.subtitlestudio.photo.PhotoPostNotFoundException;
 import com.subtitlestudio.profile.BannerImageNotFoundException;
 import com.subtitlestudio.profile.BlockNotFoundException;
 import com.subtitlestudio.profile.GroupProfileException;
@@ -121,6 +123,18 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ProfileNotFoundException.class)
     ProblemDetail profileNotFound(ProfileNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(PhotoPostNotFoundException.class)
+    ProblemDetail photoPostNotFound(PhotoPostNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "PHOTO_POST_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(PhotoPostExistsException.class)
+    ProblemDetail photoPostExists(PhotoPostExistsException e) {
+        ProblemDetail pd = problem(HttpStatus.CONFLICT, "PHOTO_POST_EXISTS", e.getMessage());
+        pd.setProperty("title", e.title());
+        return pd;
     }
 
     @ExceptionHandler(GroupProfileException.class)

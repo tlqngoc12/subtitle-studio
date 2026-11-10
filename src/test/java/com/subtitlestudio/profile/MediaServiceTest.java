@@ -334,4 +334,24 @@ class MediaServiceTest {
             profiles.saveAndFlush(emi);
         }
     }
+
+    @Autowired
+    private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
+
+    @Test
+    void photoPostCountsAsReference() {
+        Media m = storeAt(NOW.minus(Duration.ofDays(2)));
+        com.subtitlestudio.photo.PhotoPost post = new com.subtitlestudio.photo.PhotoPost(NOW);
+        post.set("https://www.instagram.com/p/AAA/", m, "t", java.time.LocalDate.parse("2026-11-09"), null,
+                com.subtitlestudio.photo.PhotoSource.FAN, null, java.util.Set.of(), NOW);
+        photoPosts.saveAndFlush(post);
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(m, "png")).exists();
+            assertThat(media.isReferenced(m.getId())).isTrue();
+        } finally {
+            photoPosts.deleteAll();
+        }
+    }
 }

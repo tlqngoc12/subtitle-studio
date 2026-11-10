@@ -31,9 +31,14 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     @Query("select (count(p) > 0) from Profile p where p.portrait.id = :id")
     boolean isUsedByPortrait(@Param("id") Long mediaId);
 
+    /** True when a photo post shows this image. */
+    @Query("select (count(p) > 0) from PhotoPost p where p.media.id = :id")
+    boolean isUsedByPhotoPost(@Param("id") Long mediaId);
+
     default boolean isReferenced(Long mediaId) {
         return isUsedByBlock(mediaId) || isUsedByItem(mediaId) || isUsedByNovelCover(mediaId)
-                || isUsedByChapterPage(mediaId) || isUsedByBanner(mediaId) || isUsedByPortrait(mediaId);
+                || isUsedByChapterPage(mediaId) || isUsedByBanner(mediaId) || isUsedByPortrait(mediaId)
+                || isUsedByPhotoPost(mediaId);
     }
 
     /** Images nobody shows that were uploaded before {@code before} (abandoned uploads). */
@@ -43,6 +48,7 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
             + "and not exists (select n from Novel n where n.cover = m) "
             + "and not exists (select p from ChapterPage p where p.media = m) "
             + "and not exists (select r from ProfileBannerImage r where r.media = m) "
-            + "and not exists (select p from Profile p where p.portrait = m) order by m.id")
+            + "and not exists (select p from Profile p where p.portrait = m) "
+            + "and not exists (select ph from PhotoPost ph where ph.media = m) order by m.id")
     List<Media> findUnreferencedCreatedBefore(@Param("before") Instant before);
 }
