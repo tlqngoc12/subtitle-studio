@@ -460,10 +460,6 @@ label.button:has(input:focus-visible) {
   stroke-width: 1.5;
 }
 
-.reader-bar .button--icon {
-  border-radius: 999px;
-}
-
 .reader-settings .button[aria-pressed='true'] {
   border-color: var(--brand-2);
 }
