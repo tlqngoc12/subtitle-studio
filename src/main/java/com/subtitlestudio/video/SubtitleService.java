@@ -140,6 +140,7 @@ public class SubtitleService {
         VideoInfo info = imported.info();
         video.update(info.title(), info.channel(), info.durationSec(), imported.track().lang(),
                 imported.track().source(), imported.cues().size(), clock.instant());
+        video.setDescription(info.description());
     }
 
     private void saveCues(Video video, List<Cue> normalized) {

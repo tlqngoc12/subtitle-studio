@@ -27,6 +27,17 @@ class VideoInfoParserTest {
     }
 
     @Test
+    void parsesDescriptionAndTreatsMissingOrBlankAsNull() {
+        String withText = "{\"id\":\"DESC0000001\",\"title\":\"t\",\"description\":\"Cast: Emi\\nBonnie\"}";
+        String blank = "{\"id\":\"DESC0000002\",\"title\":\"t\",\"description\":\"   \"}";
+        String missing = "{\"id\":\"DESC0000003\",\"title\":\"t\"}";
+
+        assertThat(parser.parse(withText).description()).isEqualTo("Cast: Emi\nBonnie");
+        assertThat(parser.parse(blank).description()).isNull();
+        assertThat(parser.parse(missing).description()).isNull();
+    }
+
+    @Test
     void ignoresLiveChatPseudoSubtitle() {
         VideoInfo info = parser.parse(fixture("ytdlp/info-manual-only.json"));
 

@@ -41,7 +41,8 @@ public class VideoInfoParser {
                 channel,
                 durationSec(root.get("duration")),
                 languagesWithTracks(root.get("subtitles")),
-                languagesWithTracks(root.get("automatic_captions")));
+                languagesWithTracks(root.get("automatic_captions")),
+                hasText(root, "description") ? root.get("description").asText() : null);
     }
 
     private static Integer durationSec(JsonNode node) {

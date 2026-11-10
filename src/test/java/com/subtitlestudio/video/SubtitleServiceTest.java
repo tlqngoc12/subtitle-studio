@@ -149,6 +149,19 @@ class SubtitleServiceTest {
     }
 
     @Test
+    void fetchStoresTheYoutubeDescription() {
+        String id = "DESC0000001";
+        when(ytDlp.fetchInfo(id)).thenReturn(new VideoInfo(id, "t", "c", 60, Set.of(), Set.of("en"),
+                "Cast: Emi and Bonnie"));
+
+        service.fetch(id);
+        em.flush();
+        em.clear();
+
+        assertThat(videos.findById(id).orElseThrow().getDescription()).isEqualTo("Cast: Emi and Bonnie");
+    }
+
+    @Test
     void fetchKeepsVttFileInSubsDir() {
         when(ytDlp.fetchInfo(ID)).thenReturn(AUTO_INFO);
 
@@ -306,7 +319,7 @@ class SubtitleServiceTest {
 
     private static VideoInfo withId(VideoInfo base, String id) {
         return new VideoInfo(id, base.title(), base.channel(), base.durationSec(),
-                base.subtitleLangs(), base.autoCaptionLangs());
+                base.subtitleLangs(), base.autoCaptionLangs(), base.description());
     }
 
     private static Path createTempDir() {

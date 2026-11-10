@@ -20,6 +20,10 @@ import com.subtitlestudio.video.Video;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.video.VideoRepository;
 import com.subtitlestudio.video.VietsubService;
+import com.subtitlestudio.ytdlp.VideoInfo;
+import com.subtitlestudio.ytdlp.YtDlpClient;
+import com.subtitlestudio.ytdlp.YtDlpFailedException;
+import java.util.Set;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -103,6 +107,7 @@ class TranslationServiceTest {
     static class FakeTranslator implements GeminiTranslator {
         final AtomicInteger calls = new AtomicInteger();
         String lastProfile;
+        VideoContext lastContext;
         GeminiTranslator behaviour;
         /** Reported through onTrying before the work; null = none. */
         String model;
@@ -120,6 +125,7 @@ class TranslationServiceTest {
         public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines) {
             calls.incrementAndGet();
             lastProfile = profile;
+            lastContext = video;
             if (behaviour != null) {
                 return behaviour.translate(video, profile, lines);
             }
@@ -148,6 +154,12 @@ class TranslationServiceTest {
 
     @MockitoBean
     private SubtitleService subtitleService;
+
+    @MockitoBean
+    private ExampleSource exampleSource;
+
+    @MockitoBean
+    private YtDlpClient ytDlp;
 
     @Autowired
     private TranslationService service;
@@ -181,6 +193,8 @@ class TranslationServiceTest {
         translator.calls.set(0);
         translator.behaviour = null;
         translator.model = null;
+        translator.lastContext = null;
+        org.mockito.Mockito.reset(exampleSource, ytDlp);
         executor.hold = false;
         executor.pending.clear();
     }
@@ -473,10 +487,89 @@ class TranslationServiceTest {
         assertThat(v.getTranslationError()).isEqualTo("Interrupted by an app restart, translate again.");
     }
 
+    // --- series context: examples and description ---
+
+    @Test
+    void passesTheExamplesOfTheSameProfileToTheTranslator() {
+        video(600);
+        var pairs = List.of(new ExamplePair("Hi Mon", "Chào em Mon"));
+        org.mockito.Mockito.when(exampleSource.examplesFor(PROFILE, ID)).thenReturn(pairs);
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(translator.lastContext.examples()).isEqualTo(pairs);
+        assertThat(translator.lastContext.title()).isEqualTo("VLOG OF US");
+    }
+
+    @Test
+    void failingToBuildExamplesNeverFailsTheTranslation(CapturedOutput output) {
+        video(600);
+        org.mockito.Mockito.when(exampleSource.examplesFor(PROFILE, ID)).thenThrow(new IllegalStateException("secret subtitle text"));
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(reload().getViSource()).isEqualTo(ViSource.AUTO);
+        assertThat(translator.lastContext.examples()).isEmpty();
+        assertThat(output).contains("Could not build examples for " + ID).doesNotContain("secret subtitle text");
+    }
+
+    @Test
+    void sendsTheCleanedStoredDescriptionWithoutAskingYtDlp() {
+        Video v = video(600);
+        v.setDescription("Cast: Emi\nhttps://example.com\nSubscribe now");
+        videos.flush();
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(translator.lastContext.description()).isEqualTo("Cast: Emi");
+        org.mockito.Mockito.verifyNoInteractions(ytDlp);
+    }
+
+    @Test
+    void translateAgainFillsAMissingDescriptionFromYtDlpAndStoresIt() {
+        video(600);
+        service.startFromFetch(ID, PROFILE); // from Get Engsub: no yt-dlp call
+        org.mockito.Mockito.verifyNoInteractions(ytDlp);
+        org.mockito.Mockito.when(ytDlp.fetchInfo(ID)).thenReturn(
+                new VideoInfo(ID, "t", "c", 60, Set.of(), Set.of("en"), "Cast: Emi as Mon"));
+
+        service.retranslate(ID, PROFILE);
+
+        assertThat(translator.lastContext.description()).isEqualTo("Cast: Emi as Mon");
+        assertThat(reload().getDescription()).isEqualTo("Cast: Emi as Mon");
+        service.retranslate(ID, PROFILE); // stored now: no second yt-dlp call
+        org.mockito.Mockito.verify(ytDlp, org.mockito.Mockito.times(1)).fetchInfo(ID);
+    }
+
+    @Test
+    void translateAgainStillTranslatesWhenYtDlpFails(CapturedOutput output) {
+        video(600);
+        org.mockito.Mockito.when(ytDlp.fetchInfo(ID)).thenThrow(new YtDlpFailedException("boom"));
+
+        service.retranslate(ID, PROFILE);
+
+        assertThat(reload().getViSource()).isEqualTo(ViSource.AUTO);
+        assertThat(reload().getTranslationStatus()).isNull();
+        assertThat(translator.lastContext.description()).isNull();
+        assertThat(reload().getDescription()).isNull();
+        assertThat(output).contains("Could not fetch the description of " + ID);
+    }
+
+    @Test
+    void translateAgainWithNoDescriptionOnYoutubeTranslatesWithoutOne() {
+        video(600);
+        org.mockito.Mockito.when(ytDlp.fetchInfo(ID)).thenReturn(new VideoInfo(ID, "t", "c", 60, Set.of(), Set.of("en")));
+
+        service.retranslate(ID, PROFILE);
+
+        assertThat(translator.lastContext.description()).isNull();
+        assertThat(reload().getViSource()).isEqualTo(ViSource.AUTO);
+    }
+
     private TranslationService serviceWithKey(String key) {
         var g = properties.gemini();
         var gemini = new SubtitleStudioProperties.Gemini(key, g.model(), g.timeout(), Duration.ofMinutes(60), g.temperature(), g.fallbackModels());
         var props = new SubtitleStudioProperties(properties.ytdlp(), properties.dataDir(), gemini, properties.publish());
-        return new TranslationService(props, profiles, translator, videos, cues, vietsub, tx, executor);
+        return new TranslationService(props, profiles, translator, videos, cues, vietsub, tx, executor, exampleSource, ytDlp);
     }
 }
