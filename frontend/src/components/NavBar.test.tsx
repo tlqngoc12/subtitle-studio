@@ -78,7 +78,15 @@ describe('NavBar', () => {
     },
   );
 
+  it.each(['/vietsub/profiles', '/vietsub/profiles/'])('marks Vietsub, not Vietsub list, at %s', (path) => {
+    expect(currentAt(path)).toEqual(['Vietsub']);
+  });
+
+  it('marks no section on the Vietsub editor (unchanged)', () => {
+    expect(currentAt('/vietsub/abc123/edit')).toEqual([]);
+  });
+
   it('still marks Vietsub list as current on the watch page', () => {
-    expect(currentAt('/vietsub/abc')).toEqual(['Vietsub list']);
+    expect(currentAt('/vietsub/abc123')).toEqual(['Vietsub list']);
   });
 });
