@@ -34,12 +34,15 @@ public class MediaService {
 
     private final MediaRepository media;
     private final ImageSniffer sniffer;
+    private final ImageResizer resizer;
     private final SubtitleStudioProperties properties;
     private final Clock clock;
 
-    public MediaService(MediaRepository media, ImageSniffer sniffer, SubtitleStudioProperties properties, Clock clock) {
+    public MediaService(MediaRepository media, ImageSniffer sniffer, ImageResizer resizer,
+                        SubtitleStudioProperties properties, Clock clock) {
         this.media = media;
         this.sniffer = sniffer;
+        this.resizer = resizer;
         this.properties = properties;
         this.clock = clock;
     }
@@ -55,8 +58,31 @@ public class MediaService {
         }
         ImageType type = sniffer.sniff(bytes)
                 .orElseThrow(() -> new InvalidMediaException("Not a JPEG, PNG, WebP or GIF image"));
-        Media saved = media.saveAndFlush(new Media(type.contentType(), bytes.length, displayName(originalName),
-                clock.instant()));
+        return persist(originalName, bytes, type, null, null);
+    }
+
+    /**
+     * Like {@link #store} but shrinks the image to {@code maxSide} and re-encodes it (lossy WebP); the size is checked
+     * before anything is decoded and the saved row carries the resulting width and height.
+     */
+    @Transactional
+    public Media storeResized(String originalName, byte[] bytes, int maxSide) {
+        if (bytes.length == 0) {
+            throw new InvalidMediaException("Empty file");
+        }
+        if (bytes.length > MAX_BYTES) {
+            throw new MediaTooLargeException();
+        }
+        ImageResizer.Resized resized = resizer.resize(bytes, maxSide);
+        return persist(originalName, resized.bytes(), resized.type(), resized.width(), resized.height());
+    }
+
+    private Media persist(String originalName, byte[] bytes, ImageType type, Integer width, Integer height) {
+        Media created = new Media(type.contentType(), bytes.length, displayName(originalName), clock.instant());
+        if (width != null) {
+            created.setSize(width, height);
+        }
+        Media saved = media.saveAndFlush(created);
         Path file = fileOf(saved, type);
         try {
             Files.createDirectories(file.getParent());

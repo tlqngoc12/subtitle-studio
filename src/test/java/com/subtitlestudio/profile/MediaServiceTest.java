@@ -38,7 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({MediaService.class, ImageSniffer.class, MediaServiceTest.Config.class})
+@Import({MediaService.class, ImageSniffer.class, ImageResizer.class, MediaServiceTest.Config.class})
 // Real commits: file deletion waits for the transaction to commit.
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class MediaServiceTest {
@@ -287,5 +287,51 @@ class MediaServiceTest {
 
         assertThat(media.existsById(free.getId())).isTrue();
         assertThat(fileOf(free, "png")).exists();
+    }
+
+    @Test
+    void storeResizedWritesOneFileWithReturnedSize() throws IOException {
+        Media m = service.storeResized("big.png", ImageResizerTest.png(3000, 2000), 1600);
+
+        Media saved = media.findById(m.getId()).orElseThrow();
+        assertThat(saved.getWidth()).isEqualTo(1600);
+        assertThat(saved.getHeight()).isEqualTo(1067);
+        try (Stream<Path> all = Files.walk(dataDir.resolve("media"))) {
+            assertThat(all.filter(Files::isRegularFile).count()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void oversizedInputRejectedBeforeDecoding() throws IOException {
+        byte[] big = new byte[(int) MediaService.MAX_BYTES + 1];
+        System.arraycopy(ImageSnifferTest.PNG, 0, big, 0, ImageSnifferTest.PNG.length);
+
+        assertThatThrownBy(() -> service.storeResized("big.png", big, 400)).isInstanceOf(MediaTooLargeException.class);
+        assertThat(media.count()).isZero();
+        assertThat(Files.exists(dataDir.resolve("media")) ? Files.list(dataDir.resolve("media")).count() : 0L).isZero();
+    }
+
+    @Test
+    void gifWithMaxSideWritesNothing() throws IOException {
+        assertThatThrownBy(() -> service.storeResized("a.gif", ImageSnifferTest.GIF, 400))
+                .isInstanceOf(InvalidMediaException.class);
+        assertThat(media.count()).isZero();
+    }
+
+    @Test
+    void portraitCountsAsReference() {
+        Media m = storeAt(NOW.minus(Duration.ofDays(2)));
+        Profile emi = profiles.findBySlug("emi").orElseThrow();
+        emi.updateHeader(emi.getDisplayName(), null, null, m, NOW);
+        profiles.saveAndFlush(emi);
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(m, "png")).exists();
+            assertThat(media.isReferenced(m.getId())).isTrue();
+        } finally {
+            emi.updateHeader(emi.getDisplayName(), null, null, null, NOW);
+            profiles.saveAndFlush(emi);
+        }
     }
 }

@@ -31,7 +31,7 @@ import org.springframework.util.unit.DataSize;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, ChapterService.class, PageRotator.class, MediaService.class, ImageSniffer.class, ChapterServiceTest.Config.class})
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, ChapterService.class, PageRotator.class, MediaService.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class, ChapterServiceTest.Config.class})
 class ChapterServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
