@@ -84,6 +84,12 @@ function routes(v: VideoDto = video, lines: ViCue[] = cues) {
   ];
 }
 
+const engCues = [
+  { idx: 0, startMs: 0, endMs: 1_000, text: 'Hello' },
+  { idx: 1, startMs: 1_000, endMs: 2_000, text: 'Goodbye\nfriend <b>x</b>' },
+];
+const engRoute = { method: 'GET', path: `/api/videos/${ID}/cues`, status: 200, body: engCues };
+
 function tree(): ReactElement {
   return (
     <MemoryRouter initialEntries={[`/vietsub/${ID}/edit`]}>
@@ -108,6 +114,53 @@ const overlay = { ignore: 'textarea' };
 const area = (n: number) => screen.getByRole('textbox', { name: `Line ${n} text` });
 const row = (n: number) => area(n).closest('tr') as HTMLElement;
 const highlighted = () => screen.queryAllByRole('row').filter((r) => r.getAttribute('aria-current'));
+
+describe('VietsubEditPage English line', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('shows the English line above the matching Vietsub row and links it to the textarea', async () => {
+    fakeFetch([...routes(), engRoute]);
+    render(tree());
+    await screen.findByRole('table');
+
+    const en = await screen.findByText('Hello');
+    expect(en).toHaveAttribute('lang', 'en');
+    expect(en).toHaveClass('cue-row__en');
+    expect(en.compareDocumentPosition(area(1)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(row(1)).toContainElement(en);
+    expect(area(1)).toHaveAttribute('aria-describedby', en.id);
+    // Plain text, never HTML.
+    expect(row(2).querySelector('.cue-row__en')?.textContent).toBe('Goodbye\nfriend <b>x</b>');
+    expect(row(2).querySelector('.cue-row__en b')).toBeNull();
+    // Not editable: only the Vietsub textareas are textboxes.
+    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+  });
+
+  it('shows no English line for a row whose start time has no match', async () => {
+    fakeFetch([...routes(), engRoute]);
+    render(tree());
+    await screen.findByRole('table');
+    await screen.findByText('Hello');
+
+    expect(row(3).querySelector('.cue-row__en')).toBeNull();
+    expect(area(3)).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('still works without English lines when they fail to load', async () => {
+    fakeFetch([
+      ...routes(),
+      { method: 'GET', path: `/api/videos/${ID}/cues`, status: 500, body: problem(500, 'INTERNAL', 'boom') },
+    ]);
+    render(tree());
+    await screen.findByRole('table');
+
+    expect(document.querySelector('.cue-row__en')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(area(1)).toHaveValue('Xin chào');
+  });
+});
 
 describe('VietsubEditPage', () => {
   beforeEach(() => {
