@@ -13,6 +13,8 @@ import com.subtitlestudio.profile.ProfileService;
 import com.subtitlestudio.subtitle.SourceType;
 import com.subtitlestudio.video.CueEntity;
 import com.subtitlestudio.video.CueRepository;
+import com.subtitlestudio.video.EditStatus;
+import com.subtitlestudio.video.ViSource;
 import com.subtitlestudio.video.SubtitleService;
 import com.subtitlestudio.video.ViCueEntity;
 import com.subtitlestudio.video.ViCueRepository;
@@ -259,6 +261,27 @@ class PersistenceOracleIT {
                 new VietsubTextRequest.LineText(0, "A"), new VietsubTextRequest.LineText(1, "B"))));
 
         assertThat(second.getViUpdatedAt()).isEqualTo(videos.findById(ID).orElseThrow().getViUpdatedAt());
+    }
+
+    @Test
+    void findsEveryFinishedHandMadeVideoOfAProfileWithoutAnExcludedId() {
+        videos.save(correctionVideo("CORR0000001", "EmiBonnie", EditStatus.DONE, ViSource.MANUAL, "2026-11-01T00:00:00Z"));
+        videos.save(correctionVideo("CORR0000002", "EmiBonnie", EditStatus.DONE, ViSource.MANUAL, "2026-11-05T00:00:00Z"));
+        videos.save(correctionVideo("CORR0000003", "EmiBonnie", EditStatus.IN_PROGRESS, ViSource.MANUAL, "2026-11-06T00:00:00Z"));
+        videos.save(correctionVideo("CORR0000004", "EmiBonnie", EditStatus.DONE, ViSource.AUTO, "2026-11-06T00:00:00Z"));
+        videos.save(correctionVideo("CORR0000005", "Emi", EditStatus.DONE, ViSource.MANUAL, "2026-11-06T00:00:00Z"));
+
+        // Oracle reads '' as NULL, so an "exclude nothing" id of '' would match no row at all: this query has no such id.
+        assertThat(videos.findCorrectionVideos("EmiBonnie")).extracting(Video::getId)
+                .containsExactly("CORR0000002", "CORR0000001");
+    }
+
+    private static Video correctionVideo(String id, String profile, EditStatus status, ViSource source, String savedAt) {
+        Video v = video(id, "t");
+        v.translationSucceeded(profile, "m");
+        v.setEditStatus(status);
+        v.updateVietsub(1, Instant.parse(savedAt), source);
+        return v;
     }
 
     private static Video video(String id, String title) {
