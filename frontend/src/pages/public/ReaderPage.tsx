@@ -18,13 +18,13 @@ import {
   publicChapterName,
   useDocumentTitle,
 } from "./publicNames";
+import { ReaderSkeleton } from "./ReaderSkeleton";
 import { ReaderBar } from "./ReaderBar";
 import { ReaderBottomBar } from "./ReaderBottomBar";
 import { ReaderTocDrawer } from "./ReaderTocDrawer";
 import { ReaderSettingsSheet } from "./ReaderSettings";
 import { OWN_KEYS } from "./readerKeys";
 import { Alert } from '../../components/ui/Alert';
-import { LoadingText } from '../../components/ui/LoadingText';
 import {
   readSize,
   readTheme,
@@ -164,6 +164,25 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [prev, next, slug, navigate]);
 
+  // Prefetch the next chapter once per chapter, the first time the reader passes 70% (or at once when it fits the screen).
+  const prefetched = useRef(false);
+  useEffect(() => {
+    prefetched.current = false;
+  }, [chapterNo]);
+  useEffect(() => {
+    if (!chapter || next === null || progress < 0.7 || prefetched.current) return;
+    prefetched.current = true;
+    source
+      .getChapter(slug, next)
+      .then((c) => {
+        const first = pickFormat(c, compact, size).images[0];
+        if (first) new Image().src = first;
+      })
+      .catch(() => {});
+  }, [chapter, next, progress, source, slug, compact, size]);
+
+  const loadingTitle = novel?.chapters.find((c) => c.chapterNo === Number(chapterNo));
+
   const crumbs = [
     { label: "Novels", to: "/novels" },
     { label: novel?.title ?? "Về trang truyện", to: `/novels/${slug}` },
@@ -237,11 +256,21 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       {failed && (
         <Alert title={PUBLIC_ERROR_TITLE} />
       )}
-      {!chapter && !failed && <LoadingText>Đang tải chương…</LoadingText>}
+      {!chapter && !failed && (
+        <>
+          {loadingTitle && (
+            <h1 className="reader-loading-title">
+              {publicChapterLabel(loadingTitle.chapterNo, loadingTitle.title, loadingTitle.label)}
+            </h1>
+          )}
+          <ReaderSkeleton />
+        </>
+      )}
       {chapter && format && (
         <>
           <h1 className="visually-hidden">{current}</h1>
           <div
+            key={chapterNo}
             ref={reader}
             className={["reader", hidden && "reader--hidden"].filter(Boolean).join(" ")}
             data-width={READER_COLUMNS[size]}

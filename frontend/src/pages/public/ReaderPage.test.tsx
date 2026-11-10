@@ -723,3 +723,58 @@ describe('ReaderPage mobile controls', () => {
     expect(document.querySelector('.reader-progress')).not.toBeNull();
   });
 });
+
+describe('ReaderPage loading and prefetch', () => {
+  function spied() {
+    const getChapter = vi.fn(source.getChapter);
+    return { getChapter, s: { ...source, getChapter } as NovelSource };
+  }
+  /** Makes the reader 4000px tall and follows the fake scroll position. */
+  function tall() {
+    vi.stubGlobal('innerHeight', 800);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const height = this.classList.contains('reader') ? 4000 : 0;
+      return { top: -window.scrollY, height, bottom: 0, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON() {} } as DOMRect;
+    });
+  }
+
+  it('shows the skeleton and the chapter title from the novel while loading', async () => {
+    renderAt('/novels/summer/3', { ...source, getChapter: () => new Promise(() => {}) });
+    expect(document.querySelector('.reader-skeleton')).not.toBeNull();
+    expect(screen.getByText('Đang tải chương…')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Mưa/ })).toBeInTheDocument();
+  });
+
+  it('prefetches the next chapter once at 70%', async () => {
+    tall();
+    const { getChapter, s } = spied();
+    renderAt('/novels/summer/3', s);
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+    scrollTo(2000);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+    scrollTo(2300);
+    await waitFor(() => expect(getChapter).toHaveBeenCalledTimes(2));
+    expect(getChapter).toHaveBeenLastCalledWith('summer', 4);
+    scrollTo(3000);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(2);
+  });
+
+  it('prefetches at once when the chapter is shorter than the screen', async () => {
+    const { getChapter, s } = spied();
+    renderAt('/novels/summer/3', s);
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await waitFor(() => expect(getChapter).toHaveBeenCalledWith('summer', 4));
+  });
+
+  it('no prefetch on the last chapter', async () => {
+    const { getChapter, s } = spied();
+    renderAt('/novels/summer/4', s);
+    await screen.findAllByRole('img', { name: /trang/ });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getChapter).toHaveBeenCalledTimes(1);
+  });
+});
