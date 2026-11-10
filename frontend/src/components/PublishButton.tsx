@@ -9,6 +9,9 @@ import './PublishButton.css';
 
 const NOT_CONFIGURED_TIP = 'Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and SUBTITLESTUDIO_PUBLISH_PROJECT in .env';
 
+/** Matches PublishService.FILE_WARNING on the server. */
+const FILE_WARNING = 16000;
+
 function tipFor(state: PublishStatus | null): string {
   if (!state) return 'Publish the public site';
   if (!state.configured) return NOT_CONFIGURED_TIP;
@@ -26,6 +29,8 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
   const [state, setState] = useState<PublishStatus | null>(null);
   const { confirm, dialog } = useConfirmDialog();
   const publishing = state?.status === 'PUBLISHING';
+  const fileCount = state?.fileCount ?? null;
+  const nearLimit = fileCount !== null && fileCount >= FILE_WARNING;
 
   useEffect(() => {
     getPublishStatus()
@@ -86,6 +91,12 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
           </button>
         </span>
       </Tip>
+      {nearLimit && (
+        <p className="publish__warning" role="status">
+          Site đang có {fileCount.toLocaleString('vi-VN')}/20.000 file (giới hạn Cloudflare Free). Sắp đầy, nên
+          tính chuyển ảnh chương sang R2.
+        </p>
+      )}
       {dialog}
     </>
   );

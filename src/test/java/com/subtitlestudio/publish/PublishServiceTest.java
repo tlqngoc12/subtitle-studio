@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
@@ -247,5 +248,46 @@ class PublishServiceTest {
         executor.runPending();
 
         assertThat(found.get()).isFalse();
+    }
+
+    private void exporterWritesFiles(int count) {
+        doAnswer(inv -> {
+            Path dir = inv.getArgument(0);
+            Files.createDirectories(dir.resolve("img"));
+            for (int i = 0; i < count; i++) {
+                Files.createFile(dir.resolve("img/" + i));
+            }
+            return null;
+        }).when(exporter).export(any(), any());
+    }
+
+    @Test
+    void stopsBeforeDeployOverTheFileLimit() {
+        exporterWritesFiles(20_001);
+        PublishService s = service();
+        s.start();
+
+        executor.runPending();
+
+        PublishStatus st = s.status();
+        assertThat(st.status()).isEqualTo("FAILED");
+        assertThat(st.error()).isEqualTo(
+                "Site has 20001 files, over the 20,000 file limit of Cloudflare Pages (Free plan).");
+        assertThat(st.fileCount()).isEqualTo(20_001);
+        verify(wrangler, never()).deploy(any());
+    }
+
+    @Test
+    void recordsTheFileCountOnSuccess() {
+        exporterWritesFiles(7);
+        PublishService s = service();
+        assertThat(s.status().fileCount()).isNull();
+        s.start();
+
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+        assertThat(s.status().fileCount()).isEqualTo(7);
+        verify(wrangler).deploy(any());
     }
 }

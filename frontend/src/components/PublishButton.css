@@ -16,3 +16,15 @@
     white-space: nowrap;
   }
 }
+
+.publish__warning {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--brand);
+}
+
+.publish__warning {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--brand);
+}
