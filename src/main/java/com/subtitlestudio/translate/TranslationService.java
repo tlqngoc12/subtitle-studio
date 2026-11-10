@@ -260,7 +260,7 @@ public class TranslationService {
             return List.of();
         }
         boolean usable = profile.equals(saved.profile()) && saved.cueCount() == english.size()
-                && saved.parts().size() < ranges.size();
+                && saved.parts().size() <= ranges.size();
         for (int i = 0; usable && i < saved.parts().size(); i++) {
             PartialTranslationStore.Part part = saved.parts().get(i);
             TranslationParts.Range range = ranges.get(i);

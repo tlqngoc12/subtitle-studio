@@ -745,6 +745,33 @@ class TranslationServiceTest {
     }
 
     @Test
+    void aCompletePartialFileIsSavedWithoutAskingGeminiAgain() throws IOException {
+        longVideo(100);
+        // Every part finished earlier, but the run died before the Vietsub was saved.
+        int[][] ranges = {{0, 45}, {45, 90}, {90, 100}};
+        StringBuilder json = new StringBuilder("{\"profile\":\"" + PROFILE + "\",\"cueCount\":100,\"parts\":[");
+        for (int p = 0; p < ranges.length; p++) {
+            json.append(p > 0 ? "," : "").append("{\"index\":").append(p).append(",\"model\":\"m\",\"lines\":[");
+            for (int i = ranges[p][0]; i < ranges[p][1]; i++) {
+                json.append(i > ranges[p][0] ? "," : "").append("{\"idx\":").append(i).append(",\"text\":\"VI-").append(i).append("\"}");
+            }
+            json.append("]}");
+        }
+        json.append("]}");
+        Files.createDirectories(PARTIAL.getParent());
+        Files.writeString(PARTIAL, json.toString());
+        List<Call> calls = recordCalls();
+
+        service.startFromFetch(ID, PROFILE);
+
+        assertThat(calls).isEmpty();
+        assertThat(vietsub.getCues(ID)).extracting(ViCue::text)
+                .containsExactlyElementsOf(java.util.stream.IntStream.range(0, 100).mapToObj(i -> "VI-" + i).toList());
+        assertThat(reload().getTranslationStatus()).isNull();
+        assertThat(PARTIAL).doesNotExist();
+    }
+
+    @Test
     void aVideoOfThreeHoursIsAcceptedAndOneMinuteMoreIsNot() {
         longVideo(3);
         Video v = reload();
