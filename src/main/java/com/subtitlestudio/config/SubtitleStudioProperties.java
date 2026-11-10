@@ -70,16 +70,14 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
             return new Novel(20, DataSize.ofMegabytes(10), Render.defaults(), "");
         }
 
-        public record Render(int width, int height, int fontSize) {
+        public record Render(int fontSize) {
 
             public Render {
-                width = width <= 0 ? 1080 : width;
-                height = height <= 0 ? 1600 : height;
                 fontSize = fontSize <= 0 ? 44 : fontSize;
             }
 
             public static Render defaults() {
-                return new Render(1080, 1600, 44);
+                return new Render(44);
             }
         }
     }

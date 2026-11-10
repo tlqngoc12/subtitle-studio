@@ -2,7 +2,6 @@ package com.subtitlestudio.novel.render;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +17,7 @@ class RenderCacheTest {
     Path dir;
 
     private RenderCache cache() {
-        return new RenderCache(dir, new NovelRenderer(SubtitleStudioProperties.Novel.Render.defaults()),
+        return new RenderCache(dir, new NovelRenderer(44),
                 ImageEncoder.png());
     }
 

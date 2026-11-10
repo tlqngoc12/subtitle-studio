@@ -1,6 +1,5 @@
 package com.subtitlestudio.novel.render;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,7 +45,7 @@ public class RenderCache {
                 }
             }
             Files.createDirectories(chapterDir);
-            List<BufferedImage> images = renderer.render(input);
+            List<BufferedImage> images = renderer.render(input, PageFormat.S);
             List<Path> files = files(chapterDir, hash, images.size());
             for (int i = 0; i < images.size(); i++) {
                 Path tmp = chapterDir.resolve(files.get(i).getFileName() + ".tmp");
@@ -95,9 +94,10 @@ public class RenderCache {
     }
 
     private String hash(RenderInput in) {
-        SubtitleStudioProperties.Novel.Render size = renderer.size();
+        PageFormat format = PageFormat.S;
         String key = String.join("\u0000", "v" + NovelRenderer.VERSION, encoder.extension(),
-                String.valueOf(size.width()), String.valueOf(size.height()), String.valueOf(size.fontSize()),
+                format.key(), String.valueOf(format.width()), String.valueOf(format.height()),
+                String.valueOf(format.margin()), String.valueOf(renderer.fontSize()),
                 String.valueOf(in.watermark()), String.valueOf(in.novelTitle()), String.valueOf(in.chapterNo()),
                 String.valueOf(in.chapterTitle()), String.valueOf(in.text()));
         if (in.hasLabel()) {

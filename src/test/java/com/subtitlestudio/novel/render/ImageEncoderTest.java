@@ -58,4 +58,38 @@ class ImageEncoderTest {
 
         assertThat(webp.encode(image())).isEqualTo(webp.encode(image()));
     }
+
+    private static BufferedImage transparent() {
+        BufferedImage img = new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB);
+        img.setRGB(1, 1, 0xFF000000);
+        return img;
+    }
+
+    @Test
+    void keepsAlpha() throws IOException {
+        ImageEncoder encoder = ImageEncoder.best();
+
+        BufferedImage back = ImageIO.read(new ByteArrayInputStream(encoder.encode(transparent())));
+
+        assertThat(back.getRGB(0, 0) >>> 24).isZero();
+    }
+
+    @Test
+    void fallsBackToPngWhenWebpDropsAlpha() {
+        ImageEncoder alphaLosing = new ImageEncoder() {
+            @Override
+            public byte[] encode(BufferedImage image) {
+                BufferedImage flat = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+                flat.createGraphics().drawImage(image, 0, 0, null);
+                return ImageEncoder.png().encode(flat);
+            }
+
+            @Override
+            public String extension() {
+                return "webp";
+            }
+        };
+
+        assertThat(ImageEncoder.pick(alphaLosing).extension()).isEqualTo("png");
+    }
 }

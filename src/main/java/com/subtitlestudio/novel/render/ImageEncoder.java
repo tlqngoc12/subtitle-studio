@@ -1,6 +1,7 @@
 package com.subtitlestudio.novel.render;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,7 +41,7 @@ public interface ImageEncoder {
         };
     }
 
-    /** Lossless WebP if an ImageIO writer for it loads and works here (native library), else PNG. */
+    /** Lossless WebP if an ImageIO writer for it loads and keeps transparency here (native library), else PNG. */
     static ImageEncoder best() {
         ImageEncoder webp = new ImageEncoder() {
             @Override
@@ -73,10 +74,20 @@ public interface ImageEncoder {
                 return "webp";
             }
         };
+        return pick(webp);
+    }
+
+    /** The given WebP encoder if it round-trips a transparent pixel here, else PNG. */
+    static ImageEncoder pick(ImageEncoder webp) {
         try {
-            webp.encode(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB));
-            return webp;
-        } catch (RuntimeException | LinkageError e) {
+            BufferedImage probe = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+            probe.setRGB(1, 1, 0xFF000000);
+            BufferedImage back = ImageIO.read(new ByteArrayInputStream(webp.encode(probe)));
+            if (back != null && back.getColorModel().hasAlpha() && (back.getRGB(0, 0) >>> 24) == 0) {
+                return webp;
+            }
+            return png();
+        } catch (IOException | RuntimeException | LinkageError e) {
             return png();
         }
     }
