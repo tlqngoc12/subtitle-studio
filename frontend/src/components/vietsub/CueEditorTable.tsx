@@ -15,6 +15,8 @@ interface RowProps {
   index: number;
   startMs: number;
   text: string;
+  /** The Engsub line with the same start time, shown read-only above the textarea. */
+  english: string | undefined;
   edited: boolean;
   active: boolean;
   readOnly: boolean;
@@ -25,9 +27,10 @@ interface RowProps {
 }
 
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
-const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek, onFocusRow }: RowProps) {
+const CueRow = memo(function CueRow({ index, startMs, text, english, edited, active, readOnly, error, onChange, onSeek, onFocusRow }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
+  const describedBy = [english !== undefined ? `cue-en-${index}` : null, error ? `cue-error-${index}` : null].filter(Boolean).join(' ') || undefined;
 
   // Grow with the text (the CSS `field-sizing: content` does the same where the browser supports it).
   useLayoutEffect(() => {
@@ -48,6 +51,11 @@ const CueRow = memo(function CueRow({ index, startMs, text, edited, active, read
         <label className="visually-hidden" htmlFor={`cue-text-${index}`}>
           {`Line ${number} text`}
         </label>
+        {english !== undefined && (
+          <p className="cue-row__en" id={`cue-en-${index}`} lang="en">
+            {english}
+          </p>
+        )}
         <textarea
           id={`cue-text-${index}`}
           ref={area}
@@ -56,7 +64,7 @@ const CueRow = memo(function CueRow({ index, startMs, text, edited, active, read
           value={text}
           readOnly={readOnly}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `cue-error-${index}` : undefined}
+          aria-describedby={describedBy}
           onChange={(e) => onChange(index, e.target.value)}
           onFocus={() => onFocusRow(index, startMs)}
         />
@@ -78,6 +86,8 @@ const CueRow = memo(function CueRow({ index, startMs, text, edited, active, read
 interface Props {
   /** The lines as loaded: they give the timing and the text to compare the edits with. */
   cues: readonly ViCue[];
+  /** The Engsub text by start time; a line without a match shows no English. */
+  english: ReadonlyMap<number, string>;
   /** The current text of every line (same order as `cues`). */
   texts: readonly string[];
   /** The player time. The table highlights and follows the line on screen, else the one before it, else the first. */
@@ -98,7 +108,7 @@ interface Props {
  * at once; focus is never moved. Focusing the text of a different line than the last focused one seeks the video to
  * that line and plays it (clicking or moving inside the same line does not), without ending the wait above.
  */
-function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange, onSeek, onSeekPlay }: Props) {
+function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, errors, onChange, onSeek, onSeekPlay }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
@@ -202,6 +212,7 @@ function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange
               index={i}
               startMs={cue.startMs}
               text={texts[i]}
+              english={english.get(cue.startMs)}
               edited={texts[i] !== cue.text}
               active={i === scrollTarget}
               readOnly={readOnly}

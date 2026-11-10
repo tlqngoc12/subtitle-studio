@@ -505,6 +505,15 @@ Thay thế phần mô tả banner Profile và bảng dòng của hai mục ngay 
 - **Trình sửa Vietsub** (`/vietsub/:id/edit`): bảng chỉ còn hai cột `#` + Text. Dòng được tô là dòng đang chiếu tại thời điểm hiện tại, hoặc dòng gần nhất ngay trước đó (kể cả khi đang ở khoảng trống giữa hai dòng). Khi **tua** (lùi, hoặc nhảy hơn 1,5 giây) hoặc bấm nút `#`, bảng cuộn tới dòng đó và đặt con trỏ ở cuối text; phát bình thường chỉ tô dòng. Giới hạn đã biết: nút Back của trình duyệt không bị chặn khi còn sửa chưa lưu (`BrowserRouter`).
 - **Trạng thái deploy:** nhánh `feature/novel-page-checks` đã merge vào `main` và deploy local (migration V10 chạy khi app khởi động). Image cũ để quay lại: `subtitle-studio:pre-filmstrip-slides`. **Public site cần Publish again** mới có banner, trailer và các thay đổi giao diện công khai.
 
+### 2026-11-10: Trình sửa Vietsub hiện dòng Engsub phía trên mỗi dòng ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay schema.
+
+- `/vietsub/:id/edit` tải thêm Engsub bằng `getCues(id)` song song với Vietsub; mỗi hàng ghép với dòng Engsub **cùng `startMs`** (hai timeline luôn giống nhau, dựng `Map` một lần bằng `useMemo`). Không khớp thì hàng đó không hiện gì.
+- Dòng Engsub là `<p class="cue-row__en" lang="en">` chỉ đọc (bôi đen copy được, giữ xuống dòng, luôn hiện, không có nút bật/tắt), nằm ngay trên textarea và nối qua `aria-describedby` (gộp với id lỗi nếu có). Chữ nhỏ (`--step--1`), màu `--muted`.
+- `getCues` lỗi thì editor vẫn chạy bình thường, chỉ không có dòng Engsub (không báo lỗi). Lưu vẫn chỉ gửi Vietsub; `CueRow` vẫn memo, nhận Engsub dạng string nên gõ chỉ render lại đúng hàng đó.
+
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.

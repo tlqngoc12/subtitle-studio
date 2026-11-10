@@ -129,3 +129,11 @@
     padding-inline: var(--space-2);
   }
 }
+
+/* The English line above the textarea: small, muted, read-only (selectable), keeps its line breaks. */
+.cue-row__en {
+  margin: 0 0 var(--space-1);
+  color: var(--muted);
+  font-size: var(--step--1);
+  white-space: pre-line;
+}

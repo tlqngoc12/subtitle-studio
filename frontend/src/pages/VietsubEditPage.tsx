@@ -4,10 +4,12 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   ApiError,
+  getCues,
   getVideo,
   getVietsub,
   saveVietsubText,
   setEditStatus,
+  type CueDto,
   type EditStatus,
   type ViCue,
   type VideoDto,
@@ -39,6 +41,8 @@ export default function VietsubEditPage() {
   const [video, setVideo] = useState<VideoDto | null>(null);
   /** The lines as loaded: timing, and the text the edits are compared with. */
   const [cues, setCues] = useState<ViCue[]>([]);
+  /** The Engsub lines; the Vietsub rows are matched to them by start time. Empty when they could not be loaded. */
+  const [engCues, setEngCues] = useState<CueDto[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -51,12 +55,15 @@ export default function VietsubEditPage() {
     setLoaded(false);
     setNotFound(false);
     setError(null);
+    const eng = getCues(id).catch(() => [] as CueDto[]);
     getVideo(id)
       .then(async (v) => {
         const lines = v.viCueCount > 0 ? await getVietsub(id) : [];
+        const englishCues = await eng;
         if (cancelled) return;
         setVideo(v);
         setCues(lines);
+        setEngCues(englishCues);
         setLoaded(true);
       })
       .catch((e) => {
@@ -68,6 +75,8 @@ export default function VietsubEditPage() {
       cancelled = true;
     };
   }, [id, reloadKey]);
+
+  const english = useMemo(() => new Map(engCues.map((c) => [c.startMs, c.text])), [engCues]);
 
   const translating = video?.translationStatus === 'TRANSLATING';
 
@@ -127,6 +136,7 @@ export default function VietsubEditPage() {
       key={`${id}:${reloadKey}`}
       video={video}
       cues={cues}
+      english={english}
       translating={translating}
       onReload={() => setReloadKey((k) => k + 1)}
     />
@@ -179,11 +189,13 @@ function normalizeText(text: string): string {
 function Editor({
   video: initialVideo,
   cues,
+  english,
   translating,
   onReload,
 }: {
   video: VideoDto;
   cues: ViCue[];
+  english: ReadonlyMap<number, string>;
   translating: boolean;
   onReload: () => void;
 }) {
@@ -404,6 +416,7 @@ function Editor({
         </div>
         <CueEditorTable
           cues={baseline}
+          english={english}
           texts={texts}
           currentMs={player.currentMs}
           readOnly={translating}
