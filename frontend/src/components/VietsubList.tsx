@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { viSrtUrl, type VideoDto } from '../api/client';
 import { rowMotion } from '../lib/motion';
+import { EditStatusIcon } from './EditStatusIcon';
 import { EmptyState } from './EmptyState';
 import { SaveToPlaylist } from './SaveToPlaylist';
 import { Tip } from './Tip';
@@ -70,6 +71,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                           <span className="meta">
                             <FileUp className="icon icon--sm" aria-hidden="true" />
                             Manual
+                            <EditStatusIcon status={v.editStatus} />
                           </span>
                         )}
                       </span>

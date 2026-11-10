@@ -145,5 +145,12 @@ export function useYouTubePlayer(
     setCurrentMs(ms);
   }, []);
 
-  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo };
+  /** Starts playback (no-op until the player is ready). Browsers may refuse it before the user has interacted. */
+  const play = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    player.playVideo();
+  }, []);
+
+  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play };
 }

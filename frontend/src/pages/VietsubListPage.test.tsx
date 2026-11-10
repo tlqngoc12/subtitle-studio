@@ -30,6 +30,7 @@ function video(id: string, title: string, viCueCount: number, viUpdatedAt: strin
     translationError: null,
     translationProfile: null,
     translationModel: null,
+    editStatus: null,
   };
 }
 

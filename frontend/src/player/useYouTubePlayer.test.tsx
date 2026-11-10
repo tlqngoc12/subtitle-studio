@@ -15,6 +15,7 @@ const target = {
     fake.calls.push(`load ${id}`);
   },
   seekTo: () => {},
+  playVideo: () => {},
   cueVideoById: (id: string) => {
     fake.calls.push(`cue ${id}`);
   },
@@ -61,6 +62,9 @@ describe('useYouTubePlayer', () => {
         }
         destroy() {
           fake.destroyed = true;
+        }
+        playVideo() {
+          fake.calls.push('play');
         }
         seekTo(seconds: number, allowSeekAhead: boolean) {
           fake.calls.push(`seek ${seconds} ${allowSeekAhead}`);
@@ -113,6 +117,17 @@ describe('useYouTubePlayer', () => {
     act(() => result.current.seekTo(5_000));
 
     expect(fake.calls.filter((c) => c.startsWith('seek'))).toEqual([]);
+  });
+
+  it('play starts the player once it is ready, and does nothing before', async () => {
+    const { result } = setup();
+    act(() => result.current.play());
+    expect(fake.calls).not.toContain('play');
+
+    await ready();
+    act(() => result.current.play());
+
+    expect(fake.calls).toContain('play');
   });
 
   it('turns off YouTube built-in captions so only the Vietsub overlay shows', async () => {

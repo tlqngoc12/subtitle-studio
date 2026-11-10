@@ -21,10 +21,11 @@ interface RowProps {
   error: string | undefined;
   onChange: (index: number, text: string) => void;
   onSeek: (index: number, ms: number) => void;
+  onFocusRow: (index: number, ms: number) => void;
 }
 
 /** One line. Memoised: typing in a row re-renders that row only (the callbacks the parent passes are stable). */
-const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek }: RowProps) {
+const CueRow = memo(function CueRow({ index, startMs, text, edited, active, readOnly, error, onChange, onSeek, onFocusRow }: RowProps) {
   const area = useRef<HTMLTextAreaElement>(null);
   const number = index + 1;
 
@@ -57,6 +58,7 @@ const CueRow = memo(function CueRow({ index, startMs, text, edited, active, read
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `cue-error-${index}` : undefined}
           onChange={(e) => onChange(index, e.target.value)}
+          onFocus={() => onFocusRow(index, startMs)}
         />
         {error && (
           <p className="cue-row__error" id={`cue-error-${index}`}>
@@ -85,15 +87,18 @@ interface Props {
   errors: Readonly<Record<number, string>>;
   onChange: (index: number, text: string) => void;
   onSeek: (ms: number) => void;
+  /** A textarea of another line than the last focused one got focus: seek the video to that line and play it. */
+  onSeekPlay: (ms: number) => void;
 }
 
 /**
  * The Vietsub lines as a table: number (seeks the video) and an editable text per line.
  * The table highlights the line at the player time (or the one before it in a gap, else the first) and keeps it in
  * view, except while a textarea has focus and for 3 s after it loses it. A seek of the player ends that wait, is followed
- * at once; focus is never moved.
+ * at once; focus is never moved. Focusing the text of a different line than the last focused one seeks the video to
+ * that line and plays it (clicking or moving inside the same line does not), without ending the wait above.
  */
-function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange, onSeek }: Props) {
+function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange, onSeek, onSeekPlay }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
@@ -123,11 +128,28 @@ function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange
     [onSeek, scrollTo],
   );
 
+  // The line whose text was focused last (kept when the focus leaves the table), and the time of the seek that
+  // focusing it started: that seek is not a "go there" from the user, so it does not end the scroll wait.
+  const focusedRow = useRef(-1);
+  const focusSeekMs = useRef<number | null>(null);
+  const focusRow = useCallback(
+    (index: number, ms: number) => {
+      if (readOnly || focusedRow.current === index) return;
+      focusedRow.current = index;
+      focusSeekMs.current = ms;
+      onSeekPlay(ms);
+    },
+    [readOnly, onSeekPlay],
+  );
+
   const lastMs = useRef(currentMs);
   useEffect(() => {
     const delta = currentMs - lastMs.current;
     lastMs.current = currentMs;
+    const own = focusSeekMs.current;
+    focusSeekMs.current = null;
     if (delta >= 0 && delta <= SEEK_JUMP_MS) return;
+    if (own !== null && Math.abs(currentMs - own) < 1) return;
     window.clearTimeout(timer.current);
     setHolding(false);
     if (scrollTarget < 0) return;
@@ -186,6 +208,7 @@ function CueEditorTableImpl({ cues, texts, currentMs, readOnly, errors, onChange
               error={errors[i]}
               onChange={onChange}
               onSeek={seekRow}
+              onFocusRow={focusRow}
             />
           ))}
         </tbody>

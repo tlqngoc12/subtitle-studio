@@ -33,6 +33,7 @@ function video(id: string, title: string, viCueCount: number, viUpdatedAt: strin
     translationError: null,
     translationProfile: null,
     translationModel: null,
+    editStatus: null,
   };
 }
 
@@ -134,6 +135,22 @@ describe('VietsubPage', () => {
     expect(within(items[0]).queryByText(/Gemini|EmiBonnie/)).not.toBeInTheDocument();
     expect(within(items[1]).getByText('Manual', { exact: true })).toBeInTheDocument();
     expect(within(list).queryByText('Uploaded')).not.toBeInTheDocument();
+  });
+
+  it('shows the edit status next to the Manual label: pencil in progress, check done, nothing when not edited', async () => {
+    const inProgress = { ...newer, editStatus: 'IN_PROGRESS' as const };
+    const done = { ...older, editStatus: 'DONE' as const };
+    const untouched = { ...video('PLAIN000001', 'Chưa sửa', 4, '2026-11-02T09:00:00Z'), editStatus: null };
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [inProgress, done, untouched] }]);
+    renderPage();
+
+    const list = await loadedRegion('Manage Vietsub');
+    const items = within(within(list).getByRole('list')).getAllByRole('listitem');
+    const pencil = within(items[0]).getByRole('img', { name: 'In progress' });
+    expect(pencil).toHaveClass('edit-status--progress');
+    await expectTooltip(pencil, 'In progress');
+    expect(within(items[1]).getByRole('img', { name: 'Done' })).toHaveClass('edit-status--done');
+    expect(within(items[2]).queryByRole('img', { name: /In progress|Done/ })).not.toBeInTheDocument();
   });
 
   it('opens the Vietsub editor from the thumbnail or title of a row', async () => {

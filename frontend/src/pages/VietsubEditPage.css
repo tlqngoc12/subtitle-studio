@@ -41,3 +41,18 @@
 .vedit__hint {
   margin: var(--space-2) 0 0;
 }
+
+/* Save is the primary action: an icon button filled orange (the plain icon button is outlined). */
+.button--icon.vedit__save {
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+.button--icon.vedit__save:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+
+.button--icon.vedit__save:disabled {
+  background: transparent;
+  color: var(--ink);
+}

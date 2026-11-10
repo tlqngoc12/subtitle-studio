@@ -44,6 +44,7 @@ const video: VideoDto = {
   translationError: null,
   translationProfile: null,
   translationModel: null,
+  editStatus: null,
 };
 
 const cues: ViCue[] = [
