@@ -552,6 +552,17 @@ describe('HomePage', () => {
       expect(items[1]).toHaveTextContent('Translation failed');
     });
 
+    it('wraps a long title in Fetched earlier to two lines', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [autoVideo] },
+        profiles,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const history = await loadedRegion('Fetched earlier');
+      expect(within(history).getByText('Học Spring Boot')).toHaveClass('title-clamp');
+    });
+
     it('stops polling a video that disappears', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const calls = fakeFetch([

@@ -1,0 +1,48 @@
+/* Keyboard shortcuts popover on the watch page. */
+.shortcuts {
+  display: grid;
+  gap: var(--space-3);
+  width: min(340px, calc(100vw - 32px));
+  padding: var(--space-4);
+}
+
+.shortcuts__title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.shortcuts__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.shortcuts__row {
+  display: grid;
+  grid-template-columns: minmax(0, 9em) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.shortcuts__row dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.shortcuts__row dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.shortcuts kbd {
+  padding: var(--space-0-5) var(--space-2);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+}

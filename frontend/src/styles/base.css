@@ -315,6 +315,12 @@ a.tabs__tab {
   color: var(--ink);
 }
 
+/* A file picker button: the real input is visually hidden inside the label, so the label shows the focus ring. */
+label.button:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* Destructive actions sit apart at the end of the page (playlist editor). */
 .danger-zone {
   justify-self: start;

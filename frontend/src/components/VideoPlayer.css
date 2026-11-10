@@ -54,14 +54,19 @@ html.player-filled-open body {
   text-align: center;
 }
 
-/* Fullscreen button where YouTube puts its own (bottom-right). Always visible but faint: the
-   frame never gets :hover while the pointer is over the cross-origin YouTube iframe, so a
+/* Buttons where YouTube puts its own controls (bottom-right): Vietsub on/off and fullscreen. Always visible
+   but faint: the frame never gets :hover while the pointer is over the cross-origin YouTube iframe, so a
    hover-only button would stay hidden during playback. */
-.player__fs {
+.player__tools {
   position: absolute;
   right: 10px;
   bottom: 8px;
   z-index: 2;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.player__btn {
   display: grid;
   place-items: center;
   width: 40px;
@@ -76,12 +81,31 @@ html.player-filled-open body {
   transition: opacity 0.2s;
 }
 
-.player__fs:hover,
-.player__fs:focus-visible {
+.player__btn:hover,
+.player__btn:focus-visible {
   opacity: 1;
 }
 
-.player__fs svg {
+.player__btn:focus-visible {
+  outline: 3px solid var(--brand-2);
+  outline-offset: 2px;
+}
+
+.player__btn svg {
   width: 24px;
   height: 24px;
 }
+
+@media (max-width: 760px) {
+  .player__btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player__btn {
+    transition: none;
+  }
+}
+
