@@ -56,11 +56,6 @@
   padding: var(--space-3);
 }
 
-.reader-settings__size {
-  display: flex;
-  gap: var(--space-2);
-}
-
 /* Table of contents: a right-side drawer (Radix Dialog) over a dimmed page. */
 .drawer__overlay {
   position: fixed;

@@ -1,17 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  READER_WIDTHS,
   isDarkTheme,
-  readNight,
   readProgress,
   readReadChapters,
-  readWidth,
   readShelf,
   readSize,
   readTheme,
   recordProgress,
-  saveNight,
-  saveWidth,
   toggleShelf,
 } from './readerPrefs';
 
@@ -57,36 +52,12 @@ describe('reading progress', () => {
     });
 
     expect(() => recordProgress('summer', 3)).not.toThrow();
-    expect(() => saveNight(true)).not.toThrow();
-    expect(() => saveWidth(760)).not.toThrow();
     expect(readProgress('summer')).toBeNull();
     expect(readReadChapters('summer')).toEqual([]);
-    expect(readNight()).toBeNull();
-    expect(readWidth()).toBe(600);
   });
 });
 
-describe('night mode and width preferences', () => {
-  it('stores the night choice as on/off', () => {
-    expect(readNight()).toBeNull();
-    saveNight(true);
-    expect(localStorage.getItem('reader-night')).toBe('on');
-    expect(readNight()).toBe(true);
-    saveNight(false);
-    expect(localStorage.getItem('reader-night')).toBe('off');
-    expect(readNight()).toBe(false);
-  });
-
-  it('stores one of the three widths and defaults to 600', () => {
-    expect(READER_WIDTHS).toEqual([600, 760, 900]);
-    expect(readWidth()).toBe(600);
-    saveWidth(900);
-    expect(localStorage.getItem('reader-width')).toBe('900');
-    expect(readWidth()).toBe(900);
-    localStorage.setItem('reader-width', '123');
-    expect(readWidth()).toBe(600);
-  });
-
+describe('theme and OS preferences', () => {
   it('follows the theme: data-theme wins, otherwise the OS setting', () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     expect(isDarkTheme()).toBe(true);

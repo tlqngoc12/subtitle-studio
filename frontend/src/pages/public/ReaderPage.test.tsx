@@ -237,7 +237,7 @@ describe('ReaderPage', () => {
     expect(bar().querySelector('.reader-bar__chapter')?.textContent).toBe('Special');
   });
 
-  it('lays the bar text out on the left with ellipsis, and A-/A+ resize the page column', async () => {
+  it('lays the bar text out on the left with ellipsis, and the size radio resizes the page column', async () => {
     const { container } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
@@ -247,7 +247,7 @@ describe('ReaderPage', () => {
     expect(column.style.getPropertyValue('--reader-width')).toBe('640px');
     expect(column.contains(container.querySelector('.reader'))).toBe(true);
     await openSettings();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Chữ lớn' }));
     expect(column.style.getPropertyValue('--reader-width')).toBe('720px');
   });
 
@@ -570,24 +570,21 @@ describe('ReaderPage preferences', () => {
     expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
     expect(reader(container)).toHaveAttribute('data-width', '640');
     await openSettings(user);
-    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'false');
-    await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
-    await user.click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
-    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Giấy' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Tối' }));
+    await user.click(screen.getByRole('radio', { name: 'Chữ lớn' }));
+    expect(screen.getByRole('radio', { name: 'Tối' })).toBeChecked();
     expect(reader(container)).toHaveAttribute('data-width', '720');
   });
 
-  it('switches the theme dark <-> sepia with the night toggle and remembers it', async () => {
+  it('switches the theme from the swatches and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     await openSettings(user);
-    const toggle = screen.getByRole('button', { name: 'Chế độ đêm' });
 
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
     expect(main(container)).toHaveAttribute('data-reader-theme', 'sepia');
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('radio', { name: 'Tối' }));
     expect(main(container)).toHaveAttribute('data-reader-theme', 'dark');
     expect(localStorage.getItem('reader-theme')).toBe('dark');
 
@@ -596,8 +593,9 @@ describe('ReaderPage preferences', () => {
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     expect(main(again.container)).toHaveAttribute('data-reader-theme', 'dark');
     await openSettings(user);
-    await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
-    expect(localStorage.getItem('reader-theme')).toBe('sepia');
+    expect(screen.getByRole('radio', { name: 'Tối' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Đen OLED' }));
+    expect(localStorage.getItem('reader-theme')).toBe('oled');
   });
 
   it('defaults to the dark theme when the app theme is dark, and a stored theme overrides it', async () => {
@@ -629,25 +627,18 @@ describe('ReaderPage preferences', () => {
     expect(css).not.toContain('reader--night');
   });
 
-  it('steps the size 560 / 640 / 720, disables the buttons at the ends and remembers it', async () => {
+  it('picks the size 560 / 640 / 720 and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     await openSettings(user);
-    const smaller = screen.getByRole('button', { name: 'Chữ nhỏ hơn' });
-    const larger = screen.getByRole('button', { name: 'Chữ lớn hơn' });
 
     expect(reader(container)).toHaveAttribute('data-width', '640');
-    expect(smaller).toBeEnabled();
-    await user.click(larger);
+    await user.click(screen.getByRole('radio', { name: 'Chữ lớn' }));
     expect(reader(container)).toHaveAttribute('data-width', '720');
-    expect(larger).toBeDisabled();
     expect(localStorage.getItem('reader-size')).toBe('2');
-
-    await user.click(smaller);
-    await user.click(smaller);
+    await user.click(screen.getByRole('radio', { name: 'Chữ nhỏ' }));
     expect(reader(container)).toHaveAttribute('data-width', '560');
-    expect(smaller).toBeDisabled();
 
     unmount();
     const again = renderAt('/novels/summer/3');
@@ -660,7 +651,7 @@ describe('ReaderPage preferences', () => {
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
     await openSettings();
 
-    expect(reader(container).contains(screen.getByRole('button', { name: 'Chế độ đêm' }))).toBe(false);
-    expect(reader(container).contains(screen.getByRole('button', { name: 'Chữ lớn hơn' }))).toBe(false);
+    expect(reader(container).contains(screen.getByRole('radio', { name: 'Tối' }))).toBe(false);
+    expect(reader(container).contains(screen.getByRole('radio', { name: 'Chữ lớn' }))).toBe(false);
   });
 });

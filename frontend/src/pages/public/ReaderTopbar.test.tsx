@@ -92,6 +92,15 @@ describe('reader controls in the top bar', () => {
     expect(topbar()).not.toHaveClass('topbar--hidden');
   });
 
+  it('settings popover shows the theme and size groups', async () => {
+    const user = userEvent.setup();
+    renderApp('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await user.click(within(reader()).getByRole('button', { name: 'Cài đặt' }));
+    expect(screen.getByRole('radiogroup', { name: 'Màu nền' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Cỡ chữ' })).toBeInTheDocument();
+  });
+
   describe('hiding the whole top bar on scroll', () => {
     const hidden = () => topbar().classList.contains('topbar--hidden');
 
@@ -121,7 +130,7 @@ describe('reader controls in the top bar', () => {
       scrollTo(900);
       expect(hidden()).toBe(false);
       await user.keyboard('{Escape}');
-      await waitFor(() => expect(screen.queryByRole('button', { name: 'Chế độ đêm' })).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Màu nền' })).not.toBeInTheDocument());
       act(() => (document.activeElement as HTMLElement).blur());
       scrollTo(1000);
       expect(hidden()).toBe(true);

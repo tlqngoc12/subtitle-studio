@@ -3,11 +3,6 @@
  * (private mode, blocked storage): reads then give the defaults and writes are silently skipped.
  */
 
-/** @deprecated Replaced by themes and sizes; removed in Task 6. */
-export const READER_WIDTHS = [600, 760, 900] as const;
-/** @deprecated removed in Task 6 */
-export type ReaderWidth = (typeof READER_WIDTHS)[number];
-
 function get(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -52,28 +47,6 @@ export function recordProgress(slug: string, chapterNo: number) {
   set(`novel-progress:${slug}`, JSON.stringify({ chapterNo }));
   const read = readReadChapters(slug);
   if (!read.includes(chapterNo)) set(`novel-read:${slug}`, JSON.stringify([...read, chapterNo]));
-}
-
-/** @deprecated Use the theme preference; removed in Task 6. The reader's own night-mode choice, or null. */
-export function readNight(): boolean | null {
-  const v = get('reader-night');
-  return v === 'on' ? true : v === 'off' ? false : null;
-}
-
-/** @deprecated Use the theme preference; removed in Task 6. */
-export function saveNight(on: boolean) {
-  set('reader-night', on ? 'on' : 'off');
-}
-
-/** @deprecated Use the theme preference; removed in Task 6. */
-export function readWidth(): ReaderWidth {
-  const n = Number(get('reader-width'));
-  return READER_WIDTHS.find((w) => w === n) ?? READER_WIDTHS[0];
-}
-
-/** @deprecated Use the theme preference; removed in Task 6. */
-export function saveWidth(width: ReaderWidth) {
-  set('reader-width', String(width));
 }
 
 export type ReaderTheme = 'light' | 'sepia' | 'dark' | 'oled';

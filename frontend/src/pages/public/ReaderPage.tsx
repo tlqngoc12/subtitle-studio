@@ -19,7 +19,6 @@ import { OWN_KEYS, ReaderBar } from "./ReaderBar";
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
 import {
-  READER_WIDTHS,
   readSize,
   readTheme,
   recordProgress,
@@ -156,14 +155,10 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         next={next}
         chapters={novel?.chapters ?? []}
         currentNo={chapter?.chapterNo ?? Number(chapterNo)}
-        // Bridge until Task 6
-        night={theme === "dark" || theme === "oled"}
-        onToggleNight={() => changeTheme(theme === "dark" || theme === "oled" ? "sepia" : "dark")}
-        width={READER_WIDTHS[size]}
-        onStepWidth={(delta) => {
-          const n = size + delta;
-          if (n >= 0 && n <= 2) changeSize(n as ReaderSize);
-        }}
+        theme={theme}
+        onTheme={changeTheme}
+        size={size}
+        onSize={changeSize}
       />
       {failed && (
         <Alert title={PUBLIC_ERROR_TITLE} />

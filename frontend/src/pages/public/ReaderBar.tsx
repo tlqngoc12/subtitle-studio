@@ -6,9 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
-  Moon,
   Settings,
-  Sun,
   X,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
@@ -18,11 +16,8 @@ import { useTopbarSlot } from "../../components/TopbarSlot";
 import type { PublicChapterRef } from "../../data/novelTypes";
 import { useHideOnScroll } from "../../lib/useHideOnScroll";
 import { publicChapterLabel } from "./publicNames";
-import {
-  READER_WIDTHS,
-  readReadChapters,
-  type ReaderWidth,
-} from "./readerPrefs";
+import { readReadChapters, type ReaderSize, type ReaderTheme } from "./readerPrefs";
+import { ReaderSettingsPanel } from "./ReaderSettings";
 import { IconButton, IconLink } from '../../components/ui/IconButton';
 import { PopoverPanel } from '../../components/ui/PopoverPanel';
 import './ReaderBar.css';
@@ -39,10 +34,10 @@ interface Props {
   next: number | null;
   chapters: PublicChapterRef[];
   currentNo: number;
-  night: boolean;
-  onToggleNight: () => void;
-  width: ReaderWidth;
-  onStepWidth: (delta: number) => void;
+  theme: ReaderTheme;
+  onTheme: (theme: ReaderTheme) => void;
+  size: ReaderSize;
+  onSize: (size: ReaderSize) => void;
 }
 
 /**
@@ -59,10 +54,10 @@ export function ReaderBar({
   next,
   chapters,
   currentNo,
-  night,
-  onToggleNight,
-  width,
-  onStepWidth,
+  theme,
+  onTheme,
+  size,
+  onSize,
 }: Props) {
   const [tocOpen, setTocOpen] = useState(false);
   const drawer = useRef<HTMLDivElement>(null);
@@ -106,7 +101,6 @@ export function ReaderBar({
     )
   );
 
-  const widthStep = READER_WIDTHS.indexOf(width);
   const bar = (
     <nav
       className="reader-bar"
@@ -170,39 +164,7 @@ export function ReaderBar({
               {...{ [OWN_KEYS]: "" }}
               aria-label="Cài đặt"
             >
-              <button
-                type="button"
-                className="button button--small"
-                aria-pressed={night}
-                onClick={onToggleNight}
-              >
-                {night ? (
-                  <Sun className="icon" aria-hidden="true" />
-                ) : (
-                  <Moon className="icon" aria-hidden="true" />
-                )}
-                Chế độ đêm
-              </button>
-              <div className="reader-settings__size">
-                <button
-                  type="button"
-                  className="button button--small"
-                  aria-label="Chữ nhỏ hơn"
-                  disabled={widthStep <= 0}
-                  onClick={() => onStepWidth(-1)}
-                >
-                  A−
-                </button>
-                <button
-                  type="button"
-                  className="button button--small"
-                  aria-label="Chữ lớn hơn"
-                  disabled={widthStep >= READER_WIDTHS.length - 1}
-                  onClick={() => onStepWidth(1)}
-                >
-                  A+
-                </button>
-              </div>
+              <ReaderSettingsPanel theme={theme} onTheme={onTheme} size={size} onSize={onSize} />
             </PopoverPanel>
           </Popover.Root>
         </div>
