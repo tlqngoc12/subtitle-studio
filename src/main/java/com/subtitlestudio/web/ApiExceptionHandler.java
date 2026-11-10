@@ -20,6 +20,10 @@ import com.subtitlestudio.playlist.VideoHasNoVietsubException;
 import com.subtitlestudio.photo.PhotoPostExistsException;
 import com.subtitlestudio.photo.PhotoPostNotFoundException;
 import com.subtitlestudio.profile.BannerImageNotFoundException;
+import com.subtitlestudio.work.InvalidWorkException;
+import com.subtitlestudio.work.PersonInUseException;
+import com.subtitlestudio.work.PersonNotFoundException;
+import com.subtitlestudio.work.WorkNotFoundException;
 import com.subtitlestudio.profile.BlockNotFoundException;
 import com.subtitlestudio.profile.GroupProfileException;
 import com.subtitlestudio.profile.InvalidBlockException;
@@ -134,6 +138,31 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail photoPostExists(PhotoPostExistsException e) {
         ProblemDetail pd = problem(HttpStatus.CONFLICT, "PHOTO_POST_EXISTS", e.getMessage());
         pd.setProperty("title", e.title());
+        return pd;
+    }
+
+    @ExceptionHandler(WorkNotFoundException.class)
+    ProblemDetail workNotFound(WorkNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "WORK_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(PersonNotFoundException.class)
+    ProblemDetail personNotFound(PersonNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "PERSON_NOT_FOUND", e.getMessage());
+    }
+
+    /** Same shape as INVALID_BLOCK: {@code errors} lists every rejected field path. */
+    @ExceptionHandler(InvalidWorkException.class)
+    ProblemDetail invalidWork(InvalidWorkException e) {
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_WORK", e.getMessage());
+        pd.setProperty("errors", e.errors());
+        return pd;
+    }
+
+    @ExceptionHandler(PersonInUseException.class)
+    ProblemDetail personInUse(PersonInUseException e) {
+        ProblemDetail pd = problem(HttpStatus.CONFLICT, "PERSON_IN_USE", e.getMessage());
+        pd.setProperty("works", e.works());
         return pd;
     }
 
