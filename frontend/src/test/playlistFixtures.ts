@@ -19,6 +19,7 @@ export function vsVideo(id: string, title: string, channel = 'Dev Channel'): Vid
     translationError: null,
     translationProfile: null,
     translationModel: null,
+    editStatus: null,
   };
 }
 

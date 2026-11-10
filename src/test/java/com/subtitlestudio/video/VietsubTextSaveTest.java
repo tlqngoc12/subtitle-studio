@@ -165,6 +165,79 @@ class VietsubTextSaveTest {
     }
 
     @Test
+    void firstSaveSetsInProgressAndKeepsDone() {
+        seedAuto();
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isNull();
+
+        Video first = service.saveText(ID, request(stored(), "A", "B"));
+        reload();
+        assertThat(first.getEditStatus()).isEqualTo(EditStatus.IN_PROGRESS);
+
+        service.setEditStatus(ID, EditStatus.DONE);
+        reload();
+        service.saveText(ID, request(stored(), "A", "C"));
+        reload();
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isEqualTo(EditStatus.DONE);
+    }
+
+    @Test
+    void uploadSetsDone() {
+        seedUpload();
+
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isEqualTo(EditStatus.DONE);
+    }
+
+    @Test
+    void setEditStatusTogglesWithoutTouchingTimestampAndReopens() {
+        seedUpload();
+        Instant before = stored();
+
+        Video reopened = service.setEditStatus(ID, EditStatus.IN_PROGRESS);
+        reload();
+
+        assertThat(reopened.getEditStatus()).isEqualTo(EditStatus.IN_PROGRESS);
+        assertThat(stored()).isEqualTo(before);
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isEqualTo(EditStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void setEditStatusRefusals() {
+        assertThatThrownBy(() -> service.setEditStatus("UNKNOWN0001", EditStatus.DONE))
+                .isInstanceOf(VideoNotFoundException.class);
+        saveVideo();
+        assertThatThrownBy(() -> service.setEditStatus(ID, EditStatus.DONE)).isInstanceOf(NoVietsubException.class);
+        assertThatThrownBy(() -> service.setEditStatus(ID, null)).isInstanceOf(InvalidVietsubTextException.class);
+    }
+
+    @Test
+    void autoVietsubCannotBeMarkedDoneAndGeminiKeepsStatusNull() {
+        seedAuto();
+
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isNull();
+        assertThatThrownBy(() -> service.setEditStatus(ID, EditStatus.DONE))
+                .isInstanceOf(VietsubNotManualException.class);
+    }
+
+    @Test
+    void setEditStatusWhileTranslatingIsRefused() {
+        seedAuto();
+        assertThat(videos.markTranslating(ID, "p")).isEqualTo(1);
+
+        assertThatThrownBy(() -> service.setEditStatus(ID, EditStatus.IN_PROGRESS))
+                .isInstanceOf(TranslationInProgressException.class);
+    }
+
+    @Test
+    void clearingTheVietsubResetsTheStatus() {
+        seedUpload();
+
+        service.clear(ID);
+        reload();
+
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isNull();
+    }
+
+    @Test
     void writesManualSrtFromTheCuesAndKeepsAutoFile() throws IOException {
         seedUpload();
         Files.writeString(SUBS_DIR.resolve(ID + ".vi_auto.srt"), "history");

@@ -64,6 +64,11 @@ public class Video {
     @Column(name = "translation_model", length = 200)
     private String translationModel;
 
+    /** Null = not edited yet; see {@link EditStatus}. Only DONE videos are published. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "edit_status", length = 12)
+    private EditStatus editStatus;
+
     protected Video() {
         // for JPA
     }
@@ -143,6 +148,14 @@ public class Video {
         this.translationModel = translationModel;
     }
 
+    public EditStatus getEditStatus() {
+        return editStatus;
+    }
+
+    public void setEditStatus(EditStatus editStatus) {
+        this.editStatus = editStatus;
+    }
+
     public String getTranslationProfile() {
         return translationProfile;
     }
@@ -174,5 +187,6 @@ public class Video {
         this.viCueCount = 0;
         this.viUpdatedAt = null;
         this.viSource = null;
+        this.editStatus = null;
     }
 }

@@ -45,6 +45,12 @@ public class VietsubController {
         return VideoDto.from(service.saveText(id, request));
     }
 
+    /** Marks the Vietsub as DONE or back to IN_PROGRESS. */
+    @PutMapping("/api/videos/{id}/edit-status")
+    public VideoDto setEditStatus(@PathVariable String id, @RequestBody EditStatusRequest request) {
+        return VideoDto.from(service.setEditStatus(id, request.status()));
+    }
+
     @GetMapping("/api/videos/{id}/subtitle.vi.srt")
     public ResponseEntity<byte[]> download(@PathVariable String id, @RequestParam(defaultValue = "false") boolean bom) {
         SrtExport export = service.exportSrt(id, bom);

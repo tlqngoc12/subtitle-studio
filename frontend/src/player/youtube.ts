@@ -5,6 +5,14 @@ export interface YTPlayer {
   loadVideoById(id: string): void;
   cueVideoById(id: string): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
+  playVideo(): void;
+  pauseVideo(): void;
+  /** One of YT_STATE (-1 unstarted). */
+  getPlayerState(): number;
+  getDuration(): number;
+  mute(): void;
+  unMute(): void;
+  isMuted(): boolean;
   /** Undocumented but long-standing: unloadModule('captions') hides YouTube's own subtitles. */
   unloadModule?(name: string): void;
 }

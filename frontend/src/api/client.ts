@@ -20,6 +20,8 @@ export interface PromptProfiles {
   profiles: string[];
 }
 
+export type EditStatus = 'IN_PROGRESS' | 'DONE';
+
 export interface VideoDto {
   id: string;
   title: string;
@@ -38,6 +40,8 @@ export interface VideoDto {
   translationProfile: string | null;
   /** Gemini model translating now (while TRANSLATING) or that translated the AUTO Vietsub; null = unknown. */
   translationModel: string | null;
+  /** How far the hand-editing of the Vietsub has got; null = not edited yet. Only DONE videos are published. */
+  editStatus: EditStatus | null;
 }
 
 /** One Vietsub line, timed by the uploaded .srt file. */
@@ -177,6 +181,17 @@ export async function saveVietsubText(id: string, baseUpdatedAt: string | null, 
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ baseUpdatedAt, lines: texts.map((text, idx) => ({ idx, text })) }),
+    })
+  ).json();
+}
+
+/** Marks the Vietsub as done or back in progress (MANUAL Vietsub only). Does not change the text. */
+export async function setEditStatus(id: string, status: EditStatus): Promise<VideoDto> {
+  return (
+    await send(`/api/videos/${encodeURIComponent(id)}/edit-status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
     })
   ).json();
 }

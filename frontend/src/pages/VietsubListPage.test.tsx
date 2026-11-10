@@ -1,13 +1,14 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { loadedRegion } from '../test/loadedRegion';
 import type { VideoDto } from '../api/client';
 import { fakeFetch, type Route as FakeRoute } from '../test/fakeFetch';
 import { detail, summary, vsVideo } from '../test/playlistFixtures';
 import VietsubListPage from './VietsubListPage';
 import { SiteProvider } from '../data/SiteContext';
+import { resetWatched } from '../data/watched';
 import { fakeSource, publicSite } from '../test/fakeSource';
 
 const ID = 'dQw4w9WgXcQ';
@@ -30,6 +31,7 @@ function video(id: string, title: string, viCueCount: number, viUpdatedAt: strin
     translationError: null,
     translationProfile: null,
     translationModel: null,
+    editStatus: null,
   };
 }
 
@@ -353,6 +355,88 @@ describe('VietsubListPage', () => {
       await userEvent.setup().click(within(header).getByRole('link', { name: 'Play all' }));
 
       expect(await screen.findByText('watch /vietsub/THAI0000001?playlist=1 autoplay=true')).toBeInTheDocument();
+    });
+
+    describe('watched and Continue', () => {
+      const markSeen = (...ids: string[]) => {
+        localStorage.setItem('subtitle-studio.watched', JSON.stringify(ids));
+        resetWatched();
+      };
+      beforeEach(() => {
+        localStorage.clear();
+        resetWatched();
+      });
+
+      it('marks watched videos in a playlist, and only those', async () => {
+        markSeen('CHO00000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list?playlist=1');
+        const region = await loadedRegion('Vietsub list');
+
+        const items = await waitFor(() => {
+          const li = within(region).getAllByRole('listitem');
+          expect(li).toHaveLength(3);
+          return li;
+        });
+        expect(within(items[0]).queryByText('Watched')).not.toBeInTheDocument();
+        expect(within(items[1]).getByText('Watched')).toBeInTheDocument();
+      });
+
+      it('marks watched videos in All videos too', async () => {
+        markSeen('AN000000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list?tab=all');
+        const region = await loadedRegion('Vietsub list');
+
+        expect(within(region).getAllByText('Watched')).toHaveLength(1);
+      });
+
+      it('offers Continue with the first unwatched episode once something was watched', async () => {
+        markSeen('THAI0000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list?playlist=1');
+        const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
+
+        const link = within(header).getByRole('link', { name: 'Continue: EP 2' });
+        expect(link).toHaveAttribute('href', '/vietsub/CHO00000001?playlist=1');
+        await userEvent.setup().click(link);
+        expect(await screen.findByText('watch /vietsub/CHO00000001?playlist=1 autoplay=true')).toBeInTheDocument();
+      });
+
+      it('skips watched episodes in the middle', async () => {
+        markSeen('THAI0000001', 'AN000000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list?playlist=1');
+        const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
+
+        expect(within(header).getByRole('link', { name: 'Continue: EP 2' })).toBeInTheDocument();
+      });
+
+      it('has no Continue before anything was watched, or after everything was', async () => {
+        fakeFetch(routes());
+        renderPage('/vietsub/list?playlist=1');
+        const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
+        expect(within(header).queryByRole('link', { name: /^Continue/ })).not.toBeInTheDocument();
+        cleanup();
+
+        markSeen('THAI0000001', 'CHO00000001', 'AN000000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list?playlist=1');
+        const again = await screen.findByRole('region', { name: 'Playlist VLOG' });
+        expect(within(again).queryByRole('link', { name: /^Continue/ })).not.toBeInTheDocument();
+      });
+
+      it('shows Continue on the playlist card too', async () => {
+        markSeen('THAI0000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list');
+        await cardNames();
+
+        expect(within(card('VLOG')).getByRole('link', { name: 'Continue: EP 2' })).toHaveAttribute(
+          'href',
+          '/vietsub/CHO00000001?playlist=1',
+        );
+      });
     });
 
     it('keeps the original numbers when searching inside a playlist', async () => {

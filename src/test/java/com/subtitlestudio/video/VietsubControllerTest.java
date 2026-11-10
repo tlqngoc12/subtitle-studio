@@ -207,6 +207,40 @@ class VietsubControllerTest {
         expectProblem(putText(), 404, "VIDEO_NOT_FOUND");
     }
 
+    private ResultActions putStatus(String body) throws Exception {
+        return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .put("/api/videos/" + ID + "/edit-status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
+    @Test
+    void setEditStatusReturnsTheVideo() throws Exception {
+        Video v = video();
+        v.updateVietsub(2, Instant.parse("2026-11-09T12:00:00Z"), ViSource.MANUAL);
+        v.setEditStatus(EditStatus.DONE);
+        when(service.setEditStatus(ID, EditStatus.DONE)).thenReturn(v);
+
+        putStatus("{\"status\":\"DONE\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ID))
+                .andExpect(jsonPath("$.editStatus").value("DONE"));
+    }
+
+    @Test
+    void setEditStatusMapsErrors() throws Exception {
+        when(service.setEditStatus(ID, EditStatus.DONE))
+                .thenThrow(new VietsubNotManualException(ID))
+                .thenThrow(new com.subtitlestudio.translate.TranslationInProgressException(ID))
+                .thenThrow(new NoVietsubException(ID))
+                .thenThrow(new VideoNotFoundException(ID));
+
+        expectProblem(putStatus("{\"status\":\"DONE\"}"), 409, "VIETSUB_NOT_MANUAL");
+        expectProblem(putStatus("{\"status\":\"DONE\"}"), 409, "TRANSLATION_IN_PROGRESS");
+        expectProblem(putStatus("{\"status\":\"DONE\"}"), 404, "NO_VIETSUB");
+        expectProblem(putStatus("{\"status\":\"DONE\"}"), 404, "VIDEO_NOT_FOUND");
+    }
+
     private static ResultActions expectProblem(ResultActions result, int status, String code) throws Exception {
         return result
                 .andExpect(status().is(status))

@@ -1,5 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowLeft, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
+import { ArrowLeft, CircleCheck, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { EmptyState } from '../components/EmptyState';
@@ -7,6 +7,7 @@ import { Pagination } from '../components/Pagination';
 import { PlaylistHeader } from '../components/PlaylistHeader';
 import { useSite } from '../data/SiteContext';
 import type { PublicPlaylistDetail, PublicPlaylistSummary, PublicVideo } from '../data/types';
+import { useWatched } from '../data/watched';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { formatDuration } from '../lib/format';
 import { matchesSearch } from '../lib/search';
@@ -247,6 +248,7 @@ function VideoSection({
     [entries, query],
   );
   const pager = usePagination(filtered);
+  const watched = useWatched();
 
   return (
     <section className="history" aria-label="Vietsub list">
@@ -260,7 +262,7 @@ function VideoSection({
             const v = e.video;
             const duration = formatDuration(v.durationSec);
             return (
-              <li key={v.id} className="history__item">
+              <li key={v.id} className={watched.has(v.id) ? 'history__item history__item--watched' : 'history__item'}>
                 <Link className="history__open history__open--row" to={linkFor(e)}>
                   {e.position !== null && <span className="vlist__index">{e.position}</span>}
                   <img src={v.thumbnailUrl} alt="" width={160} height={90} loading="lazy" />
@@ -277,6 +279,12 @@ function VideoSection({
                         <span className="meta">
                           <Clock className="icon icon--sm" aria-hidden="true" />
                           {duration}
+                        </span>
+                      )}
+                      {watched.has(v.id) && (
+                        <span className="meta meta--watched">
+                          <CircleCheck className="icon icon--sm" aria-hidden="true" />
+                          Watched
                         </span>
                       )}
                     </span>

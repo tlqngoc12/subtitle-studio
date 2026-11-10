@@ -671,6 +671,28 @@ Nhánh `feature/public-manual-vietsub-only`. Chỉ đổi backend (`SiteExporter
 - **Test:** `SiteExporterTest` thêm 3 ca (video AI bị loại, playlist chỉ có AI bị bỏ, playlist hỗn hợp tính lại số lượng + bìa); các ca cũ dùng Vietsub Manual.
 - **Cần làm:** bấm **Publish lại** để bản public bỏ các video AI đã đăng trước đó.
 
+### 2026-11-10: Trạng thái sửa Vietsub (In progress / Done), public chỉ xuất Done, tua và phát khi focus dòng ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/vietsub-edit-status`. Plan: [docs/superpowers/plans/2026-11-10-vietsub-edit-status-and-seek-on-focus.md](docs/superpowers/plans/2026-11-10-vietsub-edit-status-and-seek-on-focus.md).
+
+- **DB/backend:** Flyway **V11** thêm `video.edit_status` (`IN_PROGRESS` | `DONE`, nullable), video MANUAL có sẵn được gán `DONE`. Lưu text: `null` thành `IN_PROGRESS`, `DONE` giữ `DONE`; upload/Replace `.srt` gán `DONE`; Gemini không đổi. `PUT /api/videos/{id}/edit-status` (Mark as done / Reopen) chỉ cho Vietsub MANUAL, từ chối khi đang dịch.
+- **Public:** `SiteExporter` chỉ xuất video `DONE` (thay luật "chỉ MANUAL" cũ), playlist tính lại số lượng và ảnh bìa.
+- **Admin:** editor có nút Save (icon, cam), Mark as done (khoá khi còn thay đổi chưa lưu hoặc đang dịch) và Reopen, kèm toast; Manage Vietsub hiện icon trạng thái cạnh nhãn Manual (tím = In progress, cam = Done).
+- **Editor:** focus textarea của dòng khác dòng focus trước thì tua video tới dòng đó và phát (nhớ dòng trong ref); cùng dòng, readonly (đang dịch) thì không; nút `#` chỉ tua và cuộn.
+- **Cần làm:** deploy (có migration V11), rồi bấm **Publish lại**; chỉ các video đã Done mới lên bản public. Backlog: lọc Manage Vietsub theo trạng thái.
+
+### 2026-11-10: UI review Get Engsub, Vietsub, Vietsub list và trang xem ✅ (chưa merge, chưa deploy)
+
+Nhánh `feat/ui-review-watch-lists` (tạo từ `feat/vietsub-edit-status`, rebase lên `main` sau khi PR #4 merge). Plan: [docs/superpowers/plans/2026-11-10-ui-review-engsub-vietsub-lists.md](docs/superpowers/plans/2026-11-10-ui-review-engsub-vietsub-lists.md). Phạm vi: W1–W8, P1–P4, E1–E5, V1–V3, L1 (W9 Theater mode và cỡ chữ S/M/L để Backlog).
+
+- **Trang xem (admin + public):** tiêu đề/kênh nằm dưới video (W2); player không cao hơn màn hình (W1, `max-width` theo `100dvh`); phím tắt cấp trang K/Space, J/L, ←/→, M, C, `?` (hook `usePlayerShortcuts`, bỏ qua khi đang gõ, khi có Ctrl/Meta/Alt, trong dialog/popover; Space không bắt khi focus ở nút/link); popover liệt kê phím (nút `Keyboard`); nút Show/Hide Vietsub trong khung player, nhớ trong localStorage (W5); phụ đề tối thiểu 14px; nút trong khung 44px ở ≤760px. Tooltip của nút trong khung player vẫn dùng `title` (W7: `<Tip>` render portal ra ngoài khung fullscreen nên không hiện).
+- **`useYouTubePlayer`:** thêm `togglePlay`, `seekBy`, `toggleMute` (IFrame API: `getPlayerState`, `pauseVideo`, `getDuration`, `mute/unMute/isMuted`).
+- **Đã xem (P1):** `data/watched.ts` (localStorage `subtitle-studio.watched`, lỗi storage chỉ giữ trong bộ nhớ). Video tính là đã xem khi `ended` hoặc qua 90% thời lượng. Hiện dấu tick trong panel playlist (kèm "Watched" ẩn, ảnh mờ 75%) và dòng "Watched" trong danh sách video. **Up next** (P2) ở đầu panel và nhãn `Next`. **Continue: EP N** (P4) ở header/thẻ playlist: video chưa xem đầu tiên, chỉ hiện khi đã xem ít nhất một video và còn video chưa xem.
+- **Danh sách:** thẻ playlist gọn trên mobile (ảnh bìa rộng hết thẻ, ẩn preview, số video và Play all cùng hàng, preview thẳng hàng) (P3); ô tìm kiếm tối đa 560px (L1); Get Engsub/Manage Vietsub: nút nằm dưới tiêu đề trên mobile (E1), Delete tách ra (E2), tiêu đề 2 dòng (E3), bảng câu 60dvh (E4), placeholder rõ hơn (E5); Manage Vietsub bỏ h2 hiển thị (V2) và có chevron ở cuối dòng (V3); focus ring cho `label.button` bọc input file ẩn (V1, `:has(input:focus-visible)`).
+- **W8:** không còn thấy tràn ngang ở 390px khi đo lại sau khi đổi layout (không tìm ra nguyên nhân riêng).
+- **Test:** `cd frontend && npx tsc --noEmit && npm test`: 65 file, 862 test pass (trước nhánh này 849 chưa tính test mới của PR #4); thêm test cho hook phím tắt, `watched`, `useYouTubePlayer`, `WatchPage`, `VietsubListPage`, test CSS (`listsLayout.test.ts`, `WatchPage.css.test.ts`). `test/css.ts` chuẩn hoá CRLF (checkout Windows làm 2 test `brandRoles` fail).
+- **Chưa deploy; public cần Publish lại** (dữ liệu "đã xem" chỉ nằm ở trình duyệt từng người xem, không gửi đi đâu).
+
 ### 2026-11-10: Novel reader UX (trang đọc truyện public) ✅ (chưa merge, chưa deploy)
 
 Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-reader-ux.md](docs/superpowers/plans/2026-11-10-novel-reader-ux.md).
@@ -707,6 +729,9 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 | Hồ sơ dịch lưu trong Oracle + sửa trên web | P4 | phase cải tiến (hiện là file `./data/prompts/*.md`) |
 | Video > 60 phút: chia đợt dịch Gemini | P4 | hiện bỏ qua với `VIDEO_TOO_LONG` |
 | `SUBTITLESTUDIO_PUBLISH_URL` (tuỳ chọn) | Public site | link hiện lấy từ tên project (`https://<project>.pages.dev`); khi Cloudflare thêm hậu tố (tên đã có người dùng) thì link trong app sai → cho phép đặt link thật |
+| **W9 Theater mode** (nút hoặc phím T: player rộng hết trang, panel playlist xuống dưới, lưu localStorage) | UI review 2026-11-10 | người dùng chọn để Backlog |
+| **Cỡ chữ phụ đề S/M/L** (hệ số 1 / 1,25 / 1,5, lưu localStorage, đặt trong popover phím tắt) | UI review 2026-11-10 | phần tuỳ chọn của W6, để Backlog |
+| **Kiểm tra fullscreen trên iPad thật** | UI review 2026-11-10 | Safari/iPad cũ chỉ có Fullscreen API tiền tố webkit: quy tắc W1 `.watch__main > .player:not(:fullscreen)` có thể vẫn giới hạn bề rộng player khi toàn màn hình (`:fullscreen` không khớp `:-webkit-full-screen`); cần thử trên iPad thật |
 | Nhãn Manual/AI trên trang public | Public site | dữ liệu đã có `viSource`; thêm badge nhỏ ở Vietsub list nếu muốn khách thấy |
 | Review Public site (Minor): Publish có thể kẹt PUBLISHING nếu executor từ chối/`Error`; tắt app phải chờ Publish đang chạy; ảnh Profile bị bỏ vẫn hiện khung zoom rỗng; code quản trị nằm trong bundle public (không chạy); `_redirects` có thể thừa với SPA mode của Pages; chèn meta noindex chỉ khớp `<head>`; đường dẫn file trong bundle lấy từ URI (percent-encoding); `mvn spring-boot:run` không có `public-site/` → lỗi chung chung; wrangler nhận toàn bộ env của app | Public site | final review nhánh `public-site` |
 | Bulk import cả thư mục ảnh + Gemini đề xuất chia chương | Novels | người dùng chọn làm sau (upload theo chương trước) |

@@ -7,3 +7,18 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* On the list page the search box only needs room for a few words. */
+.page > .searchbar {
+  max-width: 560px;
+}
+
+/* A video already watched: tick in brand ink, thumbnail dimmed a little. */
+.meta--watched {
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.history__item--watched .history__open img {
+  opacity: 0.75;
+}

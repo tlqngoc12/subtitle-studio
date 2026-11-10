@@ -1,9 +1,10 @@
-import { Captions, Download, FilePlus, FileUp, Languages, SearchX, Trash2 } from 'lucide-react';
+import { Captions, ChevronRight, Download, FilePlus, FileUp, Languages, SearchX, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { viSrtUrl, type VideoDto } from '../api/client';
 import { rowMotion } from '../lib/motion';
+import { EditStatusIcon } from './EditStatusIcon';
 import { EmptyState } from './EmptyState';
 import { SaveToPlaylist } from './SaveToPlaylist';
 import { Tip } from './Tip';
@@ -29,7 +30,7 @@ interface Props {
 export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, listKey, toolbar, filtered, footer }: Props) {
   return (
     <section className="history" aria-label="Manage Vietsub">
-      <h2 className="history__heading">Manage Vietsub</h2>
+      <h2 className="history__heading visually-hidden">Manage Vietsub</h2>
       {toolbar}
       {videos === null ? (
         <LoadingText>Loading list…</LoadingText>
@@ -55,7 +56,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                   <Link className="history__open history__open--row" to={`/vietsub/${v.id}/edit`}>
                     <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                     <span className="history__text">
-                      <span className="history__title">{v.title}</span>
+                      <span className="history__title title-clamp">{v.title}</span>
                       <span className="history__sub">
                         <span className="meta">
                           <Captions className="icon icon--sm" aria-hidden="true" />
@@ -70,10 +71,12 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                           <span className="meta">
                             <FileUp className="icon icon--sm" aria-hidden="true" />
                             Manual
+                            <EditStatusIcon status={v.editStatus} />
                           </span>
                         )}
                       </span>
                     </span>
+                    <ChevronRight className="icon history__chevron" aria-hidden="true" />
                   </Link>
                   <span className="history__actions">
                     <SaveToPlaylist video={v} />

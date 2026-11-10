@@ -145,5 +145,39 @@ export function useYouTubePlayer(
     setCurrentMs(ms);
   }, []);
 
-  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo };
+  /** Starts playback (no-op until the player is ready). Browsers may refuse it before the user has interacted. */
+  const play = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    player.playVideo();
+  }, []);
+
+  /** Pauses a playing video and plays any other (no-op until the player is ready). */
+  const togglePlay = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    const s = player.getPlayerState();
+    if (s === YT_STATE.PLAYING || s === YT_STATE.BUFFERING) player.pauseVideo();
+    else player.playVideo();
+  }, []);
+
+  /** Jumps `seconds` forward (or back when negative) from the current time, staying inside the video. */
+  const seekBy = useCallback((seconds: number) => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    const duration = player.getDuration();
+    let target = Math.max(0, player.getCurrentTime() + seconds);
+    if (duration > 0) target = Math.min(target, duration);
+    player.seekTo(target, true);
+    setCurrentMs(target * 1000);
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    if (player.isMuted()) player.unMute();
+    else player.mute();
+  }, []);
+
+  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play, togglePlay, seekBy, toggleMute };
 }

@@ -95,13 +95,31 @@
 
 .plcard__preview {
   margin: 0;
-  padding-left: 1.4em;
+  padding-left: 0;
+  list-style: none;
   color: var(--muted);
   font-size: var(--step--1);
 }
 
 .plcard__preview li {
   min-width: 0;
+}
+
+/* Video count, then the actions: stacked on desktop, one row on small phones. */
+.plcard__foot {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.plcard__foot p {
+  margin: 0;
+}
+
+.plcard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -124,5 +142,29 @@
 
   .plcards .plcard__name {
     font-size: var(--step-1);
+  }
+}
+
+@media (max-width: 520px) {
+  /* A card on a small phone: the cover on top at full width, no preview, count and Play all on one row. */
+  .plcards .plcard {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .plcards .plcard__preview {
+    display: none;
+  }
+
+  .plcards .plcard__body {
+    justify-items: stretch;
+  }
+
+  .plcards .plcard__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
   }
 }

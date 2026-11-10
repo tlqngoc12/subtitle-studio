@@ -14,6 +14,7 @@ import com.subtitlestudio.profile.MediaRepository;
 import com.subtitlestudio.profile.ProfileDto;
 import com.subtitlestudio.profile.ProfileService;
 import com.subtitlestudio.profile.ProfileSummary;
+import com.subtitlestudio.video.EditStatus;
 import com.subtitlestudio.video.SubtitleService;
 import com.subtitlestudio.video.ViCue;
 import com.subtitlestudio.video.VideoDto;
@@ -87,8 +88,8 @@ public class SiteExporter {
 
         List<PublicVideo> videos = subtitles.list().stream()
                 .map(VideoDto::from)
-                .map(PublicVideo::from)
                 .filter(SiteExporter::isPublic)
+                .map(PublicVideo::from)
                 .sorted(NEWEST_VIETSUB_FIRST)
                 .toList();
         write(dir.resolve("data/videos.json"), videos);
@@ -114,9 +115,9 @@ public class SiteExporter {
         }
     }
 
-    /** Guests only see videos with a hand-made (MANUAL) Vietsub; AI (AUTO) ones stay in the admin app. */
-    private static boolean isPublic(PublicVideo v) {
-        return v.viCueCount() > 0 && v.viSource() == ViSource.MANUAL;
+    /** Guests only see videos whose Vietsub is finished (DONE, which only a MANUAL Vietsub can be). */
+    private static boolean isPublic(VideoDto v) {
+        return v.viCueCount() > 0 && v.viSource() == ViSource.MANUAL && v.editStatus() == EditStatus.DONE;
     }
 
     private void exportPlaylists(Path dir) {
@@ -124,8 +125,8 @@ public class SiteExporter {
         for (PlaylistSummary s : playlists.list(null)) {
             PlaylistDetail detail = playlists.get(s.id());
             List<PublicVideo> videos = detail.videos().stream()
-                    .map(PublicVideo::from)
                     .filter(SiteExporter::isPublic)
+                    .map(PublicVideo::from)
                     .toList();
             if (videos.isEmpty()) {
                 continue; // nothing a guest could watch: leave the playlist out

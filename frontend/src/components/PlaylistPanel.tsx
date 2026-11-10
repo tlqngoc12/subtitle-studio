@@ -1,7 +1,8 @@
-import { SkipBack, SkipForward } from 'lucide-react';
+import { CircleCheck, SkipBack, SkipForward } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import type { PublicPlaylistDetail } from '../data/types';
+import { useWatched } from '../data/watched';
 import { Tip } from './Tip';
 import './PlaylistPanel.css';
 
@@ -21,6 +22,8 @@ interface Props {
 export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChange, onPrevious, onNext }: Props) {
   const currentRef = useRef<HTMLAnchorElement>(null);
   const count = playlist.videos.length;
+  const watched = useWatched();
+  const next = playlist.videos[index + 1];
 
   // Keep the current video in view inside the panel's own scroll area.
   useEffect(() => {
@@ -34,6 +37,7 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
         <p className="plpanel__position muted">
           {index + 1} / {count}
         </p>
+        {next && <p className="plpanel__upnext">{`Up next: ${next.title}`}</p>}
         <div className="plpanel__controls">
           <Tip label="Previous (Shift+P)">
             <button
@@ -72,20 +76,34 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
       <ol className="plpanel__list">
         {playlist.videos.map((v, i) => {
           const current = i === index;
+          const seen = !current && watched.has(v.id);
           return (
             <li key={v.id}>
               <Link
                 ref={current ? currentRef : undefined}
-                className={current ? 'plpanel__item plpanel__item--current' : 'plpanel__item'}
+                className={
+                  current ? 'plpanel__item plpanel__item--current' : seen ? 'plpanel__item plpanel__item--watched' : 'plpanel__item'
+                }
                 to={`/vietsub/${v.id}?playlist=${playlist.id}`}
                 state={{ autoplay: true }}
                 aria-current={current ? 'true' : undefined}
               >
-                <span className="plpanel__index" aria-hidden="true">
-                  {current ? '▶' : i + 1}
+                <span className="plpanel__lead">
+                  <span className="plpanel__index" aria-hidden="true">
+                    {current ? '▶' : i + 1}
+                  </span>
+                  {seen && (
+                    <>
+                      <CircleCheck className="icon icon--sm plpanel__seen" aria-hidden="true" />
+                      <span className="visually-hidden">Watched</span>
+                    </>
+                  )}
                 </span>
                 <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
-                <span className="plpanel__title title-clamp">{v.title}</span>
+                <span className="plpanel__text">
+                  {i === index + 1 && <span className="plpanel__tag">Next</span>}
+                  <span className="plpanel__title title-clamp">{v.title}</span>
+                </span>
               </Link>
             </li>
           );

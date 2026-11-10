@@ -1,13 +1,24 @@
-import { FileUp, Languages } from 'lucide-react';
+import { CircleCheck, FileUp, Languages, RotateCcw, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
-import { ApiError, getVideo, getVietsub, saveVietsubText, type ViCue, type VideoDto } from '../api/client';
+import {
+  ApiError,
+  getVideo,
+  getVietsub,
+  saveVietsubText,
+  setEditStatus,
+  type EditStatus,
+  type ViCue,
+  type VideoDto,
+} from '../api/client';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { CueEditorTable } from '../components/vietsub/CueEditorTable';
 import { Alert } from '../components/ui/Alert';
+import { IconButton } from '../components/ui/IconButton';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -144,6 +155,19 @@ function SourceBadge({ source }: { source: VideoDto['viSource'] }) {
   );
 }
 
+/** The disabled button gets no pointer events, so its tooltip (the reason) sits on a wrapper that is always rendered. */
+function MarkDoneButton({ disabledReason, onClick }: { disabledReason: string | null; onClick: () => void }) {
+  return (
+    <Tip label={disabledReason ?? 'Mark as done'}>
+      <span className="tip-target" tabIndex={disabledReason ? 0 : undefined}>
+        <button className="button button--icon" type="button" aria-label="Mark as done" disabled={disabledReason !== null} onClick={onClick}>
+          <CircleCheck className="icon" aria-hidden="true" />
+        </button>
+      </span>
+    </Tip>
+  );
+}
+
 const MAX_TEXT = 1000;
 
 /** What the server stores for a typed line: CRLF as LF, NFC, trimmed. Used to compare and to reset the dirty state. */
@@ -174,7 +198,8 @@ function Editor({
   const [lineErrors, setLineErrors] = useState<Record<number, string>>({});
   const playerRef = useRef<HTMLDivElement>(null);
   const player = useYouTubePlayer(playerRef, video.id);
-  const { seekTo } = player;
+  const { seekTo, play } = player;
+  const [changingStatus, setChangingStatus] = useState(false);
 
   /** The table compares with the saved text, and keeps the timing of the loaded lines. */
   const baseline = useMemo(() => cues.map((c, i) => ({ ...c, text: saved[i] })), [cues, saved]);
@@ -229,6 +254,32 @@ function Editor({
       setSaving(false);
     }
   }, [texts, video.id, video.viUpdatedAt]);
+
+  /** Focusing another line seeks the video to that line and plays it. */
+  const seekAndPlay = useCallback(
+    (ms: number) => {
+      seekTo(ms);
+      play();
+    },
+    [seekTo, play],
+  );
+
+  const changeStatus = useCallback(
+    async (status: EditStatus) => {
+      setChangingStatus(true);
+      setSaveError(null);
+      try {
+        const updated = await setEditStatus(video.id, status);
+        setVideo(updated);
+        toast.success(status === 'DONE' ? 'Marked as done' : 'Reopened');
+      } catch (e) {
+        setSaveError({ message: errorMessage(e), reload: e instanceof ApiError && e.status === 409 });
+      } finally {
+        setChangingStatus(false);
+      }
+    },
+    [video.id],
+  );
 
   // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog.
   const saveRef = useRef(save);
@@ -295,9 +346,36 @@ function Editor({
             <div className="vedit__actions">
               <SourceBadge source={video.viSource} />
               {dirty && <span className="muted">Unsaved changes</span>}
-              <button className="button button--primary" type="button" disabled={!canSave} onClick={() => void save()}>
-                Save
-              </button>
+              <IconButton
+                className="vedit__save"
+                icon={Save}
+                label="Save (Ctrl+S)"
+                disabled={!canSave}
+                onClick={() => void save()}
+              />
+              {video.editStatus === 'DONE' ? (
+                <IconButton
+                  icon={RotateCcw}
+                  label="Reopen (back to In progress)"
+                  disabled={translating || changingStatus}
+                  onClick={() => void changeStatus('IN_PROGRESS')}
+                />
+              ) : (
+                <MarkDoneButton
+                  disabledReason={
+                    translating
+                      ? 'Wait until the translation finishes'
+                      : dirty
+                        ? 'Save your changes first'
+                        : video.viSource !== 'MANUAL'
+                          ? 'Save an edit first'
+                          : saving || changingStatus
+                          ? 'Please wait…'
+                          : null
+                  }
+                  onClick={() => void changeStatus('DONE')}
+                />
+              )}
             </div>
           }
         />
@@ -332,6 +410,7 @@ function Editor({
           errors={lineErrors}
           onChange={onChange}
           onSeek={seekTo}
+          onSeekPlay={seekAndPlay}
         />
       </div>
       {dialog}

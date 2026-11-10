@@ -36,7 +36,7 @@
 }
 
 .frame__input::placeholder {
-  color: rgb(255 255 255 / 0.45);
+  color: rgb(255 255 255 / 0.55);
   font-weight: 400;
   text-shadow: none;
 }

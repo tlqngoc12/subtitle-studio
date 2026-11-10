@@ -58,6 +58,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'This is already being translated.', hint: 'Wait until the translation finishes.' };
     case 'VIETSUB_CHANGED':
       return { title: 'This Vietsub changed since you opened it.', hint: 'Reload to see the latest version.' };
+    case 'VIETSUB_NOT_MANUAL':
+      return { title: 'Only a Vietsub that has been edited or uploaded by hand can be marked as done.', hint: 'Save an edit first.' };
     case 'INVALID_VIETSUB_TEXT':
       return { title: 'Check the highlighted lines.' };
     case 'NO_VIETSUB':

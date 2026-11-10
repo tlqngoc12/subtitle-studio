@@ -12,4 +12,5 @@ export const css: string = [
     .sort(),
 ]
   .map((path) => modules[path])
-  .join('\n');
+  .join('\n')
+  .replace(/\r\n/g, '\n'); // a Windows checkout has CRLF line endings; the tests match on \n

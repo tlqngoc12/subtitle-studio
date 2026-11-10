@@ -46,7 +46,7 @@ export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listK
                   <button className="history__open" type="button" onClick={() => onOpen(v)} aria-label={`Open ${v.title}`}>
                     <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                     <span className="history__text">
-                      <span className="history__title">{v.title}</span>
+                      <span className="history__title title-clamp">{v.title}</span>
                       <span className="history__sub">
                         <span className="meta">
                           <Captions className="icon icon--sm" aria-hidden="true" />

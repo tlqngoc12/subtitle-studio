@@ -170,6 +170,17 @@ class PersistenceOracleIT {
     }
 
     @Test
+    void storesEditStatusAndRejectsUnknownValue() {
+        videos.save(video(ID, "t"));
+
+        assertThatThrownBy(() -> jdbc.update("update video set edit_status = 'X' where id = ?", ID))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        jdbc.update("update video set edit_status = 'DONE' where id = ?", ID);
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus())
+                .isEqualTo(com.subtitlestudio.video.EditStatus.DONE);
+    }
+
+    @Test
     void storesEmojiAndLongThaiTitle() {
         String title = "ก".repeat(480) + "😀🎬🍓";
         videos.save(video(ID, title));
