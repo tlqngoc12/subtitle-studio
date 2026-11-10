@@ -20,14 +20,17 @@ import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
 import {
   READER_WIDTHS,
-  isDarkTheme,
-  readNight,
-  readWidth,
+  readSize,
+  readTheme,
   recordProgress,
-  saveNight,
-  saveWidth,
-  type ReaderWidth,
+  saveSize,
+  saveTheme,
+  type ReaderSize,
+  type ReaderTheme,
 } from "./readerPrefs";
+import { READER_COLUMNS, pickFormat } from "./readerLayout";
+import { COMPACT_QUERY, useMediaQuery } from "../../lib/useMediaQuery";
+import './readerThemes.css';
 import './ReaderPage.css';
 
 /**
@@ -44,22 +47,27 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [chapter, setChapter] = useState<PublicChapterFile | null>(null);
   const [failed, setFailed] = useState(false);
-  // Night mode: the reader's own choice, else on exactly when the app theme is dark.
-  const [night, setNight] = useState(() => readNight() ?? isDarkTheme());
-  const [width, setWidth] = useState<ReaderWidth>(readWidth);
-  const widthStep = READER_WIDTHS.indexOf(width);
+  const [theme, setTheme] = useState<ReaderTheme>(readTheme);
+  const [size, setSize] = useState<ReaderSize>(readSize);
+  const compact = useMediaQuery(COMPACT_QUERY);
 
-  function toggleNight() {
-    saveNight(!night);
-    setNight(!night);
+  function changeTheme(t: ReaderTheme) {
+    saveTheme(t);
+    setTheme(t);
   }
 
-  function stepWidth(delta: number) {
-    const next = READER_WIDTHS[widthStep + delta];
-    if (next === undefined) return;
-    saveWidth(next);
-    setWidth(next);
+  function changeSize(s: ReaderSize) {
+    saveSize(s);
+    setSize(s);
   }
+
+  // The same theme on <html> so the page behind the reader (and the overscroll) takes the paper colour too.
+  useEffect(() => {
+    document.documentElement.dataset.readerTheme = theme;
+    return () => {
+      delete document.documentElement.dataset.readerTheme;
+    };
+  }, [theme]);
 
   useEffect(() => {
     source
@@ -80,6 +88,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       .catch(() => setFailed(true));
   }, [source, slug, chapterNo]);
 
+  const format = chapter ? pickFormat(chapter, compact, size) : null;
   const to = (no: number) => `/novels/${slug}/${no}`;
   const prev = chapter?.prev ?? null;
   const next = chapter?.next ?? null;
@@ -132,7 +141,8 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
     <main
       ref={area}
       className="page reader-page"
-      style={{ "--reader-width": `${width}px` } as CSSProperties}
+      data-reader-theme={theme}
+      style={{ "--reader-width": `${READER_COLUMNS[size]}px` } as CSSProperties}
     >
       <Breadcrumbs items={crumbs} />
       <ReaderBar
@@ -146,34 +156,33 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         next={next}
         chapters={novel?.chapters ?? []}
         currentNo={chapter?.chapterNo ?? Number(chapterNo)}
-        night={night}
-        onToggleNight={toggleNight}
-        width={width}
-        onStepWidth={stepWidth}
+        // Bridge until Task 6
+        night={theme === "dark" || theme === "oled"}
+        onToggleNight={() => changeTheme(theme === "dark" || theme === "oled" ? "sepia" : "dark")}
+        width={READER_WIDTHS[size]}
+        onStepWidth={(delta) => {
+          const n = size + delta;
+          if (n >= 0 && n <= 2) changeSize(n as ReaderSize);
+        }}
       />
       {failed && (
         <Alert title={PUBLIC_ERROR_TITLE} />
       )}
       {!chapter && !failed && <LoadingText>Đang tải chương…</LoadingText>}
-      {chapter && (
+      {chapter && format && (
         <>
           <h1 className="visually-hidden">{current}</h1>
           <div
-            className={[
-              "reader",
-              hidden && "reader--hidden",
-              night && "reader--night",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            data-width={width}
+            className={["reader", hidden && "reader--hidden"].filter(Boolean).join(" ")}
+            data-width={READER_COLUMNS[size]}
           >
-            {chapter.images.map((src, i) => (
+            {format.images.map((src, i) => (
               <img
                 key={src}
                 className="reader__page"
                 src={src}
-                alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${chapter.images.length}`}
+                alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${format.images.length}`}
+                style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 draggable={false}
                 loading={i === 0 ? "eager" : "lazy"}
               />

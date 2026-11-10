@@ -89,6 +89,47 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('ReaderPage page format and theme', () => {
+  const FORMATS = [
+    { key: 's' as const, width: 1080, height: 1600, images: ['/s-1.webp', '/s-2.webp'] },
+    { key: 'm' as const, width: 820, height: 1215, images: ['/m-1.webp', '/m-2.webp'] },
+    { key: 'l' as const, width: 640, height: 948, images: ['/l-1.webp', '/l-2.webp'] },
+  ];
+  const fmtSource: NovelSource = {
+    ...source,
+    getChapter: async (_s, no) => ({ ...chapter(no), formats: FORMATS }),
+  };
+
+  it('renders the m images on a compact screen', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
+    renderAt('/novels/summer/3', fmtSource);
+    const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(imgs.map((i) => i.getAttribute('src'))).toEqual(['/m-1.webp', '/m-2.webp']);
+  });
+
+  it('sets data-reader-theme from the stored theme', async () => {
+    localStorage.setItem('reader-theme', 'oled');
+    const { container } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(container.querySelector('main')).toHaveAttribute('data-reader-theme', 'oled');
+    expect(document.documentElement.dataset.readerTheme).toBe('oled');
+  });
+
+  it('clears the html theme attribute on unmount', async () => {
+    const { unmount } = renderAt('/novels/summer/3');
+    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    unmount();
+    expect(document.documentElement.dataset.readerTheme).toBeUndefined();
+  });
+
+  it('img aspect-ratio follows the picked format', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
+    renderAt('/novels/summer/3', fmtSource);
+    const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    expect(imgs[0].style.aspectRatio).toBe('820 / 1215');
+  });
+});
+
 describe('ReaderPage', () => {
   it('shows every page image, not draggable, the first eager and the rest lazy', async () => {
     renderAt('/novels/summer/3');
@@ -203,11 +244,11 @@ describe('ReaderPage', () => {
     expect(/\.reader-bar__text\s*\{[^}]*min-width:\s*0/.test(css)).toBe(true);
     expect(/\.reader-bar__novel,\s*\.reader-bar__chapter\s*\{[^}]*text-overflow:\s*ellipsis/.test(css)).toBe(true);
     const column = container.querySelector('.reader-page') as HTMLElement;
-    expect(column.style.getPropertyValue('--reader-width')).toBe('600px');
+    expect(column.style.getPropertyValue('--reader-width')).toBe('640px');
     expect(column.contains(container.querySelector('.reader'))).toBe(true);
     await openSettings();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
-    expect(column.style.getPropertyValue('--reader-width')).toBe('760px');
+    expect(column.style.getPropertyValue('--reader-width')).toBe('720px');
   });
 
   it('disables (does not hide) previous on the first chapter and next on the last', async () => {
@@ -514,6 +555,8 @@ describe('ReaderPage preferences', () => {
     expect(JSON.parse(localStorage.getItem('novel-read:summer')!)).toEqual([3, 4]);
   });
 
+  const main = (container: HTMLElement) => container.querySelector('main') as HTMLElement;
+
   it('renders with defaults when localStorage throws', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
@@ -525,16 +568,16 @@ describe('ReaderPage preferences', () => {
     const { container } = renderAt('/novels/summer/3');
 
     expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
-    expect(reader(container)).toHaveAttribute('data-width', '600');
+    expect(reader(container)).toHaveAttribute('data-width', '640');
     await openSettings(user);
     expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
     await user.click(screen.getByRole('button', { name: 'Chữ lớn hơn' }));
     expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
-    expect(reader(container)).toHaveAttribute('data-width', '760');
+    expect(reader(container)).toHaveAttribute('data-width', '720');
   });
 
-  it('toggles night mode, flips aria-pressed and the reader class, and remembers it', async () => {
+  it('switches the theme dark <-> sepia with the night toggle and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
@@ -542,57 +585,51 @@ describe('ReaderPage preferences', () => {
     const toggle = screen.getByRole('button', { name: 'Chế độ đêm' });
 
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(reader(container)).not.toHaveClass('reader--night');
+    expect(main(container)).toHaveAttribute('data-reader-theme', 'sepia');
     await user.click(toggle);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(reader(container)).toHaveClass('reader--night');
-    expect(localStorage.getItem('reader-night')).toBe('on');
+    expect(main(container)).toHaveAttribute('data-reader-theme', 'dark');
+    expect(localStorage.getItem('reader-theme')).toBe('dark');
 
     unmount();
     const again = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(again.container)).toHaveClass('reader--night');
+    expect(main(again.container)).toHaveAttribute('data-reader-theme', 'dark');
     await openSettings(user);
-    expect(screen.getByRole('button', { name: 'Chế độ đêm' })).toHaveAttribute('aria-pressed', 'true');
-
     await user.click(screen.getByRole('button', { name: 'Chế độ đêm' }));
-    expect(localStorage.getItem('reader-night')).toBe('off');
-    expect(reader(again.container)).not.toHaveClass('reader--night');
+    expect(localStorage.getItem('reader-theme')).toBe('sepia');
   });
 
-  it('defaults to night mode when the theme is dark, and a stored choice overrides it', async () => {
+  it('defaults to the dark theme when the app theme is dark, and a stored theme overrides it', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     const dark = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(dark.container)).toHaveClass('reader--night');
+    expect(main(dark.container)).toHaveAttribute('data-reader-theme', 'dark');
     dark.unmount();
 
-    localStorage.setItem('reader-night', 'off');
+    localStorage.setItem('reader-theme', 'light');
     const overridden = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(overridden.container)).not.toHaveClass('reader--night');
+    expect(main(overridden.container)).toHaveAttribute('data-reader-theme', 'light');
   });
 
-  it('follows the OS dark setting when no theme is forced', async () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
-    const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-
-    expect(reader(container)).toHaveClass('reader--night');
-  });
-
-  it('keeps the night filter when the window is inactive', async () => {
-    localStorage.setItem('reader-night', 'on');
+  it('keeps the theme when the window is inactive', async () => {
+    localStorage.setItem('reader-theme', 'oled');
     const { container } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
     fireEvent(window, new Event('blur'));
 
-    expect(reader(container)).toHaveClass('reader--night');
+    expect(main(container)).toHaveAttribute('data-reader-theme', 'oled');
     expect(reader(container)).toHaveClass('reader--hidden');
   });
 
-  it('steps the width 600 / 760 / 900, disables the buttons at the ends and remembers it', async () => {
+  it('blurs through the theme filter and has no night class in the css', () => {
+    expect(css).toContain('filter: var(--reader-img-filter) blur(24px)');
+    expect(css).not.toContain('reader--night');
+  });
+
+  it('steps the size 560 / 640 / 720, disables the buttons at the ends and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
@@ -600,25 +637,22 @@ describe('ReaderPage preferences', () => {
     const smaller = screen.getByRole('button', { name: 'Chữ nhỏ hơn' });
     const larger = screen.getByRole('button', { name: 'Chữ lớn hơn' });
 
-    expect(reader(container)).toHaveAttribute('data-width', '600');
-    expect(smaller).toBeDisabled();
-    expect(larger).toBeEnabled();
-
-    await user.click(larger);
-    expect(reader(container)).toHaveAttribute('data-width', '760');
+    expect(reader(container)).toHaveAttribute('data-width', '640');
     expect(smaller).toBeEnabled();
     await user.click(larger);
-    expect(reader(container)).toHaveAttribute('data-width', '900');
+    expect(reader(container)).toHaveAttribute('data-width', '720');
     expect(larger).toBeDisabled();
-    expect(localStorage.getItem('reader-width')).toBe('900');
+    expect(localStorage.getItem('reader-size')).toBe('2');
 
     await user.click(smaller);
-    expect(reader(container)).toHaveAttribute('data-width', '760');
+    await user.click(smaller);
+    expect(reader(container)).toHaveAttribute('data-width', '560');
+    expect(smaller).toBeDisabled();
 
     unmount();
     const again = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
-    expect(reader(again.container)).toHaveAttribute('data-width', '760');
+    expect(reader(again.container)).toHaveAttribute('data-width', '560');
   });
 
   it('keeps the preference buttons outside the copy-guarded reader', async () => {

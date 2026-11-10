@@ -1,0 +1,29 @@
+/* Paper colours of the reader. Chapter images are black ink on transparent paper; dark themes invert them.
+   invert(0) (not none) keeps `filter: var(--reader-img-filter) blur(24px)` valid for the copy guard. */
+[data-reader-theme="light"] {
+  --reader-paper: #FAF8F5;
+  --reader-img-filter: invert(0);
+  --reader-img-opacity: 0.88;
+}
+
+[data-reader-theme="sepia"] {
+  --reader-paper: #F4ECD8;
+  --reader-img-filter: invert(0);
+  --reader-img-opacity: 0.85;
+}
+
+[data-reader-theme="dark"] {
+  --reader-paper: #16121B;
+  --reader-img-filter: invert(1);
+  --reader-img-opacity: 0.88;
+}
+
+[data-reader-theme="oled"] {
+  --reader-paper: #000000;
+  --reader-img-filter: invert(1);
+  --reader-img-opacity: 0.72;
+}
+
+html[data-reader-theme] body {
+  background: var(--reader-paper);
+}
