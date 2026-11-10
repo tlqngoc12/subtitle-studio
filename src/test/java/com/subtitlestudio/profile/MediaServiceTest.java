@@ -354,4 +354,31 @@ class MediaServiceTest {
             photoPosts.deleteAll();
         }
     }
+
+    @Autowired
+    private com.subtitlestudio.work.WorkRepository works;
+
+    @Autowired
+    private com.subtitlestudio.work.PersonRepository people;
+
+    @Test
+    void workCoverAndPersonAvatarCountAsReferences() {
+        Media cover = storeAt(NOW.minus(Duration.ofDays(2)));
+        Media avatar = storeAt(NOW.minus(Duration.ofDays(2)));
+        com.subtitlestudio.work.Work w = new com.subtitlestudio.work.Work(NOW);
+        w.set("W", cover, null, com.subtitlestudio.work.WorkCategory.MUSIC, null, null, null, List.of(), List.of(), NOW);
+        works.saveAndFlush(w);
+        people.saveAndFlush(new com.subtitlestudio.work.Person("Bonnie", avatar, NOW));
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(cover, "png")).exists();
+            assertThat(fileOf(avatar, "png")).exists();
+            assertThat(media.isReferenced(cover.getId())).isTrue();
+            assertThat(media.isReferenced(avatar.getId())).isTrue();
+        } finally {
+            works.deleteAll();
+            people.deleteAll();
+        }
+    }
 }

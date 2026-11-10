@@ -1,8 +1,7 @@
 package com.subtitlestudio.novel;
 
 import com.subtitlestudio.profile.FieldError;
-import com.subtitlestudio.url.InvalidUrlException;
-import com.subtitlestudio.url.UrlParser;
+import com.subtitlestudio.common.YouTubeIds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -24,11 +23,9 @@ public class NovelValidator {
     private static final Pattern SLUG = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*");
 
     private final NovelProfileStore profiles;
-    private final UrlParser urlParser;
 
-    public NovelValidator(NovelProfileStore profiles, UrlParser urlParser) {
+    public NovelValidator(NovelProfileStore profiles) {
         this.profiles = profiles;
-        this.urlParser = urlParser;
     }
 
     /**
@@ -81,14 +78,7 @@ public class NovelValidator {
 
     /** The video id of a YouTube link, or null when it is too long or not a YouTube video link. */
     private String trailerId(String url) {
-        if (url.length() > MAX_URL) {
-            return null;
-        }
-        try {
-            return urlParser.parse(url);
-        } catch (InvalidUrlException e) {
-            return null;
-        }
+        return url.length() > MAX_URL ? null : YouTubeIds.videoId(url).orElse(null);
     }
 
     private static void tooLong(List<FieldError> errors, String field, String value, int max) {
