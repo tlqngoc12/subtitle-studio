@@ -93,7 +93,8 @@ public class NovelExporter {
     private List<String> images(Path dir, Novel n, Chapter c, String watermark) {
         String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
         List<Path> files = renderCache.imagesFor(c.getId(),
-                new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark));
+                new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark))
+                .getFirst().files(); // the "s" format; the other formats are published in a later step
         List<String> urls = new ArrayList<>();
         Path target = dir.resolve("novels").resolve(n.getSlug());
         try {

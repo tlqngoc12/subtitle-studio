@@ -18,7 +18,8 @@ import java.util.stream.Stream;
 /**
  * Chapter images on disk: {@code {dir}/{chapterId}/{hash}-{k}.{ext}}, where the hash covers everything that changes
  * the pixels. Unchanged chapters are not drawn again (and wrangler does not upload them again); a new hash replaces
- * the chapter's old files. {@code {hash}.count} is written last and marks a complete set.
+ * the chapter's old files. Every {@link PageFormat} has its own hash; {@code {hash}.count} is written last and marks
+ * a complete set of that format.
  */
 public class RenderCache {
 
@@ -32,32 +33,46 @@ public class RenderCache {
         this.encoder = encoder;
     }
 
-    public synchronized List<Path> imagesFor(long chapterId, RenderInput input) {
-        String hash = hash(input);
+    /**
+     * The chapter's images in every {@link PageFormat#ALL} format, in that order. Each format has its own hash, so a
+     * missing file redraws only its format.
+     */
+    public synchronized List<RenderedFormat> imagesFor(long chapterId, RenderInput input) {
         Path chapterDir = dir.resolve(String.valueOf(chapterId));
         try {
-            Path count = chapterDir.resolve(hash + ".count");
-            if (Files.isRegularFile(count)) {
-                int n = Integer.parseInt(Files.readString(count).strip());
-                List<Path> files = files(chapterDir, hash, n);
-                if (files.stream().allMatch(Files::isRegularFile)) {
-                    return files;
-                }
-            }
             Files.createDirectories(chapterDir);
-            List<BufferedImage> images = renderer.render(input, PageFormat.S);
-            List<Path> files = files(chapterDir, hash, images.size());
-            for (int i = 0; i < images.size(); i++) {
-                Path tmp = chapterDir.resolve(files.get(i).getFileName() + ".tmp");
-                Files.write(tmp, encoder.encode(images.get(i)));
-                Files.move(tmp, files.get(i), StandardCopyOption.REPLACE_EXISTING);
+            List<RenderedFormat> result = new ArrayList<>();
+            List<String> hashes = new ArrayList<>();
+            for (PageFormat format : PageFormat.ALL) {
+                String hash = hash(input, format);
+                hashes.add(hash);
+                result.add(new RenderedFormat(format, formatFiles(chapterDir, hash, format, input)));
             }
-            Files.writeString(count, String.valueOf(images.size()));
-            deleteOthers(chapterDir, hash);
-            return files;
+            deleteOthers(chapterDir, hashes);
+            return result;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private List<Path> formatFiles(Path chapterDir, String hash, PageFormat format, RenderInput input)
+            throws IOException {
+        Path count = chapterDir.resolve(hash + ".count");
+        if (Files.isRegularFile(count)) {
+            List<Path> files = files(chapterDir, hash, Integer.parseInt(Files.readString(count).strip()));
+            if (files.stream().allMatch(Files::isRegularFile)) {
+                return files;
+            }
+        }
+        List<BufferedImage> images = renderer.render(input, format);
+        List<Path> files = files(chapterDir, hash, images.size());
+        for (int i = 0; i < images.size(); i++) {
+            Path tmp = chapterDir.resolve(files.get(i).getFileName() + ".tmp");
+            Files.write(tmp, encoder.encode(images.get(i)));
+            Files.move(tmp, files.get(i), StandardCopyOption.REPLACE_EXISTING);
+        }
+        Files.writeString(count, String.valueOf(images.size()));
+        return files;
     }
 
     /** Deletes a chapter's images (chapter or novel deleted). */
@@ -83,18 +98,17 @@ public class RenderCache {
         return files;
     }
 
-    private static void deleteOthers(Path chapterDir, String hash) throws IOException {
+    private static void deleteOthers(Path chapterDir, List<String> hashes) throws IOException {
         try (Stream<Path> files = Files.list(chapterDir)) {
             for (Path p : files.toList()) {
-                if (!p.getFileName().toString().startsWith(hash)) {
+                if (hashes.stream().noneMatch(p.getFileName().toString()::startsWith)) {
                     Files.deleteIfExists(p);
                 }
             }
         }
     }
 
-    private String hash(RenderInput in) {
-        PageFormat format = PageFormat.S;
+    private String hash(RenderInput in, PageFormat format) {
         String key = String.join("\u0000", "v" + NovelRenderer.VERSION, encoder.extension(),
                 format.key(), String.valueOf(format.width()), String.valueOf(format.height()),
                 String.valueOf(format.margin()), String.valueOf(renderer.fontSize()),
