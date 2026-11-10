@@ -58,6 +58,8 @@ subtitle-studio:
     cloudflare-api-token: ${CLOUDFLARE_API_TOKEN:}
     cloudflare-account-id: ${CLOUDFLARE_ACCOUNT_ID:}
     project: ${SUBTITLESTUDIO_PUBLISH_PROJECT:}
+    # D1 database id for novel read counts (Pages Functions are generated at Publish). Blank = read counts off.
+    cloudflare-d1-database-id: ${CLOUDFLARE_D1_DATABASE_ID:}
     # false = noindex (meta, X-Robots-Tag, robots.txt): search engines leave the site out.
     indexable: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:false}
     wrangler-path: ${SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH:wrangler}

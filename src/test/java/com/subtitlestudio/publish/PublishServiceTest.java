@@ -55,11 +55,15 @@ class PublishServiceTest {
     }
 
     private PublishService service(String token, boolean indexable) {
+        return service(token, indexable, "");
+    }
+
+    private PublishService service(String token, boolean indexable, String d1Id) {
         var props = new SubtitleStudioProperties(
                 new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
                 new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of()),
-                new SubtitleStudioProperties.Publish(token, "acc", "fans", indexable, "wrangler", Duration.ofMinutes(5)));
-        return new PublishService(exporter, bundle, wrangler, props, clock, executor);
+                new SubtitleStudioProperties.Publish(token, "acc", "fans", indexable, "wrangler", Duration.ofMinutes(5), d1Id));
+        return new PublishService(exporter, bundle, wrangler, new ReadCountsFunctions(props), props, clock, executor);
     }
 
     private PublishService service() {
@@ -197,5 +201,51 @@ class PublishServiceTest {
 
         assertThat(s.start().status()).isEqualTo("PUBLISHING");
         assertThat(s.status().error()).isNull();
+    }
+
+    @Test
+    void deployFindsFunctionsAndConfigBesideTheSiteWhenD1IsSet() {
+        AtomicReference<String> toml = new AtomicReference<>();
+        AtomicReference<Boolean> hasFunctions = new AtomicReference<>();
+        doAnswer(inv -> {
+            Path site = inv.getArgument(0);
+            Path root = site.toAbsolutePath().getParent();
+            hasFunctions.set(Files.exists(root.resolve("functions/api/reads/index.js"))
+                    && Files.exists(root.resolve("functions/api/reads/[slug].js")));
+            toml.set(Files.readString(root.resolve("wrangler.toml")));
+            return null;
+        }).when(wrangler).deploy(any());
+        PublishService s = service("cf-secret-123", false, "d1-id-123");
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+        assertThat(hasFunctions.get()).isTrue();
+        assertThat(toml.get()).contains("name = \"fans\"", "binding = \"READS\"", "database_id = \"d1-id-123\"")
+                .doesNotContain("cf-secret-123");
+        // nothing is left in the shared parent directory for the next publish
+        assertThat(dataDir.resolve("publish-tmp/functions")).doesNotExist();
+        assertThat(dataDir.resolve("publish-tmp/wrangler.toml")).doesNotExist();
+    }
+
+    @Test
+    void deployHasNoFunctionsWithoutD1AndStaleOnesAreRemoved() throws IOException {
+        Path root = dataDir.resolve("publish-tmp");
+        Files.createDirectories(root.resolve("functions/api"));
+        Files.writeString(root.resolve("functions/api/old.js"), "x");
+        Files.writeString(root.resolve("wrangler.toml"), "stale");
+        AtomicReference<Boolean> found = new AtomicReference<>();
+        doAnswer(inv -> {
+            Path parent = ((Path) inv.getArgument(0)).toAbsolutePath().getParent();
+            found.set(Files.exists(parent.resolve("functions")) || Files.exists(parent.resolve("wrangler.toml")));
+            return null;
+        }).when(wrangler).deploy(any());
+        PublishService s = service();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(found.get()).isFalse();
     }
 }

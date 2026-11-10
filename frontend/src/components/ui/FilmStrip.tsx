@@ -23,18 +23,29 @@ export function FilmStrip({
   images,
   label,
   onOpen,
+  autoplayMs,
+  paused = false,
 }: {
   images: FilmImage[];
   /** Gives the strip a region landmark with this name. */
   label: string;
   onOpen: (index: number) => void;
+  /** Advances to the next slide (and loops to the first) after this many ms; off when omitted. */
+  autoplayMs?: number;
+  /** Holds autoplay while true (e.g. a lightbox is open). */
+  paused?: boolean;
 }) {
   const row = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
   const [current, setCurrent] = useState(0);
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
+  const [tick, setTick] = useState(0);
   const reduced = usePrefersReducedMotion();
   const count = images.length;
+  const running = autoplayMs !== undefined && autoplayMs > 0 && count > 1 && !reduced && !paused && !hovered && !focused && !hidden;
 
   const measure = useCallback(() => {
     const el = row.current;
@@ -55,6 +66,24 @@ export function FilmStrip({
     for (const child of Array.from(el.children)) observer.observe(child);
     return () => observer.disconnect();
   }, [measure, count]);
+
+  useEffect(() => {
+    const onVisibility = () => setHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  // One timeout per slide: any change of slide (swipe, arrows, dots) re-arms it, so manual navigation resets the timer.
+  useEffect(() => {
+    if (!running || autoplayMs === undefined) return;
+    const timer = setTimeout(() => {
+      const el = row.current;
+      if (!el) return;
+      el.scrollTo({ left: ((current + 1) % count) * el.clientWidth, behavior: reduced ? 'auto' : 'smooth' });
+      setTick((t) => t + 1);
+    }, autoplayMs);
+    return () => clearTimeout(timer);
+  }, [running, autoplayMs, current, count, reduced, tick]);
 
   if (count === 0) return null;
 
@@ -79,7 +108,16 @@ export function FilmStrip({
   const many = count > 1;
 
   return (
-    <section className="filmstrip" aria-label={label}>
+    <section
+      className="filmstrip"
+      aria-label={label}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
       <div className="filmstrip__stage">
         <div className="filmstrip__row" ref={row} onScroll={measure}>
           {images.map((image, i) => {

@@ -28,6 +28,18 @@ class PublishPropertiesTest {
     }
 
     @Test
+    void readCountsNeedAConfiguredSiteAndAD1Id() {
+        var ok = new SubtitleStudioProperties.Publish("t", "a", "fans", false, "wrangler", Duration.ofMinutes(5), "d1-id");
+        var noId = new SubtitleStudioProperties.Publish("t", "a", "fans", false, "wrangler", Duration.ofMinutes(5), " ");
+        var noSite = new SubtitleStudioProperties.Publish("", "a", "fans", false, "wrangler", Duration.ofMinutes(5), "d1-id");
+
+        assertThat(ok.readCountsEnabled()).isTrue();
+        assertThat(noId.readCountsEnabled()).isFalse();
+        assertThat(noSite.readCountsEnabled()).isFalse();
+        assertThat(publish("t", "a", "fans").readCountsEnabled()).isFalse();
+    }
+
+    @Test
     void urlIsThePagesDevAddress() {
         assertThat(publish("t", "a", "fans").url()).isEqualTo("https://fans.pages.dev");
     }

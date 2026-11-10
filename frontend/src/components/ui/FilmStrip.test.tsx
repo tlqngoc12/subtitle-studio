@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { css } from '../../test/css';
 import { FilmStrip, type FilmImage } from './FilmStrip';
 
@@ -254,5 +254,142 @@ describe('FilmStrip', () => {
       expect(own).not.toMatch(/box-shadow|gradient|border:\s*1px/);
       expect(rule('.filmstrip')).not.toMatch(/background/);
     });
+  });
+});
+
+describe('FilmStrip autoplay', () => {
+  function renderAuto(props: { images?: FilmImage[]; paused?: boolean } = {}) {
+    const images = props.images ?? IMAGES;
+    const ui = (paused?: boolean) => (
+      <MemoryRouter>
+        <FilmStrip images={images} label="Ảnh banner" onOpen={() => {}} autoplayMs={5000} paused={paused} />
+      </MemoryRouter>
+    );
+    const view = render(ui(props.paused));
+    const region = screen.getByRole('region', { name: 'Ảnh banner' });
+    const row = region.querySelector('.filmstrip__row') as HTMLElement;
+    const scrollTo = vi.fn();
+    row.scrollTo = scrollTo as unknown as typeof row.scrollTo;
+    layout(row, { scrollLeft: 0, scrollWidth: images.length * 1000, clientWidth: 1000 });
+    return { region, row, scrollTo, setPaused: (p: boolean) => view.rerender(ui(p)) };
+  }
+
+  const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('moves to the next slide after 5 s and loops back to the first', () => {
+    const { row, scrollTo } = renderAuto();
+
+    advance(4999);
+    expect(scrollTo).not.toHaveBeenCalled();
+    advance(1);
+    expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ left: 1000 }));
+
+    layout(row, { scrollLeft: 1000, scrollWidth: 3000, clientWidth: 1000 });
+    advance(5000);
+    expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ left: 2000 }));
+
+    layout(row, { scrollLeft: 2000, scrollWidth: 3000, clientWidth: 1000 });
+    advance(5000);
+    expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ left: 0 }));
+  });
+
+  it('restarts the 5 s wait after a manual change of slide', () => {
+    const { row, scrollTo } = renderAuto();
+
+    advance(4000);
+    layout(row, { scrollLeft: 1000, scrollWidth: 3000, clientWidth: 1000 });
+    advance(4000);
+    expect(scrollTo).not.toHaveBeenCalled();
+    advance(1000);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses while the pointer is over the strip', () => {
+    const { region, scrollTo } = renderAuto();
+
+    fireEvent.pointerEnter(region);
+    advance(20000);
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    fireEvent.pointerLeave(region);
+    advance(5000);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses while focus is inside the strip', () => {
+    const { region, scrollTo } = renderAuto();
+
+    act(() => within(region).getByRole('button', { name: 'Backstage' }).focus());
+    advance(20000);
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    act(() => within(region).getByRole('button', { name: 'Backstage' }).blur());
+    advance(5000);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses while paused is true (lightbox open)', () => {
+    const { scrollTo, setPaused } = renderAuto({ paused: true });
+
+    advance(20000);
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    setPaused(false);
+    advance(5000);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses while the tab is hidden', () => {
+    const { scrollTo } = renderAuto();
+    let hidden = true;
+    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    advance(20000);
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    hidden = false;
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    advance(5000);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not run with reduced motion', () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...original(query), matches: true })) as typeof window.matchMedia;
+    try {
+      const { scrollTo } = renderAuto();
+      advance(20000);
+      expect(scrollTo).not.toHaveBeenCalled();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it('does not run with a single image', () => {
+    const { scrollTo } = renderAuto({ images: [IMAGES[0]] });
+    advance(20000);
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('does not run without autoplayMs', () => {
+    render(
+      <MemoryRouter>
+        <FilmStrip images={IMAGES} label="Ảnh banner" onOpen={() => {}} />
+      </MemoryRouter>,
+    );
+    const row = screen.getByRole('region', { name: 'Ảnh banner' }).querySelector('.filmstrip__row') as HTMLElement;
+    const scrollTo = vi.fn();
+    row.scrollTo = scrollTo as unknown as typeof row.scrollTo;
+    advance(20000);
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

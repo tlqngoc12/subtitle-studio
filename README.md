@@ -109,6 +109,7 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `60m` | Video dài hơn không dịch tự động |
 | `subtitle-studio.publish.cloudflare-api-token` | `CLOUDFLARE_API_TOKEN` | (trống = tắt Publish) | API token Cloudflare (quyền Cloudflare Pages: Edit) |
 | `subtitle-studio.publish.cloudflare-account-id` | `CLOUDFLARE_ACCOUNT_ID` | (trống) | Account ID Cloudflare |
+| `subtitle-studio.publish.cloudflare-d1-database-id` | `CLOUDFLARE_D1_DATABASE_ID` | (trống = tắt đếm lượt đọc) | ID database D1 `novel-reads`; có thì Publish kèm Pages Functions đếm lượt đọc truyện |
 | `subtitle-studio.publish.project` | `SUBTITLESTUDIO_PUBLISH_PROJECT` | (trống) | Tên project Cloudflare Pages; trang public ở `https://<project>.pages.dev` |
 | `subtitle-studio.publish.indexable` | `SUBTITLESTUDIO_PUBLISH_INDEXABLE` | `false` | `false` = noindex (Google không đưa trang lên kết quả tìm kiếm) |
 | `subtitle-studio.publish.wrangler-path` | `SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH` | `wrangler` (image Docker: `/opt/wrangler/...`) | CLI deploy của Cloudflare |

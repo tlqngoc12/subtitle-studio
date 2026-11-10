@@ -6,6 +6,7 @@ import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
 import FeaturedNovels from './FeaturedNovels';
+import { useReadCounts } from '../../data/novelReads';
 import { NovelCard } from './NovelCard';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
@@ -20,6 +21,7 @@ const LATEST = 6;
  * Both are ordered by the latest published chapter, newest first. Copy is Vietnamese.
  */
 export default function PublicNovelsPage({ source }: { source: NovelSource }) {
+  const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
   useDocumentTitle('Truyện');
@@ -59,7 +61,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
             </div>
             <ul className="novel-grid">
               {sorted.slice(0, LATEST).map((n) => (
-                <NovelCard key={n.slug} novel={n} />
+                <NovelCard key={n.slug} novel={n} reads={reads?.[n.slug]} />
               ))}
             </ul>
           </section>

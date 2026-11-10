@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BannerImage } from '../../api/profiles';
 import { ProfileBanner } from './ProfileBanner';
 
@@ -139,5 +139,26 @@ describe('ProfileBanner', () => {
 
     expect(container.querySelectorAll('.novel-card__cover--empty')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Lost' })).toBeInTheDocument();
+  });
+
+  describe('autoplay', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('advances every 5 s but holds while the lightbox is open', () => {
+      vi.useFakeTimers();
+      renderBanner();
+      const row = document.querySelector('.filmstrip__row') as HTMLElement;
+      const scrollTo = vi.fn();
+      row.scrollTo = scrollTo as unknown as typeof row.scrollTo;
+      Object.defineProperty(row, 'clientWidth', { configurable: true, value: 1000 });
+
+      act(() => void vi.advanceTimersByTime(5000));
+      expect(scrollTo).toHaveBeenCalledTimes(1);
+
+      act(() => slide('Backstage').click());
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      act(() => void vi.advanceTimersByTime(30000));
+      expect(scrollTo).toHaveBeenCalledTimes(1);
+    });
   });
 });

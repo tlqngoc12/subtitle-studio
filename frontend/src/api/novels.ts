@@ -146,6 +146,15 @@ export async function listNovels(): Promise<NovelSummary[]> {
   return (await send('/api/novels')).json();
 }
 
+/** Read totals per novel slug from the published site; {} when read counts are off or cannot be fetched. */
+export async function listNovelReads(): Promise<Record<string, number>> {
+  try {
+    return await (await send('/api/novels/reads')).json();
+  } catch {
+    return {};
+  }
+}
+
 export async function getNovel(id: number): Promise<NovelDetail> {
   return (await send(`/api/novels/${id}`)).json();
 }

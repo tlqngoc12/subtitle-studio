@@ -91,7 +91,22 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
      * Never log the token.
      */
     public record Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
-                          @NotBlank String wranglerPath, @NotNull Duration timeout) {
+                          @NotBlank String wranglerPath, @NotNull Duration timeout, String cloudflareD1DatabaseId) {
+
+        @ConstructorBinding
+        public Publish {
+        }
+
+        /** Without a D1 database (read counts off); for tests and callers that do not care about it. */
+        public Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
+                       String wranglerPath, Duration timeout) {
+            this(cloudflareApiToken, cloudflareAccountId, project, indexable, wranglerPath, timeout, "");
+        }
+
+        /** True when novel read counts are on: the site is published and a D1 database id is set. */
+        public boolean readCountsEnabled() {
+            return configured() && notBlank(cloudflareD1DatabaseId);
+        }
 
         public boolean configured() {
             return notBlank(cloudflareApiToken) && notBlank(cloudflareAccountId) && notBlank(project);
@@ -108,7 +123,7 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
 
         @Override
         public String toString() {
-            return "Publish[project=" + project + ", indexable=" + indexable + ", configured=" + configured() + "]";
+            return "Publish[project=" + project + ", indexable=" + indexable + ", configured=" + configured() + ", readCounts=" + readCountsEnabled() + "]";
         }
     }
 

@@ -26,6 +26,25 @@ describe('NovelsPage', () => {
     expect(within(card).getByText('12 chapters · 8 published')).toBeInTheDocument();
   });
 
+  it('shows the total reads of each novel, or a dash when unavailable', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/novels', status: 200, body: [novelSummary()] },
+      { method: 'GET', path: '/api/novels/reads', status: 200, body: { [novelSummary().slug]: 1234 } },
+    ]);
+    const { unmount } = renderPage();
+
+    const region = await loadedRegion('Novels');
+    expect(await within(region).findByText('1,234 reads')).toBeInTheDocument();
+    unmount();
+
+    fakeFetch([
+      { method: 'GET', path: '/api/novels', status: 200, body: [novelSummary()] },
+      { method: 'GET', path: '/api/novels/reads', status: 200, body: {} },
+    ]);
+    renderPage();
+    expect(await within(await loadedRegion('Novels')).findByText('–')).toBeInTheDocument();
+  });
+
   it('links to the new novel form', async () => {
     fakeFetch([{ method: 'GET', path: '/api/novels', status: 200, body: [novelSummary()] }]);
     renderPage();

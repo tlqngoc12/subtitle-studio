@@ -7,6 +7,7 @@ import type {
   PublicChapterFile,
   PublicNovelDetail,
 } from "../../data/novelTypes";
+import { recordRead } from "../../data/novelReads";
 import { useCopyGuard } from "../../lib/useCopyGuard";
 import {
   PUBLIC_ERROR_TITLE,
@@ -85,7 +86,9 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
 
   const openedNo = chapter?.chapterNo;
   useEffect(() => {
-    if (openedNo !== undefined) recordProgress(slug, openedNo);
+    if (openedNo === undefined) return;
+    recordProgress(slug, openedNo);
+    recordRead(slug, openedNo);
   }, [slug, openedNo]);
 
   const current = chapter

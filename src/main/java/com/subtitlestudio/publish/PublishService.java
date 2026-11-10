@@ -29,6 +29,7 @@ public class PublishService {
     private final SiteExporter exporter;
     private final PublicSiteBundle bundle;
     private final WranglerClient wrangler;
+    private final ReadCountsFunctions readCounts;
     private final SubtitleStudioProperties.Publish settings;
     private final Path tempRoot;
     private final Clock clock;
@@ -39,11 +40,12 @@ public class PublishService {
     private String error;
 
     public PublishService(SiteExporter exporter, PublicSiteBundle bundle, WranglerClient wrangler,
-                          SubtitleStudioProperties properties, Clock clock,
+                          ReadCountsFunctions readCounts, SubtitleStudioProperties properties, Clock clock,
                           @Qualifier("publishExecutor") Executor executor) {
         this.exporter = exporter;
         this.bundle = bundle;
         this.wrangler = wrangler;
+        this.readCounts = readCounts;
         this.settings = properties.publish();
         this.tempRoot = properties.dataDir().resolve("publish-tmp");
         this.clock = clock;
@@ -80,6 +82,7 @@ public class PublishService {
             Instant now = clock.instant();
             exporter.export(dir, now);
             bundle.writeTo(dir, settings.indexable());
+            readCounts.prepare(dir);
             wrangler.deploy(dir);
             finish("DONE", now, null);
         } catch (PublishFailedException e) {
@@ -89,6 +92,7 @@ public class PublishService {
             finish("FAILED", null, "Could not publish: " + e.getClass().getSimpleName() + ".");
         } finally {
             deleteRecursively(dir);
+            readCounts.clean(tempRoot);
         }
     }
 

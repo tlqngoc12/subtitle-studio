@@ -652,6 +652,16 @@ Plan: [docs/superpowers/plans/2026-11-09-warm-palette.md](docs/superpowers/plans
 - **Khung video:** `UrlForm.css` và `VideoPlayer.css` dùng `--frame`/`--on-frame` thay hex.
 - **Test:** `contrast.test.ts` kiểm `--ink` ≥ 7:1 (AAA), chữ phụ/brand-ink/danger ≥ 4.5:1, viền ô nhập/focus ≥ 3:1, `--on-brand` trên `--brand-hover`, `--on-frame` 7:1. `--danger` và `--hover` giữ nguyên (đạt).
 
+### 2026-11-10: Banner Profile tự chạy và lượt đọc truyện ✅ (chưa deploy)
+
+Plan: [docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md](docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md). Nhánh `feature/banner-autoplay-novel-reads`.
+
+- **Banner Profile (`FilmStrip`):** prop `autoplayMs` (Profile truyền 5000) và `paused`. Chuyển ảnh sau mỗi 5 giây, hết ảnh thì quay về ảnh đầu; tạm dừng khi hover, focus trong dải ảnh, mở lightbox, tab bị ẩn; tắt khi reduced motion hoặc chỉ có 1 ảnh; vuốt/bấm tay thì đếm lại từ đầu (`setTimeout` theo slide hiện tại).
+- **Lượt đọc truyện:** Pages Function + D1, sinh lúc Publish (xem CLAUDE.md, mục Trang public). Đếm khi mở một chương; hiện tổng theo truyện ở thẻ truyện và trang truyện public ("1,2 N lượt đọc", icon mắt, chữ xám, ẩn nếu chưa có số) và ở trang Novels của admin ("{n} reads", "–" nếu không có).
+- **Chưa kiểm chứng với Cloudflare thật:** wrangler không có trong máy dev nên chưa chạy `wrangler pages deploy` thật; giả định wrangler lấy `functions/` + `wrangler.toml` từ thư mục làm việc (cha của thư mục site) và route Function được ưu tiên hơn `_redirects` (`/* /index.html 200`). Kiểm tra bằng `curl https://<project>.pages.dev/api/reads` sau lần Publish đầu.
+- **Việc làm tay một lần:** (1) Cloudflare dashboard, Storage & Databases, D1, tạo database tên `novel-reads`; (2) copy Database ID vào `.env` (`CLOUDFLARE_D1_DATABASE_ID=...`) rồi chạy lại app; (3) bấm Publish; nếu deploy báo lỗi binding thì cấp cho API token thêm quyền Account, D1, Edit.
+- **Test:** `FilmStrip`/`ProfileBanner` (fake timers), `publicFunctions.test.ts` (function với D1 giả), `novelReads.test.ts`, `NovelReads.test.tsx`, `NovelsPage`; Java: `ReadCountsFunctionsTest`, `PublishServiceTest`, `NovelReadsServiceTest`, `NovelReadsControllerTest`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

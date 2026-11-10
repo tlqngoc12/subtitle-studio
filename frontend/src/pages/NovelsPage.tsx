@@ -1,7 +1,7 @@
-import { BookOpen, Plus } from 'lucide-react';
+import { BookOpen, Eye, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { listNovels, type NovelStatus, type NovelSummary } from '../api/novels';
+import { listNovelReads, listNovels, type NovelStatus, type NovelSummary } from '../api/novels';
 import { EmptyState } from '../components/EmptyState';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
@@ -9,6 +9,7 @@ import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Cover } from '../components/ui/Cover';
 import './public/NovelCard.css';
+import './public/ReadsMeta.css';
 
 export const STATUS_LABEL: Record<NovelStatus, string> = { ONGOING: 'Ongoing', COMPLETED: 'Completed' };
 
@@ -19,6 +20,7 @@ export function chapterCountLabel(count: number): string {
 /** Novels: one card per novel, newest change first. */
 export default function NovelsPage() {
   const [novels, setNovels] = useState<NovelSummary[] | null>(null);
+  const [reads, setReads] = useState<Record<string, number>>({});
   const [error, setError] = useState<ErrorMessage | null>(null);
 
   useEffect(() => {
@@ -28,6 +30,10 @@ export default function NovelsPage() {
         setNovels([]);
         setError(errorMessage(e));
       });
+  }, []);
+
+  useEffect(() => {
+    void listNovelReads().then(setReads);
   }, []);
 
   return (
@@ -63,6 +69,10 @@ export default function NovelsPage() {
                     <span className="badge badge--info">{STATUS_LABEL[n.novelStatus]}</span>
                     <span className="meta">
                       {chapterCountLabel(n.chapterCount)} · {n.publishedCount} published
+                    </span>
+                    <span className="meta reads-meta">
+                      <Eye className="icon" aria-hidden="true" />
+                      {reads[n.slug] === undefined ? '–' : `${reads[n.slug].toLocaleString('en-US')} reads`}
                     </span>
                   </span>
                 </Link>
