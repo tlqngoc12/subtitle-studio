@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { css } from '../test/css';
 
+/** Declarations of the rule whose selector is exactly `selector`. */
 function rule(selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\]/g, '\$&');
-  return new RegExp(`${escaped}\s*\{([^}]*)\}`).exec(css)?.[1] ?? '';
+  const start = css.indexOf(`${selector} {`);
+  if (start < 0) return '';
+  return css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start));
 }
 
 describe('Vietsub editor header CSS', () => {
