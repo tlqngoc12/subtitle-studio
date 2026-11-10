@@ -1,0 +1,102 @@
+.wed__group {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+}
+
+.wed__group legend {
+  padding: 0 var(--space-2);
+  font-weight: 700;
+}
+
+.wed__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.wed__row {
+  display: grid;
+  grid-template-columns: auto 140px minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+@media (max-width: 520px) {
+  .wed__row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .wed__row .field {
+    grid-column: 1 / -1;
+    order: 5;
+  }
+}
+
+.wed__row--person {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.wed__row-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.wed__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 40px;
+}
+
+.wed__avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.wed__avatar--initial {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.wed__person-name {
+  overflow-wrap: anywhere;
+}
+
+.wpicker {
+  padding: var(--space-3);
+  width: min(320px, calc(100vw - 32px));
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.wpicker__list,
+.wpicker__create {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.wpicker__mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.wpicker__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}

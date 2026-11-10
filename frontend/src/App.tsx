@@ -13,6 +13,7 @@ import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import PhotosPage from './pages/PhotosPage';
 import WorkDetailPage from './pages/WorkDetailPage';
+import WorkEditPage from './pages/WorkEditPage';
 import WorksPage from './pages/WorksPage';
 import ProfilePage, { ProfileRedirect } from './pages/ProfilePage';
 import ProfilesPage from './pages/ProfilesPage';
@@ -42,6 +43,8 @@ export default function App() {
           <Route path="/profiles/:slug" element={<ProfileRedirect />} />
           <Route path="/photos" element={<PhotosPage />} />
           <Route path="/works" element={<WorksPage />} />
+          <Route path="/works/new" element={<WorkEditPage />} />
+          <Route path="/works/:id/edit" element={<WorkEditPage />} />
           <Route path="/works/:id" element={<WorkDetailPage />} />
           <Route path="/novels" element={<NovelsPage />} />
           <Route path="/novels/new" element={<NovelNewPage />} />

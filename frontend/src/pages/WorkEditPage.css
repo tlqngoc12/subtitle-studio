@@ -1,0 +1,21 @@
+.wedit {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 760px;
+}
+
+.wedit__label {
+  font-weight: 700;
+}
+
+.wedit__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 520px) {
+  .wedit__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

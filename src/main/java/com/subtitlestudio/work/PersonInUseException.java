@@ -8,7 +8,7 @@ public class PersonInUseException extends RuntimeException {
     private final List<String> works;
 
     public PersonInUseException(List<String> works) {
-        super("This person is credited in: " + String.join(", ", works));
+        super("Used by: " + String.join(", ", works));
         this.works = List.copyOf(works);
     }
 
