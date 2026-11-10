@@ -1,4 +1,4 @@
-import { Captions, ChevronRight, Download, FilePlus, FileUp, Languages, SearchX, Trash2 } from 'lucide-react';
+import { Captions, Download, FilePlus, FileUp, Languages, SearchX, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -76,7 +76,6 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                         )}
                       </span>
                     </span>
-                    <ChevronRight className="icon history__chevron" aria-hidden="true" />
                   </Link>
                   <span className="history__actions">
                     <SaveToPlaylist video={v} />

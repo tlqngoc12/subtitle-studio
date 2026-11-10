@@ -108,13 +108,6 @@ a.history__open {
   margin-left: var(--space-4);
 }
 
-/* A row whose whole line opens something shows a chevron at the end (no hover on phones). */
-.history__chevron {
-  flex: none;
-  margin-left: auto;
-  color: var(--muted);
-}
-
 @media (max-width: 760px) {
   /* Thumbnail and text on top; the buttons below, lined up with the title instead of under the thumbnail. */
   .history__item {
