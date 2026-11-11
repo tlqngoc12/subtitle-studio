@@ -2,6 +2,8 @@ package com.subtitlestudio.publish;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.fanfic.FanficDto;
+import com.subtitlestudio.fanfic.FanficService;
 import com.subtitlestudio.photo.PhotoPostDto;
 import com.subtitlestudio.photo.PhotoService;
 import com.subtitlestudio.playlist.PlaylistDetail;
@@ -65,19 +67,22 @@ public class SiteExporter {
     private final NovelExporter novels;
     private final PhotoService photos;
     private final WorkService works;
+    private final FanficService fanfics;
     private final int fileWarning;
 
     @Autowired
     public SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
                         ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
-                        ObjectMapper mapper, NovelExporter novels, PhotoService photos, WorkService works) {
-        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, photos, works,
+                        ObjectMapper mapper, NovelExporter novels, PhotoService photos, WorkService works,
+                        FanficService fanfics) {
+        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, photos, works, fanfics,
                 PublishService.FILE_WARNING);
     }
 
     SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
                  ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
-                 ObjectMapper mapper, NovelExporter novels, PhotoService photos, WorkService works, int fileWarning) {
+                 ObjectMapper mapper, NovelExporter novels, PhotoService photos, WorkService works,
+                 FanficService fanfics, int fileWarning) {
         this.subtitles = subtitles;
         this.vietsub = vietsub;
         this.playlists = playlists;
@@ -88,6 +93,7 @@ public class SiteExporter {
         this.novels = novels;
         this.photos = photos;
         this.works = works;
+        this.fanfics = fanfics;
         this.fileWarning = fileWarning;
     }
 
@@ -114,6 +120,7 @@ public class SiteExporter {
         exportProfiles(dir, publicUrls);
         exportPhotos(dir, publicUrls);
         exportWorks(dir, publicUrls);
+        exportFanfics(dir, publicUrls);
         novels.export(dir, id -> publicUrl(id, dir, publicUrls), this::write);
         warnAboutFileCount(dir);
     }
@@ -173,6 +180,19 @@ public class SiteExporter {
                     p.source(), p.photoCount(), p.profiles()));
         }
         write(dir.resolve("data/photos.json"), exported);
+    }
+
+    /** Fanfics keep their Wattpad numbers; a cover whose file is gone is left out and the story kept. */
+    private void exportFanfics(Path dir, Map<Long, Optional<String>> publicUrls) {
+        List<FanficDto> exported = new java.util.ArrayList<>();
+        for (FanficDto f : fanfics.list()) {
+            String cover = f.coverUrl() == null ? null
+                    : publicUrl(Long.parseLong(f.coverUrl().substring(f.coverUrl().lastIndexOf('/') + 1)), dir, publicUrls);
+            exported.add(new FanficDto(f.id(), f.url(), f.title(), f.author(), f.description(), f.tags(), cover,
+                    f.readCount(), f.voteCount(), f.partCount(), f.wordCount(), f.readingMinutes(), f.completed(),
+                    f.storyUpdatedAt(), f.fetchedAt(), f.createdAt()));
+        }
+        write(dir.resolve("data/fanfics.json"), exported);
     }
 
     /** The grid list and one file per work, every image on its public /media/ URL and no media ids. */

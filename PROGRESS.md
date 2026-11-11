@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-11 (UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-11 (Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -794,6 +794,16 @@ Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-desi
 
 - **Sửa theo review PR #15:** màn hình cảm ứng (`pointer: coarse`) mọi `.button` (gồm `--s`, `--icon`) có vùng bấm 44 x 44 px qua `::after` trong suốt, kích thước hiển thị giữ 32/40/48 (hai nút cách nhau 8 px có thể chồng 4 px vùng bấm); ô chọn hồ sơ dịch của Get Engsub đổi nhãn rỗng thành "No profile" và rộng tối đa 16rem; nhãn icon "Generic link" của Works đổi thành "Link".
 
+### 2026-11-11: Fanfics (Wattpad) trong Novels, phần backend ✅ (chưa merge, chưa deploy; cần deploy vì có V18)
+
+Nhánh `feat/fanfics`. Spec: [docs/superpowers/specs/2026-11-11-fanfics-design.md](docs/superpowers/specs/2026-11-11-fanfics-design.md), plan: [docs/superpowers/plans/2026-11-11-fanfics.md](docs/superpowers/plans/2026-11-11-fanfics.md).
+
+- **Package `fanfic`:** `WattpadLink` (chỉ nhận `wattpad.com`, `www.`, `m.`; `/story/{id}[-slug]`; link chương được nhận ra riêng để báo lỗi), `WattpadClient` (`java.net.http`, `User-Agent: SubtitleStudio`, timeout 10 giây, cấu hình `subtitlestudio.wattpad.base-url`; 404/400 là `FanficNotFoundException`, mọi lỗi khác là `WattpadUnavailableException`), `FanficService` (Wattpad chỉ được gọi ở preview, add, refresh, refresh all; không gọi trong transaction DB; refresh all tuần tự, nghỉ 500 ms giữa các truyện qua `Sleeper`, truyện lỗi được báo và giữ nguyên dữ liệu cũ), `FanficController` (`/api/fanfics`, `/preview`, `/refresh`, `/{id}/refresh`). Chống trùng theo `wattpad_id` (mọi dạng link), kiểm tra trước khi gọi Wattpad.
+- **Bìa:** tải bản `-512-` (rơi về URL gốc nếu 404), `storeResized(…, 512)`; chỉ tải lại khi `cover_source_url` đổi; không tải được bìa thì vẫn lưu truyện (không bìa). `t_fanfic.cover_media_id` đã nằm trong quy tắc ảnh ở `MediaRepository`.
+- **Flyway V18** `t_fanfic` (mô tả CLOB, `completed` là 0/1, thời gian đọc `round(wordCount / 230)` tính khi trả DTO). `PersistenceOracleIT` có test mô tả chứa ký tự astral (chữ toán học đậm, emoji).
+- **Export:** `data/fanfics.json` (`FanficDto[]`, bìa là `/media/<key>.webp`; file bìa mất thì giữ truyện, `coverUrl` null).
+- **Test:** không test nào gọi Wattpad thật (stub HTTP server cục bộ + fixture `src/test/resources/wattpad/story-396487502.json`).
+
 ### 2026-11-11: Works/Photos polish (Combobox, ô chọn ngày, link X, logo) ✅ (chưa merge, chưa deploy; cần deploy vì có V17)
 
 Nhánh `fix/works-photos-polish`.
@@ -805,6 +815,12 @@ Nhánh `fix/works-photos-polish`.
 - **Photos:** `PostUrl` (Instagram + X) thay `InstagramUrl`, cột `post_url` (V17, `ALTER TABLE ... RENAME COLUMN`), icon nền tảng trên thẻ, tiêu đề nhiều dòng.
 - **Logo:** `frontend/public/logo.webp` ở navbar và favicon cho cả app lẫn bản public.
 - **Lệch so với yêu cầu:** Combobox tự viết (không dùng `cmdk`); tooltip tăng lên z-index 80 vì dialog (51) che tooltip cũ (50).
+
+### 2026-11-11: Fanfics (Wattpad) trong Novels, phần giao diện + kiểm tra ✅ (chưa merge, chưa deploy; cần deploy vì có V18)
+
+- **Frontend:** `components/fanfics/` (`FanficCard` thẻ kiểu Wattpad, `format.ts` với `formatCompact` cắt không làm tròn lên và `formatReadingTime`, `FanficsTab` tìm kiếm không dấu theo title/author/tags, lọc All/Completed/Ongoing, sắp xếp Newest update/Most read/Most voted/Recently added, `AddFanficDialog` Fetch → xem trước → Save, `FanficMenu` Refresh/Delete, `NovelsTabs` + `useNovelsTab` giữ tab trong `?tab=`). Trang Novels của admin và public đều có tab Translated | Fanfics; public chỉ đọc qua `ReadSource.listFanfics` (`fanfics.json`). Mã lỗi `INVALID_FANFIC_LINK`, `FANFIC_NOT_FOUND`, `FANFIC_EXISTS`, `WATTPAD_UNAVAILABLE` có chữ riêng trong `lib/errors.ts`.
+- **Lệch so với plan:** `WattpadClient` đọc `subtitlestudio.wattpad.base-url` bằng `@Value` (đúng key của plan, không qua `SubtitleStudioProperties`); không tải được bìa thì vẫn lưu truyện không có bìa (Refresh thử lại); tab Fanfics tải lại danh sách mỗi lần chuyển tab (Radix gỡ tab ẩn).
+- **Kiểm tra:** `mvn test -Dskip.npm` 1128 test, `mvn verify -Poracle -Dskip.npm` (`PersistenceOracleIT` 20 test, gồm mô tả có ký tự astral và emoji), `npm test` 119 file, `npx tsc -b` sạch. Chạy jar thật trên cổng 8098 với H2 và bản sao `data/`, thêm truyện mẫu 396487502: Reads 51K, Votes 2.1K, Parts 28, Time 1h 8m, Complete.
 
 ## 9. Rủi ro đang theo dõi
 

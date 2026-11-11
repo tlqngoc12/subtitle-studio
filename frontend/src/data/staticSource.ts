@@ -1,4 +1,5 @@
 import { ApiError, type ViCue } from '../api/client';
+import type { Fanfic } from '../api/fanfics';
 import type { PhotoPost } from '../api/photos';
 import type { ProfilePage } from '../api/profiles';
 import type { Work, WorkSummary } from '../api/works';
@@ -57,6 +58,7 @@ export function createStaticSource(base = '/'): ReadSource {
     getPlaylist: (id) => read<PublicPlaylistDetail>(`playlists/${id}.json`, 'PLAYLIST_NOT_FOUND'),
     getProfilePage: () => read<ProfilePage>('profiles.json', 'PROFILE_NOT_FOUND'),
     listPhotos: () => read<PhotoPost[]>('photos.json'),
+    listFanfics: () => read<Fanfic[]>('fanfics.json'),
     listWorks: () => read<WorkSummary[]>('works.json'),
     getWork: (id) => read<Work>(`works/${id}.json`, 'WORK_NOT_FOUND'),
   };

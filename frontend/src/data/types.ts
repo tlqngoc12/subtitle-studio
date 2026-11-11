@@ -1,5 +1,6 @@
 import type { ViCue, VideoDto } from '../api/client';
 import type { PlaylistDetail, PlaylistSummary } from '../api/playlists';
+import type { Fanfic } from '../api/fanfics';
 import type { PhotoPost } from '../api/photos';
 import type { ProfilePage } from '../api/profiles';
 import type { Work, WorkSummary } from '../api/works';
@@ -26,6 +27,7 @@ export interface ReadSource {
   getPlaylist(id: number): Promise<PublicPlaylistDetail>;
   getProfilePage(): Promise<ProfilePage>;
   listPhotos(): Promise<PhotoPost[]>;
+  listFanfics(): Promise<Fanfic[]>;
   listWorks(): Promise<WorkSummary[]>;
   getWork(id: number): Promise<Work>;
 }

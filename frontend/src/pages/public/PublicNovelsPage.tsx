@@ -2,6 +2,7 @@ import { BookOpen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { EmptyState } from '../../components/EmptyState';
+import { NovelsTabs, useNovelsTab } from '../../components/fanfics/NovelsTabs';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
@@ -25,6 +26,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
+  const [tab, setTab] = useNovelsTab();
   useDocumentTitle('Truyện');
 
   useEffect(() => {
@@ -49,43 +51,52 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   return (
     <main className="page">
       <h1 className="visually-hidden">Truyện</h1>
-      {error && (
-        <Alert title={error.title} hint={error.hint} />
-      )}
-      {sorted === null ? (
-        <LoadingText>Đang tải…</LoadingText>
-      ) : sorted.length === 0 ? (
-        <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
-      ) : (
-        <>
-          <FeaturedNovels novels={featured} source={source} />
-          {shelved.length > 0 && (
-            <section className="history" aria-labelledby="shelf-heading">
-              <h2 className="history__heading" id="shelf-heading">
-                Tủ sách
-              </h2>
-              <ul className="novel-rows">
-                {shelved.map((n) => (
-                  <NovelRow key={n.slug} novel={n} continueNo={readProgress(n.slug)} reads={reads?.[n.slug]} />
-                ))}
-              </ul>
-            </section>
-          )}
-          <section className="history" aria-labelledby="latest-heading">
-            <div className="section-head">
-              <h2 className="history__heading" id="latest-heading">
-                Mới cập nhật
-              </h2>
-              <Link to="/novels/all">Xem tất cả</Link>
-            </div>
-            <ul className="novel-rows">
-              {sorted.slice(0, LATEST).map((n) => (
-                <NovelRow key={n.slug} novel={n} reads={reads?.[n.slug]} />
-              ))}
-            </ul>
-          </section>
-        </>
-      )}
+      <NovelsTabs
+        tab={tab}
+        onTabChange={setTab}
+        labels={{ translated: 'Truyện dịch', fanfics: 'Fanfic' }}
+        translated={
+          <>
+            {error && (
+              <Alert title={error.title} hint={error.hint} />
+            )}
+            {sorted === null ? (
+              <LoadingText>Đang tải…</LoadingText>
+            ) : sorted.length === 0 ? (
+              <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
+            ) : (
+              <>
+                <FeaturedNovels novels={featured} source={source} />
+                {shelved.length > 0 && (
+                  <section className="history" aria-labelledby="shelf-heading">
+                    <h2 className="history__heading" id="shelf-heading">
+                      Tủ sách
+                    </h2>
+                    <ul className="novel-rows">
+                      {shelved.map((n) => (
+                        <NovelRow key={n.slug} novel={n} continueNo={readProgress(n.slug)} reads={reads?.[n.slug]} />
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                <section className="history" aria-labelledby="latest-heading">
+                  <div className="section-head">
+                    <h2 className="history__heading" id="latest-heading">
+                      Mới cập nhật
+                    </h2>
+                    <Link to="/novels/all">Xem tất cả</Link>
+                  </div>
+                  <ul className="novel-rows">
+                    {sorted.slice(0, LATEST).map((n) => (
+                      <NovelRow key={n.slug} novel={n} reads={reads?.[n.slug]} />
+                    ))}
+                  </ul>
+                </section>
+              </>
+            )}
+          </>
+        }
+      />
     </main>
   );
 }

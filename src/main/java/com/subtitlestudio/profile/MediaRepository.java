@@ -43,10 +43,15 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     @Query("select (count(p) > 0) from Person p where p.avatar.id = :id")
     boolean isUsedByPersonAvatar(@Param("id") Long mediaId);
 
+    /** True when a fanfic uses this image as its cover. */
+    @Query("select (count(f) > 0) from Fanfic f where f.cover.id = :id")
+    boolean isUsedByFanficCover(@Param("id") Long mediaId);
+
     default boolean isReferenced(Long mediaId) {
         return isUsedByBlock(mediaId) || isUsedByItem(mediaId) || isUsedByNovelCover(mediaId)
                 || isUsedByChapterPage(mediaId) || isUsedByBanner(mediaId) || isUsedByPortrait(mediaId)
-                || isUsedByPhotoPost(mediaId) || isUsedByWorkCover(mediaId) || isUsedByPersonAvatar(mediaId);
+                || isUsedByPhotoPost(mediaId) || isUsedByWorkCover(mediaId) || isUsedByPersonAvatar(mediaId)
+                || isUsedByFanficCover(mediaId);
     }
 
     /** Images nobody shows that were uploaded before {@code before} (abandoned uploads). */
@@ -59,6 +64,7 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
             + "and not exists (select p from Profile p where p.portrait = m) "
             + "and not exists (select ph from PhotoPost ph where ph.media = m) "
             + "and not exists (select w from Work w where w.cover = m) "
-            + "and not exists (select pe from Person pe where pe.avatar = m) order by m.id")
+            + "and not exists (select pe from Person pe where pe.avatar = m) "
+            + "and not exists (select f from Fanfic f where f.cover = m) order by m.id")
     List<Media> findUnreferencedCreatedBefore(@Param("before") Instant before);
 }

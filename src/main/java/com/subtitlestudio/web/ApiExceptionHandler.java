@@ -1,5 +1,9 @@
 package com.subtitlestudio.web;
 
+import com.subtitlestudio.fanfic.FanficExistsException;
+import com.subtitlestudio.fanfic.FanficNotFoundException;
+import com.subtitlestudio.fanfic.InvalidFanficLinkException;
+import com.subtitlestudio.fanfic.WattpadUnavailableException;
 import com.subtitlestudio.novel.ChapterHasNoPagesException;
 import com.subtitlestudio.novel.ChapterNotFoundException;
 import com.subtitlestudio.novel.ChapterNotTranslatedException;
@@ -139,6 +143,29 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = problem(HttpStatus.CONFLICT, "PHOTO_POST_EXISTS", e.getMessage());
         pd.setProperty("title", e.title());
         return pd;
+    }
+
+    @ExceptionHandler(InvalidFanficLinkException.class)
+    ProblemDetail invalidFanficLink(InvalidFanficLinkException e) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_FANFIC_LINK", e.getMessage());
+    }
+
+    @ExceptionHandler(FanficNotFoundException.class)
+    ProblemDetail fanficNotFound(FanficNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "FANFIC_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(FanficExistsException.class)
+    ProblemDetail fanficExists(FanficExistsException e) {
+        ProblemDetail pd = problem(HttpStatus.CONFLICT, "FANFIC_EXISTS", e.getMessage());
+        pd.setProperty("title", e.title());
+        return pd;
+    }
+
+    @ExceptionHandler(WattpadUnavailableException.class)
+    ProblemDetail wattpadUnavailable(WattpadUnavailableException e) {
+        log.warn("Wattpad unavailable: {}", e.getMessage());
+        return problem(HttpStatus.BAD_GATEWAY, "WATTPAD_UNAVAILABLE", "Wattpad did not answer. Try again later.");
     }
 
     @ExceptionHandler(WorkNotFoundException.class)
