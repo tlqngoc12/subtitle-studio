@@ -223,14 +223,14 @@ describe('PublicNovelsPage tabs', () => {
   it('defaults to Translated', async () => {
     renderAt('/novels');
 
-    expect(screen.getByRole('tab', { name: 'Translated' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Truyện dịch' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByRole('region', { name: 'Mới cập nhật' })).toBeInTheDocument();
   });
 
   it('shows the read-only Fanfics tab from ?tab=fanfics', async () => {
     renderAt('/novels?tab=fanfics');
 
-    expect(screen.getByRole('tab', { name: 'Fanfics' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Fanfic' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByRole('link', { name: /Warm Story/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add fanfic' })).not.toBeInTheDocument();
   });

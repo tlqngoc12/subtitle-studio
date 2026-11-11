@@ -20,19 +20,21 @@ export function NovelsTabs({
   tab,
   onTabChange,
   translated,
+  labels = { translated: 'Translated', fanfics: 'Fanfics' },
 }: {
   tab: NovelsTab;
   onTabChange: (tab: NovelsTab) => void;
   translated: ReactNode;
+  labels?: Record<NovelsTab, string>;
 }) {
   return (
     <Tabs.Root value={tab} onValueChange={(v) => onTabChange(v as NovelsTab)} className="tabs">
       <Tabs.List className="tabs__list" aria-label="Novels sections">
         <TabTrigger className="tabs__tab" value="translated">
-          Translated
+          {labels.translated}
         </TabTrigger>
         <TabTrigger className="tabs__tab" value="fanfics">
-          Fanfics
+          {labels.fanfics}
         </TabTrigger>
       </Tabs.List>
       <Tabs.Content value="translated">{translated}</Tabs.Content>

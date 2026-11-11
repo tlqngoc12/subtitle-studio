@@ -59,38 +59,38 @@ export default function NovelsPage() {
         onTabChange={setTab}
         translated={
           <>
-      {error && (
-        <Alert title={error.title} hint={error.hint} />
-      )}
+            {error && (
+              <Alert title={error.title} hint={error.hint} />
+            )}
 
-      <section className="history" aria-label="Novels">
-        {novels === null ? (
-          <SkeletonGrid count={6} aspect="3/4" />
-        ) : novels.length === 0 ? (
-          <EmptyState icon={BookOpen}>No novels yet. Choose New novel to add the first one.</EmptyState>
-        ) : (
-          <ul className="novel-grid">
-            {novels.map((n, i) => (
-              <Reveal as="li" key={n.id} delayIndex={i} layout>
-                <Link className="novel-card" to={`/novels/${n.id}`}>
-                  <Cover src={n.coverUrl} lazy />
-                  <span className="novel-card__body">
-                    <span className="novel-card__title">{n.title}</span>
-                    <span className="badge badge--info">{STATUS_LABEL[n.novelStatus]}</span>
-                    <span className="meta">
-                      {chapterCountLabel(n.chapterCount)} · {n.publishedCount} published
-                    </span>
-                    <span className="meta reads-meta">
-                      <Eye className="icon" aria-hidden="true" />
-                      {reads[n.slug] === undefined ? '–' : `${reads[n.slug].toLocaleString('en-US')} reads`}
-                    </span>
-                  </span>
-                </Link>
-              </Reveal>
-            ))}
-          </ul>
-        )}
-      </section>
+            <section className="history" aria-label="Novels">
+              {novels === null ? (
+                <SkeletonGrid count={6} aspect="3/4" />
+              ) : novels.length === 0 ? (
+                <EmptyState icon={BookOpen}>No novels yet. Choose New novel to add the first one.</EmptyState>
+              ) : (
+                <ul className="novel-grid">
+                  {novels.map((n, i) => (
+                    <Reveal as="li" key={n.id} delayIndex={i} layout>
+                      <Link className="novel-card" to={`/novels/${n.id}`}>
+                        <Cover src={n.coverUrl} lazy />
+                        <span className="novel-card__body">
+                          <span className="novel-card__title">{n.title}</span>
+                          <span className="badge badge--info">{STATUS_LABEL[n.novelStatus]}</span>
+                          <span className="meta">
+                            {chapterCountLabel(n.chapterCount)} · {n.publishedCount} published
+                          </span>
+                          <span className="meta reads-meta">
+                            <Eye className="icon" aria-hidden="true" />
+                            {reads[n.slug] === undefined ? '–' : `${reads[n.slug].toLocaleString('en-US')} reads`}
+                          </span>
+                        </span>
+                      </Link>
+                    </Reveal>
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
         }
       />
