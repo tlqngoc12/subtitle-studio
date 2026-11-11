@@ -1,8 +1,7 @@
-/* ---------- Profile pages ---------- */
-.pblocks {
+/* ---------- Profile page ---------- */
+.pmembers {
   display: grid;
-  gap: var(--space-5);
-  max-width: 760px;
+  gap: var(--space-16);
 }
 
 /* ---------- Profile edit mode ---------- */
@@ -12,6 +11,11 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+.pblocks {
+  display: grid;
+  gap: var(--space-5);
 }
 
 .pblock-wrap {
@@ -30,4 +34,20 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+.pgroup {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+
+.add-member {
+  padding: var(--space-4);
+  width: min(320px, calc(100vw - 32px));
+}
+
+.add-member__form {
+  display: grid;
+  gap: var(--space-3);
 }

@@ -4,8 +4,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class ProfileService {
+
+    static final int MAX_NAME = 100;
+    static final int MAX_TAGLINE = 300;
+    static final int MAX_FULL_NAME = 200;
 
     private final ProfileRepository profiles;
     private final ProfileBlockRepository blocks;
@@ -35,20 +43,119 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProfileSummary> list() {
-        return profiles.findAllByOrderByIdAsc().stream()
-                .map(p -> new ProfileSummary(p.getSlug(), p.getDisplayName()))
-                .toList();
+    public ProfilePageDto page() {
+        List<Profile> all = profiles.findAllByOrderBySortOrderAscIdAsc();
+        ProfileDto group = null;
+        List<ProfileDto> members = new ArrayList<>();
+        for (Profile p : all) {
+            if (p.getKind() == ProfileKind.GROUP) {
+                group = dto(p);
+            } else {
+                members.add(dto(p));
+            }
+        }
+        return new ProfilePageDto(group, members);
     }
 
     @Transactional(readOnly = true)
     public ProfileDto get(String slug) {
+        return dto(profile(slug));
+    }
+
+    /** Sets display name, tagline, full name and portrait; a replaced portrait is deleted when nothing else uses it. */
+    public ProfileDto updateHeader(String slug, ProfileHeaderRequest r) {
         Profile profile = profile(slug);
+        List<FieldError> errors = new ArrayList<>();
+        String name = r.displayName() == null ? "" : r.displayName().strip();
+        if (name.isEmpty() || name.length() > MAX_NAME) {
+            errors.add(new FieldError("displayName", "Name must be 1-" + MAX_NAME + " characters"));
+        }
+        String tagline = optional(r.tagline(), "tagline", MAX_TAGLINE, errors);
+        String fullName = optional(r.fullName(), "fullName", MAX_FULL_NAME, errors);
+        if (r.portraitMediaId() != null && !media.existsById(r.portraitMediaId())) {
+            errors.add(new FieldError("portraitMediaId", "The image no longer exists"));
+        }
+        if (!errors.isEmpty()) {
+            throw new InvalidBlockException(errors);
+        }
+        Long before = profile.getPortrait() == null ? null : profile.getPortrait().getId();
+        profile.updateHeader(name, tagline, fullName, mediaRef(r.portraitMediaId()), clock.instant());
+        profiles.flush();
+        if (before != null) {
+            mediaService.deleteIfUnreferenced(List.of(before));
+        }
+        return dto(profile);
+    }
+
+    public ProfileDto addMember(NewMemberRequest r) {
+        String name = r == null || r.displayName() == null ? "" : r.displayName().strip();
+        if (name.isEmpty() || name.length() > MAX_NAME) {
+            throw new InvalidBlockException(List.of(
+                    new FieldError("displayName", "Name must be 1-" + MAX_NAME + " characters")));
+        }
+        String slug = SlugGenerator.slugFor(name, profiles::existsBySlug);
+        Profile member = profiles.saveAndFlush(Profile.member(slug, name, profiles.maxSortOrder() + 1, clock.instant()));
+        return dto(member);
+    }
+
+    /** Deletes a member with its blocks and banner rows; images nothing else shows are deleted too. */
+    public void deleteMember(String slug) {
+        Profile profile = profile(slug);
+        if (profile.getKind() == ProfileKind.GROUP) {
+            throw new GroupProfileException();
+        }
+        List<ProfileBlock> memberBlocks = blocks.findByProfileOrderByPositionAscIdAsc(profile);
+        List<ProfileBannerImage> bannerRows = banner.findByProfileOrderByPositionAscIdAsc(profile);
+        List<Long> mediaIds = new ArrayList<>();
+        memberBlocks.forEach(b -> mediaIds.addAll(mediaIds(b)));
+        bannerRows.forEach(i -> mediaIds.add(i.getMedia().getId()));
+        if (profile.getPortrait() != null) {
+            mediaIds.add(profile.getPortrait().getId());
+        }
+        blocks.deleteAll(memberBlocks);
+        banner.deleteAll(bannerRows);
+        profiles.delete(profile);
+        profiles.flush();
+        mediaService.deleteIfUnreferenced(mediaIds);
+    }
+
+    /** {@code slugs} must list every member exactly once; the order becomes the page order. */
+    public List<ProfileDto> reorder(MemberOrderRequest r) {
+        List<Profile> members = profiles.findAllByOrderBySortOrderAscIdAsc().stream()
+                .filter(p -> p.getKind() == ProfileKind.MEMBER).toList();
+        Set<String> expected = members.stream().map(Profile::getSlug).collect(Collectors.toSet());
+        List<String> slugs = r == null ? null : r.slugs();
+        if (slugs == null || slugs.size() != expected.size() || !expected.equals(new HashSet<>(slugs))) {
+            throw new InvalidBlockException(List.of(new FieldError("slugs", "List every member exactly once.")));
+        }
+        Map<String, Profile> bySlug = members.stream().collect(Collectors.toMap(Profile::getSlug, p -> p));
+        for (int i = 0; i < slugs.size(); i++) {
+            bySlug.get(slugs.get(i)).setSortOrder(i + 1);
+        }
+        profiles.flush();
+        return slugs.stream().map(s -> dto(bySlug.get(s))).toList();
+    }
+
+    private ProfileDto dto(Profile profile) {
         List<BlockDto> dtos = blocks.findByProfileOrderByPositionAscIdAsc(profile).stream()
                 .map(ProfileService::toDto)
                 .toList();
-        return new ProfileDto(profile.getSlug(), profile.getDisplayName(), profile.getUpdatedAt(), dtos,
+        Long portraitId = profile.getPortrait() == null ? null : profile.getPortrait().getId();
+        return new ProfileDto(profile.getSlug(), profile.getDisplayName(), profile.getKind(), profile.getTagline(),
+                profile.getFullName(), portraitId, portraitId == null ? null : MediaController.url(portraitId),
+                profile.getUpdatedAt(), dtos,
                 ProfileBannerService.toDtos(banner.findByProfileOrderByPositionAscIdAsc(profile)));
+    }
+
+    private static String optional(String value, String field, int max, List<FieldError> errors) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String stripped = value.strip();
+        if (stripped.length() > max) {
+            errors.add(new FieldError(field, "Longer than " + max + " characters"));
+        }
+        return stripped;
     }
 
     public BlockDto addBlock(String slug, BlockRequest request) {

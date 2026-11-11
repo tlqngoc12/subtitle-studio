@@ -101,4 +101,29 @@ class MediaControllerTest {
 
         expectProblem(mvc.perform(get("/api/media/9")), 404, "MEDIA_NOT_FOUND");
     }
+
+    @Test
+    void uploadWithMaxSideReturnsSize() throws Exception {
+        Media m = mock(Media.class);
+        when(m.getId()).thenReturn(52L);
+        when(m.getWidth()).thenReturn(1600);
+        when(m.getHeight()).thenReturn(1067);
+        when(service.storeResized(eq("a.png"), any(), eq(1600))).thenReturn(m);
+
+        mvc.perform(multipart("/api/media")
+                        .file(new MockMultipartFile("file", "a.png", "image/png", ImageSnifferTest.PNG))
+                        .param("maxSide", "1600"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.width").value(1600))
+                .andExpect(jsonPath("$.height").value(1067));
+    }
+
+    @Test
+    void uploadWithBadMaxSideIs400() throws Exception {
+        mvc.perform(multipart("/api/media")
+                        .file(new MockMultipartFile("file", "a.png", "image/png", ImageSnifferTest.PNG))
+                        .param("maxSide", "999"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("maxSide"));
+    }
 }

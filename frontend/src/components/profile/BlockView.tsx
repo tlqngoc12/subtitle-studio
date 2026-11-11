@@ -1,4 +1,4 @@
-import { FileText, Image as ImageIcon, Images, Info, Link as LinkIcon, Music, type LucideIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon, Images, Info, Link as LinkIcon, Music, Tags, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import Lightbox from 'yet-another-react-lightbox';
@@ -6,6 +6,8 @@ import 'yet-another-react-lightbox/styles.css';
 import type { BlockType, ProfileBlock, ProfileItem } from '../../api/profiles';
 import { Tip } from '../Tip';
 import { BrandIcon } from './BrandIcon';
+import { ChipList } from './ChipList';
+import { FactsGrid } from './FactsGrid';
 import './BlockView.css';
 
 /** Shown before a block's title so each kind of content is recognisable at a glance. */
@@ -16,17 +18,30 @@ const TYPE_ICONS: Record<BlockType, LucideIcon> = {
   EMBED: Music,
   LINKS: LinkIcon,
   FACTS: Info,
+  CHIPS: Tags,
 };
 
-/** One profile block in view mode. */
-export function BlockView({ block }: { block: ProfileBlock }) {
+/**
+ * One profile block in view mode. In a member section the block is `plain` (no card), its title is a level-3
+ * heading and the first FACTS block can hide its title (`hideTitle`: it reads as the member's header facts).
+ */
+export function BlockView({
+  block,
+  plain = false,
+  hideTitle = false,
+}: {
+  block: ProfileBlock;
+  plain?: boolean;
+  hideTitle?: boolean;
+}) {
+  const Heading = plain ? 'h3' : 'h2';
   return (
-    <section className="pblock">
-      {block.title && (
-        <h2 className="pblock__title">
+    <section className={plain ? 'pblock pblock--plain' : 'pblock'}>
+      {block.title && !hideTitle && (
+        <Heading className="pblock__title">
           <TitleIcon type={block.type} />
           {block.title}
-        </h2>
+        </Heading>
       )}
       <BlockBody block={block} />
     </section>
@@ -64,7 +79,9 @@ function BlockBody({ block }: { block: ProfileBlock }) {
     case 'LINKS':
       return <Links items={block.items} />;
     case 'FACTS':
-      return <Facts items={block.items} />;
+      return <FactsGrid items={block.items} />;
+    case 'CHIPS':
+      return <ChipList items={block.items} />;
   }
 }
 
@@ -161,20 +178,5 @@ function Links({ items }: { items: ProfileItem[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function Facts({ items }: { items: ProfileItem[] }) {
-  return (
-    <table className="pblock__facts">
-      <tbody>
-        {items.map((it, i) => (
-          <tr key={i}>
-            <th scope="row">{it.label}</th>
-            <td>{it.value}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

@@ -48,18 +48,21 @@ class ProfileControllerTest {
     }
 
     @Test
-    void listsProfiles() throws Exception {
-        when(service.list()).thenReturn(List.of(new ProfileSummary("emibonnie", "EmiBonnie")));
+    void getProfilesReturnsPage() throws Exception {
+        when(service.page()).thenReturn(new ProfilePageDto(profile("emibonnie", ProfileKind.GROUP),
+                List.of(profile("emi", ProfileKind.MEMBER))));
 
         mvc.perform(get("/api/profiles")).andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].slug").value("emibonnie"))
-                .andExpect(jsonPath("$[0].displayName").value("EmiBonnie"));
+                .andExpect(jsonPath("$.group.slug").value("emibonnie"))
+                .andExpect(jsonPath("$.members[0].slug").value("emi"))
+                .andExpect(jsonPath("$.members[0].kind").value("MEMBER"));
     }
 
     @Test
     void getsProfileWithBlocks() throws Exception {
         when(service.get("emi")).thenReturn(
-                new ProfileDto("emi", "Emi", Instant.parse("2026-11-03T10:00:00Z"), List.of(LINKS),
+                new ProfileDto("emi", "Emi", ProfileKind.MEMBER, null, null, null, null,
+                        Instant.parse("2026-11-03T10:00:00Z"), List.of(LINKS),
                         List.of(new BannerImageDto(4, null, "/api/media/7", "Alt"))));
 
         mvc.perform(get("/api/profiles/emi")).andExpect(status().isOk())
@@ -68,6 +71,47 @@ class ProfileControllerTest {
                 .andExpect(jsonPath("$.banner[0].altText").value("Alt"))
                 .andExpect(jsonPath("$.blocks[0].type").value("LINKS"))
                 .andExpect(jsonPath("$.blocks[0].items[0].value").value("https://instagram.com/x"));
+    }
+
+    private static ProfileDto profile(String slug, ProfileKind kind) {
+        return new ProfileDto(slug, slug, kind, null, null, null, null, Instant.parse("2026-11-03T10:00:00Z"),
+                List.of(), List.of());
+    }
+
+    @Test
+    void putOrderIsNotTreatedAsSlug() throws Exception {
+        when(service.reorder(any())).thenReturn(List.of(profile("bonnie", ProfileKind.MEMBER)));
+
+        json(put("/api/profiles/order"), "{\"slugs\":[\"bonnie\"]}").andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].slug").value("bonnie"));
+        verify(service).reorder(new MemberOrderRequest(List.of("bonnie")));
+    }
+
+    @Test
+    void updatesHeader() throws Exception {
+        when(service.updateHeader(eq("emi"), any())).thenReturn(profile("emi", ProfileKind.MEMBER));
+
+        json(put("/api/profiles/emi/header"),
+                "{\"displayName\":\"Emi\",\"tagline\":\"t\",\"fullName\":null,\"portraitMediaId\":5}")
+                .andExpect(status().isOk());
+        verify(service).updateHeader("emi", new ProfileHeaderRequest("Emi", "t", null, 5L));
+    }
+
+    @Test
+    void addsMemberAndDeletesIt() throws Exception {
+        when(service.addMember(any())).thenReturn(profile("any", ProfileKind.MEMBER));
+
+        json(post("/api/profiles"), "{\"displayName\":\"Any\"}").andExpect(status().isCreated())
+                .andExpect(jsonPath("$.slug").value("any"));
+        mvc.perform(delete("/api/profiles/any")).andExpect(status().isNoContent());
+        verify(service).deleteMember("any");
+    }
+
+    @Test
+    void deletingGroupIs409() throws Exception {
+        org.mockito.Mockito.doThrow(new GroupProfileException()).when(service).deleteMember("emibonnie");
+
+        expectProblem(mvc.perform(delete("/api/profiles/emibonnie")), 409, "GROUP_PROFILE");
     }
 
     @Test

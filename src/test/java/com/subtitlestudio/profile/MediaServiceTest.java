@@ -38,7 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({MediaService.class, ImageSniffer.class, MediaServiceTest.Config.class})
+@Import({MediaService.class, ImageSniffer.class, ImageResizer.class, MediaServiceTest.Config.class})
 // Real commits: file deletion waits for the transaction to commit.
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class MediaServiceTest {
@@ -287,5 +287,98 @@ class MediaServiceTest {
 
         assertThat(media.existsById(free.getId())).isTrue();
         assertThat(fileOf(free, "png")).exists();
+    }
+
+    @Test
+    void storeResizedWritesOneFileWithReturnedSize() throws IOException {
+        Media m = service.storeResized("big.png", ImageResizerTest.png(3000, 2000), 1600);
+
+        Media saved = media.findById(m.getId()).orElseThrow();
+        assertThat(saved.getWidth()).isEqualTo(1600);
+        assertThat(saved.getHeight()).isEqualTo(1067);
+        try (Stream<Path> all = Files.walk(dataDir.resolve("media"))) {
+            assertThat(all.filter(Files::isRegularFile).count()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void oversizedInputRejectedBeforeDecoding() throws IOException {
+        byte[] big = new byte[(int) MediaService.MAX_BYTES + 1];
+        System.arraycopy(ImageSnifferTest.PNG, 0, big, 0, ImageSnifferTest.PNG.length);
+
+        assertThatThrownBy(() -> service.storeResized("big.png", big, 400)).isInstanceOf(MediaTooLargeException.class);
+        assertThat(media.count()).isZero();
+        assertThat(Files.exists(dataDir.resolve("media")) ? Files.list(dataDir.resolve("media")).count() : 0L).isZero();
+    }
+
+    @Test
+    void gifWithMaxSideWritesNothing() throws IOException {
+        assertThatThrownBy(() -> service.storeResized("a.gif", ImageSnifferTest.GIF, 400))
+                .isInstanceOf(InvalidMediaException.class);
+        assertThat(media.count()).isZero();
+    }
+
+    @Test
+    void portraitCountsAsReference() {
+        Media m = storeAt(NOW.minus(Duration.ofDays(2)));
+        Profile emi = profiles.findBySlug("emi").orElseThrow();
+        emi.updateHeader(emi.getDisplayName(), null, null, m, NOW);
+        profiles.saveAndFlush(emi);
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(m, "png")).exists();
+            assertThat(media.isReferenced(m.getId())).isTrue();
+        } finally {
+            emi.updateHeader(emi.getDisplayName(), null, null, null, NOW);
+            profiles.saveAndFlush(emi);
+        }
+    }
+
+    @Autowired
+    private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
+
+    @Test
+    void photoPostCountsAsReference() {
+        Media m = storeAt(NOW.minus(Duration.ofDays(2)));
+        com.subtitlestudio.photo.PhotoPost post = new com.subtitlestudio.photo.PhotoPost(NOW);
+        post.set("https://www.instagram.com/p/AAA/", m, "t", java.time.LocalDate.parse("2026-11-09"), null,
+                com.subtitlestudio.photo.PhotoSource.FAN, null, java.util.Set.of(), NOW);
+        photoPosts.saveAndFlush(post);
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(m, "png")).exists();
+            assertThat(media.isReferenced(m.getId())).isTrue();
+        } finally {
+            photoPosts.deleteAll();
+        }
+    }
+
+    @Autowired
+    private com.subtitlestudio.work.WorkRepository works;
+
+    @Autowired
+    private com.subtitlestudio.work.PersonRepository people;
+
+    @Test
+    void workCoverAndPersonAvatarCountAsReferences() {
+        Media cover = storeAt(NOW.minus(Duration.ofDays(2)));
+        Media avatar = storeAt(NOW.minus(Duration.ofDays(2)));
+        com.subtitlestudio.work.Work w = new com.subtitlestudio.work.Work(NOW);
+        w.set("W", cover, null, com.subtitlestudio.work.WorkCategory.MUSIC, null, null, null, List.of(), List.of(), NOW);
+        works.saveAndFlush(w);
+        people.saveAndFlush(new com.subtitlestudio.work.Person("Bonnie", avatar, NOW));
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(cover, "png")).exists();
+            assertThat(fileOf(avatar, "png")).exists();
+            assertThat(media.isReferenced(cover.getId())).isTrue();
+            assertThat(media.isReferenced(avatar.getId())).isTrue();
+        } finally {
+            works.deleteAll();
+            people.deleteAll();
+        }
     }
 }

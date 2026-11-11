@@ -92,29 +92,59 @@
   overflow-wrap: anywhere;
 }
 
-.pblock__facts {
-  width: 100%;
-  border-collapse: collapse;
+.pblock--plain {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
 }
 
-.pblock__facts th,
-.pblock__facts td {
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--rule);
-  text-align: left;
-  vertical-align: top;
+/* FACTS: two columns of Label / value pairs, one column on phones. */
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-6);
 }
 
-.pblock__facts tr:last-child th,
-.pblock__facts tr:last-child td {
-  border-bottom: 0;
+@media (max-width: 520px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.pblock__facts th {
-  width: 40%;
-  padding-right: var(--space-4);
+.facts__pair {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.facts dt {
   color: var(--muted);
+  font-size: var(--step--1);
   font-weight: 700;
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* CHIPS: neutral pills that wrap. */
+.chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chips__chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow-wrap: anywhere;
 }
 
 .pblock__title {

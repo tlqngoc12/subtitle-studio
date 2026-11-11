@@ -1,5 +1,7 @@
 import { ApiError, type ViCue } from '../api/client';
-import type { Profile, ProfileSummary } from '../api/profiles';
+import type { PhotoPost } from '../api/photos';
+import type { ProfilePage } from '../api/profiles';
+import type { Work, WorkSummary } from '../api/works';
 import type { PublicPlaylistDetail, PublicPlaylistSummary, PublicVideo, ReadSource } from './types';
 
 interface VideoFile {
@@ -53,7 +55,9 @@ export function createStaticSource(base = '/'): ReadSource {
     getVietsub: async (id) => (await videoFile(id)).vietsub,
     listPlaylists: () => read<PublicPlaylistSummary[]>('playlists.json'),
     getPlaylist: (id) => read<PublicPlaylistDetail>(`playlists/${id}.json`, 'PLAYLIST_NOT_FOUND'),
-    listProfiles: () => read<ProfileSummary[]>('profiles.json'),
-    getProfile: (slug) => read<Profile>(`profiles/${encodeURIComponent(slug)}.json`, 'PROFILE_NOT_FOUND'),
+    getProfilePage: () => read<ProfilePage>('profiles.json', 'PROFILE_NOT_FOUND'),
+    listPhotos: () => read<PhotoPost[]>('photos.json'),
+    listWorks: () => read<WorkSummary[]>('works.json'),
+    getWork: (id) => read<Work>(`works/${id}.json`, 'WORK_NOT_FOUND'),
   };
 }

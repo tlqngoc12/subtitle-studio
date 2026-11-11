@@ -95,12 +95,30 @@ describe('BlockView', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('shows facts as a table', () => {
+  it('shows facts as a grid of label and value', () => {
     render(
       <BlockView block={block({ id: 1, type: 'FACTS', items: [item({ label: 'Ngày sinh', value: '13/05/1999' })] })} />,
     );
 
-    expect(screen.getByRole('rowheader', { name: 'Ngày sinh' })).toBeInTheDocument();
-    expect(screen.getByRole('cell', { name: '13/05/1999' })).toBeInTheDocument();
+    expect(screen.getByRole('term')).toHaveTextContent('Ngày sinh');
+    expect(screen.getByRole('definition')).toHaveTextContent('13/05/1999');
+  });
+
+  it('shows chips as list items', () => {
+    render(
+      <BlockView
+        block={block({ id: 1, type: 'CHIPS', title: 'Hobbies', items: [item({ label: 'Reading' }), item({ label: 'Travel' })] })}
+      />,
+    );
+
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Reading', 'Travel']);
+  });
+
+  it('plain blocks use level-3 titles and can hide the first title', () => {
+    const { rerender } = render(<BlockView plain block={block({ id: 1, type: 'TEXT', title: 'Bio', body: 'x' })} />);
+    expect(screen.getByRole('heading', { level: 3, name: 'Bio' })).toBeInTheDocument();
+
+    rerender(<BlockView plain hideTitle block={block({ id: 1, type: 'TEXT', title: 'Bio', body: 'x' })} />);
+    expect(screen.queryByRole('heading', { name: 'Bio' })).not.toBeInTheDocument();
   });
 });

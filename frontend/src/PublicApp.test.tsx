@@ -20,10 +20,13 @@ const FILES: Record<string, unknown> = {
     translatorCredit: null, sourceUrl: null, chapters: [{ chapterNo: 2, title: null }],
   },
   '/data/novels/abc/2.json': { chapterNo: 2, title: null, prev: null, next: null, images: ['/novels/abc/x-1.webp'] },
-  '/data/profiles.json': [{ slug: 'emibonnie', displayName: 'EmiBonnie' }, { slug: 'emi', displayName: 'Emi' }],
-  '/data/profiles/emi.json': {
-    slug: 'emi', displayName: 'Emi', updatedAt: 'x',
-    blocks: [{ id: 1, type: 'TEXT', title: null, body: 'Trang của Emi', mediaId: null, mediaUrl: null, caption: null, embedUrl: null, items: [] }],
+  '/data/profiles.json': {
+    group: { slug: 'emibonnie', displayName: 'EmiBonnie', kind: 'GROUP', updatedAt: 'x', blocks: [], banner: [] },
+    members: [{
+      slug: 'emi', displayName: 'Emi', kind: 'MEMBER', tagline: null, fullName: null, portraitUrl: null, updatedAt: 'x',
+      blocks: [{ id: 1, type: 'TEXT', title: null, body: 'Trang của Emi', mediaId: null, mediaUrl: null, caption: null, embedUrl: null, items: [] }],
+      banner: [],
+    }],
   },
 };
 
@@ -78,7 +81,7 @@ describe('PublicApp', () => {
     renderAt('/vietsub/list');
 
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile', 'Novels']);
+    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub list', 'Profile', 'Works', 'Photos', 'Novels']);
     expect(screen.queryByRole('button', { name: /Publish/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toHaveAttribute('href', '/vietsub/list');
     await screen.findByText(/No playlists yet\./);

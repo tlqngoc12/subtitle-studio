@@ -1,5 +1,5 @@
 import { MotionConfig } from 'motion/react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -11,7 +11,11 @@ import NovelPage from './pages/NovelPage';
 import NovelsPage from './pages/NovelsPage';
 import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
-import ProfilePage from './pages/ProfilePage';
+import PhotosPage from './pages/PhotosPage';
+import WorkDetailPage from './pages/WorkDetailPage';
+import WorkEditPage from './pages/WorkEditPage';
+import WorksPage from './pages/WorksPage';
+import ProfilePage, { ProfileRedirect } from './pages/ProfilePage';
 import ProfilesPage from './pages/ProfilesPage';
 import VietsubEditPage from './pages/VietsubEditPage';
 import VietsubListPage from './pages/VietsubListPage';
@@ -35,8 +39,13 @@ export default function App() {
           <Route path="/vietsub/profiles" element={<ProfilesPage />} />
           <Route path="/vietsub/:id/edit" element={<VietsubEditPage />} />
           <Route path="/vietsub/:id" element={<WatchPage />} />
-          <Route path="/profiles" element={<Navigate to="/profiles/emibonnie" replace />} />
-          <Route path="/profiles/:slug" element={<ProfilePage />} />
+          <Route path="/profiles" element={<ProfilePage />} />
+          <Route path="/profiles/:slug" element={<ProfileRedirect />} />
+          <Route path="/photos" element={<PhotosPage />} />
+          <Route path="/works" element={<WorksPage />} />
+          <Route path="/works/new" element={<WorkEditPage />} />
+          <Route path="/works/:id/edit" element={<WorkEditPage />} />
+          <Route path="/works/:id" element={<WorkDetailPage />} />
           <Route path="/novels" element={<NovelsPage />} />
           <Route path="/novels/new" element={<NovelNewPage />} />
           <Route path="/novels/:id" element={<NovelPage />} />

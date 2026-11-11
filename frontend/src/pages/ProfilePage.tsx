@@ -1,84 +1,81 @@
-import { useConfirmDialog } from '../components/useConfirmDialog';
-import { Check, Pencil, Plus, Sparkles, SquarePlus } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
-import { ApiError } from '../api/client';
+import * as Popover from '@radix-ui/react-popover';
+import { Check, Pencil, Sparkles, SquarePlus, UserPlus } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Navigate, useLocation, useParams } from 'react-router';
+import { toast } from 'sonner';
 import {
-  addBlock,
-  deleteBlock,
-  moveBlock,
-  updateBlock,
-  type BlockInput,
-  type BlockType,
+  addMember,
+  deleteMember,
+  reorderMembers,
   type BannerImage,
   type Direction,
   type Profile,
-  type ProfileBlock,
-  type ProfileSummary,
+  type ProfilePage as ProfilePageData,
 } from '../api/profiles';
-import { BannerEditor } from '../components/profile/BannerEditor';
-import { ProfileBanner } from '../components/profile/ProfileBanner';
-import { BLOCK_TYPE_LABELS, BlockEditor } from '../components/profile/BlockEditor';
-import { BlockToolbar } from '../components/profile/BlockToolbar';
-import { BlockView } from '../components/profile/BlockView';
 import { EmptyState } from '../components/EmptyState';
-import { ProfileTabs } from '../components/profile/ProfileTabs';
-import { useSite } from '../data/SiteContext';
-import { errorMessage, type ErrorMessage } from '../lib/errors';
-import { expandMotion, rowMotion } from '../lib/motion';
+import { BannerEditor } from '../components/profile/BannerEditor';
+import { MemberHeaderEditor } from '../components/profile/MemberHeaderEditor';
+import { MemberSection } from '../components/profile/MemberSection';
+import { ProfileBanner } from '../components/profile/ProfileBanner';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PopoverPanel } from '../components/ui/PopoverPanel';
+import { useConfirmDialog } from '../components/useConfirmDialog';
+import { useSite } from '../data/SiteContext';
+import { errorMessage, type ErrorMessage } from '../lib/errors';
 import './ProfilePage.css';
 
-type OpenForm = { mode: 'edit'; id: number } | { mode: 'add'; type: BlockType } | null;
+/** Old links /profiles/:slug keep working: they open the one page at that member's section. */
+export function ProfileRedirect() {
+  const { slug = '' } = useParams();
+  return <Navigate to={slug === 'emibonnie' || slug === '' ? '/profiles' : `/profiles#${slug}`} replace />;
+}
 
-const TYPES = Object.keys(BLOCK_TYPE_LABELS) as BlockType[];
-
-/** Profile page (/profiles/:slug): name, tabs and the blocks in order; "Edit" edits them in place. */
+/** Profile page (/profiles): the EmiBonnie banner, then one section per member with alternating portrait sides. */
 export default function ProfilePage() {
-  const { confirm, dialog: confirmDialog } = useConfirmDialog();
-  const { slug = 'emibonnie' } = useParams();
-  const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<{ message: ErrorMessage; notFound: boolean } | null>(null);
   const { source, readOnly } = useSite();
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<OpenForm>(null);
-  const [choosingType, setChoosingType] = useState(false);
+  const { hash } = useLocation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const [data, setData] = useState<ProfilePageData | null>(null);
+  const [error, setError] = useState<ErrorMessage | null>(null);
   const [actionError, setActionError] = useState<ErrorMessage | null>(null);
-
-  useEffect(() => {
-    source
-      .listProfiles()
-      .then(setProfiles)
-      .catch(() => setProfiles([]));
-  }, [source]);
+  const [editing, setEditing] = useState(false);
+  const [groupHeaderOpen, setGroupHeaderOpen] = useState(false);
+  const [scrollTo, setScrollTo] = useState<string | null>(null);
 
   useEffect(() => {
     let current = true;
-    setProfile(null);
+    setData(null);
     setError(null);
-    setForm(null);
-    setChoosingType(false);
-    setActionError(null);
     source
-      .getProfile(slug)
-      .then((p) => current && setProfile(p))
-      .catch((e) => {
-        if (!current) return;
-        const notFound = e instanceof ApiError && e.code === 'PROFILE_NOT_FOUND';
-        setError({ message: errorMessage(e, { readOnly }), notFound });
-      });
+      .getProfilePage()
+      .then((p) => current && setData(p))
+      .catch((e) => current && setError(errorMessage(e, { readOnly })));
     return () => {
       current = false;
     };
-  }, [slug, source, readOnly]);
+  }, [source, readOnly]);
 
-  const setBanner = (banner: BannerImage[]) => setProfile((p) => (p ? { ...p, banner } : p));
+  // Scroll to #slug once the sections exist; an unknown hash is ignored.
+  useEffect(() => {
+    if (!data || !hash) return;
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.({ block: 'start' });
+  }, [data, hash]);
 
-  const setBlocks = (update: (blocks: ProfileBlock[]) => ProfileBlock[]) =>
-    setProfile((p) => (p ? { ...p, blocks: update(p.blocks) } : p));
+  // A member that was just added scrolls into view once its section is rendered.
+  useEffect(() => {
+    if (!scrollTo || !data) return;
+    document.getElementById(scrollTo)?.scrollIntoView?.({ block: 'start' });
+    setScrollTo(null);
+  }, [scrollTo, data]);
+
+  const setMembers = (update: (members: Profile[]) => Profile[]) =>
+    setData((d) => (d ? { ...d, members: update(d.members) } : d));
+  const replaceMember = (profile: Profile) =>
+    setMembers((ms) => ms.map((m) => (m.slug === profile.slug ? profile : m)));
+  const setBanner = (banner: BannerImage[]) =>
+    setData((d) => (d ? { ...d, group: { ...d.group, banner } } : d));
 
   async function run(action: () => Promise<void>) {
     setActionError(null);
@@ -89,158 +86,183 @@ export default function ProfilePage() {
     }
   }
 
-  const saveNew = async (input: BlockInput) => {
-    const created = await addBlock(slug, input);
-    setBlocks((bs) => [...bs, created]);
-    setForm(null);
-  };
+  const moveMember = (slug: string, direction: Direction) =>
+    run(async () => {
+      if (!data) return;
+      const slugs = data.members.map((m) => m.slug);
+      const i = slugs.indexOf(slug);
+      const j = direction === 'UP' ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= slugs.length) return;
+      [slugs[i], slugs[j]] = [slugs[j], slugs[i]];
+      const ordered = await reorderMembers(slugs);
+      setMembers(() => ordered);
+    });
 
-  const saveEdit = (id: number) => async (input: BlockInput) => {
-    const updated = await updateBlock(slug, id, input);
-    setBlocks((bs) => bs.map((b) => (b.id === id ? updated : b)));
-    setForm(null);
-  };
-
-  const remove = async (id: number) => {
-    if (!(await confirm({ title: 'Delete this block?', confirmLabel: 'Delete', destructive: true }))) return;
+  const removeMember = async (member: Profile) => {
+    const ok = await confirm({
+      title: `Delete ${member.displayName}?`,
+      description: 'Their blocks and banner are removed.',
+      confirmLabel: 'Delete member',
+      destructive: true,
+    });
+    if (!ok) return;
     void run(async () => {
-      await deleteBlock(slug, id);
-      setBlocks((bs) => bs.filter((b) => b.id !== id));
+      await deleteMember(member.slug);
+      setMembers((ms) => ms.filter((m) => m.slug !== member.slug));
+      toast.success(`${member.displayName} deleted`);
     });
   };
 
-  const move = (id: number, direction: Direction) =>
-    void run(async () => {
-      const ordered = await moveBlock(slug, id, direction);
-      setBlocks(() => ordered);
-    });
-
-  const stopEditing = () => {
-    setEditing(false);
-    setForm(null);
-    setChoosingType(false);
+  const created = (member: Profile) => {
+    setMembers((ms) => [...ms, member]);
+    setEditing(true);
+    setScrollTo(member.slug);
   };
 
-  const formOpen = form !== null;
-  // Profile data published before the banner existed has no `banner` field.
-  const banner = profile?.banner ?? [];
+  // Data published before the banner existed has no `banner` field.
+  const banner = data?.group?.banner ?? [];
+  const admin = !readOnly;
 
   return (
     <main className="page">
       {confirmDialog}
-      <ProfileTabs profiles={profiles} current={slug}>
-        {error && (
-          <Alert title={error.message.title} hint={error.message.hint}>
-            {error.notFound && <Link to="/profiles/emibonnie">Back to EmiBonnie</Link>}
-          </Alert>
-        )}
-
-        {profile === null && !error && <LoadingText>Loading profile…</LoadingText>}
-
-        {profile && (
-          <>
-            <h1 className="visually-hidden">{profile.displayName}</h1>
-            {!readOnly && (
-              <header className="masthead pmasthead">
-                {editing ? (
-                  <button type="button" className="button button--primary" onClick={stopEditing}>
-                    <Check className="icon" aria-hidden="true" />
-                    Done
-                  </button>
-                ) : (
-                  <button type="button" className="button button--small" onClick={() => setEditing(true)}>
-                    <Pencil className="icon" aria-hidden="true" />
-                    Edit
-                  </button>
-                )}
-              </header>
-            )}
-
-            <ProfileBanner images={banner} />
-            {editing && !readOnly && <BannerEditor slug={slug} images={banner} onChange={setBanner} />}
-
-            {actionError && (
-              <Alert title={actionError.title} hint={actionError.hint} />
-            )}
-
-            <div className="pblocks">
-              {profile.blocks.length === 0 && !formOpen && (banner.length === 0 || editing) && (
-                readOnly ? (
-                  <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
-                ) : (
-                  <EmptyState icon={SquarePlus}>
-                    This profile has no content yet.{editing ? ' Use Add block below to start.' : ' Choose Edit to add the first block.'}
-                  </EmptyState>
-                )
-              )}
-              <AnimatePresence initial={false}>
-                {profile.blocks.map((b, i) => (
-                  // One motion wrapper per block: it glides on Move up/down and collapses on Delete.
-                  <motion.div key={b.id} className="pblock-wrap" {...rowMotion}>
-                    {form?.mode === 'edit' && form.id === b.id ? (
-                      <motion.div {...expandMotion}>
-                        <BlockEditor type={b.type} initial={b} onSave={saveEdit(b.id)} onCancel={() => setForm(null)} />
-                      </motion.div>
-                    ) : (
-                      <>
-                        {editing && (
-                          <BlockToolbar
-                            first={i === 0}
-                            last={i === profile.blocks.length - 1}
-                            disabled={formOpen}
-                            onEdit={() => setForm({ mode: 'edit', id: b.id })}
-                            onMove={(d) => move(b.id, d)}
-                            onDelete={() => remove(b.id)}
-                          />
-                        )}
-                        <BlockView block={b} />
-                      </>
-                    )}
-                  </motion.div>
-                ))}
-
-                {form?.mode === 'add' && (
-                  <motion.div key="new-block" {...expandMotion}>
-                    <BlockEditor type={form.type} onSave={saveNew} onCancel={() => setForm(null)} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {editing && (
-                <div className="padd">
-                  <button
-                    type="button"
-                    className="button button--small"
-                    aria-expanded={choosingType}
-                    disabled={formOpen}
-                    onClick={() => setChoosingType((v) => !v)}
-                  >
-                    <Plus className="icon" aria-hidden="true" />
-                    Add block
-                  </button>
-                  {choosingType && !formOpen && (
-                    <div className="padd__types" role="group" aria-label="Choose block type">
-                      {TYPES.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          className="button button--small"
-                          onClick={() => {
-                            setChoosingType(false);
-                            setForm({ mode: 'add', type: t });
-                          }}
-                        >
-                          {BLOCK_TYPE_LABELS[t]}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+      <PageHeader
+        title="Profile"
+        actions={
+          admin && (
+            <div className="pmasthead">
+              <AddMember onCreated={created} />
+              {editing ? (
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={() => {
+                    setEditing(false);
+                    setGroupHeaderOpen(false);
+                  }}
+                >
+                  <Check className="icon" aria-hidden="true" />
+                  Done
+                </button>
+              ) : (
+                <button type="button" className="button button--small" onClick={() => setEditing(true)}>
+                  <Pencil className="icon" aria-hidden="true" />
+                  Edit
+                </button>
               )}
             </div>
-          </>
-        )}
-      </ProfileTabs>
+          )
+        }
+      />
+
+      {error && <Alert title={error.title} hint={error.hint} />}
+      {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
+      {data === null && !error && <LoadingText>Loading profile…</LoadingText>}
+
+      {data && (
+        <>
+          <ProfileBanner images={banner} />
+          {editing && admin && (
+            <div className="pgroup">
+              <BannerEditor slug={data.group.slug} images={banner} onChange={setBanner} />
+              {groupHeaderOpen ? (
+                <MemberHeaderEditor
+                  profile={data.group}
+                  onSaved={(saved) => {
+                    setData((d) => (d ? { ...d, group: { ...saved, banner: d.group.banner } } : d));
+                    setGroupHeaderOpen(false);
+                  }}
+                  onCancel={() => setGroupHeaderOpen(false)}
+                />
+              ) : (
+                <button type="button" className="button button--small" onClick={() => setGroupHeaderOpen(true)}>
+                  <Pencil className="icon" aria-hidden="true" />
+                  Edit EmiBonnie avatar
+                </button>
+              )}
+            </div>
+          )}
+
+          {data.members.length === 0 ? (
+            admin ? (
+              <EmptyState icon={SquarePlus}>No members yet. Choose Add member to add the first one.</EmptyState>
+            ) : (
+              <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
+            )
+          ) : (
+            <div className="pmembers">
+              {data.members.map((m, i) => (
+                <MemberSection
+                  key={m.slug}
+                  profile={m}
+                  side={i % 2 === 0 ? 'left' : 'right'}
+                  onChange={replaceMember}
+                  admin={
+                    editing && admin
+                      ? {
+                          isFirst: i === 0,
+                          isLast: i === data.members.length - 1,
+                          onMove: (d) => void moveMember(m.slug, d),
+                          onDelete: () => void removeMember(m),
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </main>
+  );
+}
+
+/** "Add member": a small popover asking for the name; the server makes the slug. */
+function AddMember({ onCreated }: { onCreated: (member: Profile) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const member = await addMember(name.trim());
+      setOpen(false);
+      setName('');
+      onCreated(member);
+    } catch (err) {
+      setError(errorMessage(err).title);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button type="button" className="button button--small">
+          <UserPlus className="icon" aria-hidden="true" />
+          Add member
+        </button>
+      </Popover.Trigger>
+      <PopoverPanel className="add-member">
+        <form className="add-member__form" onSubmit={submit}>
+          <label htmlFor="add-member-name">Member name</label>
+          <input id="add-member-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+          {error && (
+            <p className="field__error" role="alert">
+              {error}
+            </p>
+          )}
+          <button type="submit" className="button button--primary" disabled={saving || !name.trim()}>
+            Add
+          </button>
+        </form>
+      </PopoverPanel>
+    </Popover.Root>
   );
 }

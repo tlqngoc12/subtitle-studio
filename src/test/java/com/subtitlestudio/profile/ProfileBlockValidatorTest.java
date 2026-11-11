@@ -154,4 +154,36 @@ class ProfileBlockValidatorTest {
                 new ItemRequest("a", "javascript:x", null), new ItemRequest("b", "nope", null))))
                 .containsExactly("items[0].value", "items[1].value");
     }
+
+    @Test
+    void chipsAcceptsLabelsOnly() {
+        ValidBlock b = valid(req(BlockType.CHIPS, " Hobbies ", null, null, null, null,
+                List.of(new ItemRequest(" Reading ", null, null), new ItemRequest("Travel", " ", null))));
+
+        assertThat(b.title()).isEqualTo("Hobbies");
+        assertThat(b.items()).containsExactly(new ValidItem("Reading", null, null), new ValidItem("Travel", null, null));
+    }
+
+    @Test
+    void chipsRejectsValueOrMedia() {
+        assertThat(errorFields(withItems(BlockType.CHIPS, new ItemRequest("a", "v", null))))
+                .containsExactly("items[0].value");
+        assertThat(errorFields(withItems(BlockType.CHIPS, new ItemRequest("a", null, 7L))))
+                .containsExactly("items[0].mediaId");
+    }
+
+    @Test
+    void chipsRejectsEmptyOrLongLabel() {
+        assertThat(errorFields(withItems(BlockType.CHIPS, new ItemRequest("", null, null))))
+                .containsExactly("items[0].label");
+        assertThat(errorFields(withItems(BlockType.CHIPS, new ItemRequest("a".repeat(101), null, null))))
+                .containsExactly("items[0].label");
+        valid(withItems(BlockType.CHIPS, new ItemRequest("a".repeat(100), null, null)));
+    }
+
+    @Test
+    void chipsRejectsMoreThan50Items() {
+        List<ItemRequest> many = new ArrayList<>(Collections.nCopies(51, new ItemRequest("l", null, null)));
+        assertThat(errorFields(req(BlockType.CHIPS, null, null, null, null, null, many))).containsExactly("items");
+    }
 }

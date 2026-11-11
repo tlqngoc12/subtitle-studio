@@ -99,6 +99,24 @@ class SiteExporterTest {
     private com.subtitlestudio.profile.ProfileService profiles;
 
     @Autowired
+    private com.subtitlestudio.photo.PhotoService photoService;
+
+    @Autowired
+    private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
+
+    @Autowired
+    private com.subtitlestudio.work.WorkService workService;
+
+    @Autowired
+    private com.subtitlestudio.work.PersonService personService;
+
+    @Autowired
+    private com.subtitlestudio.work.WorkRepository workRepository;
+
+    @Autowired
+    private com.subtitlestudio.work.PersonRepository personRepository;
+
+    @Autowired
     private com.subtitlestudio.profile.ProfileBannerService bannerService;
 
     @Autowired
@@ -143,6 +161,10 @@ class SiteExporterTest {
 
     @AfterEach
     void cleanUp() {
+        photoPosts.deleteAll();
+        workRepository.deleteAll();
+        personRepository.deleteAll();
+        jdbc.update("update t_profile set portrait_media_id = null");
         for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
                 "vi_cue", "cue", "video")) {
             jdbc.update("delete from " + table);
@@ -185,6 +207,20 @@ class SiteExporterTest {
 
     private JsonNode readJson(String path) throws IOException {
         return json.readTree(read(path));
+    }
+
+    /** The member (or group) with this slug from the one-page data/profiles.json. */
+    private JsonNode profile(String slug) throws IOException {
+        JsonNode page = readJson("data/profiles.json");
+        if (page.get("group").get("slug").asText().equals(slug)) {
+            return page.get("group");
+        }
+        for (JsonNode m : page.get("members")) {
+            if (m.get("slug").asText().equals(slug)) {
+                return m;
+            }
+        }
+        throw new AssertionError("No profile " + slug);
     }
 
     @Test
@@ -349,12 +385,12 @@ class SiteExporterTest {
 
         exporter.export(out, NOW);
 
-        String emi = read("data/profiles/emi.json");
+        String emi = profile("emi").toString();
         assertThat(emi).contains("\"mediaUrl\":\"/media/" + used.getStorageKey() + ".png\"");
         assertThat(emi).doesNotContain("/api/media/");
         assertThat(out.resolve("media/" + used.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + unused.getStorageKey() + ".png")).doesNotExist();
-        assertThat(readJson("data/profiles.json").get(0).get("slug").asText()).isEqualTo("emibonnie");
+        assertThat(readJson("data/profiles.json").get("group").get("slug").asText()).isEqualTo("emibonnie");
     }
 
     @Test
@@ -370,18 +406,98 @@ class SiteExporterTest {
 
         exporter.export(out, NOW);
 
-        com.fasterxml.jackson.databind.JsonNode banner = readJson("data/profiles/emi.json").get("banner");
+        com.fasterxml.jackson.databind.JsonNode banner = profile("emi").get("banner");
         assertThat(banner).hasSize(3);
         assertThat(banner.get(0).get("mediaUrl").asText()).isEqualTo("/media/" + first.getStorageKey() + ".png");
         assertThat(banner.get(0).get("altText").asText()).isEqualTo("Fan meeting");
         assertThat(banner.get(1).get("altText").isNull()).isTrue();
         assertThat(banner.get(2).get("mediaUrl").isNull()).isTrue();
         assertThat(banner.get(0).has("mediaId")).isFalse();
-        assertThat(read("data/profiles/emi.json")).doesNotContain("/api/media/");
+        assertThat(read("data/profiles.json")).doesNotContain("/api/media/");
         assertThat(out.resolve("media/" + first.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + second.getStorageKey() + ".png")).exists();
         assertThat(out.resolve("media/" + unused.getStorageKey() + ".png")).doesNotExist();
-        assertThat(readJson("data/profiles/bonnie.json").get("banner")).isEmpty();
+        assertThat(profile("bonnie").get("banner")).isEmpty();
+    }
+
+    @Test
+    void exportsProfilePageWithPublicImageUrls() throws IOException {
+        Media portrait = mediaService.store("p.png", PNG);
+        profiles.updateHeader("emi", new com.subtitlestudio.profile.ProfileHeaderRequest("Emi", "Tag", "Full Name",
+                portrait.getId()));
+
+        exporter.export(out, NOW);
+
+        JsonNode emi = readJson("data/profiles.json").get("members").get(0);
+        assertThat(emi.get("slug").asText()).isEqualTo("emi");
+        assertThat(emi.get("portraitUrl").asText()).isEqualTo("/media/" + portrait.getStorageKey() + ".png");
+        assertThat(emi.get("portraitMediaId").isNull()).isTrue();
+        assertThat(emi.get("tagline").asText()).isEqualTo("Tag");
+        assertThat(out.resolve("media/" + portrait.getStorageKey() + ".png")).exists();
+        assertThat(out.resolve("data/profiles")).doesNotExist();
+        assertThat(read("data/profiles.json")).doesNotContain("/api/media/");
+    }
+
+    private Media resizedImage() throws IOException {
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(40, 60, java.awt.image.BufferedImage.TYPE_INT_RGB),
+                "png", png);
+        return mediaService.storeResized("a.png", png.toByteArray(), 1600);
+    }
+
+    @Test
+    void exportsPhotosWithPublicImages() throws IOException {
+        Media kept = resizedImage();
+        Media gone = resizedImage();
+        photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/AAA/",
+                kept.getId(), "Kept", java.time.LocalDate.parse("2026-11-09"), null,
+                com.subtitlestudio.photo.PhotoSource.OFFICIAL, 2, List.of("emi")));
+        photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/BBB/",
+                gone.getId(), "Gone", java.time.LocalDate.parse("2026-11-08"), null,
+                com.subtitlestudio.photo.PhotoSource.FAN, null, List.of()));
+        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".webp"));
+
+        exporter.export(out, NOW);
+
+        JsonNode photos = readJson("data/photos.json");
+        assertThat(photos).hasSize(1);
+        assertThat(photos.get(0).get("title").asText()).isEqualTo("Kept");
+        assertThat(photos.get(0).get("takenOn").asText()).isEqualTo("2026-11-09");
+        assertThat(photos.get(0).get("imageUrl").asText()).isEqualTo("/media/" + kept.getStorageKey() + ".webp");
+        assertThat(photos.get(0).get("profiles").get(0).asText()).isEqualTo("emi");
+        assertThat(out.resolve("media/" + kept.getStorageKey() + ".webp")).exists();
+    }
+
+    @Test
+    void exportsWorksListAndDetailsWithPublicImages() throws IOException {
+        Media cover = resizedImage();
+        Media avatar = resizedImage();
+        long bonnie = personService.create(new com.subtitlestudio.work.PersonRequest("Bonnie", avatar.getId())).id();
+        var created = workService.create(new com.subtitlestudio.work.WorkRequest("Love Story", cover.getId(),
+                java.time.LocalDate.parse("2026-04-24"), com.subtitlestudio.work.WorkCategory.FILM_TV, "Drama", "emi",
+                "Synopsis", List.of(new com.subtitlestudio.work.WorkLinkRequest(com.subtitlestudio.work.LinkKind.TRAILER,
+                        null, "https://youtu.be/dQw4w9WgXcQ", null)),
+                List.of(new com.subtitlestudio.work.WorkCreditRequest(bonnie, "Lead", "Key"))));
+        workService.create(new com.subtitlestudio.work.WorkRequest("Soon", null, null,
+                com.subtitlestudio.work.WorkCategory.MUSIC, null, null, null, List.of(), List.of()));
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/works.json");
+        assertThat(list).hasSize(2);
+        assertThat(list.get(0).get("title").asText()).isEqualTo("Soon");
+        assertThat(list.get(0).get("releaseDate").isNull()).isTrue();
+        assertThat(list.get(1).get("coverUrl").asText()).isEqualTo("/media/" + cover.getStorageKey() + ".webp");
+        JsonNode detail = readJson("data/works/" + created.id() + ".json");
+        assertThat(detail.get("coverMediaId").isNull()).isTrue();
+        assertThat(detail.get("trailerVideoId").asText()).isEqualTo("dQw4w9WgXcQ");
+        JsonNode person = detail.get("credits").get(0).get("person");
+        assertThat(person.get("avatarMediaId").isNull()).isTrue();
+        assertThat(person.get("avatarUrl").asText()).isEqualTo("/media/" + avatar.getStorageKey() + ".webp");
+        assertThat(detail.get("credits").get(0).get("characterName").asText()).isEqualTo("Key");
+        assertThat(out.resolve("media/" + cover.getStorageKey() + ".webp")).exists();
+        assertThat(out.resolve("media/" + avatar.getStorageKey() + ".webp")).exists();
+        assertThat(read("data/works.json") + read("data/works/" + created.id() + ".json")).doesNotContain("/api/media/");
     }
 
     @Test
@@ -612,7 +728,7 @@ class SiteExporterTest {
     void warnsAboveFileLimit(CapturedOutput output) {
         novel("summer", null, 1, 1);
         SiteExporter small = new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository,
-                properties, appMapper, novelExporter, 3);
+                properties, appMapper, novelExporter, photoService, workService, 3);
 
         small.export(out, NOW);
 
