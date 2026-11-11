@@ -794,6 +794,16 @@ Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-desi
 
 - **Sửa theo review PR #15:** màn hình cảm ứng (`pointer: coarse`) mọi `.button` (gồm `--s`, `--icon`) có vùng bấm 44 x 44 px qua `::after` trong suốt, kích thước hiển thị giữ 32/40/48 (hai nút cách nhau 8 px có thể chồng 4 px vùng bấm); ô chọn hồ sơ dịch của Get Engsub đổi nhãn rỗng thành "No profile" và rộng tối đa 16rem; nhãn icon "Generic link" của Works đổi thành "Link".
 
+### 2026-11-11: Fanfics (Wattpad) trong Novels, phần backend ✅ (chưa merge, chưa deploy; cần deploy vì có V18)
+
+Nhánh `feat/fanfics`. Spec: [docs/superpowers/specs/2026-11-11-fanfics-design.md](docs/superpowers/specs/2026-11-11-fanfics-design.md), plan: [docs/superpowers/plans/2026-11-11-fanfics.md](docs/superpowers/plans/2026-11-11-fanfics.md).
+
+- **Package `fanfic`:** `WattpadLink` (chỉ nhận `wattpad.com`, `www.`, `m.`; `/story/{id}[-slug]`; link chương được nhận ra riêng để báo lỗi), `WattpadClient` (`java.net.http`, `User-Agent: SubtitleStudio`, timeout 10 giây, cấu hình `subtitlestudio.wattpad.base-url`; 404/400 là `FanficNotFoundException`, mọi lỗi khác là `WattpadUnavailableException`), `FanficService` (Wattpad chỉ được gọi ở preview, add, refresh, refresh all; không gọi trong transaction DB; refresh all tuần tự, nghỉ 500 ms giữa các truyện qua `Sleeper`, truyện lỗi được báo và giữ nguyên dữ liệu cũ), `FanficController` (`/api/fanfics`, `/preview`, `/refresh`, `/{id}/refresh`). Chống trùng theo `wattpad_id` (mọi dạng link), kiểm tra trước khi gọi Wattpad.
+- **Bìa:** tải bản `-512-` (rơi về URL gốc nếu 404), `storeResized(…, 512)`; chỉ tải lại khi `cover_source_url` đổi; không tải được bìa thì vẫn lưu truyện (không bìa). `t_fanfic.cover_media_id` đã nằm trong quy tắc ảnh ở `MediaRepository`.
+- **Flyway V18** `t_fanfic` (mô tả CLOB, `completed` là 0/1, thời gian đọc `round(wordCount / 230)` tính khi trả DTO). `PersistenceOracleIT` có test mô tả chứa ký tự astral (chữ toán học đậm, emoji).
+- **Export:** `data/fanfics.json` (`FanficDto[]`, bìa là `/media/<key>.webp`; file bìa mất thì giữ truyện, `coverUrl` null).
+- **Test:** không test nào gọi Wattpad thật (stub HTTP server cục bộ + fixture `src/test/resources/wattpad/story-396487502.json`).
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
