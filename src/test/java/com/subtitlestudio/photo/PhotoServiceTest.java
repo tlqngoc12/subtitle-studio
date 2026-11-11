@@ -103,7 +103,7 @@ class PhotoServiceTest {
 
         PhotoPostDto dto = service.create(request("https://instagram.com/p/DQx1abc?igsh=xyz", img));
 
-        assertThat(dto.instagramUrl()).isEqualTo(URL);
+        assertThat(dto.postUrl()).isEqualTo(URL);
         assertThat(dto.title()).isEqualTo("Title");
         assertThat(dto.width()).isEqualTo(300);
         assertThat(dto.height()).isEqualTo(400);
@@ -148,7 +148,7 @@ class PhotoServiceTest {
     @Test
     void anUnknownTakenUntilPropertyInTheJsonIsIgnored() throws Exception {
         String json = """
-                {"instagramUrl":"%s","mediaId":%d,"title":"T","takenOn":"2026-11-09","takenUntil":"2026-11-12",
+                {"postUrl":"%s","mediaId":%d,"title":"T","takenOn":"2026-11-09","takenUntil":"2026-11-12",
                  "source":"MEDIA","photoCount":null,"profiles":[]}""".formatted(URL, resizedImage());
         PhotoPostRequest r = new com.fasterxml.jackson.databind.ObjectMapper()
                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
@@ -177,7 +177,7 @@ class PhotoServiceTest {
         PhotoPostRequest r = new PhotoPostRequest("nope", null, " ", null, null, null, List.of("ghost"));
 
         assertThat(fields(catchThrowableOfType(InvalidBlockException.class, () -> service.create(r))))
-                .containsExactlyInAnyOrder("instagramUrl", "mediaId", "title", "takenOn", "source", "profiles");
+                .containsExactlyInAnyOrder("postUrl", "mediaId", "title", "takenOn", "source", "profiles");
     }
 
     @Test

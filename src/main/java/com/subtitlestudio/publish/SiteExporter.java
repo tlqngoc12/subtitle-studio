@@ -169,7 +169,7 @@ public class SiteExporter {
                 log.warn("Photo post {} has no image file; left out of the public site", p.id());
                 continue;
             }
-            exported.add(new PhotoPostDto(p.id(), p.instagramUrl(), url, p.width(), p.height(), p.title(), p.takenOn(),
+            exported.add(new PhotoPostDto(p.id(), p.postUrl(), url, p.width(), p.height(), p.title(), p.takenOn(),
                     p.source(), p.photoCount(), p.profiles()));
         }
         write(dir.resolve("data/photos.json"), exported);

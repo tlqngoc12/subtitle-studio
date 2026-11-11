@@ -4,6 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 /** Body of POST/PUT /api/photos; {@code profiles} are profile slugs. */
-public record PhotoPostRequest(String instagramUrl, Long mediaId, String title, LocalDate takenOn,
+public record PhotoPostRequest(String postUrl, Long mediaId, String title, LocalDate takenOn,
                                PhotoSource source, Integer photoCount, List<String> profiles) {
 }
