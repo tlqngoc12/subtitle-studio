@@ -1,4 +1,4 @@
-import { Clapperboard, Pencil, Plus } from 'lucide-react';
+import { Clapperboard, Pencil, Plus, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { ProfilePage } from '../api/profiles';
@@ -6,6 +6,7 @@ import type { WorkCategory, WorkSummary } from '../api/works';
 import { EmptyState } from '../components/EmptyState';
 import { CATEGORIES } from '../components/works/categories';
 import { CategoryPills } from '../components/works/CategoryPills';
+import { PeopleDialog } from '../components/works/PeopleDialog';
 import { WorkCard } from '../components/works/WorkCard';
 import { Alert } from '../components/ui/Alert';
 import { IconLink } from '../components/ui/IconButton';
@@ -16,6 +17,7 @@ import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { peopleOf } from './PhotosPage';
 import '../components/works/WorkCard.css';
+import './WorksPage.css';
 
 /** Works (/works): poster grid filtered by person (`?who=`) and category (`?cat=`). */
 export default function WorksPage() {
@@ -27,6 +29,7 @@ export default function WorksPage() {
   const [works, setWorks] = useState<WorkSummary[] | null>(null);
   const [profiles, setProfiles] = useState<ProfilePage | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [peopleOpen, setPeopleOpen] = useState(false);
 
   useEffect(() => {
     let current = true;
@@ -68,10 +71,16 @@ export default function WorksPage() {
         lede={works === null ? undefined : `${visible.length} ${visible.length === 1 ? 'work' : 'works'}`}
         actions={
           !readOnly && (
-            <Link className="button button--primary" to="/works/new">
-              <Plus className="icon" aria-hidden="true" />
-              Add work
-            </Link>
+            <div className="works-actions">
+              <button type="button" className="button button--small" onClick={() => setPeopleOpen(true)}>
+                <Users className="icon" aria-hidden="true" />
+                People
+              </button>
+              <Link className="button button--primary" to="/works/new">
+                <Plus className="icon" aria-hidden="true" />
+                Add work
+              </Link>
+            </div>
           )
         }
       />
@@ -98,6 +107,7 @@ export default function WorksPage() {
           ))}
         </ul>
       )}
+      {!readOnly && <PeopleDialog open={peopleOpen} onOpenChange={setPeopleOpen} />}
     </main>
   );
 }
