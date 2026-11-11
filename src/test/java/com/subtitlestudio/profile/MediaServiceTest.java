@@ -381,4 +381,22 @@ class MediaServiceTest {
             people.deleteAll();
         }
     }
+    @Autowired
+    private com.subtitlestudio.fanfic.FanficRepository fanfics;
+
+    @Test
+    void fanficCoverCountsAsReference() {
+        Media cover = storeAt(NOW.minus(Duration.ofDays(2)));
+        com.subtitlestudio.fanfic.Fanfic f = new com.subtitlestudio.fanfic.Fanfic(NOW);
+        f.set("1", "https://www.wattpad.com/story/1", "S", null, null, null, cover, null, 0, 0, 0, 0, false, null, NOW);
+        fanfics.saveAndFlush(f);
+
+        try {
+            assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isZero();
+            assertThat(fileOf(cover, "png")).exists();
+            assertThat(media.isReferenced(cover.getId())).isTrue();
+        } finally {
+            fanfics.deleteAll();
+        }
+    }
 }

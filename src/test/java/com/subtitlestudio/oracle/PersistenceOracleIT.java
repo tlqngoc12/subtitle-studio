@@ -120,8 +120,12 @@ class PersistenceOracleIT {
     @Autowired
     private com.subtitlestudio.work.WorkRepository workRepository;
 
+    @Autowired
+    private com.subtitlestudio.fanfic.FanficRepository fanficRepository;
+
     @AfterEach
     void cleanUp() {
+        fanficRepository.deleteAll();
         photoPosts.deleteAll();
         workRepository.deleteAll();
         blocks.deleteAll();
@@ -142,7 +146,7 @@ class PersistenceOracleIT {
     void onlyFlywayCreatesTables() {
         // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
-                .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_PAGE", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
+                .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_PAGE", "T_FANFIC", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
                         "T_PERSON", "T_PHOTO_POST", "T_PHOTO_POST_PROFILE", "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
                         "T_PROFILE_BLOCK_ITEM", "T_WORK", "T_WORK_CATEGORY", "T_WORK_CREDIT", "T_WORK_LINK", "VIDEO",
                         "VI_CUE", "flyway_schema_history");
@@ -198,6 +202,23 @@ class PersistenceOracleIT {
         assertThat(loaded.profiles()).containsExactly("emibonnie", "emi");
         assertThat(loaded.width()).isEqualTo(40);
         assertThatThrownBy(() -> jdbc.update("update t_photo_post set source = 'X'")).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void storesFanficDescriptionWithAstralCharactersOnOracle() {
+        String bold = new String(Character.toChars(0x1D649)) + new String(Character.toChars(0x1D664));
+        String description = (bold + " " + new String(Character.toChars(0x1F495)) + " Tiếng Việt, เอมี่ ").repeat(300);
+        com.subtitlestudio.fanfic.Fanfic f = new com.subtitlestudio.fanfic.Fanfic(AT);
+        f.set("396487502", "https://www.wattpad.com/story/396487502", bold + " title", "emibonnie", description,
+                "gl romance", null, null, 51029, 2167, 28, 15739, true, AT, AT);
+        long id = fanficRepository.saveAndFlush(f).getId();
+
+        com.subtitlestudio.fanfic.Fanfic loaded = fanficRepository.findById(id).orElseThrow();
+        assertThat(loaded.getDescription()).isEqualTo(description);
+        assertThat(loaded.getTitle()).isEqualTo(bold + " title");
+        assertThat(loaded.isCompleted()).isTrue();
+        assertThat(loaded.getStoryUpdatedAt()).isEqualTo(AT);
+        assertThatThrownBy(() -> jdbc.update("update t_fanfic set completed = 2")).isInstanceOf(Exception.class);
     }
 
     @Test
