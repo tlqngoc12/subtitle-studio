@@ -188,8 +188,7 @@ public class SiteExporter {
                             publicUrl(c.person().avatarMediaId(), dir, publicUrls)),
                     c.role(), c.characterName())).toList();
             write(dir.resolve("data/works/" + w.id() + ".json"), new WorkDto(w.id(), w.title(), cover, w.releaseDate(),
-                    w.categories(), w.subcategory(), w.profile(), null, w.description(), w.links(), credits,
-                    w.trailerVideoId()));
+                    w.categories(), w.subcategory(), w.profile(), null, w.description(), w.links(), credits));
         }
         write(dir.resolve("data/works.json"), summaries);
     }

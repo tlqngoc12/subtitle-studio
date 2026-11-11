@@ -198,16 +198,12 @@ class WorkServiceTest {
     }
 
     @Test
-    void trailerVideoIdFromYoutuBeLink() {
+    void trailerLinkIsAnOrdinaryLink() {
         WorkDto dto = service.create(request(WorkCategory.FILM_TV, null,
                 List.of(new WorkLinkRequest(LinkKind.TRAILER, null, "https://youtu.be/dQw4w9WgXcQ?si=abc", null)),
                 List.of()));
-        WorkDto notYoutube = service.create(new WorkRequest("Other", null, null, List.of(WorkCategory.FILM_TV), null, null, null,
-                List.of(new WorkLinkRequest(LinkKind.TRAILER, null, "https://vimeo.com/123", null)), List.of()));
 
-        assertThat(dto.trailerVideoId()).isEqualTo("dQw4w9WgXcQ");
-        assertThat(notYoutube.trailerVideoId()).isNull();
-        assertThat(notYoutube.links()).hasSize(1);
+        assertThat(dto.links()).extracting(WorkLinkDto::kind).containsExactly(LinkKind.TRAILER);
     }
 
     @Test

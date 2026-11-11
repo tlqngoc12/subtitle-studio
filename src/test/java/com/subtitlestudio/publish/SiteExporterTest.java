@@ -496,7 +496,7 @@ class SiteExporterTest {
         JsonNode detail = readJson("data/works/" + created.id() + ".json");
         assertThat(detail.get("categories").get(0).asText()).isEqualTo("FILM_TV");
         assertThat(detail.get("coverMediaId").isNull()).isTrue();
-        assertThat(detail.get("trailerVideoId").asText()).isEqualTo("dQw4w9WgXcQ");
+        assertThat(detail.has("trailerVideoId")).isFalse();
         JsonNode person = detail.get("credits").get(0).get("person");
         assertThat(person.get("avatarMediaId").isNull()).isTrue();
         assertThat(person.get("avatarUrl").asText()).isEqualTo("/media/" + avatar.getStorageKey() + ".webp");
