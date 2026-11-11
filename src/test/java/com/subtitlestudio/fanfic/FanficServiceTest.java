@@ -206,7 +206,8 @@ class FanficServiceTest {
         assertThat(refreshed.readCount()).isEqualTo(99);
         assertThat(refreshed.title()).isEqualTo("Warm (new title)");
         assertThat(refreshed.coverUrl()).isEqualTo(added.coverUrl());
-        assertThat(refreshed.createdAt()).isEqualTo(added.createdAt());
+        // The database keeps microseconds, the clock nanoseconds.
+        assertThat(refreshed.createdAt().toEpochMilli()).isEqualTo(added.createdAt().toEpochMilli());
         verify(wattpad, times(1)).downloadCover(anyString());
         assertThat(media.count()).isEqualTo(1);
     }

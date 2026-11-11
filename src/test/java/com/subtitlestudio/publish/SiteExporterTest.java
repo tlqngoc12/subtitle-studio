@@ -105,6 +105,9 @@ class SiteExporterTest {
     private com.subtitlestudio.photo.PhotoPostRepository photoPosts;
 
     @Autowired
+    private com.subtitlestudio.fanfic.FanficRepository fanficRepository;
+
+    @Autowired
     private com.subtitlestudio.work.WorkService workService;
 
     @Autowired
@@ -161,6 +164,7 @@ class SiteExporterTest {
 
     @AfterEach
     void cleanUp() {
+        fanficRepository.deleteAll();
         photoPosts.deleteAll();
         workRepository.deleteAll();
         personRepository.deleteAll();
@@ -469,6 +473,47 @@ class SiteExporterTest {
         assertThat(out.resolve("media/" + kept.getStorageKey() + ".webp")).exists();
     }
 
+    @Autowired
+    private com.subtitlestudio.fanfic.FanficService fanficService;
+
+    private void fanfic(String wattpadId, String title, Media cover) {
+        com.subtitlestudio.fanfic.Fanfic f = new com.subtitlestudio.fanfic.Fanfic(NOW);
+        f.set(wattpadId, "https://www.wattpad.com/story/" + wattpadId, title, "emibonnie", "About " + title,
+                "gl fluff", cover, cover == null ? null : "https://img.wattpad.com/cover/x-256-k.jpg", 51029, 2167, 28,
+                15739, true, NOW, NOW);
+        fanficRepository.saveAndFlush(f);
+    }
+
+    @Test
+    void exportsFanficsWithPublicCovers() throws IOException {
+        Media cover = resizedImage();
+        Media gone = resizedImage();
+        fanfic("1", "Kept", cover);
+        fanfic("2", "No cover", null);
+        fanfic("3", "Cover file gone", gone);
+        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".webp"));
+
+        exporter.export(out, NOW);
+
+        JsonNode fanfics = readJson("data/fanfics.json");
+        assertThat(fanfics).hasSize(3);
+        JsonNode kept = null;
+        for (JsonNode f : fanfics) {
+            if (f.get("title").asText().equals("Kept")) {
+                kept = f;
+            } else {
+                assertThat(f.get("coverUrl").isNull()).isTrue();
+            }
+        }
+        assertThat(kept.get("coverUrl").asText()).isEqualTo("/media/" + cover.getStorageKey() + ".webp");
+        assertThat(kept.get("url").asText()).isEqualTo("https://www.wattpad.com/story/1");
+        assertThat(kept.get("readCount").asLong()).isEqualTo(51029);
+        assertThat(kept.get("readingMinutes").asLong()).isEqualTo(68);
+        assertThat(kept.get("completed").asBoolean()).isTrue();
+        assertThat(kept.get("tags").get(0).asText()).isEqualTo("gl");
+        assertThat(out.resolve("media/" + cover.getStorageKey() + ".webp")).exists();
+    }
+
     @Test
     void exportsWorksListAndDetailsWithPublicImages() throws IOException {
         Media cover = resizedImage();
@@ -734,7 +779,7 @@ class SiteExporterTest {
     void warnsAboveFileLimit(CapturedOutput output) {
         novel("summer", null, 1, 1);
         SiteExporter small = new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository,
-                properties, appMapper, novelExporter, photoService, workService, 3);
+                properties, appMapper, novelExporter, photoService, workService, fanficService, 3);
 
         small.export(out, NOW);
 
