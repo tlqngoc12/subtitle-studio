@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-10 (lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-11 (UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -777,7 +777,7 @@ Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enh
 - **Select dùng chung** (Radix) thay 5 `<select>` gốc; `ScrollToTop` cho cả hai app.
 - **Cần làm:** chạy `scripts/register-backup-task.ps1` trên máy khác nếu có; deploy không cần migration mới.
 
-### 2026-11-11: UI polish (hệ thống điều khiển, chuyển động, Works/Photos) 🚧 (chưa merge, chưa deploy)
+### 2026-11-11: UI polish (hệ thống điều khiển, chuyển động, Works/Photos) ✅ (chưa merge, chưa deploy; cần deploy vì có V16)
 
 Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-design.md](docs/superpowers/specs/2026-11-11-ui-polish-design.md), plan: [docs/superpowers/plans/2026-11-11-ui-polish.md](docs/superpowers/plans/2026-11-11-ui-polish.md).
 
