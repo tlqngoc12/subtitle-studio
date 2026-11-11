@@ -267,9 +267,11 @@ export function NovelForm({
       {error && (
         <Alert title={error.title} hint={error.hint} />
       )}
-      <button className="button button--primary" type="submit" disabled={pending || coverBusy || !title.trim()}>
-        {pending ? pendingLabel : submitLabel}
-      </button>
+      <div className="form-actions">
+        <button className="button button--primary" type="submit" disabled={pending || coverBusy || !title.trim()}>
+          {pending ? pendingLabel : submitLabel}
+        </button>
+      </div>
     </form>
   );
 }

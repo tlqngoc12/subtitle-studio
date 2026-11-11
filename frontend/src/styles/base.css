@@ -216,6 +216,10 @@ a:not([class]):hover {
   margin-top: var(--space-8);
 }
 
+.form-actions--tight {
+  margin-top: var(--space-4);
+}
+
 .form-actions > .form-actions__start {
   margin-right: auto;
 }

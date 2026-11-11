@@ -17,8 +17,3 @@
   letter-spacing: 0.04em;
 }
 
-.peditor__actions {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}

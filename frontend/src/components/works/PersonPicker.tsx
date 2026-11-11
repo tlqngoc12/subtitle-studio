@@ -89,12 +89,12 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
                 {error}
               </p>
             )}
-            <div className="peditor__actions">
+            <div className="form-actions form-actions--tight">
+              <button type="button" className="button" onClick={() => setCreating(false)}>
+                Back
+              </button>
               <button type="submit" className="button button--primary" disabled={busy || !name.trim()}>
                 Create person
-              </button>
-              <button type="button" className="button button--s" onClick={() => setCreating(false)}>
-                Back
               </button>
             </div>
           </form>

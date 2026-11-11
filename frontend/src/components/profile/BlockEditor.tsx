@@ -261,12 +261,12 @@ export function BlockEditor({
 
       {errorOf('items') && <p className="field__error">{errorOf('items')}</p>}
 
-      <div className="peditor__actions">
+      <div className="form-actions form-actions--tight">
+        <button type="button" className="button" onClick={onCancel}>
+          Cancel
+        </button>
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
-        </button>
-        <button type="button" className="button button--s" onClick={onCancel}>
-          Cancel
         </button>
       </div>
     </form>

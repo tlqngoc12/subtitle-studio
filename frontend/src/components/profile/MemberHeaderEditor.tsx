@@ -101,12 +101,12 @@ export function MemberHeaderEditor({
         {group && <p className="field__hint">Used as the EmiBonnie avatar in filters</p>}
         {errorOf('portraitMediaId') && <p className="field__error">{errorOf('portraitMediaId')}</p>}
       </div>
-      <div className="peditor__actions">
+      <div className="form-actions form-actions--tight">
+        <button type="button" className="button" onClick={onCancel}>
+          Cancel
+        </button>
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
-        </button>
-        <button type="button" className="button button--s" onClick={onCancel}>
-          Cancel
         </button>
       </div>
     </form>

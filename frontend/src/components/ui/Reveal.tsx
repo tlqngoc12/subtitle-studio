@@ -12,21 +12,27 @@ interface Props {
   className?: string;
   /** Glides to its new place when the list around it changes (a filter, a save). */
   layout?: boolean;
+  'aria-labelledby'?: string;
   children: ReactNode;
 }
 
 /** Fades and lifts its children in the first time they scroll into view. Plain element under reduced motion. */
-export function Reveal({ as = 'div', delayIndex, className, layout, children }: Props) {
+export function Reveal({ as = 'div', delayIndex, className, layout, children, ...aria }: Props) {
   const reduced = usePrefersReducedMotion();
   if (reduced || typeof IntersectionObserver === 'undefined') {
     const Plain = as;
-    return <Plain className={className}>{children}</Plain>;
+    return (
+      <Plain className={className} {...aria}>
+        {children}
+      </Plain>
+    );
   }
   const Animated = motion[as];
   const staggered = delayIndex !== undefined;
   return (
     <Animated
       className={className}
+      {...aria}
       layout={layout ? 'position' : undefined}
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}

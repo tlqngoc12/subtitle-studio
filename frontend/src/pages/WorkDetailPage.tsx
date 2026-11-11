@@ -1,4 +1,5 @@
 import { ArrowLeft, Clapperboard, Pencil } from 'lucide-react';
+import { Reveal } from '../components/ui/Reveal';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api/client';
@@ -126,10 +127,10 @@ export default function WorkDetailPage() {
           </div>
 
           {work.credits.length > 0 && (
-            <section className="work__people" aria-labelledby="work-people">
+            <Reveal as="section" className="work__people" aria-labelledby="work-people">
               <h2 id="work-people">{peopleHeading(work.categories)}</h2>
               <PeopleCards credits={work.credits} />
-            </section>
+            </Reveal>
           )}
         </article>
       )}
