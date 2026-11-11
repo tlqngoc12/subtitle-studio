@@ -41,7 +41,7 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
         <div className="plpanel__controls">
           <Tip label="Previous (Shift+P)">
             <button
-              className="button button--icon"
+              className="button button--icon button--s"
               type="button"
               disabled={index === 0}
               onClick={onPrevious}
@@ -52,7 +52,7 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
           </Tip>
           <Tip label="Next (Shift+N)">
             <button
-              className="button button--icon"
+              className="button button--icon button--s"
               type="button"
               disabled={index === count - 1}
               onClick={onNext}

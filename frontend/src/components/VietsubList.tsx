@@ -1,4 +1,5 @@
 import { Captions, Download, FilePlus, FileUp, Languages, SearchX, Trash2 } from 'lucide-react';
+import { SkeletonList } from './ui/Skeleton';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -8,7 +9,6 @@ import { EditStatusIcon } from './EditStatusIcon';
 import { EmptyState } from './EmptyState';
 import { SaveToPlaylist } from './SaveToPlaylist';
 import { Tip } from './Tip';
-import { LoadingText } from './ui/LoadingText';
 
 interface Props {
   videos: VideoDto[] | null;
@@ -33,7 +33,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
       <h2 className="history__heading visually-hidden">Manage Vietsub</h2>
       {toolbar}
       {videos === null ? (
-        <LoadingText>Loading list…</LoadingText>
+        <SkeletonList rows={6} />
       ) : videos.length === 0 && filtered ? (
         <EmptyState icon={SearchX}>No videos match your search.</EmptyState>
       ) : videos.length === 0 ? (
@@ -80,12 +80,12 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                   <span className="history__actions">
                     <SaveToPlaylist video={v} />
                     <Tip label="Download Vietsub">
-                      <a className="button button--icon" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
+                      <a className="button button--icon button--s" href={viSrtUrl(v.id)} download aria-label={`Download Vietsub: ${v.title}`}>
                         <Download className="icon" aria-hidden="true" />
                       </a>
                     </Tip>
                     <Tip label={busy ? 'Replacing…' : 'Replace Vietsub'}>
-                      <label className="button button--icon">
+                      <label className="button button--icon button--s">
                         <FileUp className="icon" aria-hidden="true" />
                         <input
                           className="visually-hidden"
@@ -103,7 +103,7 @@ export function VietsubList({ videos, busyId, onReplace, onDelete, highlightId, 
                     </Tip>
                     <Tip label="Delete Vietsub">
                       <button
-                        className="button button--icon button--danger"
+                        className="button button--icon button--s button--danger"
                         type="button"
                         disabled={busy}
                         onClick={() => onDelete(v)}

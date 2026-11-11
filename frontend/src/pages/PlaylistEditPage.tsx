@@ -250,7 +250,7 @@ function SortableRow({ video, index, count, disabled, onMove, onRemove }: RowPro
       <span className="plitem__index">{index + 1}</span>
       <button
         ref={setActivatorNodeRef}
-        className="button button--icon plitem__handle"
+        className="button button--icon button--s plitem__handle"
         type="button"
         aria-label={`Drag to reorder: ${video.title}`}
         {...attributes}
@@ -268,7 +268,7 @@ function SortableRow({ video, index, count, disabled, onMove, onRemove }: RowPro
       <span className="history__actions">
         <Tip label="Move up">
           <button
-            className="button button--icon"
+            className="button button--icon button--s"
             type="button"
             disabled={disabled || index === 0}
             onClick={() => onMove(-1)}
@@ -279,7 +279,7 @@ function SortableRow({ video, index, count, disabled, onMove, onRemove }: RowPro
         </Tip>
         <Tip label="Move down">
           <button
-            className="button button--icon"
+            className="button button--icon button--s"
             type="button"
             disabled={disabled || index === count - 1}
             onClick={() => onMove(1)}
@@ -290,7 +290,7 @@ function SortableRow({ video, index, count, disabled, onMove, onRemove }: RowPro
         </Tip>
         <Tip label="Remove from playlist">
           <button
-            className="button button--icon button--danger"
+            className="button button--icon button--s button--danger"
             type="button"
             disabled={disabled}
             onClick={onRemove}

@@ -146,9 +146,3 @@
   font-weight: 700;
 }
 
-@media (max-width: 760px) {
-  .plpanel__autoplay {
-    min-height: 44px;
-    padding: 0 var(--space-2);
-  }
-}

@@ -27,7 +27,7 @@ export function BlockToolbar({
   return (
     <div className="ptools">
       {tools.map(({ label, icon: Icon, onClick, off }) => (
-        <IconButton key={label} label={label} icon={Icon} disabled={disabled || off} onClick={onClick} />
+        <IconButton size="s" key={label} label={label} icon={Icon} disabled={disabled || off} onClick={onClick} />
       ))}
     </div>
   );

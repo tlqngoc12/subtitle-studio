@@ -1,11 +1,12 @@
 import { BookOpen, Eye, Plus } from 'lucide-react';
+import { Reveal } from '../components/ui/Reveal';
+import { SkeletonGrid } from '../components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { listNovelReads, listNovels, type NovelStatus, type NovelSummary } from '../api/novels';
 import { EmptyState } from '../components/EmptyState';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
-import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Cover } from '../components/ui/Cover';
 import './public/NovelCard.css';
@@ -55,13 +56,13 @@ export default function NovelsPage() {
 
       <section className="history" aria-label="Novels">
         {novels === null ? (
-          <LoadingText>Loading list…</LoadingText>
+          <SkeletonGrid count={6} aspect="3/4" />
         ) : novels.length === 0 ? (
           <EmptyState icon={BookOpen}>No novels yet. Choose New novel to add the first one.</EmptyState>
         ) : (
           <ul className="novel-grid">
-            {novels.map((n) => (
-              <li key={n.id}>
+            {novels.map((n, i) => (
+              <Reveal as="li" key={n.id} delayIndex={i} layout>
                 <Link className="novel-card" to={`/novels/${n.id}`}>
                   <Cover src={n.coverUrl} lazy />
                   <span className="novel-card__body">
@@ -76,7 +77,7 @@ export default function NovelsPage() {
                     </span>
                   </span>
                 </Link>
-              </li>
+              </Reveal>
             ))}
           </ul>
         )}

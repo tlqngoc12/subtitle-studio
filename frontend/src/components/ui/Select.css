@@ -38,6 +38,8 @@
   flex: none;
   width: auto;
   max-width: 11rem;
+  height: var(--control-l);
+  font-size: var(--fs-control-l);
   border: 0;
   background: rgb(0 0 0 / 0.45);
   color: var(--on-frame);

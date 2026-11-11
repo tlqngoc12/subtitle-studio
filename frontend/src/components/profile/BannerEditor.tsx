@@ -198,7 +198,7 @@ function BannerThumb({
       <span className="banner-thumb__bar">
         <button
           ref={setActivatorNodeRef}
-          className="button button--icon"
+          className="button button--icon button--s"
           type="button"
           aria-label={`Drag to reorder: image ${number}`}
           {...attributes}
@@ -208,7 +208,7 @@ function BannerThumb({
         </button>
         <Tip label="Move left">
           <button
-            className="button button--icon"
+            className="button button--icon button--s"
             type="button"
             disabled={locked || first}
             aria-label={`Move image ${number} left`}
@@ -219,7 +219,7 @@ function BannerThumb({
         </Tip>
         <Tip label="Move right">
           <button
-            className="button button--icon"
+            className="button button--icon button--s"
             type="button"
             disabled={locked || last}
             aria-label={`Move image ${number} right`}
@@ -230,7 +230,7 @@ function BannerThumb({
         </Tip>
         <Tip label="Delete image">
           <button
-            className="button button--icon button--danger"
+            className="button button--icon button--s button--danger"
             type="button"
             disabled={locked}
             aria-label={`Delete image ${number}`}

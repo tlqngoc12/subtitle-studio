@@ -28,7 +28,7 @@ export function SearchBar({
         onChange={(e) => onChange(e.target.value)}
       />
       {value && (
-        <button className="button button--icon searchbar__clear" type="button" aria-label="Clear search" onClick={onClear}>
+        <button className="button button--icon button--s button--ghost searchbar__clear" type="button" aria-label="Clear search" onClick={onClear}>
           <X className="icon" aria-hidden="true" />
         </button>
       )}

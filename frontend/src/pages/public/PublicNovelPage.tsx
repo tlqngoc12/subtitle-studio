@@ -173,7 +173,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
             <div className="novel-cta">
               {resume ? (
                 <Link
-                  className="button button--primary novel-cta__read"
+                  className="button button--primary button--l novel-cta__read"
                   to={`/novels/${novel.slug}/${resume.chapterNo}`}
                 >
                   Đọc tiếp:{" "}
@@ -182,7 +182,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
               ) : (
                 first && (
                   <Link
-                    className="button button--primary novel-cta__read"
+                    className="button button--primary button--l novel-cta__read"
                     to={`/novels/${novel.slug}/${first.chapterNo}`}
                   >
                     Bắt đầu đọc
@@ -191,7 +191,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
               )}
               <button
                 type="button"
-                className="button button--icon novel-cta__shelf"
+                className="button button--icon button--l novel-cta__shelf"
                 aria-pressed={onShelf}
                 aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
                 onClick={flipShelf}

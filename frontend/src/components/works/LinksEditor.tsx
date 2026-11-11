@@ -136,6 +136,7 @@ export function LinksEditor({
                 <IconButton
                   label={`Remove link ${i + 1}`}
                   icon={X}
+                  size="s"
                   className="wed__link-remove"
                   onClick={() => onChange((rows) => rows.filter((r) => r.key !== row.key))}
                 />

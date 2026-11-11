@@ -46,7 +46,7 @@ export function PageRow({
       <span className="page-thumb__bar">
         <button
           ref={setActivatorNodeRef}
-          className="button button--icon"
+          className="button button--icon button--s"
           type="button"
           aria-label={`Drag to reorder: page ${number}`}
           {...attributes}
@@ -57,7 +57,7 @@ export function PageRow({
         <span className="page-thumb__number">{number}</span>
         <Tip label="Delete page">
           <button
-            className="button button--icon button--danger"
+            className="button button--icon button--s button--danger"
             type="button"
             disabled={locked}
             onClick={onDelete}
@@ -70,7 +70,7 @@ export function PageRow({
       <span className="page-thumb__bar">
         <Tip label="Rotate left">
           <button
-            className="button button--icon"
+            className="button button--icon button--s"
             type="button"
             disabled={locked}
             onClick={() => onRotate('LEFT')}
@@ -81,7 +81,7 @@ export function PageRow({
         </Tip>
         <Tip label="Rotate right">
           <button
-            className="button button--icon"
+            className="button button--icon button--s"
             type="button"
             disabled={locked}
             onClick={() => onRotate('RIGHT')}

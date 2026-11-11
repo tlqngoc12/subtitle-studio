@@ -163,15 +163,16 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
       </div>
       {!renaming && (
         <div className="ppl__actions">
-          <IconButton label={`Rename ${person.name}`} icon={Pencil} disabled={busy} onClick={() => setRenaming(true)} />
+          <IconButton size="s" label={`Rename ${person.name}`} icon={Pencil} disabled={busy} onClick={() => setRenaming(true)} />
           <IconButton
+            size="s"
             label={`Change avatar of ${person.name}`}
             icon={ImagePlus}
             disabled={busy}
             aria-expanded={changingAvatar}
             onClick={() => setChangingAvatar((open) => !open)}
           />
-          <IconButton label={`Delete ${person.name}`} icon={Trash2} className="button--danger" disabled={busy} onClick={onDelete} />
+          <IconButton size="s" label={`Delete ${person.name}`} icon={Trash2} className="button--danger" disabled={busy} onClick={onDelete} />
         </div>
       )}
       {changingAvatar && (

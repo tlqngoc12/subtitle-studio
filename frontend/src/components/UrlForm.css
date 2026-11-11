@@ -20,15 +20,16 @@
 .frame__input {
   flex: 1;
   min-width: 0;
-  padding: var(--space-3) var(--space-4);
+  height: var(--control-l);
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-control);
   background: rgb(0 0 0 / 0.45);
   color: var(--caption);
   font: inherit;
-  font-size: var(--step-1);
+  font-size: var(--fs-control-l);
   font-weight: 700;
-  text-align: center;
+  text-align: left;
   /* Classic subtitle legibility: thin dark outline around the glyphs. */
   text-shadow:
     0 0 2px #000,
@@ -79,6 +80,11 @@
   .frame__caption {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  /* In a column the input keeps its own height instead of sharing the free space. */
+  .frame__input {
+    flex: none;
   }
 }
 

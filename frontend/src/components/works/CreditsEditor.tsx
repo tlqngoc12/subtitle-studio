@@ -75,6 +75,7 @@ export function CreditsEditor({
                 <IconButton
                   label={`Remove ${row.person.name}`}
                   icon={X}
+                  size="s"
                   onClick={() => onChange((rows) => rows.filter((r) => r.key !== row.key))}
                 />
               </div>

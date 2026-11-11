@@ -1,4 +1,5 @@
 import { ListMusic, ListVideo, Pencil, Plus, Trash2 } from 'lucide-react';
+import { SkeletonList } from '../components/ui/Skeleton';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
@@ -18,7 +19,6 @@ import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { rowMotion } from '../lib/motion';
 import { Alert } from '../components/ui/Alert';
-import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import './PlaylistsPage.css';
 
@@ -87,7 +87,7 @@ export default function PlaylistsPage() {
         <section className="history" aria-label="Playlists">
           <h2 className="history__heading">Playlists</h2>
           {playlists === null ? (
-            <LoadingText>Loading list…</LoadingText>
+            <SkeletonList rows={4} />
           ) : playlists.length === 0 ? (
             <EmptyState icon={ListMusic}>
               No playlists yet. Create one above, then use Save to playlist in the Videos tab.
@@ -116,7 +116,7 @@ export default function PlaylistsPage() {
                     <span className="history__actions">
                       <Tip label="Edit playlist">
                         <Link
-                          className="button button--icon"
+                          className="button button--icon button--s"
                           to={`/vietsub/playlists/${p.id}`}
                           aria-label={`Edit playlist: ${p.name}`}
                         >
@@ -125,7 +125,7 @@ export default function PlaylistsPage() {
                       </Tip>
                       <Tip label="Delete playlist">
                         <button
-                          className="button button--icon button--danger"
+                          className="button button--icon button--s button--danger"
                           type="button"
                           disabled={busyId === p.id}
                           onClick={() => handleDelete(p)}

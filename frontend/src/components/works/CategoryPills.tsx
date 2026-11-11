@@ -12,11 +12,11 @@ export function CategoryPills({
 }) {
   return (
     <div className="cpills" role="group" aria-label="Filter by category">
-      <button type="button" className="cpills__pill" aria-pressed={value === null} onClick={() => onChange(null)}>
+      <button type="button" className="button button--s cpills__pill" aria-pressed={value === null} onClick={() => onChange(null)}>
         All
       </button>
       {CATEGORIES.map((c) => (
-        <button key={c} type="button" className="cpills__pill" aria-pressed={value === c} onClick={() => onChange(c)}>
+        <button key={c} type="button" className="button button--s cpills__pill" aria-pressed={value === c} onClick={() => onChange(c)}>
           {CATEGORY_LABELS[c]}
         </button>
       ))}

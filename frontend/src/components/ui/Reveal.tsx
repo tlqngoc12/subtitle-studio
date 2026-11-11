@@ -10,11 +10,13 @@ interface Props {
   /** Position in a grid or list: delays the reveal by 30 ms per item, up to the 8th. */
   delayIndex?: number;
   className?: string;
+  /** Glides to its new place when the list around it changes (a filter, a save). */
+  layout?: boolean;
   children: ReactNode;
 }
 
 /** Fades and lifts its children in the first time they scroll into view. Plain element under reduced motion. */
-export function Reveal({ as = 'div', delayIndex, className, children }: Props) {
+export function Reveal({ as = 'div', delayIndex, className, layout, children }: Props) {
   const reduced = usePrefersReducedMotion();
   if (reduced || typeof IntersectionObserver === 'undefined') {
     const Plain = as;
@@ -25,6 +27,7 @@ export function Reveal({ as = 'div', delayIndex, className, children }: Props) {
   return (
     <Animated
       className={className}
+      layout={layout ? 'position' : undefined}
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}

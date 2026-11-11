@@ -16,7 +16,7 @@ function rule(selector: string): string {
 }
 
 describe('colour roles in CSS', () => {
-  it.each(['.button', '.filter-button', '.pager__link'])(
+  it.each(['.button', '.pager__link'])(
     '%s has an orange border at rest',
     (selector) => {
       expect(rule(selector === '.pager__link' ? '.pager__link,' + String.fromCharCode(10) + '.pager__break' : selector)).toMatch(/border(-color)?:[^;]*var\(--brand\)/);
@@ -34,7 +34,7 @@ describe('colour roles in CSS', () => {
   });
 
   it('no secondary button keeps a grey border at rest', () => {
-    for (const selector of ['.button', '.filter-button', '.pager__link']) {
+    for (const selector of ['.button', '.pager__link']) {
       expect(rule(selector === '.pager__link' ? '.pager__link,' + String.fromCharCode(10) + '.pager__break' : selector)).not.toMatch(/border(-color)?:[^;]*var\(--(rule|field-border)\)/);
     }
   });

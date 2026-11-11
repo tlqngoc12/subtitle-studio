@@ -43,14 +43,14 @@ export function ItemListEditor<T extends { key: number }>({
             )}
           </div>
           <div className="items__tools">
-            <IconButton label={`Move ${noun} up`} icon={ArrowUp} disabled={i === 0} onClick={() => swap(row.key, -1)} />
-            <IconButton
+            <IconButton size="s" label={`Move ${noun} up`} icon={ArrowUp} disabled={i === 0} onClick={() => swap(row.key, -1)} />
+            <IconButton size="s"
               label={`Move ${noun} down`}
               icon={ArrowDown}
               disabled={i === rows.length - 1}
               onClick={() => swap(row.key, 1)}
             />
-            <IconButton
+            <IconButton size="s"
               label={`Delete ${noun}`}
               icon={X}
               onClick={() => onChange((prev) => prev.filter((r) => r.key !== row.key))}

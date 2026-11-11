@@ -157,6 +157,10 @@ a:not([class]):hover {
   width: var(--control-s);
 }
 
+.button--icon.button--l {
+  width: var(--control-l);
+}
+
 /* lucide-react icons: stroke and fill come from the component; only the size is set here. */
 .icon {
   width: 18px;
