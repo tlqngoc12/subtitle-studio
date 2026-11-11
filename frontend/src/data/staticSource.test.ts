@@ -111,6 +111,13 @@ describe('staticSource', () => {
     expect(await createStaticSource().listPhotos()).toEqual(photos);
   });
 
+  it('reads fanfics', async () => {
+    const fanfics = [{ id: 1, title: 'T', readCount: 5 }];
+    serve({ '/data/fanfics.json': fanfics });
+
+    expect(await createStaticSource().listFanfics()).toEqual(fanfics);
+  });
+
   it('reads works and a work, mapping a missing file to WORK_NOT_FOUND', async () => {
     serve({ '/data/works.json': [{ id: 3, title: 'T' }], '/data/works/3.json': { id: 3, title: 'T' } });
     const source = createStaticSource();
