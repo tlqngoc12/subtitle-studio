@@ -31,7 +31,7 @@ function renderPublic(works = WORKS, path = '/works') {
   );
 }
 
-const titles = () => screen.getAllByRole('link', { name: /^(Coming|Old|Emi|New)/ }).map((l) => l.getAttribute('aria-label'));
+const titles = () => screen.getAllByRole('link', { name: /^(Coming|Old|Emi show|New)/ }).map((l) => l.getAttribute('aria-label'));
 
 describe('WorksPage', () => {
   it('shows every work with Coming Soon, dates, chips and the profile badge', async () => {
@@ -46,15 +46,15 @@ describe('WorksPage', () => {
     expect(within(second).getByText('5 Jan 2026')).toBeInTheDocument();
     expect(within(second).getByText('Music')).toBeInTheDocument();
     expect(within(second).getByText('OST')).toBeInTheDocument();
-    expect(screen.getByText('4 works')).toBeInTheDocument();
+    expect(screen.getByText('Series, music, shows and more.')).toBeInTheDocument();
   });
 
-  it('filters by person and category together and counts the result', async () => {
+  it('filters by person and category together', async () => {
     renderPublic(WORKS, '/works?who=bonnie&cat=MUSIC');
 
     await screen.findByRole('link', { name: 'Old song' });
     expect(titles()).toEqual(['Old song']);
-    expect(screen.getByText('1 work')).toBeInTheDocument();
+    expect(screen.queryByText('1 work')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Music' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Bonnie' })).toHaveAttribute('aria-pressed', 'true');
   });
@@ -116,5 +116,21 @@ describe('WorksPage admin', () => {
     await screen.findByRole('link', { name: 'Old song' });
     expect(screen.getByRole('link', { name: 'Add work' })).toHaveAttribute('href', '/works/new');
     expect(screen.getByRole('link', { name: 'Edit Old song' })).toHaveAttribute('href', '/works/2/edit');
+  });
+
+  it('a member also gets the works tagged with the group; the group gets only its own', async () => {
+    const group = workSummary(6, { title: 'Both show', profile: 'emibonnie' });
+    renderPublic([...WORKS, group], '/works?who=emi');
+
+    await screen.findByRole('link', { name: 'Both show' });
+    expect(titles()).toEqual(['Emi show', 'New song']);
+    expect(screen.getAllByRole('link', { name: /^Both/ })).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bonnie' }));
+    expect(titles()).toEqual(['Coming film', 'Old song']);
+
+    await userEvent.click(screen.getByRole('button', { name: 'EmiBonnie' }));
+    expect(screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/works/'))).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Both show' })).toBeInTheDocument();
   });
 });

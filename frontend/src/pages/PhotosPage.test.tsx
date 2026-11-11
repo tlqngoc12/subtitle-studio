@@ -53,6 +53,28 @@ describe('PhotosPage', () => {
     expect(screen.getByRole('button', { name: 'Emi' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('a member also gets the posts tagged with the group; the group gets only its own', async () => {
+    renderPhotos(
+      [
+        photo(1, { profiles: ['emi'] }),
+        photo(2, { profiles: ['emibonnie'] }),
+        photo(3, { profiles: ['bonnie'] }),
+        photo(4, { profiles: ['emibonnie', 'emi'] }),
+      ],
+      '/photos?who=emi',
+    );
+    const names = () => screen.getAllByRole('link', { name: /^Post / }).map((l) => l.getAttribute('aria-label'));
+
+    await screen.findAllByRole('link', { name: /^Post / });
+    expect(names()).toEqual(['Post 1', 'Post 2', 'Post 4']);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bonnie' }));
+    expect(names()).toEqual(['Post 2', 'Post 3', 'Post 4']);
+
+    await userEvent.click(screen.getByRole('button', { name: 'EmiBonnie' }));
+    expect(names()).toEqual(['Post 2', 'Post 4']);
+  });
+
   it('changes the filter when an avatar is chosen', async () => {
     renderPhotos([photo(1, { profiles: ['emi'] }), photo(2, { profiles: ['bonnie'] })]);
 
