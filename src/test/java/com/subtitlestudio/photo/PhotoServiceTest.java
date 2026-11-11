@@ -113,6 +113,21 @@ class PhotoServiceTest {
     }
 
     @Test
+    void titleKeepsLineBreaksAndTrimsEachLine() {
+        PhotoPostDto dto = service.create(new PhotoPostRequest(URL, resizedImage(), "  Line one \t\r\n\r\nLine two   \n  ",
+                LocalDate.parse("2026-11-09"), PhotoSource.OFFICIAL, null, List.of()));
+
+        assertThat(dto.title()).isEqualTo("Line one\n\nLine two");
+    }
+
+    @Test
+    void titleLimitCountsTheLineBreaks() {
+        assertThatThrownBy(() -> service.create(new PhotoPostRequest(URL, resizedImage(), "a\n".repeat(101),
+                LocalDate.parse("2026-11-09"), PhotoSource.OFFICIAL, null, List.of())))
+                .satisfies(e -> assertThat(fields(e)).containsExactly("title"));
+    }
+
+    @Test
     void duplicateLinkIs409WithExistingTitle() {
         service.create(request(URL, resizedImage()));
 

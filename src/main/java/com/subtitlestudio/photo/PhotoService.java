@@ -94,7 +94,7 @@ public class PhotoService {
                 errors.add(new FieldError("mediaId", "Upload the image again so its size is known"));
             }
         }
-        String title = r.title() == null ? "" : r.title().strip();
+        String title = cleanTitle(r.title());
         if (title.isEmpty() || title.length() > MAX_TITLE) {
             errors.add(new FieldError("title", "Title must be 1-" + MAX_TITLE + " characters"));
         }
@@ -125,6 +125,15 @@ public class PhotoService {
                     throw new PhotoPostExistsException(existing.getTitle());
                 });
         post.set(url.get(), image, title, on, r.source(), r.photoCount(), people, now);
+    }
+
+    /** Keeps line breaks as {@code \n}; drops trailing whitespace from every line and from the whole text. */
+    static String cleanTitle(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return java.util.Arrays.stream(raw.replace("\r\n", "\n").replace('\r', '\n').split("\n", -1))
+                .map(String::stripTrailing).collect(java.util.stream.Collectors.joining("\n")).strip();
     }
 
     static PhotoPostDto toDto(PhotoPost p) {
