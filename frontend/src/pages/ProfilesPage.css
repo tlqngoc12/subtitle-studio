@@ -139,9 +139,4 @@
   .profiles__analyze {
     width: 100%;
   }
-
-  .profiles__actions .button,
-  .profiles__analyze {
-    min-height: 44px;
-  }
 }

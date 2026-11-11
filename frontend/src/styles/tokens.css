@@ -58,6 +58,23 @@
   --space-12: 48px;
   --space-16: 64px;
 
+  /* Control sizes: buttons are 32 / 40 / 48 px, fields 40 px (48 px only for the Get Engsub link). */
+  --control-s: 32px;
+  --control-m: 40px;
+  --control-l: 48px;
+  --fs-caption: 13px;
+  --fs-control: 15px;
+  --fs-control-l: 16px;
+  --field-gap: 6px;
+
+  /* Motion: the only durations and easings used. */
+  --dur-instant: 80ms;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
   --font: 'Be Vietnam Pro', 'Noto Sans Thai', system-ui, sans-serif;
   /* Modular scale, ratio 1.25 */
   --step--1: 0.8rem;
@@ -115,4 +132,13 @@
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
   --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.5);
   color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
 }

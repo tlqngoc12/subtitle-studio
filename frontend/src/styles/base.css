@@ -72,65 +72,89 @@ a:not([class]):hover {
 }
 
 /* ---------- Buttons ---------- */
+/* One family: S 32, M 40 (default), L 48 px. Variants only change colour. */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
-  border: 1px solid transparent;
+  height: var(--control-m);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--brand);
   border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
   font: inherit;
-  font-weight: 700;
+  font-size: var(--fs-control);
+  font-weight: 600;
+  line-height: 1;
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--brand-2);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .button:disabled {
   cursor: progress;
   opacity: 0.7;
+  border-color: var(--rule);
+}
+
+.button--s {
+  height: var(--control-s);
+  padding: 0 var(--space-3);
+  font-size: var(--fs-caption);
+}
+
+.button--l {
+  height: var(--control-l);
+  padding: 0 var(--space-5);
+  font-size: var(--fs-control-l);
 }
 
 .button--primary {
   background: var(--brand);
+  border-color: var(--brand);
   color: var(--on-brand);
-  justify-self: start;
 }
 
 .button--primary:hover:not(:disabled) {
   background: var(--brand-hover);
+  border-color: var(--brand-hover);
 }
 
-.button--small {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--step--1);
-  background: transparent;
-  color: var(--ink);
-  border-color: var(--brand);
+.button--primary:disabled {
+  border-color: transparent;
 }
 
-.button--small:hover:not(:disabled) {
-  border-color: var(--brand-2);
+.button--ghost {
+  border-color: transparent;
+}
+
+.button--ghost:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: transparent;
 }
 
 .button--icon {
-  width: 34px;
-  height: 34px;
+  width: var(--control-m);
   padding: 0;
-  background: transparent;
-  color: var(--ink);
-  border-color: var(--brand);
 }
 
-.button--icon:hover:not(:disabled) {
-  border-color: var(--brand-2);
-}
-
-/* Secondary buttons: orange border at rest, orchid on hover; a disabled one drops to the neutral rule. */
-.button--small:disabled,
-.button--icon:disabled {
-  border-color: var(--rule);
+.button--icon.button--s {
+  width: var(--control-s);
 }
 
 /* lucide-react icons: stroke and fill come from the component; only the size is set here. */
@@ -139,9 +163,10 @@ a:not([class]):hover {
   height: 18px;
 }
 
-.icon--sm {
-  width: 14px;
-  height: 14px;
+.icon--sm,
+.button--s .icon {
+  width: 16px;
+  height: 16px;
 }
 
 @keyframes spin {
@@ -150,21 +175,104 @@ a:not([class]):hover {
   }
 }
 
+/* Red is reserved for delete and errors; it shows at rest, not the orange of other secondary buttons. */
 .button--danger {
   color: var(--danger);
+  border-color: var(--danger);
 }
 
-.button--danger:hover:not(:disabled),
-.button--small.button--danger:hover:not(:disabled),
-.button--icon.button--danger:hover:not(:disabled) {
+.button--danger:hover:not(:disabled) {
   border-color: var(--danger);
   background: var(--danger-bg);
 }
 
-/* Red is reserved for delete and errors, so the small and icon variants show it at rest too (not the orange of other secondary buttons). */
-.button--small.button--danger:not(:disabled),
-.button--icon.button--danger:not(:disabled) {
+.button--danger:disabled {
+  border-color: var(--rule);
+}
+
+.button--danger-solid {
+  background: var(--danger);
   border-color: var(--danger);
+  color: var(--surface);
+}
+
+.button--danger-solid:hover:not(:disabled) {
+  background: var(--danger);
+  border-color: var(--danger);
+  filter: brightness(1.1);
+}
+
+/* Form action bar: right-aligned, Delete apart on the left; stacked full width on phones with Save on top. */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.form-actions > .form-actions__start {
+  margin-right: auto;
+}
+
+@media (max-width: 520px) {
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .form-actions > .form-actions__start {
+    margin-right: 0;
+  }
+
+  .form-actions .button {
+    width: 100%;
+  }
+}
+
+/* ---------- Fields ---------- */
+/* Every text-like control shares one look; .field-control is for custom triggers (Radix Select, DatePicker). */
+:where(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select, textarea, .field-control) {
+  box-sizing: border-box;
+  height: var(--control-m);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-control);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+:where(textarea) {
+  height: auto;
+  min-height: 96px;
+  padding: 10px var(--space-3);
+  resize: vertical;
+}
+
+:where(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select, textarea, .field-control):focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 25%, transparent);
+}
+
+.field-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.field-control--l,
+input.field-control--l {
+  height: var(--control-l);
+  font-size: var(--fs-control-l);
 }
 
 /* ---------- Alert ---------- */
@@ -204,29 +312,14 @@ a:not([class]):hover {
 
 .field {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--field-gap);
   min-width: 0;
 }
 
 .field label {
-  font-size: var(--step--1);
-  font-weight: 700;
+  font-size: var(--fs-caption);
+  font-weight: 600;
   color: var(--muted);
-}
-
-.field input[type='text'],
-.field textarea {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--field-border);
-  border-radius: var(--radius-control);
-  background: var(--paper);
-  color: var(--ink);
-  font: inherit;
-}
-
-.field textarea {
-  resize: vertical;
 }
 
 .field [aria-invalid='true'] {
@@ -346,23 +439,10 @@ label.button:has(input:focus-visible) {
   }
 
   .back-link,
-.tabs__tab {
+  .tabs__tab {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
-  }
-
-  .button--icon {
-    width: 44px;
-    height: 44px;
-  }
-}
-
-@media (max-width: 520px) {
-  .publish .button {
-    min-width: 44px;
-    min-height: 44px;
-    justify-content: center;
   }
 }
 
@@ -431,16 +511,9 @@ label.button:has(input:focus-visible) {
   border-top: 1px solid var(--rule);
 }
 
-.info-button .icon {
+.info-icon .icon {
   width: 16px;
   height: 16px;
-}
-
-@media (max-width: 760px) {
-  .chapter-head__nav .button--icon {
-    min-width: 44px;
-    min-height: 44px;
-  }
 }
 
 .breadcrumbs__sep .icon {

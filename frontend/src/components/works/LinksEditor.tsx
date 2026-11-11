@@ -69,7 +69,7 @@ export function LinksEditor({
           <button
             key={q.kind}
             type="button"
-            className="button button--small"
+            className="button button--s"
             disabled={has(q.kind)}
             onClick={() => onChange((rows) => [...rows, { key: newKey(), kind: q.kind, label: q.label, url: '', icon: '' }])}
           >
@@ -79,7 +79,7 @@ export function LinksEditor({
         ))}
         <button
           type="button"
-          className="button button--small"
+          className="button button--s"
           onClick={() => onChange((rows) => [...rows, { key: newKey(), kind: 'OTHER', label: '', url: '', icon: '' }])}
         >
           <Plus className="icon" aria-hidden="true" />

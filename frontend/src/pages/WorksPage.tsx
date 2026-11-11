@@ -72,7 +72,7 @@ export default function WorksPage() {
         actions={
           !readOnly && (
             <div className="works-actions">
-              <button type="button" className="button button--small" onClick={() => setPeopleOpen(true)}>
+              <button type="button" className="button button--s" onClick={() => setPeopleOpen(true)}>
                 <Users className="icon" aria-hidden="true" />
                 People
               </button>

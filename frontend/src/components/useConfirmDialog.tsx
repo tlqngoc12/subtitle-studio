@@ -46,7 +46,7 @@ export function useConfirmDialog(): { confirm: (options: ConfirmOptions) => Prom
             <AlertDialog.Description className="visually-hidden">{options?.title}</AlertDialog.Description>
           )}
           <div className="confirm__actions">
-            <AlertDialog.Cancel className="button button--small">Cancel</AlertDialog.Cancel>
+            <AlertDialog.Cancel className="button button--s">Cancel</AlertDialog.Cancel>
             <AlertDialog.Action
               className={options?.destructive ? 'button button--danger-solid' : 'button button--primary'}
               onClick={() => answer(true)}

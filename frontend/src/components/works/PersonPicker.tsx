@@ -76,7 +76,7 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" className="button button--small">
+        <button type="button" className="button button--s">
           <UserPlus className="icon" aria-hidden="true" />
           Person
         </button>
@@ -107,7 +107,7 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
               <button type="submit" className="button button--primary" disabled={busy || !name.trim()}>
                 Create person
               </button>
-              <button type="button" className="button button--small" onClick={() => setCreating(false)}>
+              <button type="button" className="button button--s" onClick={() => setCreating(false)}>
                 Back
               </button>
             </div>

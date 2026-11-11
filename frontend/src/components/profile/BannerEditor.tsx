@@ -329,7 +329,7 @@ function AddImage({
         )}
       </div>
       <div className="banner-editor__actions">
-        <button type="button" className="button button--small" disabled={!picked || uploading || adding} onClick={() => void add()}>
+        <button type="button" className="button button--s" disabled={!picked || uploading || adding} onClick={() => void add()}>
           <Plus className="icon" aria-hidden="true" />
           Add
         </button>

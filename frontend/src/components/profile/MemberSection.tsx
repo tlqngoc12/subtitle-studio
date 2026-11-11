@@ -201,7 +201,7 @@ export function MemberSection({
           <div className="padd">
             <button
               type="button"
-              className="button button--small"
+              className="button button--s"
               aria-expanded={choosingType}
               disabled={formOpen}
               onClick={() => setChoosingType((v) => !v)}
@@ -215,7 +215,7 @@ export function MemberSection({
                   <button
                     key={t}
                     type="button"
-                    className="button button--small"
+                    className="button button--s"
                     onClick={() => {
                       setChoosingType(false);
                       setForm({ mode: 'add', type: t });

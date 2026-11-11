@@ -199,7 +199,7 @@ function PhotoPostForm({
           <p className="pdrop__hint">{uploading ? 'Uploading…' : 'Drop an image, paste it with Ctrl+V, or'}</p>
           <button
             type="button"
-            className="button button--small"
+            className="button button--s"
             disabled={uploading}
             onClick={() => fileInput.current?.click()}
           >
@@ -276,7 +276,7 @@ function PhotoPostForm({
         <button type="submit" className="button button--primary" disabled={saving || uploading}>
           Save
         </button>
-        <button type="button" className="button button--small" onClick={onCancel}>
+        <button type="button" className="button button--s" onClick={onCancel}>
           Cancel
         </button>
       </div>

@@ -80,7 +80,7 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
         <span className="publish">
           <button
             type="button"
-            className={publishing ? 'button button--small button--spinning' : 'button button--small'}
+            className={publishing ? 'button button--s button--spinning' : 'button button--s'}
             disabled={!state?.configured || publishing}
             aria-busy={publishing}
             onClick={() => void publish()}

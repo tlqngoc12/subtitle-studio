@@ -42,17 +42,6 @@
   margin-top: var(--space-5);
 }
 
-/* Solid red: the confirming button of a destructive action. */
-.button--danger-solid {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: var(--paper);
-}
-
-.button--danger-solid:hover {
-  filter: brightness(1.08);
-}
-
 @keyframes confirm-fade {
   from {
     opacity: 0;

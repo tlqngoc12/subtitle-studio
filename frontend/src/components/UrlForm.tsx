@@ -66,7 +66,7 @@ export function UrlForm({ pending, onSubmit, profiles, configured, profile, onPr
             {select}
           </span>
         </Tip>
-        <button className="button button--caption" type="submit" disabled={pending}>
+        <button className="button button--primary button--l" type="submit" disabled={pending}>
           {pending ? 'Fetching subtitles…' : 'Get Engsub'}
         </button>
       </div>

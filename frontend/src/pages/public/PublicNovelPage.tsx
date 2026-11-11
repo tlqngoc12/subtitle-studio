@@ -205,7 +205,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
             </div>
             {resume && (
               <Link
-                className="button button--small"
+                className="button button--s"
                 to={`/novels/${novel.slug}/${first.chapterNo}`}
               >
                 Đọc từ đầu
@@ -213,7 +213,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
             )}
             {novel.sourceUrl && (
               <a
-                className="button button--small"
+                className="button button--s"
                 href={novel.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"

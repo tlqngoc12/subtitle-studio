@@ -290,11 +290,11 @@ export default function WorkEditPage() {
             <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
               Save
             </button>
-            <Link className="button button--small" to={id === null ? '/works' : `/works/${id}`}>
+            <Link className="button button--s" to={id === null ? '/works' : `/works/${id}`}>
               Cancel
             </Link>
             {id !== null && (
-              <button type="button" className="button button--small button--danger" onClick={() => void remove()}>
+              <button type="button" className="button button--s button--danger" onClick={() => void remove()}>
                 <Trash2 className="icon" aria-hidden="true" />
                 Delete work
               </button>

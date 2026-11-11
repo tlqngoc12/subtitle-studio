@@ -58,7 +58,7 @@ export function ItemListEditor<T extends { key: number }>({
           </div>
         </fieldset>
       ))}
-      <button type="button" className="button button--small" onClick={() => onChange((prev) => [...prev, newRow()])}>
+      <button type="button" className="button button--s" onClick={() => onChange((prev) => [...prev, newRow()])}>
         <Plus className="icon" aria-hidden="true" />
         {`Add ${noun}`}
       </button>

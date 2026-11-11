@@ -22,7 +22,6 @@
 .reader__end-nav .reader__end-button {
   justify-self: start;
   min-width: 140px;
-  min-height: 44px;
 }
 
 .reader__end-nav .reader__end-button--next {

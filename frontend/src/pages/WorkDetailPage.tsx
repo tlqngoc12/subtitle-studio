@@ -110,7 +110,7 @@ export default function WorkDetailPage() {
             <p className="work__date">{work.releaseDate ? formatDay(work.releaseDate) : 'Coming Soon'}</p>
             {!readOnly && (
               <div>
-                <Link className="button button--small" to={`/works/${work.id}/edit`}>
+                <Link className="button button--s" to={`/works/${work.id}/edit`}>
                   <Pencil className="icon" aria-hidden="true" />
                   Edit
                 </Link>

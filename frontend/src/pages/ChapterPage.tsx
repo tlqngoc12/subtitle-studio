@@ -311,7 +311,7 @@ export default function ChapterPage() {
           )}
           {published ? (
             // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
-            <button className="button button--small" type="button" disabled={locked || dirty}
+            <button className="button button--s" type="button" disabled={locked || dirty}
               onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
               <Undo2 className="icon" aria-hidden="true" />
               Unpublish
@@ -360,7 +360,7 @@ export default function ChapterPage() {
               <div className="field__label-row">
                 <label htmlFor={`${ids}-no`}>Number</label>
                 <Tip label="The chapter's link number. Drag chapters in the list to change the reading order.">
-                  <button className="info-button" type="button" aria-label="About Number">
+                  <button className="info-icon" type="button" aria-label="About Number">
                     <Info className="icon" aria-hidden="true" />
                   </button>
                 </Tip>
@@ -373,7 +373,7 @@ export default function ChapterPage() {
             <div className="field__label-row">
               <label htmlFor={`${ids}-label`}>Chapter label (optional)</label>
               <Tip label="Shown instead of the number, e.g. Ngoại truyện 1, Special.">
-                <button className="info-button" type="button" aria-label="About Chapter label">
+                <button className="info-icon" type="button" aria-label="About Chapter label">
                   <Info className="icon" aria-hidden="true" />
                 </button>
               </Tip>
@@ -400,11 +400,11 @@ export default function ChapterPage() {
           <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
           {chapter.pages.length > 0 && (
             <div className="chapter-pages__rotate">
-              <button className="button button--small" type="button" disabled={locked} onClick={() => void rotateAll('LEFT')}>
+              <button className="button button--s" type="button" disabled={locked} onClick={() => void rotateAll('LEFT')}>
                 <RotateCcw className="icon" aria-hidden="true" />
                 Rotate all left
               </button>
-              <button className="button button--small" type="button" disabled={locked} onClick={() => void rotateAll('RIGHT')}>
+              <button className="button button--s" type="button" disabled={locked} onClick={() => void rotateAll('RIGHT')}>
                 <RotateCw className="icon" aria-hidden="true" />
                 Rotate all right
               </button>

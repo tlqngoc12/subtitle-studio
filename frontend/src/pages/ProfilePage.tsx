@@ -145,7 +145,7 @@ export default function ProfilePage() {
                   Done
                 </button>
               ) : (
-                <button type="button" className="button button--small" onClick={() => setEditing(true)}>
+                <button type="button" className="button button--s" onClick={() => setEditing(true)}>
                   <Pencil className="icon" aria-hidden="true" />
                   Edit
                 </button>
@@ -175,7 +175,7 @@ export default function ProfilePage() {
                   onCancel={() => setGroupHeaderOpen(false)}
                 />
               ) : (
-                <button type="button" className="button button--small" onClick={() => setGroupHeaderOpen(true)}>
+                <button type="button" className="button button--s" onClick={() => setGroupHeaderOpen(true)}>
                   <Pencil className="icon" aria-hidden="true" />
                   Edit EmiBonnie avatar
                 </button>
@@ -244,7 +244,7 @@ function AddMember({ onCreated }: { onCreated: (member: Profile) => void }) {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" className="button button--small">
+        <button type="button" className="button button--s">
           <UserPlus className="icon" aria-hidden="true" />
           Add member
         </button>

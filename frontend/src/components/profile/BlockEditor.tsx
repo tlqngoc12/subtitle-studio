@@ -259,7 +259,7 @@ export function BlockEditor({
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
         </button>
-        <button type="button" className="button button--small" onClick={onCancel}>
+        <button type="button" className="button button--s" onClick={onCancel}>
           Cancel
         </button>
       </div>
