@@ -18,7 +18,7 @@ import {
 import { CATEGORIES, CATEGORY_LABELS } from '../components/works/categories';
 import { CreditsEditor, type CreditRow } from '../components/works/CreditsEditor';
 import { LinksEditor, type LinkRow } from '../components/works/LinksEditor';
-import { ImagePicker, type PickedImage } from '../components/profile/ImagePicker';
+import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../components/ui/ImageDropzone';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -201,11 +201,13 @@ export default function WorkEditPage() {
         <form className="wedit" onSubmit={onSubmit} noValidate>
           <div className="field">
             <span className="wedit__label">Cover</span>
-            <ImagePicker
-              value={cover}
-              onChange={setCover}
-              onBusyChange={(busy) => setUploads((n) => n + (busy ? 1 : -1))}
+            <ImageDropzone
+              label="Cover image"
+              value={previewOf(cover)}
+              aspect="4/5"
               maxSide={1600}
+              onUploaded={(media) => setCover(toPicked(media))}
+              onBusyChange={(busy) => setUploads((n) => n + (busy ? 1 : -1))}
               invalid={!!errorOf('coverMediaId')}
             />
             {errorOf('coverMediaId') && <p className="field__error">{errorOf('coverMediaId')}</p>}

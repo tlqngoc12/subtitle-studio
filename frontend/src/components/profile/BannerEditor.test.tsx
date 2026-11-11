@@ -12,7 +12,7 @@ const A: BannerImage = { id: 1, mediaUrl: '/api/media/11', altText: 'Fan meeting
 const B: BannerImage = { id: 2, mediaUrl: '/api/media/12', altText: null };
 const C: BannerImage = { id: 3, mediaUrl: '/api/media/13', altText: 'Backstage' };
 
-const UPLOAD: Route = { method: 'POST', path: '/api/media', status: 201, body: { id: 50, url: '/api/media/50' } };
+const UPLOAD: Route = { method: 'POST', path: '/api/media?maxSide=1600', status: 201, body: { id: 50, url: '/api/media/50' } };
 const NEW: BannerImage = { id: 9, mediaUrl: '/api/media/50', altText: null };
 
 function many(n: number): BannerImage[] {
@@ -44,7 +44,7 @@ const bodyOf = (calls: Call[], method: string, path: string) =>
   JSON.parse(String(calls.find((c) => c.method === method && c.path === path)?.body));
 
 async function chooseFile(user: ReturnType<typeof userEvent.setup>, name = 'a.png') {
-  await user.upload(screen.getByLabelText('Choose image'), new File(['x'], name, { type: 'image/png' }));
+  await user.upload(screen.getByLabelText('Banner image file'), new File(['x'], name, { type: 'image/png' }));
   await screen.findByAltText('Selected image');
 }
 
@@ -121,7 +121,7 @@ describe('BannerEditor', () => {
       renderEditor(many(8));
 
       expect(screen.getByText('Up to 8 images')).toBeInTheDocument();
-      expect(screen.getByLabelText('Choose image')).toBeDisabled();
+      expect(screen.getByLabelText('Banner image file')).toBeDisabled();
       expect(screen.getByLabelText('Image description (optional)')).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
     });
@@ -130,7 +130,7 @@ describe('BannerEditor', () => {
       renderEditor(many(7));
 
       expect(screen.queryByText('Up to 8 images')).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Choose image')).toBeEnabled();
+      expect(screen.getByLabelText('Banner image file')).toBeEnabled();
     });
 
     it('shows a description error under the field and keeps the form', async () => {
@@ -177,9 +177,9 @@ describe('BannerEditor', () => {
 
     it('shows the existing media error when the upload fails', async () => {
       const user = userEvent.setup();
-      renderEditor([], [{ method: 'POST', path: '/api/media', status: 400, body: problem(400, 'INVALID_MEDIA', 'x') }]);
+      renderEditor([], [{ method: 'POST', path: '/api/media?maxSide=1600', status: 400, body: problem(400, 'INVALID_MEDIA', 'x') }]);
 
-      await user.upload(screen.getByLabelText('Choose image'), new File(['x'], 'fake.png', { type: 'image/png' }));
+      await user.upload(screen.getByLabelText('Banner image file'), new File(['x'], 'fake.png', { type: 'image/png' }));
 
       expect(await screen.findByText('The file is not a JPEG, PNG, WebP or GIF image.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();

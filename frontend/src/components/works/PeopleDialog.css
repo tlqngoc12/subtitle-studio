@@ -51,6 +51,7 @@
   gap: var(--space-1);
 }
 
-.ppl__avatar-input {
-  cursor: pointer;
+.ppl__dropzone {
+  grid-column: 1 / -1;
+  max-width: 240px;
 }

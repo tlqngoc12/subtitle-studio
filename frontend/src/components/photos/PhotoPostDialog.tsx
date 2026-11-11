@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { ImagePlus, X } from 'lucide-react';
-import { useId, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent } from 'react';
+import { X } from 'lucide-react';
+import { useId, useState, type FormEvent } from 'react';
 import { ApiError, type FieldError } from '../../api/client';
 import {
   createPhoto,
@@ -9,9 +9,9 @@ import {
   type PhotoPostInput,
   type PhotoSource,
 } from '../../api/photos';
-import { uploadMedia } from '../../api/profiles';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { Alert } from '../ui/Alert';
+import { ImageDropzone } from '../ui/ImageDropzone';
 import { IconButton } from '../ui/IconButton';
 import type { Person } from '../ui/PeopleFilter';
 import './PhotoPostDialog.css';
@@ -66,7 +66,6 @@ function PhotoPostForm({
   onCancel: () => void;
 }) {
   const idPrefix = useId();
-  const fileInput = useRef<HTMLInputElement>(null);
   const [instagramUrl, setInstagramUrl] = useState(post?.instagramUrl ?? '');
   const [image, setImage] = useState<{ mediaId: number; url: string } | null>(
     post ? { mediaId: mediaIdOf(post.imageUrl), url: post.imageUrl } : null,
@@ -78,40 +77,10 @@ function PhotoPostForm({
   const [who, setWho] = useState<string[]>(post?.profiles ?? []);
   const [photoCount, setPhotoCount] = useState(post?.photoCount?.toString() ?? '');
   const [uploading, setUploading] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<ErrorMessage | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   const errorOf = (field: string) => fieldErrors.find((e) => e.field === field)?.message;
-
-  async function upload(file: File | undefined) {
-    if (!file) return;
-    setFormError(null);
-    setUploading(true);
-    try {
-      const uploaded = await uploadMedia(file, 1600);
-      setImage({ mediaId: uploaded.id, url: uploaded.url });
-      setFieldErrors((errs) => errs.filter((e) => e.field !== 'mediaId'));
-    } catch (e) {
-      setFormError(errorMessage(e));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  // Ctrl+V of an image uploads it; anything else (text in the link field, say) pastes normally.
-  function onPaste(e: ClipboardEvent) {
-    const file = Array.from(e.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
-    if (!file) return;
-    e.preventDefault();
-    void upload(file);
-  }
-
-  function onDrop(e: DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    void upload(Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/')));
-  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -175,49 +144,25 @@ function PhotoPostForm({
   );
 
   return (
-    <form className="pdialog__form" onSubmit={submit} onPaste={onPaste} noValidate>
+    <form className="pdialog__form" onSubmit={submit} noValidate>
       {formError && <Alert title={formError.title} hint={formError.hint} />}
 
       {field('instagramUrl', 'Instagram link', text(instagramUrl, setInstagramUrl))}
 
       <div className="field">
-        <span className="pdialog__label">Image</span>
-        <div
-          className={dragging ? 'pdrop pdrop--active' : 'pdrop'}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
+        <span className="field__label">Image</span>
+        <ImageDropzone
+          label="Image"
+          value={image ? { url: image.url } : null}
+          aspect="auto"
+          maxSide={1600}
+          invalid={!!errorOf('mediaId')}
+          onBusyChange={setUploading}
+          onUploaded={(media) => {
+            setImage({ mediaId: media.id, url: media.url });
+            setFieldErrors((errs) => errs.filter((e) => e.field !== 'mediaId'));
           }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
-          {image ? (
-            <img className="pdrop__preview" src={image.url} alt="Selected image" />
-          ) : (
-            <ImagePlus className="pdrop__icon" aria-hidden="true" />
-          )}
-          <p className="pdrop__hint">{uploading ? 'Uploading…' : 'Drop an image, paste it with Ctrl+V, or'}</p>
-          <button
-            type="button"
-            className="button button--s"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            Choose image
-          </button>
-          <input
-            ref={fileInput}
-            className="visually-hidden"
-            type="file"
-            aria-label="Image file"
-            accept="image/jpeg,image/png,image/webp"
-            tabIndex={-1}
-            onChange={(e) => {
-              void upload(e.target.files?.[0]);
-              e.target.value = '';
-            }}
-          />
-        </div>
+        />
         {errorOf('mediaId') && <p className="field__error">{errorOf('mediaId')}</p>}
       </div>
 

@@ -60,8 +60,8 @@ describe('PersonPicker', () => {
     await userEvent.type(screen.getByLabelText('Search people'), 'Any');
     await userEvent.click(screen.getByRole('button', { name: 'Create “Any”' }));
     expect(screen.getByLabelText('Name')).toHaveValue('Any');
-    await userEvent.upload(screen.getByLabelText('Avatar (optional)'), new File(['x'], 'a.png', { type: 'image/png' }));
-    await screen.findByRole('img', { name: 'Avatar preview' });
+    await userEvent.upload(screen.getByLabelText('Avatar file'), new File(['x'], 'a.png', { type: 'image/png' }));
+    await screen.findByRole('img', { name: 'Selected image' });
     await userEvent.click(screen.getByRole('button', { name: 'Create person' }));
 
     await vi.waitFor(() => expect(onPick).toHaveBeenCalledWith(created));

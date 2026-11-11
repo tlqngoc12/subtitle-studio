@@ -88,7 +88,7 @@ describe('BlockEditor', () => {
     const calls = fakeFetch([{ method: 'POST', path: '/api/media', status: 201, body: { id: 7, url: '/api/media/7' }, delay }]);
     const { onSave } = setup({ type: 'IMAGE' });
 
-    await userEvent.upload(screen.getByLabelText('Choose image'), PNG);
+    await userEvent.upload(screen.getByLabelText('Image file'), PNG);
 
     expect(calls[0]).toMatchObject({ method: 'POST', path: '/api/media' });
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -105,7 +105,7 @@ describe('BlockEditor', () => {
     fakeFetch([{ method: 'POST', path: '/api/media', status: 413, body: problem(413, 'MEDIA_TOO_LARGE', 'x') }]);
     setup({ type: 'IMAGE' });
 
-    await userEvent.upload(screen.getByLabelText('Choose image'), PNG);
+    await userEvent.upload(screen.getByLabelText('Image file'), PNG);
 
     expect(await screen.findByText('Image too large (10 MB max).')).toBeInTheDocument();
   });
@@ -115,7 +115,7 @@ describe('BlockEditor', () => {
     const { onSave } = setup({ type: 'GALLERY' });
 
     await userEvent.click(screen.getByRole('button', { name: 'Add image' }));
-    await userEvent.upload(screen.getByLabelText('Choose image'), PNG);
+    await userEvent.upload(screen.getByLabelText('Gallery image 1 file'), PNG);
     await screen.findByRole('img', { name: 'Selected image' });
     await userEvent.type(screen.getByLabelText('Image caption'), 'Image 1');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -145,7 +145,7 @@ describe('BlockEditor', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Add image' }));
     await userEvent.click(screen.getByRole('button', { name: 'Add image' }));
-    const pickers = screen.getAllByLabelText('Choose image');
+    const pickers = screen.getAllByLabelText(/Gallery image \d file/);
     await userEvent.upload(pickers[0], PNG);
     await userEvent.upload(pickers[1], PNG);
     await userEvent.type(screen.getAllByLabelText('Image caption')[0], 'Một');

@@ -1,5 +1,6 @@
 import { ImagePlus } from 'lucide-react';
-import { useId, useState, type DragEvent } from 'react';
+import { useId, useRef, useState, type DragEvent } from 'react';
+import '../ui/ImageDropzone.css';
 import './PageUploader.css';
 
 /** Drop zone and file input for one or many page screenshots (PNG, JPEG, WebP). */
@@ -14,6 +15,7 @@ export function PageUploader({
 }) {
   const id = useId();
   const [over, setOver] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
 
   function drop(e: DragEvent) {
     e.preventDefault();
@@ -25,7 +27,7 @@ export function PageUploader({
 
   return (
     <div
-      className={over ? 'uploader uploader--over' : 'uploader'}
+      className={over ? 'dropzone dropzone--active uploader' : 'dropzone uploader'}
       onDragOver={(e) => {
         e.preventDefault();
         if (!disabled) setOver(true);
@@ -33,14 +35,15 @@ export function PageUploader({
       onDragLeave={() => setOver(false)}
       onDrop={drop}
     >
-      <ImagePlus className="uploader__icon" aria-hidden="true" />
+      <ImagePlus className="dropzone__icon" aria-hidden="true" />
       <label htmlFor={id} className="uploader__label">
         Add page screenshots
       </label>
-      <p className="uploader__hint">Drop images here or choose files. They are added in file-name order.</p>
+      <p className="dropzone__hint">Drop images here or choose files. They are added in file-name order.</p>
       <input
         id={id}
-        className="uploader__input"
+        ref={input}
+        className="visually-hidden"
         type="file"
         multiple
         accept="image/png,image/jpeg,image/webp"
@@ -51,7 +54,10 @@ export function PageUploader({
           if (files.length) onFiles(files);
         }}
       />
-      {busy && <p className="muted">Uploading…</p>}
+      <button type="button" className="button button--s" disabled={disabled || busy} onClick={() => input.current?.click()}>
+        Choose files
+      </button>
+      {busy && <p className="dropzone__hint">Uploading…</p>}
     </div>
   );
 }

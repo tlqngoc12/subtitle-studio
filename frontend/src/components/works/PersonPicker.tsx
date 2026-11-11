@@ -2,7 +2,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
-import { uploadMedia } from '../../api/profiles';
+import { ImageDropzone } from '../ui/ImageDropzone';
 import { createPerson, listPeople, type Person } from '../../api/works';
 import { errorMessage } from '../../lib/errors';
 import { normalizeForSearch } from '../../lib/search';
@@ -44,20 +44,6 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
   );
   const exact = (people ?? []).some((p) => normalizeForSearch(p.name) === q);
 
-  async function uploadAvatar(file: File | undefined) {
-    if (!file) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const uploaded = await uploadMedia(file, 400);
-      setAvatar({ id: uploaded.id, url: uploaded.url });
-    } catch (e) {
-      setError(errorMessage(e).title);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function create(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -86,17 +72,15 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
           <form className="wpicker__create" onSubmit={create}>
             <label htmlFor="wpicker-name">Name</label>
             <input id="wpicker-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
-            <label htmlFor="wpicker-avatar">Avatar (optional)</label>
-            {avatar && <img className="wpicker__avatar" src={avatar.url} alt="Avatar preview" />}
-            <input
-              id="wpicker-avatar"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={busy}
-              onChange={(e) => {
-                void uploadAvatar(e.target.files?.[0]);
-                e.target.value = '';
-              }}
+            <span className="field__label">Avatar (optional)</span>
+            <ImageDropzone
+              label="Avatar"
+              value={avatar}
+              aspect="1/1"
+              maxSide={400}
+              onBusyChange={setBusy}
+              onUploaded={(media) => setAvatar({ id: media.id, url: media.url })}
+              onRemove={() => setAvatar(null)}
             />
             {error && (
               <p className="field__error" role="alert">

@@ -23,7 +23,7 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { Tip } from '../Tip';
 import { Alert } from '../ui/Alert';
 import { useConfirmDialog } from '../useConfirmDialog';
-import { ImagePicker, type PickedImage } from './ImagePicker';
+import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/ImageDropzone';
 import './BannerEditor.css';
 
 export const MAX_BANNER_IMAGES = 8;
@@ -308,7 +308,15 @@ function AddImage({
   return (
     <fieldset className="banner-editor__add" disabled={full}>
       <legend>Add image</legend>
-      <ImagePicker key={round} value={picked} onChange={setPicked} onBusyChange={setUploading} />
+      <ImageDropzone
+        key={round}
+        label="Banner image"
+        value={previewOf(picked)}
+        aspect="auto"
+        maxSide={1600}
+        onUploaded={(media) => setPicked(toPicked(media))}
+        onBusyChange={setUploading}
+      />
       <div className="field">
         <label htmlFor={`${ids}-alt`}>Image description (optional)</label>
         <input
