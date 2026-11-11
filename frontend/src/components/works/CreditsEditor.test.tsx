@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRef, useState } from 'react';
 import { describe, expect, it } from 'vitest';
@@ -36,11 +36,19 @@ describe('CreditsEditor', () => {
     expect(screen.queryByText('Character names are removed for non-film works.')).not.toBeInTheDocument();
   });
 
-  it('suggests roles for the category', () => {
-    const { container } = render(<Harness category="MUSIC" initial={[BONNIE]} />);
+  it('suggests roles for the category in a combobox and still takes free text', async () => {
+    render(<Harness category="MUSIC" initial={[{ ...BONNIE, role: '' }]} />);
+    const role = screen.getByRole('combobox', { name: 'Role of Bonnie' });
 
-    const options = Array.from(container.querySelectorAll('datalist option')).map((o) => o.getAttribute('value'));
+    await userEvent.click(role);
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option').map((o) => o.textContent);
     expect(options).toEqual(['Singer', 'Featuring', 'Vocal', 'MV cast']);
+    await userEvent.click(screen.getByRole('option', { name: 'Vocal' }));
+    expect(role).toHaveValue('Vocal');
+
+    await userEvent.clear(role);
+    await userEvent.type(role, 'Choreographer');
+    expect(role).toHaveValue('Choreographer');
   });
 
   it('picks a person from the directory and removes a row', async () => {

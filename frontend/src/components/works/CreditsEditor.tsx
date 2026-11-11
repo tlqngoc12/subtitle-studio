@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { useId, type Dispatch, type SetStateAction } from 'react';
 import type { FieldError } from '../../api/client';
 import type { Person, WorkCategory } from '../../api/works';
+import { Combobox } from '../ui/Combobox';
 import { IconButton } from '../ui/IconButton';
 import { SortableItem, SortableList } from '../ui/SortableList';
 import { isFilm, roleSuggestions } from './categories';
@@ -39,7 +40,7 @@ export function CreditsEditor({
   const patch = (key: number, p: Partial<CreditRow>) =>
     onChange((rows) => rows.map((r) => (r.key === key ? { ...r, ...p } : r)));
   const hidingCharacters = !film && value.some((r) => r.characterName.trim() !== '');
-  const listId = `${idPrefix}-roles`;
+  const roles = roleSuggestions(categories);
 
   return (
     <fieldset className="wed__group">
@@ -50,11 +51,6 @@ export function CreditsEditor({
           onPick={(person) => onChange((rows) => [...rows, { key: newKey(), person, role: '', characterName: '' }])}
         />
       </div>
-      <datalist id={listId}>
-        {roleSuggestions(categories).map((r) => (
-          <option key={r} value={r} />
-        ))}
-      </datalist>
       {hidingCharacters && <p className="field__hint">Character names are removed for non-film works.</p>}
 
       <SortableList items={value} onChange={onChange}>
@@ -82,13 +78,12 @@ export function CreditsEditor({
               <div className="wed__row-fields">
                 <div className="field">
                   <label htmlFor={`${base}-role`}>{`Role of ${row.person.name}`}</label>
-                  <input
+                  <Combobox
                     id={`${base}-role`}
-                    type="text"
-                    list={listId}
                     value={row.role}
+                    suggestions={roles}
                     aria-invalid={errorOf(p + 'role') ? true : undefined}
-                    onChange={(e) => patch(row.key, { role: e.target.value })}
+                    onChange={(role) => patch(row.key, { role })}
                   />
                   {errorOf(p + 'role') && <p className="field__error">{errorOf(p + 'role')}</p>}
                 </div>
