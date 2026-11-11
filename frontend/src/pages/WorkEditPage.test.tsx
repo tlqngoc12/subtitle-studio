@@ -1,10 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
-import { pickOption } from '../test/select';
 import { page, profile } from '../test/profileFixtures';
 import { person, work, workSummary } from '../test/workFixtures';
 import WorkEditPage from './WorkEditPage';
@@ -29,7 +28,7 @@ function renderAt(path: string) {
 
 const SUPPORT: FakeRoute[] = [
   { method: 'GET', path: '/api/profiles', status: 200, body: page([profile('emi', 'Emi', [])]) },
-  { method: 'GET', path: '/api/works', status: 200, body: [workSummary(1, { category: 'FILM_TV', subcategory: 'Drama' })] },
+  { method: 'GET', path: '/api/works', status: 200, body: [workSummary(1, { categories: ['FILM_TV'], subcategory: 'Drama' })] },
 ];
 
 describe('WorkEditPage', () => {
@@ -46,7 +45,7 @@ describe('WorkEditPage', () => {
       title: 'New film',
       coverMediaId: null,
       releaseDate: null,
-      category: 'FILM_TV',
+      categories: ['FILM_TV'],
       subcategory: null,
       profile: null,
       description: null,
@@ -105,10 +104,10 @@ describe('WorkEditPage', () => {
     expect(screen.getByLabelText('path')).toHaveTextContent('/works/new');
   });
 
-  it('loads a work for editing, clears characters out of the request when the category leaves Film & TV', async () => {
+  it('loads a work for editing, clears characters out of the request when Film & TV is toggled off', async () => {
     const existing = work(5, {
       title: 'Love Story',
-      category: 'FILM_TV',
+      categories: ['FILM_TV'],
       releaseDate: '2026-04-24',
       links: [{ kind: 'PILOT', label: 'Pilot', url: 'https://a.example', icon: null }],
       credits: [{ person: person(2, 'Bonnie'), role: 'Lead', characterName: 'Key' }],
@@ -122,17 +121,95 @@ describe('WorkEditPage', () => {
     renderAt('/works/5/edit');
 
     expect(await screen.findByLabelText('Title')).toHaveValue('Love Story');
-    expect(screen.getByLabelText('Release date')).toHaveValue('2026-04-24');
+    expect(screen.getByLabelText('Release date')).toHaveTextContent('24/04/2026');
     expect(screen.getByLabelText('Label 1')).toHaveValue('Pilot');
-    await pickOption(user, screen.getByLabelText('Category'), 'Music');
+    expect(screen.getByLabelText('Character of Bonnie')).toHaveValue('Key');
+    await user.click(screen.getByRole('button', { name: 'Music' }));
+    expect(screen.getByLabelText('Character of Bonnie')).toBeInTheDocument();
+    expect(screen.queryByText('Character names are removed for non-film works.')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Film & TV' }));
     expect(screen.queryByLabelText('Character of Bonnie')).not.toBeInTheDocument();
     expect(screen.getByText('Character names are removed for non-film works.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     const body = JSON.parse(String(calls.find((c) => c.method === 'PUT')?.body));
-    expect(body.category).toBe('MUSIC');
+    expect(body.categories).toEqual(['MUSIC']);
     expect(body.credits).toEqual([{ personId: 2, role: 'Lead', characterName: null }]);
+  });
+
+  it('cannot remove the last category', async () => {
+    fakeFetch(SUPPORT);
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Film & TV' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Choose at least one category.');
+    expect(screen.getByRole('button', { name: 'Film & TV' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('shows the character field as soon as Film & TV is toggled on and sends several categories in order', async () => {
+    const calls = fakeFetch([
+      ...SUPPORT,
+      { method: 'GET', path: '/api/works/5', status: 200, body: work(5, { categories: ['MUSIC'], credits: [{ person: person(2, 'Bonnie'), role: 'Singer', characterName: null }] }) },
+      { method: 'PUT', path: '/api/works/5', status: 200, body: work(5) },
+    ]);
+    renderAt('/works/5/edit');
+    await screen.findByLabelText('Title');
+    expect(screen.queryByLabelText('Character of Bonnie')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Film & TV' }));
+    await userEvent.type(screen.getByLabelText('Character of Bonnie'), 'Key');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+    const body = JSON.parse(String(calls.find((c) => c.method === 'PUT')?.body));
+    expect(body.categories).toEqual(['MUSIC', 'FILM_TV']);
+    expect(body.credits[0].characterName).toBe('Key');
+  });
+
+  it('clearing the release date saves releaseDate null', async () => {
+    const calls = fakeFetch([
+      ...SUPPORT,
+      { method: 'GET', path: '/api/works/5', status: 200, body: work(5, { releaseDate: '2026-04-24' }) },
+      { method: 'PUT', path: '/api/works/5', status: 200, body: work(5, { releaseDate: null }) },
+    ]);
+    renderAt('/works/5/edit');
+    await screen.findByLabelText('Title');
+
+    await userEvent.click(screen.getByLabelText('Release date'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear' }));
+    expect(screen.getByLabelText('Release date')).toHaveTextContent('Coming Soon');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+    expect(JSON.parse(String(calls.find((c) => c.method === 'PUT')?.body)).releaseDate).toBeNull();
+  });
+
+  it('creating a person from the People picker does not submit the work form', async () => {
+    const created = person(9, 'Any');
+    const calls = fakeFetch([
+      ...SUPPORT,
+      { method: 'GET', path: '/api/people', status: 200, body: [person(2, 'Bonnie')] },
+      { method: 'POST', path: '/api/people', status: 201, body: created },
+      { method: 'POST', path: '/api/works', status: 201, body: work(7) },
+      { method: 'PUT', path: '/api/works/7', status: 200, body: work(7) },
+    ]);
+    renderAt('/works/new');
+    await userEvent.type(await screen.findByLabelText('Title'), 'Show');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Person' }));
+    await screen.findByRole('button', { name: 'Bonnie' });
+    await userEvent.type(screen.getByLabelText('Search people'), 'Any');
+    await userEvent.click(screen.getByRole('button', { name: 'Create “Any”' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create person' }));
+
+    expect(await screen.findByLabelText('Role of Any')).toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'POST' && c.path === '/api/people')).toBe(true);
+    expect(calls.some((c) => (c.method === 'POST' || c.method === 'PUT') && c.path.startsWith('/api/works'))).toBe(false);
+    expect(screen.getByLabelText('path')).toHaveTextContent('/works/new');
+    expect(within(screen.getByRole('main')).getByRole('heading', { name: 'Add work' })).toBeInTheDocument();
   });
 
   it('deletes the work after confirming and returns to the grid', async () => {

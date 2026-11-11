@@ -84,6 +84,8 @@ function PhotoPostForm({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    // This form lives in a portal; React still bubbles its submit to a form around the trigger (the work editor).
+    e.stopPropagation();
     if (!image) {
       setFieldErrors([{ field: 'mediaId', message: 'Choose an image first' }]);
       return;

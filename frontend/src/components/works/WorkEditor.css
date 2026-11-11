@@ -9,7 +9,9 @@
 
 .wed__group legend {
   padding: 0 var(--space-2);
-  font-weight: 700;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  font-weight: 600;
 }
 
 .wed__quick {
@@ -18,25 +20,75 @@
   gap: var(--space-2);
 }
 
-.wed__row {
+/* A link row: icon select, label, URL and remove on one line from 760 px; two lines on phones. */
+.wed__link {
   display: grid;
-  grid-template-columns: auto 140px minmax(0, 1fr) auto;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'icon label remove'
+    'url url url';
   gap: var(--space-2);
-  align-items: end;
+  align-items: center;
 }
 
-@media (max-width: 520px) {
-  .wed__row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+.wed__link-icon {
+  grid-area: icon;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.wed__link-icon .select__trigger {
+  min-width: 0;
+}
+
+.wed__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+}
+
+.wed__link-label {
+  grid-area: label;
+  min-width: 0;
+}
+
+.wed__link-url {
+  grid-area: url;
+  min-width: 0;
+}
+
+.wed__link-remove {
+  grid-area: remove;
+}
+
+.wed__link-head {
+  display: none;
+}
+
+@media (min-width: 760px) {
+  .wed__link {
+    grid-template-columns: 120px 180px minmax(0, 1fr) auto;
+    grid-template-areas: 'icon label url remove';
   }
 
-  .wed__row .field {
-    grid-column: 1 / -1;
-    order: 5;
+  /* The header row above the list names the columns; it lines up with the rows (drag handle + padding first). */
+  .wed__link-head {
+    display: grid;
+    grid-template-columns: 120px 180px minmax(0, 1fr);
+    gap: var(--space-2);
+    padding-left: calc(var(--control-s) + var(--space-3) * 2 + 1px);
+    color: var(--muted);
+    font-size: var(--fs-caption);
+    font-weight: 600;
   }
 }
 
 .wed__row--person {
+  display: grid;
+  gap: var(--space-2);
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
 }
@@ -45,13 +97,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
-}
-
-.wed__icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 40px;
 }
 
 .wed__avatar {

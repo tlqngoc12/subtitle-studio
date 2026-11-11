@@ -27,7 +27,11 @@ export function WorkCard({ work, badge, children }: { work: WorkSummary; badge: 
         <span className="work-card__date">{work.releaseDate ? formatDay(work.releaseDate) : 'Coming Soon'}</span>
         <span className="work-card__title">{work.title}</span>
         <span className="work-card__chips">
-          <span className="work-card__chip work-card__chip--category">{CATEGORY_LABELS[work.category]}</span>
+          {work.categories.map((c) => (
+            <span key={c} className="work-card__chip work-card__chip--category">
+              {CATEGORY_LABELS[c]}
+            </span>
+          ))}
           {work.subcategory && <span className="work-card__chip">{work.subcategory}</span>}
         </span>
       </Link>

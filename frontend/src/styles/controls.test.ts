@@ -71,3 +71,13 @@ describe('component CSS does not size buttons itself', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('work editor link rows', () => {
+  it('lay out on one line from 760 px: icon 120, label 180, URL 1fr, remove', () => {
+    const at = strip(modules['/src/components/works/WorkEditor.css']);
+    const block = at.slice(at.indexOf('@media (min-width: 760px)'));
+    const row = rules(block).find((r) => r.selector === '.wed__link');
+    expect(row?.body).toMatch(/grid-template-columns:\s*120px 180px minmax\(0, 1fr\) auto/);
+    expect(row?.body).toMatch(/grid-template-areas:\s*'icon label url remove'/);
+  });
+});

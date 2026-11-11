@@ -17,7 +17,7 @@ const INPUT: WorkInput = {
   title: 'T',
   coverMediaId: null,
   releaseDate: null,
-  category: 'MUSIC',
+  categories: ['MUSIC'],
   subcategory: null,
   profile: null,
   description: null,

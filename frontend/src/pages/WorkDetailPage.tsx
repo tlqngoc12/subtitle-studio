@@ -103,7 +103,11 @@ export default function WorkDetailPage() {
 
           <div className="work__body">
             <div className="work__chips">
-              <span className="work__chip work__chip--category">{CATEGORY_LABELS[work.category]}</span>
+              {work.categories.map((c) => (
+                <span key={c} className="work__chip work__chip--category">
+                  {CATEGORY_LABELS[c]}
+                </span>
+              ))}
               {work.subcategory && <span className="work__chip">{work.subcategory}</span>}
             </div>
             <h1 className="work__title">{work.title}</h1>
@@ -123,7 +127,7 @@ export default function WorkDetailPage() {
 
           {work.credits.length > 0 && (
             <section className="work__people" aria-labelledby="work-people">
-              <h2 id="work-people">{peopleHeading(work.category)}</h2>
+              <h2 id="work-people">{peopleHeading(work.categories)}</h2>
               <PeopleCards credits={work.credits} />
             </section>
           )}

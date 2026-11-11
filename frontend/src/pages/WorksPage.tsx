@@ -53,7 +53,7 @@ export default function WorksPage() {
   const people = useMemo(() => peopleOf(profiles), [profiles]);
   const nameOf = useMemo(() => new Map(people.map((p) => [p.slug, p.name])), [people]);
   const visible = useMemo(
-    () => (works ?? []).filter((w) => (who === null || w.profile === who) && (cat === null || w.category === cat)),
+    () => (works ?? []).filter((w) => (who === null || w.profile === who) && (cat === null || w.categories.includes(cat))),
     [works, who, cat],
   );
 

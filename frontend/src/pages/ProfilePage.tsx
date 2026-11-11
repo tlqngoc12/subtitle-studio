@@ -226,6 +226,8 @@ function AddMember({ onCreated }: { onCreated: (member: Profile) => void }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    // This form lives in a portal; React still bubbles its submit to a form around the trigger (the work editor).
+    e.stopPropagation();
     if (!name.trim()) return;
     setSaving(true);
     setError(null);

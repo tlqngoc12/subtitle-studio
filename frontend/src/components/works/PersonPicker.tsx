@@ -46,6 +46,8 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
 
   async function create(e: FormEvent) {
     e.preventDefault();
+    // This form lives in a portal; React still bubbles its submit to a form around the trigger (the work editor).
+    e.stopPropagation();
     setBusy(true);
     setError(null);
     try {

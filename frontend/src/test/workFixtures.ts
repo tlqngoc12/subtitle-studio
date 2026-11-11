@@ -6,7 +6,7 @@ export function workSummary(id: number, overrides: Partial<WorkSummary> = {}): W
     title: `Work ${id}`,
     coverUrl: null,
     releaseDate: '2026-11-09',
-    category: 'FILM_TV',
+    categories: ['FILM_TV'],
     subcategory: null,
     profile: null,
     ...overrides,

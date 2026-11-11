@@ -13,9 +13,9 @@ import WorksPage from './WorksPage';
 const PROFILES = page([profile('emi', 'Emi', []), profile('bonnie', 'Bonnie', [])]);
 const WORKS: WorkSummary[] = [
   workSummary(1, { title: 'Coming film', releaseDate: null, profile: 'bonnie' }),
-  workSummary(2, { title: 'Old song', category: 'MUSIC', profile: 'bonnie', subcategory: 'OST', releaseDate: '2026-01-05' }),
-  workSummary(3, { title: 'Emi show', category: 'VARIETY', profile: 'emi' }),
-  workSummary(4, { title: 'New song', category: 'MUSIC', profile: 'emi' }),
+  workSummary(2, { title: 'Old song', categories: ['MUSIC'], profile: 'bonnie', subcategory: 'OST', releaseDate: '2026-01-05' }),
+  workSummary(3, { title: 'Emi show', categories: ['VARIETY'], profile: 'emi' }),
+  workSummary(4, { title: 'New song', categories: ['MUSIC'], profile: 'emi' }),
 ];
 
 function renderPublic(works = WORKS, path = '/works') {
@@ -69,6 +69,17 @@ describe('WorksPage', () => {
     expect(titles()).toEqual(['New song']);
     await userEvent.click(screen.getAllByRole('button', { name: 'All' })[0]);
     expect(titles()).toEqual(['Old song', 'New song']);
+  });
+
+  it('?cat= keeps every work whose categories contain it, and a card shows all its category chips', async () => {
+    const both = workSummary(5, { title: 'New song film', categories: ['FILM_TV', 'MUSIC'], releaseDate: '2026-03-01' });
+    renderPublic([...WORKS, both], '/works?cat=MUSIC');
+
+    await screen.findByRole('link', { name: 'New song film' });
+    expect(titles()).toEqual(['Old song', 'New song', 'New song film']);
+    const card = screen.getByRole('link', { name: 'New song film' });
+    expect(within(card).getByText('Film & TV')).toBeInTheDocument();
+    expect(within(card).getByText('Music')).toBeInTheDocument();
   });
 
   it('links each card to its page and has no admin controls on the public site', async () => {

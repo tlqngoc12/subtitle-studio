@@ -19,9 +19,19 @@ export const ROLE_SUGGESTIONS: Partial<Record<WorkCategory, string[]>> = {
   MUSIC: ['Singer', 'Featuring', 'Vocal', 'MV cast'],
 };
 
-/** Heading of the people section on a work's page. */
-export function peopleHeading(category: WorkCategory): 'Cast' | 'Artists' | 'People' {
-  if (category === 'FILM_TV') return 'Cast';
-  if (category === 'MUSIC') return 'Artists';
+/** A work is a film when Film & TV is one of its categories (it then has characters). */
+export function isFilm(categories: WorkCategory[]): boolean {
+  return categories.includes('FILM_TV');
+}
+
+/** Role suggestions for every chosen category, without repeats. */
+export function roleSuggestions(categories: WorkCategory[]): string[] {
+  return [...new Set(categories.flatMap((c) => ROLE_SUGGESTIONS[c] ?? []))];
+}
+
+/** Heading of the people section: Cast for a film, Artists for music alone, People otherwise. */
+export function peopleHeading(categories: WorkCategory[]): 'Cast' | 'Artists' | 'People' {
+  if (isFilm(categories)) return 'Cast';
+  if (categories.length === 1 && categories[0] === 'MUSIC') return 'Artists';
   return 'People';
 }
