@@ -54,7 +54,7 @@
 }
 
 .select__content {
-  z-index: 60;
+  z-index: 70;
   min-width: var(--radix-select-trigger-width);
   max-height: min(320px, var(--radix-select-content-available-height));
   overflow: hidden;

@@ -84,4 +84,15 @@ describe('DatePicker', () => {
     expect(trigger).toHaveAttribute('aria-invalid', 'true');
     expect(trigger).toHaveAttribute('aria-describedby', 'e');
   });
+
+  it('renders the calendar through a portal under document.body, outside the field', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<DatePicker id="d" value="2026-11-09" onChange={() => {}} />);
+    await user.click(screen.getByRole('button', { name: /09\/11\/2026/ }));
+
+    const grid = await screen.findByRole('grid');
+
+    expect(container.contains(grid)).toBe(false);
+    expect(grid.closest('.popover')?.parentElement?.parentElement).toBe(document.body);
+  });
 });

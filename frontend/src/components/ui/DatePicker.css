@@ -18,16 +18,44 @@
 }
 
 .date-picker {
-  --rdp-accent-color: var(--brand-2);
-  --rdp-accent-background-color: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
-  --rdp-day_button-border-radius: var(--radius-control);
-  --rdp-today-color: var(--brand-ink);
   padding: var(--space-3);
   font-size: var(--fs-control);
 }
 
+/* react-day-picker declares its blue defaults on .rdp-root itself, so the brand values must be set on the same
+   element (a parent's variables would be overridden). */
 .date-picker .rdp-root {
+  --rdp-accent-color: var(--brand-2);
+  --rdp-accent-background-color: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
+  --rdp-day_button-border-radius: var(--radius-control);
+  --rdp-today-color: var(--brand-ink);
   color: var(--ink);
+}
+
+/* Month arrows and the carets of the month/year dropdowns: orange text colour, not the library's accent. */
+.date-picker .rdp-chevron {
+  fill: var(--brand-ink);
+}
+
+.date-picker .rdp-button_previous,
+.date-picker .rdp-button_next {
+  border-radius: var(--radius-control);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.date-picker .rdp-button_previous:hover:not(:disabled),
+.date-picker .rdp-button_next:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 16%, var(--surface));
+}
+
+.date-picker .rdp-button_previous:focus-visible,
+.date-picker .rdp-button_next:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.date-picker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  font-weight: 700;
 }
 
 .date-picker .rdp-selected .rdp-day_button {

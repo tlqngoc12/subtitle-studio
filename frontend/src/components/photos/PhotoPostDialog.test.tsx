@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFetch, problem, type Route } from '../../test/fakeFetch';
@@ -182,5 +182,18 @@ describe('PhotoPostDialog', () => {
 
     await waitFor(() => expect(calls).toHaveLength(1));
     expect(JSON.parse(String(calls[0].body))).toMatchObject({ mediaId: 77, photoCount: 4, profiles: ['emi'] });
+  });
+
+  it('picks a day from the calendar opened inside the dialog', async () => {
+    setup();
+
+    await userEvent.click(screen.getByLabelText('Date'));
+    const grid = await screen.findByRole('grid');
+    expect(screen.getByRole('dialog', { name: 'Add post' }).contains(grid)).toBe(false); // portaled out of the dialog, above it
+    await userEvent.click(within(grid).getByRole('button', { name: /15/ }));
+
+    expect(screen.getByLabelText('Date')).toHaveTextContent('15/11/2026');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Add post' })).toBeInTheDocument();
   });
 });
