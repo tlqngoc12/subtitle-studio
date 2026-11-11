@@ -49,11 +49,27 @@
 }
 
 .topbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex: none;
   color: var(--ink);
   font-weight: 700;
   letter-spacing: -0.01em;
   text-decoration: none;
+}
+
+/* The site logo (transparent webp, 522x478) before the name; decorative, the name follows. */
+.topbar__logo {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+@media (max-width: 520px) {
+  .topbar__logo {
+    height: 24px;
+  }
 }
 
 /* One row; on narrow screens the sections scroll sideways instead of wrapping. */
