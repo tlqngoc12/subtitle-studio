@@ -75,7 +75,7 @@ body:has(.filmstrip) {
   line-height: 1.35;
   text-align: left;
   opacity: 0;
-  transition: opacity 0.15s ease-out;
+  transition: opacity var(--dur-base) var(--ease-out);
   pointer-events: none;
 }
 

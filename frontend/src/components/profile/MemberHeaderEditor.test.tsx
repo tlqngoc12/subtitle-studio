@@ -58,7 +58,7 @@ describe('MemberHeaderEditor', () => {
     ]);
     setup();
 
-    await userEvent.upload(screen.getByLabelText('Choose image'), new File(['x'], 'a.png', { type: 'image/png' }));
+    await userEvent.upload(screen.getByLabelText('Portrait file'), new File(['x'], 'a.png', { type: 'image/png' }));
 
     expect(await screen.findByRole('img', { name: 'Selected image' })).toHaveAttribute('src', '/api/media/9');
     expect(calls[0].path).toBe('/api/media?maxSide=1600');

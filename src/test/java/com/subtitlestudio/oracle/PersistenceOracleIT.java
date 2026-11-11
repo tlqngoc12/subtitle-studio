@@ -114,9 +114,16 @@ class PersistenceOracleIT {
     @Autowired
     private com.subtitlestudio.profile.MediaService mediaService;
 
+    @Autowired
+    private com.subtitlestudio.work.WorkService workService;
+
+    @Autowired
+    private com.subtitlestudio.work.WorkRepository workRepository;
+
     @AfterEach
     void cleanUp() {
         photoPosts.deleteAll();
+        workRepository.deleteAll();
         blocks.deleteAll();
         media.deleteAll();
         viCues.deleteAll();
@@ -137,7 +144,7 @@ class PersistenceOracleIT {
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
                 .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_PAGE", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
                         "T_PERSON", "T_PHOTO_POST", "T_PHOTO_POST_PROFILE", "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
-                        "T_PROFILE_BLOCK_ITEM", "T_WORK", "T_WORK_CREDIT", "T_WORK_LINK", "VIDEO",
+                        "T_PROFILE_BLOCK_ITEM", "T_WORK", "T_WORK_CATEGORY", "T_WORK_CREDIT", "T_WORK_LINK", "VIDEO",
                         "VI_CUE", "flyway_schema_history");
     }
 
@@ -182,16 +189,32 @@ class PersistenceOracleIT {
 
         com.subtitlestudio.photo.PhotoPostDto saved = photoService.create(new com.subtitlestudio.photo.PhotoPostRequest(
                 "https://www.instagram.com/p/DQx1abc/", mediaId, "เอมี่ Fan meeting",
-                java.time.LocalDate.parse("2026-10-31"), java.time.LocalDate.parse("2026-11-01"),
+                java.time.LocalDate.parse("2026-10-31"),
                 com.subtitlestudio.photo.PhotoSource.FAN, 4, List.of("emibonnie", "emi")));
 
         com.subtitlestudio.photo.PhotoPostDto loaded = photoService.list().get(0);
         assertThat(loaded.id()).isEqualTo(saved.id());
         assertThat(loaded.takenOn()).isEqualTo(java.time.LocalDate.parse("2026-10-31"));
-        assertThat(loaded.takenUntil()).isEqualTo(java.time.LocalDate.parse("2026-11-01"));
         assertThat(loaded.profiles()).containsExactly("emibonnie", "emi");
         assertThat(loaded.width()).isEqualTo(40);
         assertThatThrownBy(() -> jdbc.update("update t_photo_post set source = 'X'")).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void storesSeveralWorkCategoriesInOrderOnOracle() {
+        com.subtitlestudio.work.WorkCategory film = com.subtitlestudio.work.WorkCategory.FILM_TV;
+        com.subtitlestudio.work.WorkCategory music = com.subtitlestudio.work.WorkCategory.MUSIC;
+        com.subtitlestudio.work.WorkDto saved = workService.create(new com.subtitlestudio.work.WorkRequest("Love Story",
+                null, null, List.of(music, film), null, null, null, List.of(), List.of()));
+
+        assertThat(workService.get(saved.id()).categories()).containsExactly(music, film);
+        assertThat(workService.update(saved.id(), new com.subtitlestudio.work.WorkRequest("Love Story", null, null,
+                List.of(film, music), null, null, null, List.of(), List.of())).categories()).containsExactly(film, music);
+        assertThat(jdbc.queryForList("select category || ':' || position from t_work_category where work_id = ? "
+                + "order by position", String.class, saved.id())).containsExactly("FILM_TV:1", "MUSIC:2");
+        assertThatThrownBy(() -> jdbc.update("update t_work_category set category = 'X'")).isInstanceOf(Exception.class);
+        workService.delete(saved.id());
+        assertThat(jdbc.queryForObject("select count(*) from t_work_category", Integer.class)).isZero();
     }
 
     @Test

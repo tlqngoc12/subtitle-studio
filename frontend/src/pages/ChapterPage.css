@@ -62,7 +62,7 @@
   gap: var(--space-1);
 }
 
-.info-button {
+.info-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -74,8 +74,8 @@
   cursor: pointer;
 }
 
-.info-button:hover,
-.info-button:focus-visible {
+.info-icon:hover,
+.info-icon:focus-visible {
   color: var(--brand-2-ink);
 }
 

@@ -1,4 +1,5 @@
 import { Camera, Plus } from 'lucide-react';
+import { SkeletonGrid } from '../components/ui/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -9,7 +10,6 @@ import { PhotoPostDialog } from '../components/photos/PhotoPostDialog';
 import { PhotoTile } from '../components/photos/PhotoTile';
 import { PhotoTileMenu } from '../components/photos/PhotoTileMenu';
 import { Alert } from '../components/ui/Alert';
-import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter, type Person } from '../components/ui/PeopleFilter';
 import { useConfirmDialog } from '../components/useConfirmDialog';
@@ -119,7 +119,7 @@ export default function PhotosPage() {
 
       {error && <Alert title={error.title} hint={error.hint} />}
       {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
-      {posts === null && !error && <LoadingText>Loading photos…</LoadingText>}
+      {posts === null && !error && <SkeletonGrid count={8} aspect="1/1" />}
 
       {posts !== null && visible.length === 0 && !error && (
         <EmptyState icon={Camera}>No photos here yet.</EmptyState>
@@ -127,8 +127,8 @@ export default function PhotosPage() {
 
       {visible.length > 0 && (
         <ul className="photo-grid" aria-label="Photos">
-          {visible.slice(0, shown).map((post) => (
-            <PhotoTile key={post.id} post={post}>
+          {visible.slice(0, shown).map((post, i) => (
+            <PhotoTile key={post.id} post={post} index={i}>
               {!readOnly && (
                 <PhotoTileMenu post={post} onEdit={() => setDialog({ post })} onDelete={() => void remove(post)} />
               )}

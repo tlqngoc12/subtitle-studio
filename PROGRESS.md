@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-10 (lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-11 (UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -776,6 +776,23 @@ Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enh
 - **Backup Oracle:** `scripts/backup-db.ps1` (expdp, giữ 14 bản trong `data/backups/`), `restore-db.ps1`, `register-backup-task.ps1` (tác vụ `SubtitleStudio DB backup` 12:00 hằng ngày, chạy bù). Quy tắc: backup trước mỗi lần deploy. Đã thử khôi phục vào schema tạm `SS_RESTORE_TEST`: 15 bảng, số dòng khớp hết, đã xoá schema tạm.
 - **Select dùng chung** (Radix) thay 5 `<select>` gốc; `ScrollToTop` cho cả hai app.
 - **Cần làm:** chạy `scripts/register-backup-task.ps1` trên máy khác nếu có; deploy không cần migration mới.
+
+### 2026-11-11: UI polish (hệ thống điều khiển, chuyển động, Works/Photos) ✅ (chưa merge, chưa deploy; cần deploy vì có V16)
+
+Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-design.md](docs/superpowers/specs/2026-11-11-ui-polish-design.md), plan: [docs/superpowers/plans/2026-11-11-ui-polish.md](docs/superpowers/plans/2026-11-11-ui-polish.md).
+
+- **Nền tảng (Task 2-5):** token cỡ điều khiển (`--control-s/m/l` = 32/40/48 px) và chuyển động (`--dur-*`, `--ease-*`, về 0 khi `prefers-reduced-motion`); một họ nút `.button` (S/M/L, icon, `--primary/--ghost/--danger/--danger-solid`), `--small` đổi tên thành `--s`; ô nhập dùng chung selector `:where(input…, select, textarea, .field-control)` cao 40 px; `.form-actions`. Test `styles/controls.test.ts` chặn CSS riêng cỡ nút.
+- **Component dùng chung:** `Field` (label/hint/error + aria), `DatePicker` (`react-day-picker` 9.14.0, chuỗi `yyyy-mm-dd` không lệch múi giờ, hiện `dd/MM/yyyy`), `NumberField`, `ImageDropzone` (thay `ImagePicker`; Ctrl+V chỉ nhận khi focus trong chính nó hoặc trong dialog chứa nó), `Reveal`, `Skeleton*`, `useScrollDirection` (navbar ẩn khi cuộn xuống, mờ kính khi `scrollY > 0`; thay `useHideOnScroll`), `useDelayedFlag`.
+- **Chuyển động:** mọi `transition`/`animation` dùng token; popover/select mở từ trigger (`overlay-in/out`), modal fade + trượt 12 px, thẻ nhấc 2 px khi hover (chuột), toast theo token.
+- **Works (Flyway V16 + frontend):** `category` thành `categories` (1–8 giá trị, giữ thứ tự) qua bảng `t_work_category` (PK `work_id, category`, `position` 1..n; migration copy mỗi work thành một dòng, test `V16MigrationTest` chạy V15 → V16 trên H2 và `PersistenceOracleIT` trên Oracle). `Work.set` gán list mới (không `clear + addAll`) để Hibernate xoá hết dòng rồi chèn lại, tránh trùng khoá khi đổi thứ tự. Work là phim khi có FILM_TV (tiêu đề "Cast", ô Character); chỉ MUSIC thì "Artists"; còn lại "People". Thẻ hiện mọi chip, lọc `?cat=` khớp work có chứa category đó, editor dùng `CategoryToggleGroup` (không bỏ được cái cuối), Release date là `DatePicker` có Clear ("Coming Soon"), link một dòng ≥ 760 px.
+- **Sửa lỗi Create person:** form trong portal vẫn bubble `submit` (React) lên form Work. Đã `stopPropagation` ở 4 form trong portal: `PersonPicker` (lỗi gốc), `PeopleDialog` (đổi tên), `PhotoPostDialog`, `Add member` của Profile. Test hồi quy ở `WorkEditPage.test.tsx`.
+- **Photos:** bỏ `taken_until` (V16, API, export JSON, UI); dialog dùng `DatePicker` (mặc định hôm nay), `NumberField` 1–99 (rỗng = null), `ImageDropzone`; thanh nút Cancel + Save cùng cỡ M, Save cuối. Sắp xếp lại ở client sau khi lưu có test (mới → cũ, rồi id).
+- **Lệch so với plan:** Works không có sắp xếp lại ở client (mỗi lần lưu chuyển sang trang chi tiết, danh sách tải lại từ server đã sắp xếp), nên chỉ Photos có test re-sort client; thứ tự server của Works có test ở `WorkServiceTest.comingSoonStaysFirstThenNewestThenHighestId`.
+- **Rà soát trang (Task 9-10):** Get Engsub: ô link và nút 48 px (L), ô chọn dịch cùng 48 px; ô tìm kiếm 40 px bo 8 px, nút Filter cỡ M, nút icon ở hàng dùng cỡ S (32 px), phân trang ô 32 px, pill category là nút S; thanh nút của form (`.form-actions`: Cancel rồi Save) dùng ở Profile, Person picker, Novel form, Work, Photos. List hiện `SkeletonList`/`SkeletonGrid` sau 150 ms thay `LoadingText`; thẻ Works/Photos/Novels hiện dần có độ trễ (`Reveal`, tối đa 8 bước) và trượt vị trí khi lọc (`layout`).
+- **Đo bằng CDP** (jar build trong worktree, cổng 8099, H2 với dữ liệu mẫu): mọi `button.button` cao 32/40/48 px và mọi ô nhập 40/48 px ở 1440 và 390 px, trừ `<select>` ẩn của Radix (aria-hidden). Ảnh trước/sau ở `scratchpad/ui/before` và `scratchpad/ui/after`.
+- **Lệch so với plan:** bỏ các `min-height: 44px` cảm ứng của nút trên điện thoại (spec chỉ cho 32/40/48); danh sách hàng (VideoList, VietsubList…) giữ `rowMotion` cũ (trượt khi thêm/xoá) chứ không thêm stagger lúc tải; trang public không có "trước" để chụp (chỉ chạy được bản admin ở 8080), được kiểm bằng test và các component dùng chung.
+
+- **Sửa theo review PR #15:** màn hình cảm ứng (`pointer: coarse`) mọi `.button` (gồm `--s`, `--icon`) có vùng bấm 44 x 44 px qua `::after` trong suốt, kích thước hiển thị giữ 32/40/48 (hai nút cách nhau 8 px có thể chồng 4 px vùng bấm); ô chọn hồ sơ dịch của Get Engsub đổi nhãn rỗng thành "No profile" và rộng tối đa 16rem; nhãn icon "Generic link" của Works đổi thành "Link".
 
 ## 9. Rủi ro đang theo dõi
 

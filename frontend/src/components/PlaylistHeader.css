@@ -60,7 +60,7 @@
 .plcard--link {
   position: relative;
   grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
-  transition: border-color 120ms ease-out;
+  transition: border-color var(--dur-fast) var(--ease-out);
 }
 
 .plcard--link:hover {

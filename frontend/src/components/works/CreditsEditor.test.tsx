@@ -7,10 +7,10 @@ import { fakeFetch } from '../../test/fakeFetch';
 import { person } from '../../test/workFixtures';
 import { CreditsEditor, type CreditRow } from './CreditsEditor';
 
-function Harness({ category, initial = [] }: { category: WorkCategory; initial?: CreditRow[] }) {
+function Harness({ category, initial = [] }: { category: WorkCategory | WorkCategory[]; initial?: CreditRow[] }) {
   const [rows, setRows] = useState<CreditRow[]>(initial);
   const key = useRef(100);
-  return <CreditsEditor value={rows} category={category} onChange={setRows} errors={[]} newKey={() => key.current++} />;
+  return <CreditsEditor value={rows} categories={Array.isArray(category) ? category : [category]} onChange={setRows} errors={[]} newKey={() => key.current++} />;
 }
 
 const BONNIE: CreditRow = { key: 1, person: person(2, 'Bonnie'), role: 'Lead', characterName: 'Key' };

@@ -53,7 +53,7 @@ export function Select({
     >
       <RadixSelect.Trigger
         id={id}
-        className={['select__trigger', `select__trigger--${variant}`, className].filter(Boolean).join(' ')}
+        className={['field-control', 'select__trigger', `select__trigger--${variant}`, className].filter(Boolean).join(' ')}
         aria-invalid={invalid}
         aria-describedby={describedBy}
       >

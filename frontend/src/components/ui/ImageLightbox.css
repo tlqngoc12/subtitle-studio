@@ -5,7 +5,7 @@
   inset: 0;
   z-index: 40;
   background: rgb(0 0 0 / 0.6);
-  animation: lightbox-fade 120ms ease-out;
+  animation: overlay-fade-in var(--dur-base) var(--ease-out);
 }
 
 .lightbox {
@@ -24,7 +24,7 @@
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-overlay);
-  animation: lightbox-pop 140ms ease-out;
+  animation: modal-in var(--dur-base) var(--ease-out);
 }
 
 /* Focus lands on the panel itself so the arrow keys work at once; it is not a control, so it shows no ring. */
@@ -68,41 +68,17 @@
   justify-self: end;
 }
 
-@keyframes lightbox-fade {
-  from {
-    opacity: 0;
-  }
+.lightbox__overlay[data-state='closed'] {
+  animation: overlay-fade-out var(--dur-fast) var(--ease-in-out) forwards;
 }
 
-@keyframes lightbox-pop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -48%) scale(0.97);
-  }
+.lightbox[data-state='closed'] {
+  animation: modal-out var(--dur-fast) var(--ease-in-out) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lightbox__overlay,
   .lightbox {
-    animation: none;
+    animation: none !important;
   }
-}
-
-@media (max-width: 760px) {
-  .lightbox .button--icon {
-    width: 44px;
-    height: 44px;
-  }
-
-  .lightbox__bar {
-    min-height: 44px;
-  }
-}
-
-.lightbox__counter {
-  min-width: 4em;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  color: var(--muted);
 }

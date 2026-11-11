@@ -35,14 +35,14 @@ const ICON_LABELS: Record<string, string> = {
   applemusic: 'Apple Music',
   line: 'Line',
   threads: 'Threads',
-  link: 'Generic link',
+  link: 'Link',
 };
 
 const ICON_OPTIONS = [{ value: '', label: 'Auto' }, ...ICON_KEYS.map((k) => ({ value: k, label: ICON_LABELS[k] }))];
 
 /**
  * The link rows of a work: quick-add buttons (each fixed kind once), `+ Link` for any number of others, and per row
- * an icon choice, label, URL and Remove; drag the handle to reorder. `errors` are the server's field paths.
+ * an icon choice, label and URL on one line, and Remove; drag the handle to reorder. `errors` are the server's field paths.
  */
 export function LinksEditor({
   value,
@@ -69,7 +69,7 @@ export function LinksEditor({
           <button
             key={q.kind}
             type="button"
-            className="button button--small"
+            className="button button--s"
             disabled={has(q.kind)}
             onClick={() => onChange((rows) => [...rows, { key: newKey(), kind: q.kind, label: q.label, url: '', icon: '' }])}
           >
@@ -79,7 +79,7 @@ export function LinksEditor({
         ))}
         <button
           type="button"
-          className="button button--small"
+          className="button button--s"
           onClick={() => onChange((rows) => [...rows, { key: newKey(), kind: 'OTHER', label: '', url: '', icon: '' }])}
         >
           <Plus className="icon" aria-hidden="true" />
@@ -87,17 +87,25 @@ export function LinksEditor({
         </button>
       </div>
 
+      {value.length > 0 && (
+        <div className="wed__link-head" aria-hidden="true">
+          <span>Icon</span>
+          <span>Label</span>
+          <span>URL</span>
+        </div>
+      )}
       <SortableList items={value} onChange={onChange}>
         {value.map((row, i) => {
           const p = `links[${i}].`;
           const base = `${idPrefix}-${row.key}`;
+          const urlError = errorOf(p + 'url') ?? errorOf(p + 'kind') ?? errorOf(p + 'icon');
           return (
             <SortableItem key={row.key} id={row.key} handleLabel={`Drag to reorder: link ${i + 1}`}>
-              <div className="wed__row">
-                <span className="wed__icon">
-                  <LinkIcon iconKey={iconFor(row.url, row.icon || null)} />
-                </span>
-                <div className="wed__icon-select">
+              <div className="wed__link">
+                <div className="wed__link-icon">
+                  <span className="wed__icon" aria-hidden="true">
+                    <LinkIcon iconKey={iconFor(row.url, row.icon || null)} />
+                  </span>
                   <label htmlFor={`${base}-icon`} className="visually-hidden">{`Icon of link ${i + 1}`}</label>
                   <Select
                     id={`${base}-icon`}
@@ -107,36 +115,34 @@ export function LinksEditor({
                     aria-invalid={errorOf(p + 'icon') ? true : undefined}
                   />
                 </div>
-                <div className="field">
-                  <label htmlFor={`${base}-label`}>{`Label ${i + 1}`}</label>
-                  <input
-                    id={`${base}-label`}
-                    type="text"
-                    value={row.label}
-                    aria-invalid={errorOf(p + 'label') ? true : undefined}
-                    onChange={(e) => patch(row.key, { label: e.target.value })}
-                  />
-                  {errorOf(p + 'label') && <p className="field__error">{errorOf(p + 'label')}</p>}
-                </div>
-                <IconButton
-                  label={`Remove link ${i + 1}`}
-                  icon={X}
-                  onClick={() => onChange((rows) => rows.filter((r) => r.key !== row.key))}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor={`${base}-url`}>{`URL ${i + 1}`}</label>
                 <input
-                  id={`${base}-url`}
                   type="text"
+                  className="wed__link-label"
+                  aria-label={`Label ${i + 1}`}
+                  placeholder="Label"
+                  value={row.label}
+                  aria-invalid={errorOf(p + 'label') ? true : undefined}
+                  onChange={(e) => patch(row.key, { label: e.target.value })}
+                />
+                <input
+                  type="text"
+                  className="wed__link-url"
+                  aria-label={`URL ${i + 1}`}
+                  placeholder="https://"
                   value={row.url}
                   aria-invalid={errorOf(p + 'url') ? true : undefined}
                   onChange={(e) => patch(row.key, { url: e.target.value })}
                 />
-                {errorOf(p + 'url') && <p className="field__error">{errorOf(p + 'url')}</p>}
-                {errorOf(p + 'kind') && <p className="field__error">{errorOf(p + 'kind')}</p>}
-                {errorOf(p + 'icon') && <p className="field__error">{errorOf(p + 'icon')}</p>}
+                <IconButton
+                  label={`Remove link ${i + 1}`}
+                  icon={X}
+                  size="s"
+                  className="wed__link-remove"
+                  onClick={() => onChange((rows) => rows.filter((r) => r.key !== row.key))}
+                />
               </div>
+              {errorOf(p + 'label') && <p className="field__error">{errorOf(p + 'label')}</p>}
+              {urlError && <p className="field__error">{urlError}</p>}
             </SortableItem>
           );
         })}

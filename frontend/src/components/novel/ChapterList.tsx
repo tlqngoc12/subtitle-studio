@@ -95,7 +95,7 @@ function ChapterRow({
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       <div className="chapter-list__row">
-        <button ref={setActivatorNodeRef} className="button button--icon" type="button"
+        <button ref={setActivatorNodeRef} className="button button--icon button--s" type="button"
           aria-label={`Drag to reorder: ${name}`} {...attributes} {...listeners}>
           <GripVertical className="icon" aria-hidden="true" />
         </button>
@@ -118,13 +118,13 @@ function ChapterRow({
         </Link>
         <span className="chapter-list__move">
           <Tip label="Move up">
-            <button className="button button--icon" type="button" disabled={first} onClick={onUp}
+            <button className="button button--icon button--s" type="button" disabled={first} onClick={onUp}
               aria-label={`Move up: ${name}`}>
               <ArrowUp className="icon" aria-hidden="true" />
             </button>
           </Tip>
           <Tip label="Move down">
-            <button className="button button--icon" type="button" disabled={last} onClick={onDown}
+            <button className="button button--icon button--s" type="button" disabled={last} onClick={onDown}
               aria-label={`Move down: ${name}`}>
               <ArrowDown className="icon" aria-hidden="true" />
             </button>

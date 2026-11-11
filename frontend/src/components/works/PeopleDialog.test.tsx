@@ -78,7 +78,8 @@ describe('PeopleDialog', () => {
     setup();
     await screen.findByText('Emi');
 
-    await userEvent.upload(screen.getByLabelText('Avatar file of Emi'), new File(['x'], 'a.png', { type: 'image/png' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Change avatar of Emi' }));
+    await userEvent.upload(screen.getByLabelText('Avatar of Emi file'), new File(['x'], 'a.png', { type: 'image/png' }));
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     const put = calls.find((c) => c.method === 'PUT');

@@ -25,7 +25,7 @@ export function PhotoTileMenu({
     <div className="photo-menu">
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
-          <button type="button" className="button button--icon" aria-label={`Menu for ${post.title}`}>
+          <button type="button" className="button button--icon button--s" aria-label={`Menu for ${post.title}`}>
             <Ellipsis className="icon" aria-hidden="true" />
           </button>
         </Popover.Trigger>

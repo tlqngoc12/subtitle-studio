@@ -62,11 +62,11 @@
   inset: 0;
   z-index: 40;
   background: rgb(0 0 0 / 0.4);
-  animation: drawer-fade-in 160ms ease-out;
+  animation: drawer-fade-in var(--dur-base) var(--ease-out);
 }
 
 .drawer__overlay[data-state='closed'] {
-  animation: drawer-fade-out 160ms ease-in;
+  animation: drawer-fade-out var(--dur-base) var(--ease-in-out);
 }
 
 .drawer {
@@ -83,11 +83,11 @@
   color: var(--ink);
   border-left: 1px solid var(--rule);
   box-shadow: var(--shadow-overlay);
-  animation: drawer-in 200ms ease-out;
+  animation: drawer-in var(--dur-base) var(--ease-out);
 }
 
 .drawer[data-state='closed'] {
-  animation: drawer-out 160ms ease-in;
+  animation: drawer-out var(--dur-base) var(--ease-in-out);
 }
 
 .drawer__head {

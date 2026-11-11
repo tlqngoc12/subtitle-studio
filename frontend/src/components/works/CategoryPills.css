@@ -7,18 +7,7 @@
 
 .cpills__pill {
   flex: none;
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--brand);
-  border-radius: 999px;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
   white-space: nowrap;
-}
-
-.cpills__pill:hover {
-  border-color: var(--brand-2);
 }
 
 .cpills__pill[aria-pressed='true'] {

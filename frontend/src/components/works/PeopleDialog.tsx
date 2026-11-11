@@ -3,7 +3,7 @@ import { ImagePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '../../api/client';
-import { uploadMedia } from '../../api/profiles';
+import { ImageDropzone } from '../ui/ImageDropzone';
 import { deletePerson, listPeople, updatePerson, type Person } from '../../api/works';
 import { errorMessage } from '../../lib/errors';
 import { Alert } from '../ui/Alert';
@@ -81,6 +81,7 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(person.name);
   const [busy, setBusy] = useState(false);
+  const [changingAvatar, setChangingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function fail(e: unknown) {
@@ -89,6 +90,8 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
 
   async function rename(e: FormEvent) {
     e.preventDefault();
+    // This form lives in a portal; React still bubbles its submit to a form around the trigger (the work editor).
+    e.stopPropagation();
     setBusy(true);
     setError(null);
     try {
@@ -101,13 +104,12 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
     }
   }
 
-  async function changeAvatar(file: File | undefined) {
-    if (!file) return;
+  async function changeAvatar(mediaId: number) {
     setBusy(true);
     setError(null);
     try {
-      const uploaded = await uploadMedia(file, 400);
-      onSaved(await updatePerson(person.id, { name: person.name, avatarMediaId: uploaded.id }));
+      onSaved(await updatePerson(person.id, { name: person.name, avatarMediaId: mediaId }));
+      setChangingAvatar(false);
     } catch (err) {
       fail(err);
     } finally {
@@ -140,7 +142,7 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
             </button>
             <button
               type="button"
-              className="button button--small"
+              className="button button--s"
               onClick={() => {
                 setRenaming(false);
                 setName(person.name);
@@ -161,22 +163,28 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
       </div>
       {!renaming && (
         <div className="ppl__actions">
-          <IconButton label={`Rename ${person.name}`} icon={Pencil} disabled={busy} onClick={() => setRenaming(true)} />
-          <label className="button button--icon ppl__avatar-input" aria-label={`Change avatar of ${person.name}`}>
-            <ImagePlus className="icon" aria-hidden="true" />
-            <input
-              type="file"
-              className="visually-hidden"
-              accept="image/jpeg,image/png,image/webp"
-              aria-label={`Avatar file of ${person.name}`}
-              disabled={busy}
-              onChange={(e) => {
-                void changeAvatar(e.target.files?.[0]);
-                e.target.value = '';
-              }}
-            />
-          </label>
-          <IconButton label={`Delete ${person.name}`} icon={Trash2} className="button--danger" disabled={busy} onClick={onDelete} />
+          <IconButton size="s" label={`Rename ${person.name}`} icon={Pencil} disabled={busy} onClick={() => setRenaming(true)} />
+          <IconButton
+            size="s"
+            label={`Change avatar of ${person.name}`}
+            icon={ImagePlus}
+            disabled={busy}
+            aria-expanded={changingAvatar}
+            onClick={() => setChangingAvatar((open) => !open)}
+          />
+          <IconButton size="s" label={`Delete ${person.name}`} icon={Trash2} className="button--danger" disabled={busy} onClick={onDelete} />
+        </div>
+      )}
+      {changingAvatar && (
+        <div className="ppl__dropzone">
+          <ImageDropzone
+            label={`Avatar of ${person.name}`}
+            value={person.avatarUrl ? { url: person.avatarUrl } : null}
+            aspect="1/1"
+            maxSide={400}
+            disabled={busy}
+            onUploaded={(media) => void changeAvatar(media.id)}
+          />
         </div>
       )}
     </li>

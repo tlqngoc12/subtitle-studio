@@ -109,7 +109,7 @@ export function SaveToPlaylist({ video }: { video: VideoDto }) {
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Tip label="Save to playlist">
         <Popover.Trigger asChild>
-          <button className="button button--icon" type="button" aria-label={`Save to playlist: ${video.title}`}>
+          <button className="button button--icon button--s" type="button" aria-label={`Save to playlist: ${video.title}`}>
             <ListPlus className="icon" aria-hidden="true" />
           </button>
         </Popover.Trigger>

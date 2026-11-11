@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formatDay, formatDayRange } from './dates';
+import { formatDay } from './dates';
 
 describe('dates', () => {
   it('formats a day without shifting it', () => {
@@ -15,11 +15,5 @@ describe('dates', () => {
     } finally {
       vi.unstubAllEnvs();
     }
-  });
-
-  it('formats ranges with an en dash and collapses a single day', () => {
-    expect(formatDayRange('2026-10-31', '2026-11-01')).toBe('31 Oct 2026 – 1 Nov 2026');
-    expect(formatDayRange('2026-10-31', null)).toBe('31 Oct 2026');
-    expect(formatDayRange('2026-10-31', '2026-10-31')).toBe('31 Oct 2026');
   });
 });

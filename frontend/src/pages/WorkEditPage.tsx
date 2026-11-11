@@ -15,11 +15,14 @@ import {
   type WorkInput,
   type WorkSummary,
 } from '../api/works';
-import { CATEGORIES, CATEGORY_LABELS } from '../components/works/categories';
+import { CategoryToggleGroup } from '../components/works/CategoryToggleGroup';
+import { isFilm } from '../components/works/categories';
 import { CreditsEditor, type CreditRow } from '../components/works/CreditsEditor';
 import { LinksEditor, type LinkRow } from '../components/works/LinksEditor';
-import { ImagePicker, type PickedImage } from '../components/profile/ImagePicker';
+import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../components/ui/ImageDropzone';
 import { Alert } from '../components/ui/Alert';
+import { DatePicker } from '../components/ui/DatePicker';
+import { Field } from '../components/ui/Field';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Select } from '../components/ui/Select';
@@ -42,8 +45,8 @@ export default function WorkEditPage() {
   const [loaded, setLoaded] = useState(id === null);
   const [notFound, setNotFound] = useState(Number.isNaN(id));
   const [title, setTitle] = useState('');
-  const [releaseDate, setReleaseDate] = useState('');
-  const [category, setCategory] = useState<WorkCategory>('FILM_TV');
+  const [releaseDate, setReleaseDate] = useState<string | null>(null);
+  const [categories, setCategories] = useState<WorkCategory[]>(['FILM_TV']);
   const [subcategory, setSubcategory] = useState('');
   const [profile, setProfile] = useState('');
   const [description, setDescription] = useState('');
@@ -70,8 +73,8 @@ export default function WorkEditPage() {
       .then((w: Work) => {
         if (!current) return;
         setTitle(w.title);
-        setReleaseDate(w.releaseDate ?? '');
-        setCategory(w.category);
+        setReleaseDate(w.releaseDate);
+        setCategories(w.categories);
         setSubcategory(w.subcategory ?? '');
         setProfile(w.profile ?? '');
         setDescription(w.description ?? '');
@@ -101,15 +104,15 @@ export default function WorkEditPage() {
   }, [id]);
 
   const suggestions = useMemo(
-    () => [...new Set(allWorks.filter((w) => w.category === category && w.subcategory).map((w) => w.subcategory as string))],
-    [allWorks, category],
+    () => [...new Set(allWorks.filter((w) => w.categories.some((c) => categories.includes(c)) && w.subcategory).map((w) => w.subcategory as string))],
+    [allWorks, categories],
   );
 
   const input = (): WorkInput => ({
     title: title.trim(),
     coverMediaId: cover?.mediaId ?? null,
-    releaseDate: releaseDate === '' ? null : releaseDate,
-    category,
+    releaseDate,
+    categories,
     subcategory: blankToNull(subcategory),
     profile: profile === '' ? null : profile,
     description: blankToNull(description),
@@ -117,7 +120,7 @@ export default function WorkEditPage() {
     credits: credits.map((c) => ({
       personId: c.person.id,
       role: blankToNull(c.role),
-      characterName: category === 'FILM_TV' ? blankToNull(c.characterName) : null,
+      characterName: isFilm(categories) ? blankToNull(c.characterName) : null,
     })),
   });
 
@@ -200,105 +203,105 @@ export default function WorkEditPage() {
       {loaded && (
         <form className="wedit" onSubmit={onSubmit} noValidate>
           <div className="field">
-            <span className="wedit__label">Cover</span>
-            <ImagePicker
-              value={cover}
-              onChange={setCover}
-              onBusyChange={(busy) => setUploads((n) => n + (busy ? 1 : -1))}
+            <span className="field__label">Cover</span>
+            <ImageDropzone
+              label="Cover image"
+              value={previewOf(cover)}
+              aspect="4/5"
               maxSide={1600}
+              onUploaded={(media) => setCover(toPicked(media))}
+              onBusyChange={(busy) => setUploads((n) => n + (busy ? 1 : -1))}
               invalid={!!errorOf('coverMediaId')}
             />
             {errorOf('coverMediaId') && <p className="field__error">{errorOf('coverMediaId')}</p>}
           </div>
 
-          <div className="field">
-            <label htmlFor={`${idPrefix}-title`}>Title</label>
-            <input
-              id={`${idPrefix}-title`}
-              type="text"
-              value={title}
-              aria-invalid={errorOf('title') ? true : undefined}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            {errorOf('title') && <p className="field__error">{errorOf('title')}</p>}
-          </div>
-
-          <div className="wedit__row">
-            <div className="field">
-              <label htmlFor={`${idPrefix}-date`}>Release date</label>
+          <Field label="Title" error={errorOf('title')}>
+            {(f) => (
               <input
-                id={`${idPrefix}-date`}
-                type="date"
-                value={releaseDate}
-                onChange={(e) => setReleaseDate(e.target.value)}
-              />
-              <p className="field__hint">Leave empty for Coming Soon</p>
-            </div>
-            <div className="field">
-              <label htmlFor={`${idPrefix}-category`}>Category</label>
-              <Select
-                id={`${idPrefix}-category`}
-                value={category}
-                onChange={(v) => setCategory(v as WorkCategory)}
-                options={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }))}
-              />
-              {errorOf('category') && <p className="field__error">{errorOf('category')}</p>}
-            </div>
-          </div>
-
-          <div className="wedit__row">
-            <div className="field">
-              <label htmlFor={`${idPrefix}-sub`}>Subcategory</label>
-              <input
-                id={`${idPrefix}-sub`}
+                id={f.id}
                 type="text"
-                list={`${idPrefix}-subs`}
-                value={subcategory}
-                aria-invalid={errorOf('subcategory') ? true : undefined}
-                onChange={(e) => setSubcategory(e.target.value)}
+                value={title}
+                aria-invalid={f.invalid || undefined}
+                aria-describedby={f.describedBy}
+                onChange={(e) => setTitle(e.target.value)}
               />
-              <datalist id={`${idPrefix}-subs`}>
-                {suggestions.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
-              {errorOf('subcategory') && <p className="field__error">{errorOf('subcategory')}</p>}
-            </div>
-            <div className="field">
-              <label htmlFor={`${idPrefix}-badge`}>Badge</label>
-              <Select id={`${idPrefix}-badge`} value={profile} onChange={setProfile} options={profileOptions} />
-              {errorOf('profile') && <p className="field__error">{errorOf('profile')}</p>}
-            </div>
+            )}
+          </Field>
+
+          <div className="wedit__row">
+            <Field label="Release date" hint="Leave empty for Coming Soon">
+              {(f) => (
+                <DatePicker
+                  id={f.id}
+                  aria-describedby={f.describedBy}
+                  value={releaseDate}
+                  onChange={setReleaseDate}
+                  placeholder="Coming Soon"
+                  clearable
+                />
+              )}
+            </Field>
+            <Field label="Badge" error={errorOf('profile')}>
+              {(f) => <Select id={f.id} value={profile} onChange={setProfile} options={profileOptions} aria-describedby={f.describedBy} />}
+            </Field>
           </div>
 
           <div className="field">
-            <label htmlFor={`${idPrefix}-desc`}>Description</label>
-            <textarea
-              id={`${idPrefix}-desc`}
-              rows={4}
-              value={description}
-              aria-invalid={errorOf('description') ? true : undefined}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            {errorOf('description') && <p className="field__error">{errorOf('description')}</p>}
+            <span className="field__label">Categories</span>
+            <CategoryToggleGroup value={categories} onChange={setCategories} error={errorOf('categories')} />
           </div>
+
+          <Field label="Subcategory" error={errorOf('subcategory')}>
+            {(f) => (
+              <>
+                <input
+                  id={f.id}
+                  type="text"
+                  list={`${idPrefix}-subs`}
+                  value={subcategory}
+                  aria-invalid={f.invalid || undefined}
+                  aria-describedby={f.describedBy}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                />
+                <datalist id={`${idPrefix}-subs`}>
+                  {suggestions.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+              </>
+            )}
+          </Field>
+
+          <Field label="Description" error={errorOf('description')}>
+            {(f) => (
+              <textarea
+                id={f.id}
+                rows={4}
+                value={description}
+                aria-invalid={f.invalid || undefined}
+                aria-describedby={f.describedBy}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            )}
+          </Field>
 
           <LinksEditor value={links} onChange={setLinks} errors={fieldErrors} newKey={newKey} />
-          <CreditsEditor value={credits} category={category} onChange={setCredits} errors={fieldErrors} newKey={newKey} />
+          <CreditsEditor value={credits} categories={categories} onChange={setCredits} errors={fieldErrors} newKey={newKey} />
 
-          <div className="peditor__actions">
-            <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
-              Save
-            </button>
-            <Link className="button button--small" to={id === null ? '/works' : `/works/${id}`}>
-              Cancel
-            </Link>
+          <div className="form-actions">
             {id !== null && (
-              <button type="button" className="button button--small button--danger" onClick={() => void remove()}>
+              <button type="button" className="button button--danger form-actions__start" onClick={() => void remove()}>
                 <Trash2 className="icon" aria-hidden="true" />
                 Delete work
               </button>
             )}
+            <Link className="button" to={id === null ? '/works' : `/works/${id}`}>
+              Cancel
+            </Link>
+            <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
+              Save
+            </button>
           </div>
         </form>
       )}

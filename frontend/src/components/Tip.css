@@ -9,7 +9,7 @@
   font-weight: 700;
   line-height: 1.3;
   box-shadow: var(--shadow-overlay);
-  animation: tip-in 120ms ease-out;
+  animation: tip-in var(--dur-fast) var(--ease-out);
 }
 
 .tip__arrow {

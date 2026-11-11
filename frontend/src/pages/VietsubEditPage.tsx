@@ -403,7 +403,7 @@ function Editor({
       {saveError && (
         <Alert title={saveError.message.title} hint={saveError.message.hint}>
           {saveError.reload && (
-            <button className="button button--small" type="button" onClick={onReload}>
+            <button className="button button--s" type="button" onClick={onReload}>
               Reload
             </button>
           )}

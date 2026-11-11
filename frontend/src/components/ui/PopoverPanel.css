@@ -1,4 +1,5 @@
-/* Shared look of the Radix popovers (PopoverPanel): save-to-playlist, source filter, reader settings and contents. */
+/* Shared look of the Radix popovers (PopoverPanel): save-to-playlist, source filter, reader settings, contents and
+   the date picker. Opens from its trigger: fade, 4 px drop and a slight scale; closes faster. */
 .popover {
   z-index: 40;
   background: var(--surface);
@@ -6,5 +7,24 @@
   border: 1px solid var(--rule);
   border-radius: var(--radius-frame);
   box-shadow: var(--shadow-overlay);
-  animation: tip-in 120ms ease-out;
+  transform-origin: var(--radix-popover-content-transform-origin);
+  animation: overlay-in var(--dur-base) var(--ease-out);
+}
+
+.popover[data-state='closed'] {
+  animation: overlay-out var(--dur-fast) var(--ease-in-out) forwards;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes overlay-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
 }

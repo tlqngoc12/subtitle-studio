@@ -342,7 +342,7 @@ class MediaServiceTest {
     void photoPostCountsAsReference() {
         Media m = storeAt(NOW.minus(Duration.ofDays(2)));
         com.subtitlestudio.photo.PhotoPost post = new com.subtitlestudio.photo.PhotoPost(NOW);
-        post.set("https://www.instagram.com/p/AAA/", m, "t", java.time.LocalDate.parse("2026-11-09"), null,
+        post.set("https://www.instagram.com/p/AAA/", m, "t", java.time.LocalDate.parse("2026-11-09"),
                 com.subtitlestudio.photo.PhotoSource.FAN, null, java.util.Set.of(), NOW);
         photoPosts.saveAndFlush(post);
 
@@ -366,7 +366,7 @@ class MediaServiceTest {
         Media cover = storeAt(NOW.minus(Duration.ofDays(2)));
         Media avatar = storeAt(NOW.minus(Duration.ofDays(2)));
         com.subtitlestudio.work.Work w = new com.subtitlestudio.work.Work(NOW);
-        w.set("W", cover, null, com.subtitlestudio.work.WorkCategory.MUSIC, null, null, null, List.of(), List.of(), NOW);
+        w.set("W", cover, null, List.of(com.subtitlestudio.work.WorkCategory.MUSIC), null, null, null, List.of(), List.of(), NOW);
         works.saveAndFlush(w);
         people.saveAndFlush(new com.subtitlestudio.work.Person("Bonnie", avatar, NOW));
 

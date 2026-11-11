@@ -19,7 +19,7 @@ class WorkValidatorTest {
 
     private static WorkRequest request(WorkCategory category, List<WorkLinkRequest> links,
                                        List<WorkCreditRequest> credits) {
-        return new WorkRequest("Title", null, LocalDate.parse("2026-04-24"), category, null, null, null, links, credits);
+        return new WorkRequest("Title", null, LocalDate.parse("2026-04-24"), List.of(category), null, null, null, links, credits);
     }
 
     private static WorkRequest withLinks(WorkLinkRequest... links) {
@@ -32,7 +32,7 @@ class WorkValidatorTest {
 
     @Test
     void acceptsAFullWork() {
-        WorkRequest r = new WorkRequest(" Love Story ", 4L, null, WorkCategory.FILM_TV, " Drama ", "emi", " Synopsis ",
+        WorkRequest r = new WorkRequest(" Love Story ", 4L, null, List.of(WorkCategory.FILM_TV), " Drama ", "emi", " Synopsis ",
                 List.of(link(LinkKind.PILOT, "https://youtu.be/dQw4w9WgXcQ"),
                         new WorkLinkRequest(LinkKind.OTHER, "iQIYI", "https://www.iq.com/x", "link")),
                 List.of(new WorkCreditRequest(1, "Lead", "Key")));
@@ -118,14 +118,42 @@ class WorkValidatorTest {
     }
 
     @Test
+    void noCategoryIsRejectedOnCategories() {
+        assertThat(fields(new WorkRequest("T", null, null, List.of(), null, null, null, List.of(), List.of())))
+                .containsExactly("categories");
+        assertThat(fields(new WorkRequest("T", null, null, null, null, null, null, null, null)))
+                .containsExactly("categories");
+    }
+
+    @Test
+    void duplicateCategoriesAreRejected() {
+        assertThat(fields(new WorkRequest("T", null, null, List.of(WorkCategory.MUSIC, WorkCategory.MUSIC), null, null,
+                null, List.of(), List.of()))).containsExactly("categories");
+    }
+
+    @Test
+    void allEightCategoriesAreAccepted() {
+        assertThat(fields(new WorkRequest("T", null, null, List.of(WorkCategory.values()), null, null, null, List.of(),
+                List.of()))).isEmpty();
+    }
+
+    @Test
+    void characterIsKeptWhenFilmAndTvIsOneOfSeveralCategories() {
+        WorkRequest r = new WorkRequest("T", null, null, List.of(WorkCategory.MUSIC, WorkCategory.FILM_TV), null, null,
+                null, List.of(), List.of(new WorkCreditRequest(1, "Lead", "Key")));
+
+        assertThat(validator.normalise(r).credits().get(0).characterName()).isEqualTo("Key");
+    }
+
+    @Test
     void titleAndOtherLimits() {
-        assertThat(fields(new WorkRequest(" ", null, null, WorkCategory.MUSIC, null, null, null, List.of(), List.of())))
+        assertThat(fields(new WorkRequest(" ", null, null, List.of(WorkCategory.MUSIC), null, null, null, List.of(), List.of())))
                 .containsExactly("title");
-        assertThat(fields(new WorkRequest("a".repeat(201), null, null, WorkCategory.MUSIC, null, null, null, List.of(),
+        assertThat(fields(new WorkRequest("a".repeat(201), null, null, List.of(WorkCategory.MUSIC), null, null, null, List.of(),
                 List.of()))).containsExactly("title");
-        assertThat(fields(new WorkRequest("t", null, null, WorkCategory.MUSIC, "a".repeat(51), null, "d".repeat(2001),
+        assertThat(fields(new WorkRequest("t", null, null, List.of(WorkCategory.MUSIC), "a".repeat(51), null, "d".repeat(2001),
                 List.of(), List.of()))).containsExactly("subcategory", "description");
         assertThat(fields(new WorkRequest("t", null, null, null, null, null, null, List.of(), List.of())))
-                .containsExactly("category");
+                .containsExactly("categories");
     }
 }

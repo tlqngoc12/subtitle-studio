@@ -170,7 +170,7 @@ public class SiteExporter {
                 continue;
             }
             exported.add(new PhotoPostDto(p.id(), p.instagramUrl(), url, p.width(), p.height(), p.title(), p.takenOn(),
-                    p.takenUntil(), p.source(), p.photoCount(), p.profiles()));
+                    p.source(), p.photoCount(), p.profiles()));
         }
         write(dir.resolve("data/photos.json"), exported);
     }
@@ -181,14 +181,14 @@ public class SiteExporter {
         for (WorkSummaryDto s : works.list()) {
             WorkDto w = works.get(s.id());
             String cover = publicUrl(w.coverMediaId(), dir, publicUrls);
-            summaries.add(new WorkSummaryDto(w.id(), w.title(), cover, w.releaseDate(), w.category(), w.subcategory(),
+            summaries.add(new WorkSummaryDto(w.id(), w.title(), cover, w.releaseDate(), w.categories(), w.subcategory(),
                     w.profile()));
             List<WorkCreditDto> credits = w.credits().stream().map(c -> new WorkCreditDto(
                     new PersonDto(c.person().id(), c.person().name(), null,
                             publicUrl(c.person().avatarMediaId(), dir, publicUrls)),
                     c.role(), c.characterName())).toList();
             write(dir.resolve("data/works/" + w.id() + ".json"), new WorkDto(w.id(), w.title(), cover, w.releaseDate(),
-                    w.category(), w.subcategory(), w.profile(), null, w.description(), w.links(), credits,
+                    w.categories(), w.subcategory(), w.profile(), null, w.description(), w.links(), credits,
                     w.trailerVideoId()));
         }
         write(dir.resolve("data/works.json"), summaries);

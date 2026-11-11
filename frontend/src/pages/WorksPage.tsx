@@ -1,4 +1,5 @@
 import { Clapperboard, Pencil, Plus, Users } from 'lucide-react';
+import { SkeletonGrid } from '../components/ui/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { ProfilePage } from '../api/profiles';
@@ -10,7 +11,6 @@ import { PeopleDialog } from '../components/works/PeopleDialog';
 import { WorkCard } from '../components/works/WorkCard';
 import { Alert } from '../components/ui/Alert';
 import { IconLink } from '../components/ui/IconButton';
-import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
@@ -53,7 +53,7 @@ export default function WorksPage() {
   const people = useMemo(() => peopleOf(profiles), [profiles]);
   const nameOf = useMemo(() => new Map(people.map((p) => [p.slug, p.name])), [people]);
   const visible = useMemo(
-    () => (works ?? []).filter((w) => (who === null || w.profile === who) && (cat === null || w.category === cat)),
+    () => (works ?? []).filter((w) => (who === null || w.profile === who) && (cat === null || w.categories.includes(cat))),
     [works, who, cat],
   );
 
@@ -72,7 +72,7 @@ export default function WorksPage() {
         actions={
           !readOnly && (
             <div className="works-actions">
-              <button type="button" className="button button--small" onClick={() => setPeopleOpen(true)}>
+              <button type="button" className="button button--s" onClick={() => setPeopleOpen(true)}>
                 <Users className="icon" aria-hidden="true" />
                 People
               </button>
@@ -89,15 +89,15 @@ export default function WorksPage() {
       <CategoryPills value={cat} onChange={(c) => setFilter('cat', c)} />
 
       {error && <Alert title={error.title} hint={error.hint} />}
-      {works === null && !error && <LoadingText>Loading works…</LoadingText>}
+      {works === null && !error && <SkeletonGrid count={8} aspect="4/5" />}
       {works !== null && visible.length === 0 && !error && (
         <EmptyState icon={Clapperboard}>No works here yet.</EmptyState>
       )}
 
       {visible.length > 0 && (
         <ul className="work-grid" aria-label="Works">
-          {visible.map((w) => (
-            <WorkCard key={w.id} work={w} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
+          {visible.map((w, i) => (
+            <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
               {!readOnly && (
                 <div className="work-card__edit">
                   <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />

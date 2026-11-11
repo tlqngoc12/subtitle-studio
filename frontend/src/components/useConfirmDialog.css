@@ -4,7 +4,7 @@
   inset: 0;
   z-index: 40;
   background: rgb(0 0 0 / 0.45);
-  animation: confirm-fade 120ms ease-out;
+  animation: overlay-fade-in var(--dur-base) var(--ease-out);
 }
 
 .confirm {
@@ -20,7 +20,7 @@
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-overlay);
-  animation: confirm-pop 140ms ease-out;
+  animation: modal-in var(--dur-base) var(--ease-out);
 }
 
 .confirm__title {
@@ -42,33 +42,17 @@
   margin-top: var(--space-5);
 }
 
-/* Solid red: the confirming button of a destructive action. */
-.button--danger-solid {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: var(--paper);
+.confirm__overlay[data-state='closed'] {
+  animation: overlay-fade-out var(--dur-fast) var(--ease-in-out) forwards;
 }
 
-.button--danger-solid:hover {
-  filter: brightness(1.08);
-}
-
-@keyframes confirm-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes confirm-pop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -48%) scale(0.97);
-  }
+.confirm[data-state='closed'] {
+  animation: modal-out var(--dur-fast) var(--ease-in-out) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .confirm__overlay,
   .confirm {
-    animation: none;
+    animation: none !important;
   }
 }

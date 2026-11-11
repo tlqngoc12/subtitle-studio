@@ -22,7 +22,7 @@ const SKIP_MESSAGES: Partial<Record<SkipReason, string>> = {
 export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props) {
   function translateButton(label: string) {
     const button = (
-      <button className="button button--small" type="button" disabled={!profile} onClick={() => onTranslate(video)}>
+      <button className="button button--s" type="button" disabled={!profile} onClick={() => onTranslate(video)}>
         <Languages className="icon" aria-hidden="true" />
         {label}
       </button>

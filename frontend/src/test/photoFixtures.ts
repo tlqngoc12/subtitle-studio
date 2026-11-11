@@ -9,7 +9,6 @@ export function photo(id: number, overrides: Partial<PhotoPost> = {}): PhotoPost
     height: 1080,
     title: `Post ${id}`,
     takenOn: '2026-11-09',
-    takenUntil: null,
     source: 'OFFICIAL',
     photoCount: null,
     profiles: [],

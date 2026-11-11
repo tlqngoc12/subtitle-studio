@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { ImagePlus, X } from 'lucide-react';
-import { useId, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent } from 'react';
+import { X } from 'lucide-react';
+import { useId, useState, type FormEvent } from 'react';
 import { ApiError, type FieldError } from '../../api/client';
 import {
   createPhoto,
@@ -9,9 +9,12 @@ import {
   type PhotoPostInput,
   type PhotoSource,
 } from '../../api/photos';
-import { uploadMedia } from '../../api/profiles';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
+import { toIsoDay, DatePicker } from '../ui/DatePicker';
+import { Field } from '../ui/Field';
+import { NumberField } from '../ui/NumberField';
 import { Alert } from '../ui/Alert';
+import { ImageDropzone } from '../ui/ImageDropzone';
 import { IconButton } from '../ui/IconButton';
 import type { Person } from '../ui/PeopleFilter';
 import './PhotoPostDialog.css';
@@ -66,55 +69,26 @@ function PhotoPostForm({
   onCancel: () => void;
 }) {
   const idPrefix = useId();
-  const fileInput = useRef<HTMLInputElement>(null);
   const [instagramUrl, setInstagramUrl] = useState(post?.instagramUrl ?? '');
   const [image, setImage] = useState<{ mediaId: number; url: string } | null>(
     post ? { mediaId: mediaIdOf(post.imageUrl), url: post.imageUrl } : null,
   );
   const [title, setTitle] = useState(post?.title ?? '');
-  const [takenOn, setTakenOn] = useState(post?.takenOn ?? '');
-  const [takenUntil, setTakenUntil] = useState(post?.takenUntil ?? '');
+  // A new post starts on today's date (local day).
+  const [takenOn, setTakenOn] = useState(post?.takenOn ?? toIsoDay(new Date()));
   const [source, setSource] = useState<PhotoSource>(post?.source ?? 'OFFICIAL');
   const [who, setWho] = useState<string[]>(post?.profiles ?? []);
-  const [photoCount, setPhotoCount] = useState(post?.photoCount?.toString() ?? '');
+  const [photoCount, setPhotoCount] = useState<number | null>(post?.photoCount ?? null);
   const [uploading, setUploading] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<ErrorMessage | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   const errorOf = (field: string) => fieldErrors.find((e) => e.field === field)?.message;
 
-  async function upload(file: File | undefined) {
-    if (!file) return;
-    setFormError(null);
-    setUploading(true);
-    try {
-      const uploaded = await uploadMedia(file, 1600);
-      setImage({ mediaId: uploaded.id, url: uploaded.url });
-      setFieldErrors((errs) => errs.filter((e) => e.field !== 'mediaId'));
-    } catch (e) {
-      setFormError(errorMessage(e));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  // Ctrl+V of an image uploads it; anything else (text in the link field, say) pastes normally.
-  function onPaste(e: ClipboardEvent) {
-    const file = Array.from(e.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
-    if (!file) return;
-    e.preventDefault();
-    void upload(file);
-  }
-
-  function onDrop(e: DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    void upload(Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/')));
-  }
-
   async function submit(e: FormEvent) {
     e.preventDefault();
+    // This form lives in a portal; React still bubbles its submit to a form around the trigger (the work editor).
+    e.stopPropagation();
     if (!image) {
       setFieldErrors([{ field: 'mediaId', message: 'Choose an image first' }]);
       return;
@@ -122,16 +96,14 @@ function PhotoPostForm({
     setSaving(true);
     setFormError(null);
     setFieldErrors([]);
-    const count = photoCount.trim() === '' ? null : Number(photoCount);
     try {
       const input: PhotoPostInput = {
         instagramUrl: instagramUrl.trim(),
         mediaId: image.mediaId,
         title: title.trim(),
         takenOn,
-        takenUntil: takenUntil === '' ? null : takenUntil,
         source,
-        photoCount: count !== null && Number.isFinite(count) ? count : null,
+        photoCount,
         profiles: who,
       };
       onSaved(post ? await updatePhoto(post.id, input) : await createPhoto(input));
@@ -146,89 +118,81 @@ function PhotoPostForm({
     }
   }
 
-  function field(name: string, label: string, control: (id: string, invalid: boolean) => React.ReactNode, hint?: string) {
-    const id = `${idPrefix}-${name}`;
-    const message = errorOf(name);
-    return (
-      <div className="field">
-        <label htmlFor={id}>{label}</label>
-        {control(id, !!message)}
-        {hint && <p className="field__hint">{hint}</p>}
-        {message && (
-          <p className="field__error" id={`${id}-error`}>
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  const text = (value: string, set: (v: string) => void, type = 'text') => (id: string, invalid: boolean) => (
-    <input
-      id={id}
-      type={type}
-      value={value}
-      aria-invalid={invalid || undefined}
-      aria-describedby={invalid ? `${id}-error` : undefined}
-      onChange={(e) => set(e.target.value)}
-    />
-  );
-
   return (
-    <form className="pdialog__form" onSubmit={submit} onPaste={onPaste} noValidate>
+    <form className="pdialog__form" onSubmit={submit} noValidate>
       {formError && <Alert title={formError.title} hint={formError.hint} />}
 
-      {field('instagramUrl', 'Instagram link', text(instagramUrl, setInstagramUrl))}
+      <Field label="Instagram link" error={errorOf('instagramUrl')}>
+        {(f) => (
+          <input
+            id={f.id}
+            type="text"
+            value={instagramUrl}
+            aria-invalid={f.invalid || undefined}
+            aria-describedby={f.describedBy}
+            onChange={(e) => setInstagramUrl(e.target.value)}
+          />
+        )}
+      </Field>
 
       <div className="field">
-        <span className="pdialog__label">Image</span>
-        <div
-          className={dragging ? 'pdrop pdrop--active' : 'pdrop'}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
+        <span className="field__label">Image</span>
+        <ImageDropzone
+          label="Image"
+          value={image ? { url: image.url } : null}
+          aspect="auto"
+          maxSide={1600}
+          invalid={!!errorOf('mediaId')}
+          onBusyChange={setUploading}
+          onUploaded={(media) => {
+            setImage({ mediaId: media.id, url: media.url });
+            setFieldErrors((errs) => errs.filter((e) => e.field !== 'mediaId'));
           }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
-          {image ? (
-            <img className="pdrop__preview" src={image.url} alt="Selected image" />
-          ) : (
-            <ImagePlus className="pdrop__icon" aria-hidden="true" />
-          )}
-          <p className="pdrop__hint">{uploading ? 'Uploading…' : 'Drop an image, paste it with Ctrl+V, or'}</p>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            Choose image
-          </button>
-          <input
-            ref={fileInput}
-            className="visually-hidden"
-            type="file"
-            aria-label="Image file"
-            accept="image/jpeg,image/png,image/webp"
-            tabIndex={-1}
-            onChange={(e) => {
-              void upload(e.target.files?.[0]);
-              e.target.value = '';
-            }}
-          />
-        </div>
+        />
         {errorOf('mediaId') && <p className="field__error">{errorOf('mediaId')}</p>}
       </div>
 
-      {field('title', 'Title', text(title, setTitle))}
+      <Field label="Title" error={errorOf('title')}>
+        {(f) => (
+          <input
+            id={f.id}
+            type="text"
+            value={title}
+            aria-invalid={f.invalid || undefined}
+            aria-describedby={f.describedBy}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        )}
+      </Field>
       <div className="pdialog__row">
-        {field('takenOn', 'Date', text(takenOn, setTakenOn, 'date'))}
-        {field('takenUntil', 'End date (optional)', text(takenUntil, setTakenUntil, 'date'))}
+        <Field label="Date" error={errorOf('takenOn')}>
+          {(f) => (
+            <DatePicker
+              id={f.id}
+              value={takenOn}
+              onChange={(v) => v && setTakenOn(v)}
+              aria-invalid={f.invalid || undefined}
+              aria-describedby={f.describedBy}
+            />
+          )}
+        </Field>
+        <Field label="Photo count (optional)" hint="Shown as a badge, 1-99" error={errorOf('photoCount')}>
+          {(f) => (
+            <NumberField
+              id={f.id}
+              value={photoCount}
+              onChange={setPhotoCount}
+              min={1}
+              max={99}
+              aria-invalid={f.invalid || undefined}
+              aria-describedby={f.describedBy}
+            />
+          )}
+        </Field>
       </div>
 
       <div className="field">
-        <span className="pdialog__label" id={`${idPrefix}-source`}>
+        <span className="field__label" id={`${idPrefix}-source`}>
           Source
         </span>
         <div className="pdialog__toggles" role="group" aria-labelledby={`${idPrefix}-source`}>
@@ -236,7 +200,7 @@ function PhotoPostForm({
             <button
               key={s.value}
               type="button"
-              className="pdialog__toggle"
+              className="button button--s pdialog__toggle"
               aria-pressed={source === s.value}
               onClick={() => setSource(s.value)}
             >
@@ -249,7 +213,7 @@ function PhotoPostForm({
 
       {people.length > 0 && (
         <div className="field">
-          <span className="pdialog__label" id={`${idPrefix}-people`}>
+          <span className="field__label" id={`${idPrefix}-people`}>
             People
           </span>
           <div className="pdialog__toggles" role="group" aria-labelledby={`${idPrefix}-people`}>
@@ -257,7 +221,7 @@ function PhotoPostForm({
               <button
                 key={p.slug}
                 type="button"
-                className="pdialog__toggle pdialog__toggle--person"
+                className="button button--s pdialog__toggle pdialog__toggle--person"
                 aria-pressed={who.includes(p.slug)}
                 onClick={() => setWho((w) => (w.includes(p.slug) ? w.filter((s) => s !== p.slug) : [...w, p.slug]))}
               >
@@ -270,14 +234,12 @@ function PhotoPostForm({
         </div>
       )}
 
-      {field('photoCount', 'Photo count (optional)', text(photoCount, setPhotoCount, 'number'), 'Shown as a badge, 1-99')}
-
-      <div className="peditor__actions">
+      <div className="form-actions">
+        <button type="button" className="button" onClick={onCancel}>
+          Cancel
+        </button>
         <button type="submit" className="button button--primary" disabled={saving || uploading}>
           Save
-        </button>
-        <button type="button" className="button button--small" onClick={onCancel}>
-          Cancel
         </button>
       </div>
     </form>

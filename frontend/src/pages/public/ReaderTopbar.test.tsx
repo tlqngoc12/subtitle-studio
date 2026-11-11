@@ -136,10 +136,10 @@ describe('reader controls in the top bar', () => {
       expect(hidden()).toBe(true);
     });
 
-    it('is not slid away on other routes', () => {
+    it('slides away on other routes too (the shared navbar hides on scroll down)', () => {
       renderApp('/novels/all');
       scrollTo(900);
-      expect(hidden()).toBe(false);
+      expect(hidden()).toBe(true);
     });
 
     it('does not animate with prefers-reduced-motion', () => {

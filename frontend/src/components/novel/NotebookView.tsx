@@ -68,7 +68,7 @@ export function NotebookView({
       {view.status === 'UPDATING' && <p className="badge badge--progress">Updating notebook…</p>}
       {view.status === 'FAILED' && (
         <Alert title="The last notebook update failed." hint={view.error}>
-          <button className="button button--small" type="button" onClick={retry} disabled={retrying}>
+          <button className="button button--s" type="button" onClick={retry} disabled={retrying}>
             <RotateCcw className="icon" aria-hidden="true" />
             Retry notebook update
           </button>

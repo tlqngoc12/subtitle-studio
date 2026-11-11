@@ -114,11 +114,11 @@
   background: var(--surface);
   color: var(--ink);
   border-radius: 16px 16px 0 0;
-  animation: sheet-in 240ms ease-out;
+  animation: sheet-in var(--dur-slow) var(--ease-out);
 }
 
 .sheet[data-state='closed'] {
-  animation: sheet-out 200ms ease-in;
+  animation: sheet-out var(--dur-base) var(--ease-in-out);
 }
 
 .sheet__head {

@@ -2,7 +2,7 @@ import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ApiError, type FieldError } from '../../api/client';
 import type { BlockInput, BlockType, ProfileBlock } from '../../api/profiles';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
-import { ImagePicker, type PickedImage } from './ImagePicker';
+import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/ImageDropzone';
 import { ItemListEditor } from './ItemListEditor';
 import { Alert } from '../ui/Alert';
 import './BlockEditor.css';
@@ -166,9 +166,12 @@ export function BlockEditor({
       {type === 'IMAGE' && (
         <>
           <div className="field">
-            <ImagePicker
-              value={image}
-              onChange={setImage}
+            <ImageDropzone
+              label="Image"
+              value={previewOf(image)}
+              aspect="auto"
+              maxSide={null}
+              onUploaded={(media) => setImage(toPicked(media))}
               onBusyChange={onBusyChange}
               invalid={!!errorOf('mediaId')}
               describedBy={errorOf('mediaId') ? `${idPrefix}-mediaId-error` : undefined}
@@ -195,9 +198,12 @@ export function BlockEditor({
           legend={(i) => `Image ${i + 1}`}
           renderRow={(row, i, update) => (
             <>
-              <ImagePicker
-                value={row.image}
-                onChange={(img) => update({ image: img })}
+              <ImageDropzone
+                label={`Gallery image ${i + 1}`}
+                value={previewOf(row.image)}
+                aspect="auto"
+                maxSide={null}
+                onUploaded={(media) => update({ image: toPicked(media) })}
                 onBusyChange={onBusyChange}
                 invalid={!!errorOf(`items[${i}].mediaId`)}
               />
@@ -255,12 +261,12 @@ export function BlockEditor({
 
       {errorOf('items') && <p className="field__error">{errorOf('items')}</p>}
 
-      <div className="peditor__actions">
+      <div className="form-actions form-actions--tight">
+        <button type="button" className="button" onClick={onCancel}>
+          Cancel
+        </button>
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
-        </button>
-        <button type="button" className="button button--small" onClick={onCancel}>
-          Cancel
         </button>
       </div>
     </form>

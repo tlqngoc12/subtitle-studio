@@ -30,7 +30,7 @@ function renderPublic(w: Work | null, path = '/works/5') {
 
 const FILM = work(5, {
   title: 'Love Story',
-  category: 'FILM_TV',
+  categories: ['FILM_TV'],
   subcategory: 'Drama',
   releaseDate: '2026-04-24',
   description: 'Line one\nLine two',
@@ -69,7 +69,7 @@ describe('WorkDetailPage', () => {
   it('shows Artists and no characters for music, and Coming Soon without a date', async () => {
     renderPublic(
       work(5, {
-        category: 'MUSIC',
+        categories: ['MUSIC'],
         releaseDate: null,
         credits: [{ person: person(1, 'Bonnie'), role: 'Singer', characterName: null }],
       }),
@@ -81,8 +81,20 @@ describe('WorkDetailPage', () => {
     expect(screen.getByText('Coming Soon')).toBeInTheDocument();
   });
 
+  it('says Cast when Film & TV is one of several categories and People for music with another category', async () => {
+    const credits = [{ person: person(1, 'Emi'), role: null, characterName: 'Key' }];
+    const { unmount } = renderPublic(work(5, { categories: ['MUSIC', 'FILM_TV'], credits }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Cast' })).toBeInTheDocument();
+    expect(screen.getByText('Film & TV')).toBeInTheDocument();
+    expect(screen.getByText('Music')).toBeInTheDocument();
+    unmount();
+
+    renderPublic(work(5, { categories: ['MUSIC', 'VARIETY'], credits }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument();
+  });
+
   it('uses People for other categories and hides the section without credits', async () => {
-    renderPublic(work(5, { category: 'VARIETY', credits: [{ person: person(1, 'Emi'), role: null, characterName: null }] }));
+    renderPublic(work(5, { categories: ['VARIETY'], credits: [{ person: person(1, 'Emi'), role: null, characterName: null }] }));
     expect(await screen.findByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument();
   });
 

@@ -89,7 +89,7 @@ class PhotoServiceTest {
     }
 
     private static PhotoPostRequest request(String url, Long mediaId) {
-        return new PhotoPostRequest(url, mediaId, " Title ", LocalDate.parse("2026-11-09"), null, PhotoSource.OFFICIAL,
+        return new PhotoPostRequest(url, mediaId, " Title ", LocalDate.parse("2026-11-09"), PhotoSource.OFFICIAL,
                 3, List.of("emi", "emibonnie"));
     }
 
@@ -127,7 +127,7 @@ class PhotoServiceTest {
         PhotoPostDto dto = service.create(request(URL, img));
 
         PhotoPostDto updated = service.update(dto.id(), new PhotoPostRequest(URL, img, "New", LocalDate.parse("2026-11-09"),
-                null, PhotoSource.FAN, null, List.of()));
+                PhotoSource.FAN, null, List.of()));
 
         assertThat(updated.title()).isEqualTo("New");
         assertThat(updated.source()).isEqualTo(PhotoSource.FAN);
@@ -146,19 +146,26 @@ class PhotoServiceTest {
     }
 
     @Test
-    void untilBeforeOnIs400() {
-        PhotoPostRequest r = new PhotoPostRequest(URL, resizedImage(), "T", LocalDate.parse("2026-11-09"),
-                LocalDate.parse("2026-11-08"), PhotoSource.MEDIA, null, List.of());
+    void anUnknownTakenUntilPropertyInTheJsonIsIgnored() throws Exception {
+        String json = """
+                {"instagramUrl":"%s","mediaId":%d,"title":"T","takenOn":"2026-11-09","takenUntil":"2026-11-12",
+                 "source":"MEDIA","photoCount":null,"profiles":[]}""".formatted(URL, resizedImage());
+        PhotoPostRequest r = new com.fasterxml.jackson.databind.ObjectMapper()
+                .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .readValue(json, PhotoPostRequest.class);
 
-        assertThat(fields(catchThrowableOfType(InvalidBlockException.class, () -> service.create(r))))
-                .containsExactly("takenUntil");
+        PhotoPostDto dto = service.create(r);
+
+        assertThat(dto.takenOn()).isEqualTo(LocalDate.parse("2026-11-09"));
+        assertThat(PhotoPostDto.class.getRecordComponents()).extracting(c -> c.getName()).doesNotContain("takenUntil");
     }
 
     @Test
     void photoCountOutOfRangeIs400() {
         long img = resizedImage();
         for (int bad : new int[] {0, 100}) {
-            PhotoPostRequest r = new PhotoPostRequest(URL, img, "T", LocalDate.parse("2026-11-09"), null,
+            PhotoPostRequest r = new PhotoPostRequest(URL, img, "T", LocalDate.parse("2026-11-09"),
                     PhotoSource.MEDIA, bad, List.of());
             assertThat(fields(catchThrowableOfType(InvalidBlockException.class, () -> service.create(r))))
                     .containsExactly("photoCount");
@@ -167,7 +174,7 @@ class PhotoServiceTest {
 
     @Test
     void unknownProfileAndMissingFieldsAreReportedTogether() {
-        PhotoPostRequest r = new PhotoPostRequest("nope", null, " ", null, null, null, null, List.of("ghost"));
+        PhotoPostRequest r = new PhotoPostRequest("nope", null, " ", null, null, null, List.of("ghost"));
 
         assertThat(fields(catchThrowableOfType(InvalidBlockException.class, () -> service.create(r))))
                 .containsExactlyInAnyOrder("instagramUrl", "mediaId", "title", "takenOn", "source", "profiles");

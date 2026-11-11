@@ -19,7 +19,8 @@ export interface WorkSummary {
   title: string;
   coverUrl: string | null;
   releaseDate: string | null;
-  category: WorkCategory;
+  /** One to eight categories in the order the admin chose them. */
+  categories: WorkCategory[];
   subcategory: string | null;
   /** Profile slug of the badge, or null. */
   profile: string | null;
@@ -61,7 +62,7 @@ export interface WorkInput {
   title: string;
   coverMediaId: number | null;
   releaseDate: string | null;
-  category: WorkCategory;
+  categories: WorkCategory[];
   subcategory: string | null;
   profile: string | null;
   description: string | null;

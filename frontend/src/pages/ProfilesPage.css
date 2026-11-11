@@ -113,7 +113,7 @@
 .pdiff__fold {
   display: block;
   width: 100%;
-  min-height: 44px;
+  min-height: var(--control-m);
   padding: var(--space-2) var(--space-3);
   border: 1px dashed var(--rule);
   border-radius: var(--radius-control);
@@ -138,10 +138,5 @@
   .profiles__select,
   .profiles__analyze {
     width: 100%;
-  }
-
-  .profiles__actions .button,
-  .profiles__analyze {
-    min-height: 44px;
   }
 }

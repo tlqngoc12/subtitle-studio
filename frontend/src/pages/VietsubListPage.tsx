@@ -1,4 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
+import { SkeletonList } from '../components/ui/Skeleton';
 import { TabTrigger } from '../components/ui/TabTrigger';
 import { ArrowLeft, CircleCheck, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -213,7 +214,7 @@ function PlaylistsTab({ query, playlists }: { query: string; playlists: PublicPl
   return (
     <section className="plcards" aria-label="Playlists">
       {pager.items === null ? (
-        <LoadingText>Loading playlists…</LoadingText>
+        <SkeletonList rows={4} />
       ) : pager.items.length === 0 ? (
         query.trim() ? (
           <EmptyState icon={SearchX}>No playlists match "{query}".</EmptyState>
@@ -254,7 +255,7 @@ function VideoSection({
   return (
     <section className="history" aria-label="Vietsub list">
       {pager.items === null ? (
-        <LoadingText>Loading list…</LoadingText>
+        <SkeletonList rows={6} />
       ) : pager.items.length === 0 ? (
         query.trim() ? <EmptyState icon={SearchX}>No videos match "{query}".</EmptyState> : empty
       ) : (

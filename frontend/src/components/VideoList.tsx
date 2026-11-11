@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SkeletonList } from './ui/Skeleton';
 import { Link } from 'react-router';
 import { Captions, Clock, Download, Languages, MonitorPlay, Play, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -7,7 +8,6 @@ import { formatDuration } from '../lib/format';
 import { rowMotion } from '../lib/motion';
 import { EmptyState } from './EmptyState';
 import { Tip } from './Tip';
-import { LoadingText } from './ui/LoadingText';
 
 interface Props {
   videos: VideoDto[] | null;
@@ -27,7 +27,7 @@ export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listK
     <section className="history" aria-label="Fetched earlier">
       <h2 className="history__heading">Fetched earlier</h2>
       {videos === null ? (
-        <LoadingText>Loading list…</LoadingText>
+        <SkeletonList rows={6} />
       ) : videos.length === 0 ? (
         <EmptyState icon={MonitorPlay}>No videos yet. Paste a YouTube link above to start.</EmptyState>
       ) : (
@@ -76,19 +76,19 @@ export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listK
                   <span className="history__actions">
                     {v.viCueCount > 0 && (
                       <Tip label="Watch Video">
-                        <Link className="button button--icon" to={`/vietsub/${v.id}`} aria-label={`Watch Video: ${v.title}`}>
+                        <Link className="button button--icon button--s" to={`/vietsub/${v.id}`} aria-label={`Watch Video: ${v.title}`}>
                           <Play className="icon" aria-hidden="true" />
                         </Link>
                       </Tip>
                     )}
                     <Tip label="Download Engsub">
-                      <a className="button button--icon" href={srtUrl(v.id)} download aria-label={`Download Engsub: ${v.title}`}>
+                      <a className="button button--icon button--s" href={srtUrl(v.id)} download aria-label={`Download Engsub: ${v.title}`}>
                         <Download className="icon" aria-hidden="true" />
                       </a>
                     </Tip>
                     <Tip label="Delete">
                       <button
-                        className="button button--icon button--danger"
+                        className="button button--icon button--s button--danger"
                         type="button"
                         disabled={busy}
                         onClick={() => onDelete(v)}

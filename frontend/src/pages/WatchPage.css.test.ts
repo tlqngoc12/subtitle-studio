@@ -26,8 +26,8 @@ describe('watch page CSS', () => {
     expect(rule('.player__btn[aria-pressed=\'true\']')).toMatch(/background:\s*var\(--brand-2\)/);
   });
 
-  it('makes the caption size options 44px tall with the selected one purple', () => {
-    expect(rule('.shortcuts__option')).toMatch(/min-height:\s*44px/);
+  it('makes the caption size options medium-control (40px) tall with the selected one purple', () => {
+    expect(rule('.shortcuts__option')).toMatch(/min-height:\s*var\(--control-m\)/);
     expect(rule('.shortcuts__option[aria-checked=\'true\']')).toMatch(/--brand-2/);
   });
 

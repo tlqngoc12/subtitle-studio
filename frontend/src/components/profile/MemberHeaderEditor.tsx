@@ -3,7 +3,7 @@ import { ApiError, type FieldError } from '../../api/client';
 import { updateProfileHeader, type Profile } from '../../api/profiles';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { Alert } from '../ui/Alert';
-import { ImagePicker, type PickedImage } from './ImagePicker';
+import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/ImageDropzone';
 import './BlockEditor.css';
 
 const blankToNull = (s: string) => (s.trim() === '' ? null : s.trim());
@@ -88,22 +88,25 @@ export function MemberHeaderEditor({
       {!group && text('tagline', 'Tagline', tagline, setTagline)}
       {!group && text('fullName', 'Full name', fullName, setFullName)}
       <div className="field">
-        <ImagePicker
-          value={portrait}
-          onChange={setPortrait}
-          onBusyChange={(busy) => setUploads((n) => n + (busy ? 1 : -1))}
+        <span className="field__label">Portrait</span>
+        <ImageDropzone
+          label="Portrait"
+          value={previewOf(portrait)}
+          aspect="3/4"
           maxSide={1600}
+          onUploaded={(media) => setPortrait(toPicked(media))}
+          onBusyChange={(busy) => setUploads((n) => n + (busy ? 1 : -1))}
           invalid={!!errorOf('portraitMediaId')}
         />
         {group && <p className="field__hint">Used as the EmiBonnie avatar in filters</p>}
         {errorOf('portraitMediaId') && <p className="field__error">{errorOf('portraitMediaId')}</p>}
       </div>
-      <div className="peditor__actions">
+      <div className="form-actions form-actions--tight">
+        <button type="button" className="button" onClick={onCancel}>
+          Cancel
+        </button>
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
-        </button>
-        <button type="button" className="button button--small" onClick={onCancel}>
-          Cancel
         </button>
       </div>
     </form>

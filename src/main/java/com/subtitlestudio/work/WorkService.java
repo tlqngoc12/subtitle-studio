@@ -123,13 +123,14 @@ public class WorkService {
             WorkCreditRequest c = r.credits().get(i);
             credits.add(new WorkCredit(work, i + 1, credited.get(i), c.role(), c.characterName()));
         }
-        work.set(r.title(), cover, r.releaseDate(), r.category(), r.subcategory(), profile, r.description(), links,
+        work.set(r.title(), cover, r.releaseDate(), r.categories(), r.subcategory(), profile, r.description(), links,
                 credits, now);
     }
 
     static WorkSummaryDto toSummary(Work w) {
-        return new WorkSummaryDto(w.getId(), w.getTitle(), coverUrl(w), w.getReleaseDate(), w.getCategory(),
-                w.getSubcategory(), w.getProfile() == null ? null : w.getProfile().getSlug());
+        return new WorkSummaryDto(w.getId(), w.getTitle(), coverUrl(w), w.getReleaseDate(),
+                List.copyOf(w.getCategories()), w.getSubcategory(),
+                w.getProfile() == null ? null : w.getProfile().getSlug());
     }
 
     static WorkDto toDto(Work w) {
@@ -140,8 +141,8 @@ public class WorkService {
                 .toList();
         String trailer = w.getLinks().stream().filter(l -> l.getKind() == LinkKind.TRAILER).findFirst()
                 .flatMap(l -> YouTubeIds.videoId(l.getUrl())).orElse(null);
-        return new WorkDto(w.getId(), w.getTitle(), coverUrl(w), w.getReleaseDate(), w.getCategory(),
-                w.getSubcategory(), w.getProfile() == null ? null : w.getProfile().getSlug(),
+        return new WorkDto(w.getId(), w.getTitle(), coverUrl(w), w.getReleaseDate(),
+                List.copyOf(w.getCategories()), w.getSubcategory(), w.getProfile() == null ? null : w.getProfile().getSlug(),
                 w.getCover() == null ? null : w.getCover().getId(), w.getDescription(), links, credits, trailer);
     }
 

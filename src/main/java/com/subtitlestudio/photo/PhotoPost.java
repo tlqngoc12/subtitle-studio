@@ -48,10 +48,6 @@ public class PhotoPost {
     @Column(name = "taken_on", nullable = false)
     private LocalDate takenOn;
 
-    @JdbcTypeCode(SqlTypes.TIMESTAMP)
-    @Column(name = "taken_until")
-    private LocalDate takenUntil;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 10, nullable = false)
     private PhotoSource source;
@@ -79,13 +75,12 @@ public class PhotoPost {
         this.updatedAt = now;
     }
 
-    public void set(String instagramUrl, Media media, String title, LocalDate takenOn, LocalDate takenUntil,
+    public void set(String instagramUrl, Media media, String title, LocalDate takenOn,
                     PhotoSource source, Integer photoCount, Set<Profile> profiles, Instant now) {
         this.instagramUrl = instagramUrl;
         this.media = media;
         this.title = title;
         this.takenOn = takenOn;
-        this.takenUntil = takenUntil;
         this.source = source;
         this.photoCount = photoCount;
         this.profiles.clear();
@@ -111,10 +106,6 @@ public class PhotoPost {
 
     public LocalDate getTakenOn() {
         return takenOn;
-    }
-
-    public LocalDate getTakenUntil() {
-        return takenUntil;
     }
 
     public PhotoSource getSource() {

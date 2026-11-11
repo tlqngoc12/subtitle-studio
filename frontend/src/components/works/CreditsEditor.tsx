@@ -4,7 +4,7 @@ import type { FieldError } from '../../api/client';
 import type { Person, WorkCategory } from '../../api/works';
 import { IconButton } from '../ui/IconButton';
 import { SortableItem, SortableList } from '../ui/SortableList';
-import { ROLE_SUGGESTIONS } from './categories';
+import { isFilm, roleSuggestions } from './categories';
 import { PersonPicker } from './PersonPicker';
 import './WorkEditor.css';
 
@@ -18,23 +18,23 @@ export interface CreditRow {
 
 /**
  * The people rows of a work: `+ Person` (directory search / create), then per row the avatar, name, a role input with
- * suggestions for the category, a character input (Film and TV only) and Remove; drag the handle to reorder.
+ * suggestions for the categories, a character input (when Film and TV is a category) and Remove; drag the handle to reorder.
  */
 export function CreditsEditor({
   value,
-  category,
+  categories,
   onChange,
   errors,
   newKey,
 }: {
   value: CreditRow[];
-  category: WorkCategory;
+  categories: WorkCategory[];
   onChange: Dispatch<SetStateAction<CreditRow[]>>;
   errors: FieldError[];
   newKey: () => number;
 }) {
   const idPrefix = useId();
-  const film = category === 'FILM_TV';
+  const film = isFilm(categories);
   const errorOf = (path: string) => errors.find((e) => e.field === path)?.message;
   const patch = (key: number, p: Partial<CreditRow>) =>
     onChange((rows) => rows.map((r) => (r.key === key ? { ...r, ...p } : r)));
@@ -51,7 +51,7 @@ export function CreditsEditor({
         />
       </div>
       <datalist id={listId}>
-        {(ROLE_SUGGESTIONS[category] ?? []).map((r) => (
+        {roleSuggestions(categories).map((r) => (
           <option key={r} value={r} />
         ))}
       </datalist>
@@ -75,6 +75,7 @@ export function CreditsEditor({
                 <IconButton
                   label={`Remove ${row.person.name}`}
                   icon={X}
+                  size="s"
                   onClick={() => onChange((rows) => rows.filter((r) => r.key !== row.key))}
                 />
               </div>

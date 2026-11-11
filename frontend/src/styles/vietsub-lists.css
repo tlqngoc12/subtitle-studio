@@ -18,7 +18,7 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--rule);
-  transition: background-color 120ms ease-out;
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
 .history__item:hover {
@@ -180,7 +180,7 @@ a.history__open {
 
 /* The row just fetched or replaced flashes an orange ring once. */
 .history__item--new {
-  animation: row-flash 1.6s ease-out;
+  animation: row-flash 1.6s var(--ease-out);
 }
 
 @keyframes row-flash {

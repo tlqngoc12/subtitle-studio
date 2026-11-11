@@ -64,7 +64,7 @@ export function SortableItem({ id, handleLabel, children }: { id: number; handle
       <button
         ref={setActivatorNodeRef}
         type="button"
-        className="button button--icon sortable__handle"
+        className="button button--icon button--s sortable__handle"
         aria-label={handleLabel}
         {...attributes}
         {...listeners}

@@ -10,7 +10,7 @@ export function LinkButtons({ links }: { links: WorkLink[] }) {
     <ul className="wlinks" aria-label="Links">
       {links.map((l, i) => (
         <li key={i}>
-          <a className="button button--small wlinks__link" href={l.url} target="_blank" rel="noopener noreferrer">
+          <a className="button button--s wlinks__link" href={l.url} target="_blank" rel="noopener noreferrer">
             <LinkIcon iconKey={iconFor(l.url, l.icon)} />
             {l.label}
             <ExternalLink className="icon wlinks__external" aria-hidden="true" />

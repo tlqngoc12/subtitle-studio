@@ -1,0 +1,54 @@
+.dropzone-wrap {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 2px dashed var(--field-border);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  text-align: center;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.dropzone--active {
+  border-color: var(--brand-2);
+  background: var(--hover);
+}
+
+.dropzone--invalid {
+  border-color: var(--danger);
+}
+
+.dropzone__icon {
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+}
+
+.dropzone__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.dropzone__preview {
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.dropzone__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}

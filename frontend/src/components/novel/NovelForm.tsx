@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'reac
 import { ApiError, type FieldError } from '../../api/client';
 import { getNovelProfiles, type NovelDetail, type NovelInput, type NovelStatus } from '../../api/novels';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
-import { ImagePicker, type PickedImage } from '../profile/ImagePicker';
+import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/ImageDropzone';
 import { Alert } from '../ui/Alert';
 import { Select } from '../ui/Select';
 import './NovelForm.css';
@@ -179,9 +179,13 @@ export function NovelForm({
       })}
       <div className="field">
         <span className="field__label">Cover (optional)</span>
-        <ImagePicker
-          value={cover}
-          onChange={setCover}
+        <ImageDropzone
+          label="Cover image"
+          value={previewOf(cover)}
+          aspect="3/4"
+          maxSide={null}
+          onUploaded={(media) => setCover(toPicked(media))}
+          onRemove={() => setCover(null)}
           onBusyChange={setCoverBusy}
           invalid={Boolean(fieldError('coverMediaId'))}
         />
@@ -263,9 +267,11 @@ export function NovelForm({
       {error && (
         <Alert title={error.title} hint={error.hint} />
       )}
-      <button className="button button--primary" type="submit" disabled={pending || coverBusy || !title.trim()}>
-        {pending ? pendingLabel : submitLabel}
-      </button>
+      <div className="form-actions">
+        <button className="button button--primary" type="submit" disabled={pending || coverBusy || !title.trim()}>
+          {pending ? pendingLabel : submitLabel}
+        </button>
+      </div>
     </form>
   );
 }

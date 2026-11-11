@@ -7,7 +7,6 @@ const INPUT: PhotoPostInput = {
   mediaId: 4,
   title: 'T',
   takenOn: '2026-11-09',
-  takenUntil: null,
   source: 'FAN',
   photoCount: null,
   profiles: ['emi'],

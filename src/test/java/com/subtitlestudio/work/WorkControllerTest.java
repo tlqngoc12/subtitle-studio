@@ -31,11 +31,11 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class WorkControllerTest {
 
     private static final PersonDto BONNIE = new PersonDto(2, "Bonnie", null, null);
-    private static final WorkDto DTO = new WorkDto(5, "Love Story", "/api/media/9", null, WorkCategory.FILM_TV, "Drama",
+    private static final WorkDto DTO = new WorkDto(5, "Love Story", "/api/media/9", null, List.of(WorkCategory.FILM_TV), "Drama",
             "emi", 9L, "Synopsis", List.of(new WorkLinkDto(LinkKind.TRAILER, "Trailer", "https://youtu.be/dQw4w9WgXcQ", null)),
             List.of(new WorkCreditDto(BONNIE, "Lead", "Key")), "dQw4w9WgXcQ");
     private static final String BODY = """
-            {"title":"Love Story","coverMediaId":9,"releaseDate":null,"category":"FILM_TV","subcategory":"Drama",
+            {"title":"Love Story","coverMediaId":9,"releaseDate":null,"categories":["FILM_TV","MUSIC"],"subcategory":"Drama",
              "profile":"emi","description":"Synopsis",
              "links":[{"kind":"TRAILER","label":"Trailer","url":"https://youtu.be/dQw4w9WgXcQ","icon":null}],
              "credits":[{"personId":2,"role":"Lead","characterName":"Key"}]}""";
@@ -55,12 +55,12 @@ class WorkControllerTest {
 
     @Test
     void listsWorksWithNullDateForComingSoon() throws Exception {
-        when(works.list()).thenReturn(List.of(new WorkSummaryDto(5, "Love Story", null, null, WorkCategory.FILM_TV, null,
-                null), new WorkSummaryDto(6, "Old", null, LocalDate.parse("2026-01-05"), WorkCategory.MUSIC, null, "emi")));
+        when(works.list()).thenReturn(List.of(new WorkSummaryDto(5, "Love Story", null, null, List.of(WorkCategory.FILM_TV), null,
+                null), new WorkSummaryDto(6, "Old", null, LocalDate.parse("2026-01-05"), List.of(WorkCategory.MUSIC), null, "emi")));
 
         mvc.perform(get("/api/works")).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].releaseDate").doesNotExist())
-                .andExpect(jsonPath("$[0].category").value("FILM_TV"))
+                .andExpect(jsonPath("$[0].categories[0]").value("FILM_TV"))
                 .andExpect(jsonPath("$[1].releaseDate").value("2026-01-05"))
                 .andExpect(jsonPath("$[1].profile").value("emi"));
     }
@@ -85,7 +85,7 @@ class WorkControllerTest {
         json(put("/api/works/5"), BODY).andExpect(status().isOk());
         mvc.perform(delete("/api/works/5")).andExpect(status().isNoContent());
         verify(works).delete(5);
-        verify(works).create(new WorkRequest("Love Story", 9L, null, WorkCategory.FILM_TV, "Drama", "emi", "Synopsis",
+        verify(works).create(new WorkRequest("Love Story", 9L, null, List.of(WorkCategory.FILM_TV, WorkCategory.MUSIC), "Drama", "emi", "Synopsis",
                 List.of(new WorkLinkRequest(LinkKind.TRAILER, "Trailer", "https://youtu.be/dQw4w9WgXcQ", null)),
                 List.of(new WorkCreditRequest(2, "Lead", "Key"))));
     }

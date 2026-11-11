@@ -14,9 +14,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 34px;
+  min-width: var(--control-s);
+  height: var(--control-s);
   padding: 0 var(--space-2);
+  font-size: var(--fs-caption);
   border: 1px solid var(--brand);
   border-radius: var(--radius-control);
   color: var(--ink);
@@ -47,10 +48,3 @@
   border-color: var(--rule);
 }
 
-@media (max-width: 760px) {
-  .pager__link,
-  .pager__break {
-    min-width: 44px;
-    height: 44px;
-  }
-}

@@ -12,19 +12,14 @@
 
 .searchbar__icon {
   position: absolute;
-  left: 12px;
+  left: var(--space-3);
   color: var(--muted);
   pointer-events: none;
 }
 
 .searchbar__input {
   width: 100%;
-  padding: var(--space-3) var(--space-12) var(--space-3) var(--space-10);
-  border: 1px solid var(--field-border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
+  padding: 0 var(--space-12) 0 var(--space-10);
 }
 
 /* The X button replaces the browser's own clear control. */
@@ -34,5 +29,5 @@
 
 .searchbar__clear {
   position: absolute;
-  right: 4px;
+  right: var(--space-1);
 }

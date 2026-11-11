@@ -6,7 +6,7 @@ const NEAR_TOP = 80;
 const TOLERANCE = 4;
 
 /**
- * Whether the reader's bars are hidden. Follows the scroll direction like `useHideOnScroll` (down hides, up shows,
+ * Whether the reader's bars are hidden. Follows the scroll direction like `useScrollDirection` (down hides, up shows,
  * always shown near the top); `toggle()` flips the current state and the next scroll direction change overrides it.
  * While `locked` (a drawer or sheet is open, keyboard focus is in the bar) the bars are always shown.
  */
