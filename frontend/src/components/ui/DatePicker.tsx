@@ -42,6 +42,8 @@ export function DatePicker({ id, value, onChange, placeholder = 'Select a date',
   const [open, setOpen] = useState(false);
   const selected = value ? fromIsoDay(value) : undefined;
   const thisYear = new Date().getFullYear();
+  // The year dropdown always reaches the stored value, however old or far ahead it is.
+  const year = selected?.getFullYear() ?? thisYear;
 
   function pick(iso: string | null) {
     onChange(iso);
@@ -67,8 +69,8 @@ export function DatePicker({ id, value, onChange, placeholder = 'Select a date',
           mode="single"
           weekStartsOn={1}
           captionLayout="dropdown"
-          startMonth={new Date(thisYear - 30, 0)}
-          endMonth={new Date(thisYear + 10, 11)}
+          startMonth={new Date(Math.min(thisYear - 30, year), 0)}
+          endMonth={new Date(Math.max(thisYear + 10, year), 11)}
           defaultMonth={selected}
           selected={selected}
           onSelect={(date) => {

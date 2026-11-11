@@ -69,7 +69,9 @@ export function NavBar() {
       className={['topbar', slideAway && 'topbar--hidden', scroll.scrolled && 'topbar--scrolled'].filter(Boolean).join(' ')}
       ref={barRef}
       onFocus={() => setFocusIn(true)}
-      onBlur={() => setFocusIn(false)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setFocusIn(false);
+      }}
     >
       <div className="topbar__inner">
         {/* A page (the chapter reader) may fill the slot; it then replaces the logo and the menu. */}

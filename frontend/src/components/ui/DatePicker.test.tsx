@@ -50,6 +50,15 @@ describe('DatePicker', () => {
     expect(onChange).toHaveBeenLastCalledWith(toIsoDay(new Date()));
   });
 
+  it('opens on a date far outside the usual year range', async () => {
+    const user = userEvent.setup();
+    render(<DatePicker id="d" value="1985-03-02" onChange={() => {}} />);
+    await user.click(screen.getByRole('button', { name: /02\/03\/1985/ }));
+
+    expect(await screen.findByRole('grid')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /year/i })).toHaveValue('1985');
+  });
+
   it('has no Clear button unless clearable', async () => {
     const user = userEvent.setup();
     render(<DatePicker id="d" value="2026-11-09" onChange={() => {}} />);
