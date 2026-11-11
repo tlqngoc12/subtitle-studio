@@ -794,6 +794,18 @@ Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-desi
 
 - **Sửa theo review PR #15:** màn hình cảm ứng (`pointer: coarse`) mọi `.button` (gồm `--s`, `--icon`) có vùng bấm 44 x 44 px qua `::after` trong suốt, kích thước hiển thị giữ 32/40/48 (hai nút cách nhau 8 px có thể chồng 4 px vùng bấm); ô chọn hồ sơ dịch của Get Engsub đổi nhãn rỗng thành "No profile" và rộng tối đa 16rem; nhãn icon "Generic link" của Works đổi thành "Link".
 
+### 2026-11-11: Works/Photos polish (Combobox, ô chọn ngày, link X, logo) ✅ (chưa merge, chưa deploy; cần deploy vì có V17)
+
+Nhánh `fix/works-photos-polish`.
+
+- **Combobox** (`components/ui/Combobox.tsx`, tự viết trên Radix Popover, không thêm thư viện): thay `<datalist>` ở vai trò credit và subcategory của Work.
+- **Trailer:** bỏ `TrailerEmbed` và `trailerVideoId` (DTO, export, frontend); link TRAILER chỉ là nút link như Pilot. `YouTubeIds` giữ lại cho Novels.
+- **Bộ lọc người:** `lib/people.ts` `matchesPerson`; thành viên gồm cả mục gắn nhóm, nhóm chỉ mục của nhóm (Works và Photos). Works lede: "Series, music, shows and more."
+- **Ô chọn ngày:** biến `--rdp-*` đặt trên `.rdp-root` (trước đó bị thư viện đè nên xanh); chevron cam, hover cam nhạt, ngày chọn tím, hôm nay đậm; z-index popover 70, select 70, tooltip 80 (trên dialog 50/51) sửa lỗi không chọn được ngày trong dialog Add post.
+- **Photos:** `PostUrl` (Instagram + X) thay `InstagramUrl`, cột `post_url` (V17, `ALTER TABLE ... RENAME COLUMN`), icon nền tảng trên thẻ, tiêu đề nhiều dòng.
+- **Logo:** `frontend/public/logo.webp` ở navbar và favicon cho cả app lẫn bản public.
+- **Lệch so với yêu cầu:** Combobox tự viết (không dùng `cmdk`); tooltip tăng lên z-index 80 vì dialog (51) che tooltip cũ (50).
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
