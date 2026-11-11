@@ -182,7 +182,7 @@ describe('ImageLightbox', () => {
 
   it('is styled with tokens and sizes the image to fit 90vw x 85vh', () => {
     expect(css).toMatch(/\.lightbox__image\s*\{[^}]*max-width:\s*90vw[^}]*max-height:\s*85vh[^}]*object-fit:\s*contain/);
-    const own = css.slice(css.indexOf('.lightbox__overlay'), css.indexOf('.lightbox__counter'));
+    const own = css.slice(css.indexOf('.lightbox__overlay'), css.indexOf('.lightbox__close'));
     expect(own).not.toMatch(/gradient|#[0-9a-f]{3,6}\b/i);
   });
 });

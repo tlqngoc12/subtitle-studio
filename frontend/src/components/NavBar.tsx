@@ -1,8 +1,9 @@
 import { motion } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useSite } from '../data/SiteContext';
 import { pillTransition } from '../lib/motion';
+import { useScrollDirection } from '../lib/useScrollDirection';
 import { useTopbarHeight } from '../lib/useTopbarHeight';
 import { PublishButton } from './PublishButton';
 import { useTopbarSlot } from './TopbarSlot';
@@ -54,13 +55,22 @@ export function NavBar() {
   const barRef = useRef<HTMLElement>(null);
   const { setTarget, active, hidden } = useTopbarSlot();
   useTopbarHeight(barRef);
+  // Keyboard focus inside the bar keeps it visible.
+  const [focusIn, setFocusIn] = useState(false);
+  const scroll = useScrollDirection({ locked: focusIn });
+  const slideAway = hidden || (!active && scroll.hidden);
 
   // On a phone only part of the row fits: bring the current section into view.
   useEffect(() => {
     navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }, [pathname]);
   return (
-    <header className={hidden ? 'topbar topbar--hidden' : 'topbar'} ref={barRef}>
+    <header
+      className={['topbar', slideAway && 'topbar--hidden', scroll.scrolled && 'topbar--scrolled'].filter(Boolean).join(' ')}
+      ref={barRef}
+      onFocus={() => setFocusIn(true)}
+      onBlur={() => setFocusIn(false)}
+    >
       <div className="topbar__inner">
         {/* A page (the chapter reader) may fill the slot; it then replaces the logo and the menu. */}
         <div className="topbar__slot" ref={setTarget} />

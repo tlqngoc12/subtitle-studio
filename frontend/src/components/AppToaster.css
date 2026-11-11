@@ -45,3 +45,12 @@
 [data-sonner-toast][data-type='error'].toast [data-icon] {
   color: var(--danger);
 }
+
+/* Toasts enter and leave with the shared motion tokens. */
+[data-sonner-toast].toast {
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out),
+    height var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}

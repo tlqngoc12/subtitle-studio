@@ -59,7 +59,7 @@
 }
 
 .reader {
-  animation: reader-in 180ms ease-out;
+  animation: reader-in var(--dur-base) var(--ease-out);
   position: relative;
   display: grid;
   gap: 0;
@@ -79,7 +79,7 @@
   pointer-events: none;
   filter: var(--reader-img-filter);
   opacity: var(--reader-img-opacity);
-  transition: filter 0.2s;
+  transition: filter var(--dur-base);
 }
 
 /* Continuous pages: only the outer corners of the first and last image are rounded. */

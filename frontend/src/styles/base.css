@@ -529,3 +529,44 @@ label.button:has(input:focus-visible) {
 .reader-settings__size .button {
   flex: 1;
 }
+
+/* Modal motion (Dialog, AlertDialog): the overlay fades, the centred panel fades and rises 12 px. */
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px));
+  }
+}
+
+@keyframes modal-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px));
+  }
+}
+
+/* Cards lift 2 px on hover (mouse only). */
+@media (hover: hover) and (pointer: fine) {
+  :is(.work-card, .photo-tile, .plcard, .novel-card) {
+    transition:
+      transform var(--dur-base) var(--ease-out),
+      box-shadow var(--dur-base) var(--ease-out);
+  }
+
+  :is(.work-card, .photo-tile, .plcard, .novel-card):hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-drag);
+  }
+}

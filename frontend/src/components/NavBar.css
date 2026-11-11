@@ -5,9 +5,18 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--paper);
   border-bottom: 1px solid var(--rule);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    visibility 0s;
+}
+
+/* Once the page left the top the bar turns translucent over the content. */
+.topbar--scrolled {
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+  backdrop-filter: blur(12px);
 }
 
 .topbar__inner {
@@ -19,15 +28,14 @@
   gap: var(--space-5);
 }
 
-.topbar {
-  transition: transform 0.2s ease-out, visibility 0s;
-}
-
-/* The chapter reader slides the whole bar away while scrolling down. */
+/* The bar slides away while scrolling down (and the chapter reader hides it too). */
 .topbar--hidden {
   transform: translateY(-100%);
   visibility: hidden;
-  transition: transform 0.2s ease-out, visibility 0s 0.2s;
+  transition:
+    transform var(--dur-base) var(--ease-in-out),
+    background-color var(--dur-base) var(--ease-out),
+    visibility 0s var(--dur-base);
 }
 
 /* A page's own controls (the reader) fill this instead of the logo and the menu. */
@@ -73,7 +81,10 @@
 .nav__link {
   flex: none;
   white-space: nowrap;
-  padding: var(--space-2) var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-m);
+  padding: 0 var(--space-4);
   border-radius: 999px;
   color: var(--muted);
   font-weight: 700;
@@ -103,14 +114,6 @@
 
 .nav__pill {
   background: var(--brand-2);
-}
-
-@media (max-width: 760px) {
-  .nav__link {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
