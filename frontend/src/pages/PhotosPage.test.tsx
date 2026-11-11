@@ -193,7 +193,7 @@ describe('PhotosPage admin', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Add post' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add post' });
-    await userEvent.type(within(dialog).getByLabelText('Instagram link'), 'https://www.instagram.com/p/NEW/');
+    await userEvent.type(within(dialog).getByLabelText('Post link (Instagram or X)'), 'https://www.instagram.com/p/NEW/');
     await userEvent.type(within(dialog).getByLabelText('Title'), 'Brand new');
     await userEvent.click(within(dialog).getByLabelText('Date'));
     await userEvent.click(await screen.findByRole('button', { name: 'Today' }));
