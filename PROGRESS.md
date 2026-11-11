@@ -792,6 +792,8 @@ Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-desi
 - **Đo bằng CDP** (jar build trong worktree, cổng 8099, H2 với dữ liệu mẫu): mọi `button.button` cao 32/40/48 px và mọi ô nhập 40/48 px ở 1440 và 390 px, trừ `<select>` ẩn của Radix (aria-hidden). Ảnh trước/sau ở `scratchpad/ui/before` và `scratchpad/ui/after`.
 - **Lệch so với plan:** bỏ các `min-height: 44px` cảm ứng của nút trên điện thoại (spec chỉ cho 32/40/48); danh sách hàng (VideoList, VietsubList…) giữ `rowMotion` cũ (trượt khi thêm/xoá) chứ không thêm stagger lúc tải; trang public không có "trước" để chụp (chỉ chạy được bản admin ở 8080), được kiểm bằng test và các component dùng chung.
 
+- **Sửa theo review PR #15:** màn hình cảm ứng (`pointer: coarse`) mọi `.button` (gồm `--s`, `--icon`) có vùng bấm 44 x 44 px qua `::after` trong suốt, kích thước hiển thị giữ 32/40/48 (hai nút cách nhau 8 px có thể chồng 4 px vùng bấm); ô chọn hồ sơ dịch của Get Engsub đổi nhãn rỗng thành "No profile" và rộng tối đa 16rem; nhãn icon "Generic link" của Works đổi thành "Link".
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
