@@ -1,5 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../api/client';
@@ -43,7 +42,6 @@ const FILM = work(5, {
     { person: person(1, 'Bonnie'), role: 'Lead', characterName: 'Key' },
     { person: person(2, 'Emi', { avatarUrl: '/media/e.webp' }), role: 'Lead', characterName: null },
   ],
-  trailerVideoId: 'dQw4w9WgXcQ',
 });
 
 describe('WorkDetailPage', () => {
@@ -98,28 +96,22 @@ describe('WorkDetailPage', () => {
     expect(await screen.findByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument();
   });
 
-  it('shows the trailer poster first, then the player after a click', async () => {
-    renderPublic(FILM);
-
-    const play = await screen.findByRole('button', { name: 'Play trailer: Love Story' });
-    expect(within(play).getByRole('presentation', { hidden: true })).toHaveAttribute(
-      'src',
-      'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+  it('shows a TRAILER link as a link button like Pilot, with no embedded player', async () => {
+    renderPublic(
+      work(5, {
+        title: 'Trailer work',
+        links: [
+          { kind: 'PILOT', label: 'Pilot', url: 'https://www.netflix.com/title/1', icon: null },
+          { kind: 'TRAILER', label: 'Trailer', url: 'https://youtu.be/dQw4w9WgXcQ', icon: null },
+        ],
+      }),
     );
-    expect(document.querySelector('iframe')).toBeNull();
 
-    await userEvent.click(play);
-
-    expect(document.querySelector('iframe')).toHaveAttribute(
-      'src',
-      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1',
-    );
-  });
-
-  it('has no embed without a trailer', async () => {
-    renderPublic(work(5, { title: 'No trailer', trailerVideoId: null }));
-
-    await screen.findByRole('heading', { name: 'No trailer' });
+    const trailer = await screen.findByRole('link', { name: 'Trailer' });
+    const pilot = screen.getByRole('link', { name: 'Pilot' });
+    expect(trailer).toHaveAttribute('href', 'https://youtu.be/dQw4w9WgXcQ');
+    expect(trailer).toHaveAttribute('target', '_blank');
+    expect(trailer.className).toBe(pilot.className);
     expect(screen.queryByRole('button', { name: /Play trailer/ })).not.toBeInTheDocument();
     expect(document.querySelector('iframe')).toBeNull();
   });

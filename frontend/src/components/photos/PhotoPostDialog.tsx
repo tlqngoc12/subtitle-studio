@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, type FieldError } from '../../api/client';
 import {
   createPhoto,
@@ -69,11 +69,19 @@ function PhotoPostForm({
   onCancel: () => void;
 }) {
   const idPrefix = useId();
-  const [instagramUrl, setInstagramUrl] = useState(post?.instagramUrl ?? '');
+  const [postUrl, setPostUrl] = useState(post?.postUrl ?? '');
   const [image, setImage] = useState<{ mediaId: number; url: string } | null>(
     post ? { mediaId: mediaIdOf(post.imageUrl), url: post.imageUrl } : null,
   );
   const [title, setTitle] = useState(post?.title ?? '');
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  // Grows with the text (CSS caps it at 4 rows, then it scrolls).
+  useLayoutEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [title]);
   // A new post starts on today's date (local day).
   const [takenOn, setTakenOn] = useState(post?.takenOn ?? toIsoDay(new Date()));
   const [source, setSource] = useState<PhotoSource>(post?.source ?? 'OFFICIAL');
@@ -98,9 +106,9 @@ function PhotoPostForm({
     setFieldErrors([]);
     try {
       const input: PhotoPostInput = {
-        instagramUrl: instagramUrl.trim(),
+        postUrl: postUrl.trim(),
         mediaId: image.mediaId,
-        title: title.trim(),
+        title: cleanTitle(title),
         takenOn,
         source,
         photoCount,
@@ -109,7 +117,7 @@ function PhotoPostForm({
       onSaved(post ? await updatePhoto(post.id, input) : await createPhoto(input));
     } catch (err) {
       if (err instanceof ApiError && err.code === 'PHOTO_POST_EXISTS') {
-        setFieldErrors([{ field: 'instagramUrl', message: err.detail }]);
+        setFieldErrors([{ field: 'postUrl', message: err.detail }]);
       } else {
         setFormError(errorMessage(err));
         setFieldErrors(err instanceof ApiError ? err.fieldErrors : []);
@@ -122,15 +130,15 @@ function PhotoPostForm({
     <form className="pdialog__form" onSubmit={submit} noValidate>
       {formError && <Alert title={formError.title} hint={formError.hint} />}
 
-      <Field label="Instagram link" error={errorOf('instagramUrl')}>
+      <Field label="Post link (Instagram or X)" error={errorOf('postUrl')}>
         {(f) => (
           <input
             id={f.id}
             type="text"
-            value={instagramUrl}
+            value={postUrl}
             aria-invalid={f.invalid || undefined}
             aria-describedby={f.describedBy}
-            onChange={(e) => setInstagramUrl(e.target.value)}
+            onChange={(e) => setPostUrl(e.target.value)}
           />
         )}
       </Field>
@@ -152,11 +160,13 @@ function PhotoPostForm({
         {errorOf('mediaId') && <p className="field__error">{errorOf('mediaId')}</p>}
       </div>
 
-      <Field label="Title" error={errorOf('title')}>
+      <Field label="Title" hint="Press Enter for a new line" error={errorOf('title')}>
         {(f) => (
-          <input
+          <textarea
             id={f.id}
-            type="text"
+            ref={titleRef}
+            className="pdialog__title-input"
+            rows={2}
             value={title}
             aria-invalid={f.invalid || undefined}
             aria-describedby={f.describedBy}
@@ -244,6 +254,16 @@ function PhotoPostForm({
       </div>
     </form>
   );
+}
+
+/** Keeps the line breaks; drops trailing spaces from every line and blank lines at both ends (the server does the same). */
+function cleanTitle(raw: string): string {
+  return raw
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n')
+    .trim();
 }
 
 /** The admin API returns `/api/media/{id}`, so the id of the stored image is its last path segment. */

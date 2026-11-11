@@ -176,7 +176,7 @@ public class SiteExporter {
                 log.warn("Photo post {} has no image file; left out of the public site", p.id());
                 continue;
             }
-            exported.add(new PhotoPostDto(p.id(), p.instagramUrl(), url, p.width(), p.height(), p.title(), p.takenOn(),
+            exported.add(new PhotoPostDto(p.id(), p.postUrl(), url, p.width(), p.height(), p.title(), p.takenOn(),
                     p.source(), p.photoCount(), p.profiles()));
         }
         write(dir.resolve("data/photos.json"), exported);
@@ -208,8 +208,7 @@ public class SiteExporter {
                             publicUrl(c.person().avatarMediaId(), dir, publicUrls)),
                     c.role(), c.characterName())).toList();
             write(dir.resolve("data/works/" + w.id() + ".json"), new WorkDto(w.id(), w.title(), cover, w.releaseDate(),
-                    w.categories(), w.subcategory(), w.profile(), null, w.description(), w.links(), credits,
-                    w.trailerVideoId()));
+                    w.categories(), w.subcategory(), w.profile(), null, w.description(), w.links(), credits));
         }
         write(dir.resolve("data/works.json"), summaries);
     }

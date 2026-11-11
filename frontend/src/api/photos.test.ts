@@ -3,7 +3,7 @@ import { fakeFetch } from '../test/fakeFetch';
 import { createPhoto, deletePhoto, listPhotos, updatePhoto, type PhotoPostInput } from './photos';
 
 const INPUT: PhotoPostInput = {
-  instagramUrl: 'https://www.instagram.com/p/AAA/',
+  postUrl: 'https://www.instagram.com/p/AAA/',
   mediaId: 4,
   title: 'T',
   takenOn: '2026-11-09',

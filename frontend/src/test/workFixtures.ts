@@ -24,7 +24,6 @@ export function work(id: number, overrides: Partial<Work> = {}): Work {
     description: null,
     links: [],
     credits: [],
-    trailerVideoId: null,
     ...overrides,
   };
 }

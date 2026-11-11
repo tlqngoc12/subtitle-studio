@@ -33,7 +33,7 @@ class WorkControllerTest {
     private static final PersonDto BONNIE = new PersonDto(2, "Bonnie", null, null);
     private static final WorkDto DTO = new WorkDto(5, "Love Story", "/api/media/9", null, List.of(WorkCategory.FILM_TV), "Drama",
             "emi", 9L, "Synopsis", List.of(new WorkLinkDto(LinkKind.TRAILER, "Trailer", "https://youtu.be/dQw4w9WgXcQ", null)),
-            List.of(new WorkCreditDto(BONNIE, "Lead", "Key")), "dQw4w9WgXcQ");
+            List.of(new WorkCreditDto(BONNIE, "Lead", "Key")));
     private static final String BODY = """
             {"title":"Love Story","coverMediaId":9,"releaseDate":null,"categories":["FILM_TV","MUSIC"],"subcategory":"Drama",
              "profile":"emi","description":"Synopsis",
@@ -70,7 +70,7 @@ class WorkControllerTest {
         when(works.get(5)).thenReturn(DTO);
 
         mvc.perform(get("/api/works/5")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.trailerVideoId").value("dQw4w9WgXcQ"))
+                .andExpect(jsonPath("$.trailerVideoId").doesNotExist())
                 .andExpect(jsonPath("$.links[0].kind").value("TRAILER"))
                 .andExpect(jsonPath("$.credits[0].person.name").value("Bonnie"))
                 .andExpect(jsonPath("$.credits[0].characterName").value("Key"));

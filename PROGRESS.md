@@ -804,6 +804,18 @@ Nhánh `feat/fanfics`. Spec: [docs/superpowers/specs/2026-11-11-fanfics-design.m
 - **Export:** `data/fanfics.json` (`FanficDto[]`, bìa là `/media/<key>.webp`; file bìa mất thì giữ truyện, `coverUrl` null).
 - **Test:** không test nào gọi Wattpad thật (stub HTTP server cục bộ + fixture `src/test/resources/wattpad/story-396487502.json`).
 
+### 2026-11-11: Works/Photos polish (Combobox, ô chọn ngày, link X, logo) ✅ (chưa merge, chưa deploy; cần deploy vì có V17)
+
+Nhánh `fix/works-photos-polish`.
+
+- **Combobox** (`components/ui/Combobox.tsx`, tự viết trên Radix Popover, không thêm thư viện): thay `<datalist>` ở vai trò credit và subcategory của Work.
+- **Trailer:** bỏ `TrailerEmbed` và `trailerVideoId` (DTO, export, frontend); link TRAILER chỉ là nút link như Pilot. `YouTubeIds` giữ lại cho Novels.
+- **Bộ lọc người:** `lib/people.ts` `matchesPerson`; thành viên gồm cả mục gắn nhóm, nhóm chỉ mục của nhóm (Works và Photos). Works lede: "Series, music, shows and more."
+- **Ô chọn ngày:** biến `--rdp-*` đặt trên `.rdp-root` (trước đó bị thư viện đè nên xanh); chevron cam, hover cam nhạt, ngày chọn tím, hôm nay đậm; z-index popover 70, select 70, tooltip 80 (trên dialog 50/51) sửa lỗi không chọn được ngày trong dialog Add post.
+- **Photos:** `PostUrl` (Instagram + X) thay `InstagramUrl`, cột `post_url` (V17, `ALTER TABLE ... RENAME COLUMN`), icon nền tảng trên thẻ, tiêu đề nhiều dòng.
+- **Logo:** `frontend/public/logo.webp` ở navbar và favicon cho cả app lẫn bản public.
+- **Lệch so với yêu cầu:** Combobox tự viết (không dùng `cmdk`); tooltip tăng lên z-index 80 vì dialog (51) che tooltip cũ (50).
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

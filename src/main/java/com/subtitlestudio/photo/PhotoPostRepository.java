@@ -8,5 +8,5 @@ public interface PhotoPostRepository extends JpaRepository<PhotoPost, Long> {
 
     List<PhotoPost> findAllByOrderByTakenOnDescIdDesc();
 
-    Optional<PhotoPost> findByInstagramUrl(String instagramUrl);
+    Optional<PhotoPost> findByPostUrl(String postUrl);
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFetch, problem, type Route } from '../../test/fakeFetch';
@@ -25,7 +25,7 @@ function setup(post?: ReturnType<typeof photo>) {
 }
 
 async function fillRequired() {
-  await userEvent.type(screen.getByLabelText('Instagram link'), 'https://www.instagram.com/p/AAA/');
+  await userEvent.type(screen.getByLabelText('Post link (Instagram or X)'), 'https://www.instagram.com/p/AAA/');
   await userEvent.type(screen.getByLabelText('Title'), 'Fan meeting');
 }
 
@@ -38,7 +38,7 @@ describe('PhotoPostDialog', () => {
     const calls = fakeFetch([UPLOAD]);
     setup();
 
-    fireEvent.paste(screen.getByLabelText('Instagram link'), { clipboardData: { files: [PNG], getData: () => '' } });
+    fireEvent.paste(screen.getByLabelText('Post link (Instagram or X)'), { clipboardData: { files: [PNG], getData: () => '' } });
 
     expect(await screen.findByRole('img', { name: 'Selected image' })).toHaveAttribute('src', '/api/media/9');
     expect(calls[0].path).toBe('/api/media?maxSide=1600');
@@ -48,10 +48,10 @@ describe('PhotoPostDialog', () => {
     const calls = fakeFetch([UPLOAD]);
     setup();
 
-    await userEvent.click(screen.getByLabelText('Instagram link'));
+    await userEvent.click(screen.getByLabelText('Post link (Instagram or X)'));
     await userEvent.paste('https://www.instagram.com/p/AAA/');
 
-    expect(screen.getByLabelText('Instagram link')).toHaveValue('https://www.instagram.com/p/AAA/');
+    expect(screen.getByLabelText('Post link (Instagram or X)')).toHaveValue('https://www.instagram.com/p/AAA/');
     expect(calls).toHaveLength(0);
   });
 
@@ -85,7 +85,7 @@ describe('PhotoPostDialog', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(created));
     const post = calls.find((c) => c.path === '/api/photos');
     expect(JSON.parse(String(post?.body))).toEqual({
-      instagramUrl: 'https://www.instagram.com/p/AAA/',
+      postUrl: 'https://www.instagram.com/p/AAA/',
       mediaId: 9,
       title: 'Fan meeting',
       takenOn: '2026-11-09',
@@ -158,7 +158,7 @@ describe('PhotoPostDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('This post is already added as “Old title”.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Instagram link')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Post link (Instagram or X)')).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('pre-fills when editing and keeps the stored image', async () => {
@@ -182,5 +182,36 @@ describe('PhotoPostDialog', () => {
 
     await waitFor(() => expect(calls).toHaveLength(1));
     expect(JSON.parse(String(calls[0].body))).toMatchObject({ mediaId: 77, photoCount: 4, profiles: ['emi'] });
+  });
+
+  it('picks a day from the calendar opened inside the dialog', async () => {
+    setup();
+
+    await userEvent.click(screen.getByLabelText('Date'));
+    const grid = await screen.findByRole('grid');
+    expect(screen.getByRole('dialog', { name: 'Add post' }).contains(grid)).toBe(false); // portaled out of the dialog, above it
+    await userEvent.click(within(grid).getByRole('button', { name: /15/ }));
+
+    expect(screen.getByLabelText('Date')).toHaveTextContent('15/11/2026');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Add post' })).toBeInTheDocument();
+  });
+
+  it('has a multi-line title that keeps its line breaks', async () => {
+    const calls = fakeFetch([UPLOAD, { method: 'POST', path: '/api/photos', status: 201, body: photo(5) }]);
+    setup();
+    await userEvent.type(screen.getByLabelText('Post link (Instagram or X)'), 'https://x.com/emi/status/1');
+    const title = screen.getByLabelText('Title');
+    expect(title.tagName).toBe('TEXTAREA');
+    expect(title).toHaveAttribute('rows', '2');
+    await userEvent.type(title, 'Line one{Enter}Line two {Enter}');
+    await userEvent.upload(screen.getByLabelText('Image file'), PNG);
+    await screen.findByRole('img', { name: 'Selected image' });
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/photos')).toBe(true));
+    const body = JSON.parse(String(calls.find((c) => c.path === '/api/photos')?.body));
+    expect(body.title).toBe('Line one\nLine two');
+    expect(body.postUrl).toBe('https://x.com/emi/status/1');
   });
 });

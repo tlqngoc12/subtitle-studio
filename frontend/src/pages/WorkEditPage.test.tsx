@@ -60,9 +60,11 @@ describe('WorkEditPage', () => {
       { method: 'GET', path: '/api/people', status: 200, body: [person(2, 'Bonnie')] },
       { method: 'POST', path: '/api/works', status: 201, body: work(8) },
     ]);
-    const { container } = renderAt('/works/new');
+    renderAt('/works/new');
     await userEvent.type(await screen.findByLabelText('Title'), 'Show');
-    await waitFor(() => expect(container.querySelector('datalist option[value="Drama"]')).not.toBeNull());
+    await userEvent.click(screen.getByRole('combobox', { name: 'Subcategory' }));
+    expect(await screen.findByRole('option', { name: 'Drama' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
 
     await userEvent.click(screen.getByRole('button', { name: 'Trailer' }));
     await userEvent.type(screen.getByLabelText('URL 1'), 'https://youtu.be/dQw4w9WgXcQ');

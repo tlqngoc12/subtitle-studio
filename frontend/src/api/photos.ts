@@ -1,11 +1,11 @@
-/** Typed client for the Photos API (photos spec). */
+/** Typed client for the Photos API (photos spec). `postUrl` is an Instagram or X post link. */
 import { send } from './client';
 
 export type PhotoSource = 'OFFICIAL' | 'MEDIA' | 'FAN';
 
 export interface PhotoPost {
   id: number;
-  instagramUrl: string;
+  postUrl: string;
   imageUrl: string;
   width: number;
   height: number;

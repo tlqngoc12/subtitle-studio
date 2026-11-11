@@ -103,4 +103,18 @@ describe('NavBar', () => {
   it('still marks Vietsub list as current on the watch page', () => {
     expect(currentAt('/vietsub/abc123')).toEqual(['Vietsub list']);
   });
+
+  it('puts the logo (decorative, the name follows) before the app name in the brand link', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <NavBar />
+      </MemoryRouter>,
+    );
+
+    const brand = screen.getByRole('link', { name: 'Subtitle Studio' });
+    const logo = brand.querySelector('img');
+    expect(logo).toHaveAttribute('src', '/logo.webp');
+    expect(logo).toHaveAttribute('alt', '');
+    expect(logo?.nextSibling?.textContent).toBe('Subtitle Studio');
+  });
 });
