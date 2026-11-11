@@ -23,7 +23,7 @@ function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; v
  */
 export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactNode }) {
   return (
-    <article className="fanfic-card">
+    <article className={menu ? 'fanfic-card fanfic-card--menu' : 'fanfic-card'}>
       <a className="fanfic-card__link" href={fanfic.url} target="_blank" rel="noopener noreferrer">
         <Cover src={fanfic.coverUrl} className="fanfic-card__cover" lazy />
         <span className="fanfic-card__body">

@@ -107,6 +107,16 @@ class WattpadClientTest {
     }
 
     @Test
+    void trimsTextFields() {
+        body = "{\"id\":\"5\",\"title\":\"Spaced out \",\"user\":{\"username\":\" ann \"}}";
+
+        WattpadStory s = client.fetch("5");
+
+        assertThat(s.title()).isEqualTo("Spaced out");
+        assertThat(s.author()).isEqualTo("ann");
+    }
+
+    @Test
     void toleratesMissingOptionalFields() {
         body = "{\"id\":\"5\",\"title\":\"Bare\"}";
 

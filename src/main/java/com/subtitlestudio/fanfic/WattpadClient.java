@@ -123,7 +123,7 @@ public class WattpadClient {
 
     private static String text(JsonNode n, String field) {
         JsonNode v = n.get(field);
-        return v == null || !v.isTextual() || v.asText().isBlank() ? null : v.asText();
+        return v == null || !v.isTextual() || v.asText().isBlank() ? null : v.asText().strip();
     }
 
     private static Instant instant(JsonNode v) {

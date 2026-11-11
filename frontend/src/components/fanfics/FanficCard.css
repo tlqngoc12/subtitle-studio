@@ -119,6 +119,11 @@
   -webkit-box-orient: vertical;
 }
 
+/* Room for the admin menu in the corner, so a long title never runs under it. */
+.fanfic-card--menu .fanfic-card__title {
+  padding-right: var(--space-8, 32px);
+}
+
 .fanfic-card__menu {
   position: absolute;
   top: var(--space-2);
@@ -139,7 +144,18 @@
     font-size: 1.0625rem;
   }
 
+  .fanfic-card__stats {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    row-gap: var(--space-3);
+  }
+
   .fanfic-stat {
-    padding-inline: var(--space-3);
+    padding-inline: var(--space-4);
+  }
+
+  .fanfic-stat:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
   }
 }
