@@ -1,3 +1,5 @@
+import userEvent from '@testing-library/user-event';
+import { fanfic } from '../test/fanficFixtures';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -75,5 +77,47 @@ describe('NovelsPage', () => {
 
     const region = await loadedRegion('Novels');
     expect(within(region).getByText('1 chapter · 0 published')).toBeInTheDocument();
+  });
+});
+
+describe('NovelsPage tabs', () => {
+  const fanficsRoute = { method: 'GET', path: '/api/fanfics', status: 200, body: [fanfic({ title: 'Warm Story' })] };
+  const novelsRoute = { method: 'GET', path: '/api/novels', status: 200, body: [novelSummary()] };
+
+  function renderAt(path: string) {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <NovelsPage />
+      </MemoryRouter>,
+    );
+  }
+
+  it('opens on Translated by default', async () => {
+    fakeFetch([novelsRoute, fanficsRoute]);
+    renderAt('/novels');
+
+    expect(screen.getByRole('tab', { name: 'Translated' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'New novel' })).toBeInTheDocument();
+  });
+
+  it('selects Fanfics from ?tab=fanfics', async () => {
+    fakeFetch([novelsRoute, fanficsRoute]);
+    renderAt('/novels?tab=fanfics');
+
+    expect(screen.getByRole('tab', { name: 'Fanfics' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('link', { name: /Warm Story/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add fanfic' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'New novel' })).not.toBeInTheDocument();
+  });
+
+  it('switches tabs by clicking', async () => {
+    fakeFetch([novelsRoute, fanficsRoute]);
+    renderAt('/novels');
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Fanfics' }));
+    expect(await screen.findByRole('link', { name: /Warm Story/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Translated' }));
+    expect(await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ })).toBeInTheDocument();
   });
 });

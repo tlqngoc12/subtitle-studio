@@ -133,6 +133,14 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       };
     case 'INVALID_PROFILE_TEXT':
       return { title: 'The profile text is empty or larger than 20 KB.' };
+    case 'INVALID_FANFIC_LINK':
+      return { title: error.detail || 'Paste a Wattpad story link (wattpad.com/story/…).' };
+    case 'FANFIC_NOT_FOUND':
+      return { title: 'Story not found or not public.' };
+    case 'FANFIC_EXISTS':
+      return { title: error.detail || 'This story is already added.' };
+    case 'WATTPAD_UNAVAILABLE':
+      return { title: 'Wattpad did not answer. Try again later.' };
     case 'NETWORK':
       return {
         title: 'Cannot reach the server.',

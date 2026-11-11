@@ -2,6 +2,7 @@ import { BookOpen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { EmptyState } from '../../components/EmptyState';
+import { NovelsTabs, useNovelsTab } from '../../components/fanfics/NovelsTabs';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
@@ -25,6 +26,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
+  const [tab, setTab] = useNovelsTab();
   useDocumentTitle('Truyện');
 
   useEffect(() => {
@@ -49,6 +51,8 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   return (
     <main className="page">
       <h1 className="visually-hidden">Truyện</h1>
+      <NovelsTabs tab={tab} onTabChange={setTab} translated={
+        <>
       {error && (
         <Alert title={error.title} hint={error.hint} />
       )}
@@ -86,6 +90,8 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
           </section>
         </>
       )}
+        </>
+      } />
     </main>
   );
 }

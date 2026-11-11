@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { listNovelReads, listNovels, type NovelStatus, type NovelSummary } from '../api/novels';
 import { EmptyState } from '../components/EmptyState';
+import { NovelsTabs, useNovelsTab } from '../components/fanfics/NovelsTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -23,6 +24,7 @@ export default function NovelsPage() {
   const [novels, setNovels] = useState<NovelSummary[] | null>(null);
   const [reads, setReads] = useState<Record<string, number>>({});
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [tab, setTab] = useNovelsTab();
 
   useEffect(() => {
     listNovels()
@@ -43,13 +45,20 @@ export default function NovelsPage() {
         title="Novels"
         lede="Translate novels from page screenshots and publish them chapter by chapter."
         actions={
-          <Link className="button button--primary" to="/novels/new">
-            <Plus className="icon" aria-hidden="true" />
-            New novel
-          </Link>
+          tab === 'translated' && (
+            <Link className="button button--primary" to="/novels/new">
+              <Plus className="icon" aria-hidden="true" />
+              New novel
+            </Link>
+          )
         }
       />
 
+      <NovelsTabs
+        tab={tab}
+        onTabChange={setTab}
+        translated={
+          <>
       {error && (
         <Alert title={error.title} hint={error.hint} />
       )}
@@ -82,6 +91,9 @@ export default function NovelsPage() {
           </ul>
         )}
       </section>
+          </>
+        }
+      />
     </main>
   );
 }

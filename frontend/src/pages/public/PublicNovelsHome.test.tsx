@@ -1,3 +1,6 @@
+import { SiteProvider } from '../../data/SiteContext';
+import { fakeSource, publicSite } from '../../test/fakeSource';
+import { fanfic } from '../../test/fanficFixtures';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -202,5 +205,33 @@ describe('PublicAllNovelsPage (/novels/all)', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được. Vui lòng thử lại sau.');
+  });
+});
+
+describe('PublicNovelsPage tabs', () => {
+  function renderAt(path: string) {
+    const site = publicSite(fakeSource({ listFanfics: async () => [fanfic({ title: 'Warm Story' })] }));
+    return render(
+      <SiteProvider value={site}>
+        <MemoryRouter initialEntries={[path]}>
+          <PublicNovelsPage source={sourceOf(EIGHT)} />
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+  }
+
+  it('defaults to Translated', async () => {
+    renderAt('/novels');
+
+    expect(screen.getByRole('tab', { name: 'Translated' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('region', { name: 'Mới cập nhật' })).toBeInTheDocument();
+  });
+
+  it('shows the read-only Fanfics tab from ?tab=fanfics', async () => {
+    renderAt('/novels?tab=fanfics');
+
+    expect(screen.getByRole('tab', { name: 'Fanfics' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('link', { name: /Warm Story/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add fanfic' })).not.toBeInTheDocument();
   });
 });
