@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { PhotoPost, PhotoSource } from '../../api/photos';
-import { formatDayRange } from '../../lib/dates';
+import { formatDay } from '../../lib/dates';
 import { tileShape } from './tileShape';
 import './PhotoTile.css';
 
@@ -30,7 +30,7 @@ export function PhotoTile({ post, children }: { post: PhotoPost; children?: Reac
         </span>
         <span className="photo-tile__caption">
           <span className="photo-tile__title">{post.title}</span>
-          <span className="photo-tile__date">{formatDayRange(post.takenOn, post.takenUntil)}</span>
+          <span className="photo-tile__date">{formatDay(post.takenOn)}</span>
         </span>
       </a>
       {children}

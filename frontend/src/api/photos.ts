@@ -12,7 +12,6 @@ export interface PhotoPost {
   title: string;
   /** `yyyy-mm-dd`; format with `formatDay`, never `new Date()`. */
   takenOn: string;
-  takenUntil: string | null;
   source: PhotoSource;
   photoCount: number | null;
   /** Profile slugs. */

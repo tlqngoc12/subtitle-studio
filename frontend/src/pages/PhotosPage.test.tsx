@@ -64,9 +64,9 @@ describe('PhotosPage', () => {
     expect(screen.getAllByRole('link', { name: /^Post / })).toHaveLength(2);
   });
 
-  it('opens the Instagram post in a new tab and shows chips, title and date range', async () => {
+  it('opens the Instagram post in a new tab and shows chips, title and one date', async () => {
     renderPhotos([
-      photo(1, { photoCount: 3, source: 'FAN', takenOn: '2026-10-31', takenUntil: '2026-11-01', title: 'Fan meeting' }),
+      photo(1, { photoCount: 3, source: 'FAN', takenOn: '2026-10-31', title: 'Fan meeting' }),
       photo(2, { photoCount: 1 }),
     ]);
 
@@ -76,7 +76,7 @@ describe('PhotosPage', () => {
     expect(tile).toHaveAttribute('rel', 'noopener noreferrer');
     expect(within(tile).getByText('Fan')).toBeInTheDocument();
     expect(within(tile).getByText('3 photos')).toBeInTheDocument();
-    expect(within(tile).getByText('31 Oct 2026 – 1 Nov 2026')).toBeInTheDocument();
+    expect(within(tile).getByText('31 Oct 2026')).toBeInTheDocument();
     expect(screen.getByText('1 photo')).toBeInTheDocument();
   });
 
@@ -173,7 +173,8 @@ describe('PhotosPage admin', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add post' });
     await userEvent.type(within(dialog).getByLabelText('Instagram link'), 'https://www.instagram.com/p/NEW/');
     await userEvent.type(within(dialog).getByLabelText('Title'), 'Brand new');
-    await userEvent.type(within(dialog).getByLabelText('Date'), '2026-11-10');
+    await userEvent.click(within(dialog).getByLabelText('Date'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Today' }));
     await userEvent.upload(within(dialog).getByLabelText('Image file'), new File(['x'], 'a.png', { type: 'image/png' }));
     await within(dialog).findByRole('img', { name: 'Selected image' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));

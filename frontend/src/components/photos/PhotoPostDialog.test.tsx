@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFetch, problem, type Route } from '../../test/fakeFetch';
 import { photo } from '../../test/photoFixtures';
 import { PhotoPostDialog } from './PhotoPostDialog';
@@ -27,8 +27,11 @@ function setup(post?: ReturnType<typeof photo>) {
 async function fillRequired() {
   await userEvent.type(screen.getByLabelText('Instagram link'), 'https://www.instagram.com/p/AAA/');
   await userEvent.type(screen.getByLabelText('Title'), 'Fan meeting');
-  await userEvent.type(screen.getByLabelText('Date'), '2026-11-09');
 }
+
+// The date defaults to today: pin it so the saved value is known.
+beforeEach(() => vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 9, 12) }));
+afterEach(() => vi.useRealTimers());
 
 describe('PhotoPostDialog', () => {
   it('uploads an image pasted with Ctrl+V, resized to 1600', async () => {
@@ -86,11 +89,44 @@ describe('PhotoPostDialog', () => {
       mediaId: 9,
       title: 'Fan meeting',
       takenOn: '2026-11-09',
-      takenUntil: null,
       source: 'FAN',
       photoCount: null,
       profiles: ['emi'],
     });
+  });
+
+  it('has no End date and defaults the Date to today', () => {
+    setup();
+
+    expect(screen.queryByLabelText(/End date/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Date')).toHaveTextContent('09/11/2026');
+  });
+
+  it('puts Cancel and Save in one action bar, both medium buttons, Save last', () => {
+    setup();
+
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(cancel).toHaveClass('button');
+    expect(cancel).not.toHaveClass('button--s');
+    expect(save).toHaveClass('button', 'button--primary');
+    expect(save).not.toHaveClass('button--s');
+    expect(cancel.parentElement).toBe(save.parentElement);
+    expect(save.parentElement?.lastElementChild).toBe(save);
+  });
+
+  it('sends the photo count from the stepper and null when it is empty', async () => {
+    const calls = fakeFetch([UPLOAD, { method: 'POST', path: '/api/photos', status: 201, body: photo(5) }]);
+    setup();
+    await fillRequired();
+    await userEvent.upload(screen.getByLabelText('Image file'), PNG);
+    await screen.findByRole('img', { name: 'Selected image' });
+    await userEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/photos')).toBe(true));
+    expect(JSON.parse(String(calls.find((c) => c.path === '/api/photos')?.body)).photoCount).toBe(2);
   });
 
   it('asks for an image before saving', async () => {
@@ -130,7 +166,6 @@ describe('PhotoPostDialog', () => {
       imageUrl: '/api/media/77',
       title: 'Old',
       takenOn: '2026-11-01',
-      takenUntil: '2026-11-02',
       source: 'MEDIA',
       photoCount: 4,
       profiles: ['emi'],
@@ -139,8 +174,8 @@ describe('PhotoPostDialog', () => {
     setup(existing);
 
     expect(screen.getByLabelText('Title')).toHaveValue('Old');
-    expect(screen.getByLabelText('Date')).toHaveValue('2026-11-01');
-    expect(screen.getByLabelText('Photo count (optional)')).toHaveValue(4);
+    expect(screen.getByLabelText('Date')).toHaveTextContent('01/11/2026');
+    expect(screen.getByLabelText('Photo count (optional)')).toHaveValue('4');
     expect(screen.getByRole('button', { name: 'Media' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Emi' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
