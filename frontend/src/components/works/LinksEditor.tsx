@@ -35,7 +35,7 @@ const ICON_LABELS: Record<string, string> = {
   applemusic: 'Apple Music',
   line: 'Line',
   threads: 'Threads',
-  link: 'Generic link',
+  link: 'Link',
 };
 
 const ICON_OPTIONS = [{ value: '', label: 'Auto' }, ...ICON_KEYS.map((k) => ({ value: k, label: ICON_LABELS[k] }))];

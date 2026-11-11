@@ -124,6 +124,22 @@ a:not([class]):hover {
   font-size: var(--fs-control-l);
 }
 
+/* Touch: keep the 32/40 px look but give every button a 44 x 44 px hit area (invisible, centred, never smaller than the button). */
+@media (pointer: coarse) {
+  :where(.button) {
+    position: relative;
+  }
+
+  .button::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 .button--primary {
   background: var(--brand);
   border-color: var(--brand);

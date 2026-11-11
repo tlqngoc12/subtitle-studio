@@ -37,7 +37,7 @@
 .select__trigger--frame {
   flex: none;
   width: auto;
-  max-width: 11rem;
+  max-width: 16rem;
   height: var(--control-l);
   font-size: var(--fs-control-l);
   border: 0;

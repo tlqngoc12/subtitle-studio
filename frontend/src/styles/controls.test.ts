@@ -49,6 +49,17 @@ describe('control size scale', () => {
     expect(field!.body).toMatch(/height:\s*var\(--control-m\)/);
   });
 
+  it('gives every button (incl. .button--s and .button--icon) a 44 px hit area on coarse pointers', () => {
+    const block = base.slice(base.indexOf('@media (pointer: coarse)'));
+    expect(block).toContain('@media (pointer: coarse)');
+    const after = rules(block).find((r) => r.selector === '.button::after');
+    expect(after?.body).toMatch(/width:\s*max\(100%, 44px\)/);
+    expect(after?.body).toMatch(/height:\s*max\(100%, 44px\)/);
+    // .button--s and .button--icon are .button elements, so the rule covers them.
+    expect(base).toMatch(/\.button--s\s*\{/);
+    expect(base).toMatch(/\.button--icon\s*\{/);
+  });
+
   it('no longer has the old --small button', () => {
     expect(base).not.toContain('.button--small');
   });

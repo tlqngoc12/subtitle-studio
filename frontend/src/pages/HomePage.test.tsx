@@ -130,8 +130,8 @@ describe('HomePage', () => {
 
       const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(select).toBeEnabled());
-      expect(await optionNames(userEvent.setup(), select)).toEqual(['— No translation —', 'EmiBonnie', 'Other']);
-      expect(select).toHaveTextContent('— No translation —');
+      expect(await optionNames(userEvent.setup(), select)).toEqual(['No profile', 'EmiBonnie', 'Other']);
+      expect(select).toHaveTextContent('No profile');
     });
 
     it('disables profiles when Gemini is not configured', async () => {
@@ -195,7 +195,7 @@ describe('HomePage', () => {
 
       const select = await screen.findByLabelText('Translation profile');
       await waitFor(() => expect(select).toBeEnabled());
-      expect(select).toHaveTextContent('— No translation —');
+      expect(select).toHaveTextContent('No profile');
     });
   });
 

@@ -35,7 +35,7 @@ export function UrlForm({ pending, onSubmit, profiles, configured, profile, onPr
       value={profile}
       disabled={!configured}
       onChange={onProfileChange}
-      options={[{ value: '', label: '— No translation —' }, ...profiles.map((p) => ({ value: p, label: p }))]}
+      options={[{ value: '', label: 'No profile' }, ...profiles.map((p) => ({ value: p, label: p }))]}
     />
   );
 
