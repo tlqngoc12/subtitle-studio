@@ -450,10 +450,10 @@ class SiteExporterTest {
         Media kept = resizedImage();
         Media gone = resizedImage();
         photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/AAA/",
-                kept.getId(), "Kept", java.time.LocalDate.parse("2026-11-09"), null,
+                kept.getId(), "Kept", java.time.LocalDate.parse("2026-11-09"),
                 com.subtitlestudio.photo.PhotoSource.OFFICIAL, 2, List.of("emi")));
         photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/BBB/",
-                gone.getId(), "Gone", java.time.LocalDate.parse("2026-11-08"), null,
+                gone.getId(), "Gone", java.time.LocalDate.parse("2026-11-08"),
                 com.subtitlestudio.photo.PhotoSource.FAN, null, List.of()));
         Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".webp"));
 
@@ -463,6 +463,7 @@ class SiteExporterTest {
         assertThat(photos).hasSize(1);
         assertThat(photos.get(0).get("title").asText()).isEqualTo("Kept");
         assertThat(photos.get(0).get("takenOn").asText()).isEqualTo("2026-11-09");
+        assertThat(photos.get(0).has("takenUntil")).isFalse();
         assertThat(photos.get(0).get("imageUrl").asText()).isEqualTo("/media/" + kept.getStorageKey() + ".webp");
         assertThat(photos.get(0).get("profiles").get(0).asText()).isEqualTo("emi");
         assertThat(out.resolve("media/" + kept.getStorageKey() + ".webp")).exists();
@@ -474,12 +475,12 @@ class SiteExporterTest {
         Media avatar = resizedImage();
         long bonnie = personService.create(new com.subtitlestudio.work.PersonRequest("Bonnie", avatar.getId())).id();
         var created = workService.create(new com.subtitlestudio.work.WorkRequest("Love Story", cover.getId(),
-                java.time.LocalDate.parse("2026-04-24"), com.subtitlestudio.work.WorkCategory.FILM_TV, "Drama", "emi",
+                java.time.LocalDate.parse("2026-04-24"), List.of(com.subtitlestudio.work.WorkCategory.FILM_TV, com.subtitlestudio.work.WorkCategory.MUSIC), "Drama", "emi",
                 "Synopsis", List.of(new com.subtitlestudio.work.WorkLinkRequest(com.subtitlestudio.work.LinkKind.TRAILER,
                         null, "https://youtu.be/dQw4w9WgXcQ", null)),
                 List.of(new com.subtitlestudio.work.WorkCreditRequest(bonnie, "Lead", "Key"))));
         workService.create(new com.subtitlestudio.work.WorkRequest("Soon", null, null,
-                com.subtitlestudio.work.WorkCategory.MUSIC, null, null, null, List.of(), List.of()));
+                List.of(com.subtitlestudio.work.WorkCategory.MUSIC), null, null, null, List.of(), List.of()));
 
         exporter.export(out, NOW);
 
@@ -487,8 +488,13 @@ class SiteExporterTest {
         assertThat(list).hasSize(2);
         assertThat(list.get(0).get("title").asText()).isEqualTo("Soon");
         assertThat(list.get(0).get("releaseDate").isNull()).isTrue();
+        assertThat(list.get(0).get("categories").get(0).asText()).isEqualTo("MUSIC");
+        assertThat(list.get(0).has("category")).isFalse();
+        assertThat(list.get(1).get("categories")).hasSize(2);
+        assertThat(list.get(1).get("categories").get(1).asText()).isEqualTo("MUSIC");
         assertThat(list.get(1).get("coverUrl").asText()).isEqualTo("/media/" + cover.getStorageKey() + ".webp");
         JsonNode detail = readJson("data/works/" + created.id() + ".json");
+        assertThat(detail.get("categories").get(0).asText()).isEqualTo("FILM_TV");
         assertThat(detail.get("coverMediaId").isNull()).isTrue();
         assertThat(detail.get("trailerVideoId").asText()).isEqualTo("dQw4w9WgXcQ");
         JsonNode person = detail.get("credits").get(0).get("person");

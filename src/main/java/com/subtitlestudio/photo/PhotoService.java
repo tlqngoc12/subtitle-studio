@@ -101,8 +101,6 @@ public class PhotoService {
         LocalDate on = r.takenOn();
         if (on == null) {
             errors.add(new FieldError("takenOn", "Date is required"));
-        } else if (r.takenUntil() != null && r.takenUntil().isBefore(on)) {
-            errors.add(new FieldError("takenUntil", "End date cannot be before the date"));
         }
         if (r.source() == null) {
             errors.add(new FieldError("source", "Choose Official, Media or Fan"));
@@ -126,7 +124,7 @@ public class PhotoService {
                 .ifPresent(existing -> {
                     throw new PhotoPostExistsException(existing.getTitle());
                 });
-        post.set(url.get(), image, title, on, r.takenUntil(), r.source(), r.photoCount(), people, now);
+        post.set(url.get(), image, title, on, r.source(), r.photoCount(), people, now);
     }
 
     static PhotoPostDto toDto(PhotoPost p) {
@@ -135,6 +133,6 @@ public class PhotoService {
                 .sorted(Comparator.comparingInt(Profile::getSortOrder).thenComparing(Profile::getId))
                 .map(Profile::getSlug).toList();
         return new PhotoPostDto(p.getId(), p.getInstagramUrl(), MediaController.url(m.getId()), m.getWidth(),
-                m.getHeight(), p.getTitle(), p.getTakenOn(), p.getTakenUntil(), p.getSource(), p.getPhotoCount(), slugs);
+                m.getHeight(), p.getTitle(), p.getTakenOn(), p.getSource(), p.getPhotoCount(), slugs);
     }
 }

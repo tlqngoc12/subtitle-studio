@@ -39,7 +39,7 @@ class WorkRepositoryTest {
             credits.add(new WorkCredit(w, i + 1, cast.get(i), "Lead", "Key"));
         }
         List<WorkLink> links = List.of(new WorkLink(w, 1, LinkKind.PILOT, "Pilot", "https://youtu.be/dQw4w9WgXcQ", null));
-        w.set(title, null, release, WorkCategory.FILM_TV, "Drama", null, null, links, credits, NOW);
+        w.set(title, null, release, List.of(WorkCategory.FILM_TV), "Drama", null, null, links, credits, NOW);
         return works.saveAndFlush(w);
     }
 

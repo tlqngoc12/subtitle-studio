@@ -95,7 +95,7 @@ class WorkServiceTest {
 
     private static WorkRequest request(WorkCategory category, Long cover, List<WorkLinkRequest> links,
                                        List<WorkCreditRequest> credits) {
-        return new WorkRequest(" Love Story ", cover, LocalDate.parse("2026-04-24"), category, "Drama", "emi", " Synopsis ",
+        return new WorkRequest(" Love Story ", cover, LocalDate.parse("2026-04-24"), List.of(category), "Drama", "emi", " Synopsis ",
                 links, credits);
     }
 
@@ -137,6 +137,56 @@ class WorkServiceTest {
     }
 
     @Test
+    void severalCategoriesKeepTheirOrderAndCanBeReordered() {
+        WorkRequest base = request(WorkCategory.FILM_TV, null, List.of(), List.of());
+        WorkDto created = service.create(new WorkRequest(base.title(), null, null,
+                List.of(WorkCategory.MUSIC, WorkCategory.FILM_TV, WorkCategory.INTERVIEW), null, null, null, List.of(),
+                List.of()));
+
+        assertThat(service.get(created.id()).categories())
+                .containsExactly(WorkCategory.MUSIC, WorkCategory.FILM_TV, WorkCategory.INTERVIEW);
+        assertThat(service.list().get(0).categories())
+                .containsExactly(WorkCategory.MUSIC, WorkCategory.FILM_TV, WorkCategory.INTERVIEW);
+
+        WorkDto updated = service.update(created.id(), new WorkRequest(base.title(), null, null,
+                List.of(WorkCategory.INTERVIEW, WorkCategory.MUSIC), null, null, null, List.of(), List.of()));
+
+        assertThat(updated.categories()).containsExactly(WorkCategory.INTERVIEW, WorkCategory.MUSIC);
+        assertThat(service.get(created.id()).categories()).containsExactly(WorkCategory.INTERVIEW, WorkCategory.MUSIC);
+    }
+
+    @Test
+    void noCategoryIsRejected() {
+        WorkRequest r = new WorkRequest("T", null, null, List.of(), null, null, null, List.of(), List.of());
+
+        assertThat(catchThrowableOfType(InvalidWorkException.class, () -> service.create(r)).errors())
+                .extracting(FieldError::field).containsExactly("categories");
+    }
+
+    @Test
+    void characterIsKeptWhenFilmAndTvIsAmongSeveralCategories() {
+        long a = person("A");
+        WorkDto dto = service.create(new WorkRequest("T", null, null, List.of(WorkCategory.MUSIC, WorkCategory.FILM_TV),
+                null, null, null, List.of(), List.of(new WorkCreditRequest(a, "Lead", "Key"))));
+
+        assertThat(dto.credits()).extracting(WorkCreditDto::characterName).containsExactly("Key");
+    }
+
+    @Test
+    void comingSoonStaysFirstThenNewestThenHighestId() {
+        service.create(new WorkRequest("Old", null, LocalDate.parse("2026-01-05"), List.of(WorkCategory.MUSIC), null, null,
+                null, List.of(), List.of()));
+        service.create(new WorkRequest("Newer", null, LocalDate.parse("2026-11-09"), List.of(WorkCategory.MUSIC), null,
+                null, null, List.of(), List.of()));
+        service.create(new WorkRequest("Soon", null, null, List.of(WorkCategory.FILM_TV), null, null, null, List.of(),
+                List.of()));
+        service.create(new WorkRequest("Same day", null, LocalDate.parse("2026-11-09"), List.of(WorkCategory.MUSIC), null,
+                null, null, List.of(), List.of()));
+
+        assertThat(service.list()).extracting(WorkSummaryDto::title).containsExactly("Soon", "Same day", "Newer", "Old");
+    }
+
+    @Test
     void characterClearedForMusic() {
         long a = person("A");
 
@@ -152,7 +202,7 @@ class WorkServiceTest {
         WorkDto dto = service.create(request(WorkCategory.FILM_TV, null,
                 List.of(new WorkLinkRequest(LinkKind.TRAILER, null, "https://youtu.be/dQw4w9WgXcQ?si=abc", null)),
                 List.of()));
-        WorkDto notYoutube = service.create(new WorkRequest("Other", null, null, WorkCategory.FILM_TV, null, null, null,
+        WorkDto notYoutube = service.create(new WorkRequest("Other", null, null, List.of(WorkCategory.FILM_TV), null, null, null,
                 List.of(new WorkLinkRequest(LinkKind.TRAILER, null, "https://vimeo.com/123", null)), List.of()));
 
         assertThat(dto.trailerVideoId()).isEqualTo("dQw4w9WgXcQ");
@@ -190,7 +240,7 @@ class WorkServiceTest {
 
     @Test
     void unknownProfileCoverAndPersonAreReportedTogether() {
-        WorkRequest r = new WorkRequest("T", 999_999L, null, WorkCategory.MUSIC, null, "ghost", null, List.of(),
+        WorkRequest r = new WorkRequest("T", 999_999L, null, List.of(WorkCategory.MUSIC), null, "ghost", null, List.of(),
                 List.of(new WorkCreditRequest(999_999L, null, null)));
 
         InvalidWorkException e = catchThrowableOfType(InvalidWorkException.class, () -> service.create(r));

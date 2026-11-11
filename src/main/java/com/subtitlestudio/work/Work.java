@@ -3,7 +3,9 @@ package com.subtitlestudio.work;
 import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.Profile;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -15,13 +17,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.ListIndexBase;
 import org.hibernate.type.SqlTypes;
 
 /** One work (film, MV, ad...) with its link buttons and credits; both lists are replaced as a whole on save. */
@@ -46,9 +52,15 @@ public class Work {
     @Column(name = "release_date")
     private LocalDate releaseDate;
 
+    // One to eight categories in the order the admin chose them; position runs 1..n (V16).
+    @ElementCollection
+    @CollectionTable(name = "t_work_category", joinColumns = @JoinColumn(name = "work_id"))
+    @OrderColumn(name = "position")
+    @ListIndexBase(1)
+    @Column(name = "category", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
-    private WorkCategory category;
+    @Fetch(FetchMode.SUBSELECT)
+    private List<WorkCategory> categories = new ArrayList<>();
 
     @Column(length = 50)
     private String subcategory;
@@ -84,13 +96,15 @@ public class Work {
     }
 
     /** Replaces every field and both lists; {@code newLinks} and {@code newCredits} are built with this work. */
-    public void set(String title, Media cover, LocalDate releaseDate, WorkCategory category, String subcategory,
+    public void set(String title, Media cover, LocalDate releaseDate, List<WorkCategory> categories, String subcategory,
                     Profile profile, String description, List<WorkLink> newLinks, List<WorkCredit> newCredits,
                     Instant now) {
         this.title = title;
         this.cover = cover;
         this.releaseDate = releaseDate;
-        this.category = category;
+        // A new list, not clear + addAll: Hibernate then deletes every row before inserting, so reordering never
+        // collides with the (work_id, category) key.
+        this.categories = new ArrayList<>(categories);
         this.subcategory = subcategory;
         this.profile = profile;
         this.description = description;
@@ -117,8 +131,8 @@ public class Work {
         return releaseDate;
     }
 
-    public WorkCategory getCategory() {
-        return category;
+    public List<WorkCategory> getCategories() {
+        return categories;
     }
 
     public String getSubcategory() {

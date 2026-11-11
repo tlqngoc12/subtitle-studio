@@ -40,7 +40,7 @@ class PhotoPostRepositoryTest {
     private PhotoPost post(String code, LocalDate takenOn, Set<Profile> who) {
         Media m = media.save(new Media("image/webp", 10, "a.webp", NOW));
         PhotoPost p = new PhotoPost(NOW);
-        p.set("https://www.instagram.com/p/" + code + "/", m, "Post " + code, takenOn, null, PhotoSource.OFFICIAL, 3,
+        p.set("https://www.instagram.com/p/" + code + "/", m, "Post " + code, takenOn, PhotoSource.OFFICIAL, 3,
                 who, NOW);
         return posts.saveAndFlush(p);
     }

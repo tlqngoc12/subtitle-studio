@@ -38,7 +38,7 @@ public class WorkValidator {
             LinkKind.TRAILER, "Trailer", LinkKind.X, "X", LinkKind.INSTAGRAM, "Instagram");
 
     public WorkRequest normalise(WorkRequest r) {
-        boolean film = r.category() == WorkCategory.FILM_TV;
+        boolean film = r.categories() != null && r.categories().contains(WorkCategory.FILM_TV);
         List<WorkLinkRequest> links = new ArrayList<>();
         for (WorkLinkRequest l : r.links() == null ? List.<WorkLinkRequest>of() : r.links()) {
             String label = blankToNull(l.label());
@@ -52,7 +52,8 @@ public class WorkValidator {
             credits.add(new WorkCreditRequest(c.personId(), blankToNull(c.role()),
                     film ? blankToNull(c.characterName()) : null));
         }
-        return new WorkRequest(blankToNull(r.title()), r.coverMediaId(), r.releaseDate(), r.category(),
+        return new WorkRequest(blankToNull(r.title()), r.coverMediaId(), r.releaseDate(),
+                r.categories() == null ? List.of() : new ArrayList<>(r.categories()),
                 blankToNull(r.subcategory()), blankToNull(r.profile()), blankToNull(r.description()), links, credits);
     }
 
@@ -64,9 +65,7 @@ public class WorkValidator {
         } else if (r.title().length() > MAX_TITLE) {
             errors.add(new FieldError("title", "Title is longer than " + MAX_TITLE + " characters"));
         }
-        if (r.category() == null) {
-            errors.add(new FieldError("category", "Choose a category"));
-        }
+        checkCategories(r.categories(), errors);
         if (r.subcategory() != null && r.subcategory().length() > MAX_SUBCATEGORY) {
             errors.add(new FieldError("subcategory", "Longer than " + MAX_SUBCATEGORY + " characters"));
         }
@@ -76,6 +75,14 @@ public class WorkValidator {
         checkLinks(r.links(), errors);
         checkCredits(r.credits(), errors);
         return errors;
+    }
+
+    private static void checkCategories(List<WorkCategory> categories, List<FieldError> errors) {
+        if (categories.isEmpty() || categories.contains(null)) {
+            errors.add(new FieldError("categories", "Choose at least one category"));
+        } else if (new HashSet<>(categories).size() != categories.size()) {
+            errors.add(new FieldError("categories", "Each category can be chosen only once"));
+        }
     }
 
     private static void checkLinks(List<WorkLinkRequest> links, List<FieldError> errors) {

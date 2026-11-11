@@ -110,9 +110,9 @@ class PersonServiceTest {
     @Test
     void deleteInUseIs409WithTitles() {
         PersonDto emi = service.create(new PersonRequest("Emi", null));
-        workService.create(new WorkRequest("Zeta", null, LocalDate.parse("2026-01-01"), WorkCategory.MUSIC, null, null,
+        workService.create(new WorkRequest("Zeta", null, LocalDate.parse("2026-01-01"), List.of(WorkCategory.MUSIC), null, null,
                 null, List.of(), List.of(new WorkCreditRequest(emi.id(), "Singer", null))));
-        workService.create(new WorkRequest("Alpha", null, null, WorkCategory.MUSIC, null, null, null, List.of(),
+        workService.create(new WorkRequest("Alpha", null, null, List.of(WorkCategory.MUSIC), null, null, null, List.of(),
                 List.of(new WorkCreditRequest(emi.id(), null, null))));
 
         PersonInUseException e = catchThrowableOfType(PersonInUseException.class, () -> service.delete(emi.id()));

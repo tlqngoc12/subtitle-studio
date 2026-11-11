@@ -31,10 +31,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class PhotoControllerTest {
 
     private static final PhotoPostDto DTO = new PhotoPostDto(5, "https://www.instagram.com/p/AAA/", "/api/media/9", 1080,
-            1350, "Title", LocalDate.parse("2026-11-09"), null, PhotoSource.OFFICIAL, 3, List.of("emi"));
+            1350, "Title", LocalDate.parse("2026-11-09"), PhotoSource.OFFICIAL, 3, List.of("emi"));
     private static final String BODY = """
             {"instagramUrl":"https://www.instagram.com/p/AAA/","mediaId":9,"title":"Title","takenOn":"2026-11-09",
-             "takenUntil":null,"source":"OFFICIAL","photoCount":3,"profiles":["emi"]}""";
+             "source":"OFFICIAL","photoCount":3,"profiles":["emi"]}""";
 
     @Autowired
     private MockMvc mvc;
