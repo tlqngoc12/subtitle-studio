@@ -777,6 +777,14 @@ Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enh
 - **Select dùng chung** (Radix) thay 5 `<select>` gốc; `ScrollToTop` cho cả hai app.
 - **Cần làm:** chạy `scripts/register-backup-task.ps1` trên máy khác nếu có; deploy không cần migration mới.
 
+### 2026-11-11: UI polish (hệ thống điều khiển, chuyển động, Works/Photos) 🚧 (chưa merge, chưa deploy)
+
+Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-design.md](docs/superpowers/specs/2026-11-11-ui-polish-design.md), plan: [docs/superpowers/plans/2026-11-11-ui-polish.md](docs/superpowers/plans/2026-11-11-ui-polish.md).
+
+- **Nền tảng (Task 2-5):** token cỡ điều khiển (`--control-s/m/l` = 32/40/48 px) và chuyển động (`--dur-*`, `--ease-*`, về 0 khi `prefers-reduced-motion`); một họ nút `.button` (S/M/L, icon, `--primary/--ghost/--danger/--danger-solid`), `--small` đổi tên thành `--s`; ô nhập dùng chung selector `:where(input…, select, textarea, .field-control)` cao 40 px; `.form-actions`. Test `styles/controls.test.ts` chặn CSS riêng cỡ nút.
+- **Component dùng chung:** `Field` (label/hint/error + aria), `DatePicker` (`react-day-picker` 9.14.0, chuỗi `yyyy-mm-dd` không lệch múi giờ, hiện `dd/MM/yyyy`), `NumberField`, `ImageDropzone` (thay `ImagePicker`; Ctrl+V chỉ nhận khi focus trong chính nó hoặc trong dialog chứa nó), `Reveal`, `Skeleton*`, `useScrollDirection` (navbar ẩn khi cuộn xuống, mờ kính khi `scrollY > 0`; thay `useHideOnScroll`), `useDelayedFlag`.
+- **Chuyển động:** mọi `transition`/`animation` dùng token; popover/select mở từ trigger (`overlay-in/out`), modal fade + trượt 12 px, thẻ nhấc 2 px khi hover (chuột), toast theo token.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
