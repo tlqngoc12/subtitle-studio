@@ -103,13 +103,28 @@ class PhotoServiceTest {
 
         PhotoPostDto dto = service.create(request("https://instagram.com/p/DQx1abc?igsh=xyz", img));
 
-        assertThat(dto.instagramUrl()).isEqualTo(URL);
+        assertThat(dto.postUrl()).isEqualTo(URL);
         assertThat(dto.title()).isEqualTo("Title");
         assertThat(dto.width()).isEqualTo(300);
         assertThat(dto.height()).isEqualTo(400);
         assertThat(dto.imageUrl()).isEqualTo("/api/media/" + img);
         assertThat(dto.profiles()).containsExactly("emibonnie", "emi");
         assertThat(service.list()).hasSize(1);
+    }
+
+    @Test
+    void titleKeepsLineBreaksAndTrimsEachLine() {
+        PhotoPostDto dto = service.create(new PhotoPostRequest(URL, resizedImage(), "  Line one \t\r\n\r\nLine two   \n  ",
+                LocalDate.parse("2026-11-09"), PhotoSource.OFFICIAL, null, List.of()));
+
+        assertThat(dto.title()).isEqualTo("Line one\n\nLine two");
+    }
+
+    @Test
+    void titleLimitCountsTheLineBreaks() {
+        assertThatThrownBy(() -> service.create(new PhotoPostRequest(URL, resizedImage(), "a\n".repeat(101),
+                LocalDate.parse("2026-11-09"), PhotoSource.OFFICIAL, null, List.of())))
+                .satisfies(e -> assertThat(fields(e)).containsExactly("title"));
     }
 
     @Test
@@ -148,7 +163,7 @@ class PhotoServiceTest {
     @Test
     void anUnknownTakenUntilPropertyInTheJsonIsIgnored() throws Exception {
         String json = """
-                {"instagramUrl":"%s","mediaId":%d,"title":"T","takenOn":"2026-11-09","takenUntil":"2026-11-12",
+                {"postUrl":"%s","mediaId":%d,"title":"T","takenOn":"2026-11-09","takenUntil":"2026-11-12",
                  "source":"MEDIA","photoCount":null,"profiles":[]}""".formatted(URL, resizedImage());
         PhotoPostRequest r = new com.fasterxml.jackson.databind.ObjectMapper()
                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
@@ -177,7 +192,7 @@ class PhotoServiceTest {
         PhotoPostRequest r = new PhotoPostRequest("nope", null, " ", null, null, null, List.of("ghost"));
 
         assertThat(fields(catchThrowableOfType(InvalidBlockException.class, () -> service.create(r))))
-                .containsExactlyInAnyOrder("instagramUrl", "mediaId", "title", "takenOn", "source", "profiles");
+                .containsExactlyInAnyOrder("postUrl", "mediaId", "title", "takenOn", "source", "profiles");
     }
 
     @Test

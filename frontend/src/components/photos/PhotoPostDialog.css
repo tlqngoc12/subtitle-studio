@@ -46,6 +46,15 @@
   margin-top: var(--space-4);
 }
 
+/* The title grows with its text from 2 rows up to 4, then scrolls. */
+.pdialog__title-input {
+  min-height: 0;
+  max-height: calc(4 * 1.5em + 20px);
+  overflow-y: auto;
+  line-height: 1.5;
+  resize: none;
+}
+
 .pdialog__row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

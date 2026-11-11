@@ -15,6 +15,7 @@ import { PeopleFilter, type Person } from '../components/ui/PeopleFilter';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { matchesPerson } from '../lib/people';
 import '../components/photos/PhotoTile.css';
 import './PhotosPage.css';
 
@@ -63,8 +64,8 @@ export default function PhotosPage() {
 
   const people = useMemo(() => peopleOf(page), [page]);
   const visible = useMemo(
-    () => (posts ?? []).filter((p) => who === null || p.profiles.includes(who)),
-    [posts, who],
+    () => (posts ?? []).filter((p) => matchesPerson(p.profiles, who, page?.group.slug ?? null)),
+    [posts, who, page],
   );
 
   const saved = (post: PhotoPost) => {

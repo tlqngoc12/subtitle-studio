@@ -3,7 +3,7 @@ import type { PhotoPost } from '../api/photos';
 export function photo(id: number, overrides: Partial<PhotoPost> = {}): PhotoPost {
   return {
     id,
-    instagramUrl: `https://www.instagram.com/p/POST${id}/`,
+    postUrl: `https://www.instagram.com/p/POST${id}/`,
     imageUrl: `/media/${id}.webp`,
     width: 1080,
     height: 1080,

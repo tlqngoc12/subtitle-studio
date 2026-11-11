@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Photo posts (Instagram posts shown as tiles). All field problems are reported together; the image must have been
+ * Photo posts (Instagram and X posts shown as tiles). All field problems are reported together; the image must have been
  * uploaded with {@code ?maxSide=} so its size is known. A replaced or deleted image goes away when nothing else shows it.
  */
 @Service
@@ -79,9 +79,9 @@ public class PhotoService {
 
     private void apply(PhotoPost post, PhotoPostRequest r, Instant now) {
         List<FieldError> errors = new ArrayList<>();
-        Optional<String> url = InstagramUrl.normalize(r.instagramUrl());
+        Optional<String> url = PostUrl.normalize(r.postUrl());
         if (url.isEmpty()) {
-            errors.add(new FieldError("instagramUrl", "Paste the link of an Instagram post, reel or video"));
+            errors.add(new FieldError("postUrl", "Paste the link of an Instagram or X post"));
         }
         Media image = null;
         if (r.mediaId() == null) {
@@ -94,7 +94,7 @@ public class PhotoService {
                 errors.add(new FieldError("mediaId", "Upload the image again so its size is known"));
             }
         }
-        String title = r.title() == null ? "" : r.title().strip();
+        String title = cleanTitle(r.title());
         if (title.isEmpty() || title.length() > MAX_TITLE) {
             errors.add(new FieldError("title", "Title must be 1-" + MAX_TITLE + " characters"));
         }
@@ -120,11 +120,20 @@ public class PhotoService {
         if (!errors.isEmpty()) {
             throw new InvalidBlockException(errors);
         }
-        posts.findByInstagramUrl(url.get()).filter(existing -> !existing.getId().equals(post.getId()))
+        posts.findByPostUrl(url.get()).filter(existing -> !existing.getId().equals(post.getId()))
                 .ifPresent(existing -> {
                     throw new PhotoPostExistsException(existing.getTitle());
                 });
         post.set(url.get(), image, title, on, r.source(), r.photoCount(), people, now);
+    }
+
+    /** Keeps line breaks as {@code \n}; drops trailing whitespace from every line and from the whole text. */
+    static String cleanTitle(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return java.util.Arrays.stream(raw.replace("\r\n", "\n").replace('\r', '\n').split("\n", -1))
+                .map(String::stripTrailing).collect(java.util.stream.Collectors.joining("\n")).strip();
     }
 
     static PhotoPostDto toDto(PhotoPost p) {
@@ -132,7 +141,7 @@ public class PhotoService {
         List<String> slugs = p.getProfiles().stream()
                 .sorted(Comparator.comparingInt(Profile::getSortOrder).thenComparing(Profile::getId))
                 .map(Profile::getSlug).toList();
-        return new PhotoPostDto(p.getId(), p.getInstagramUrl(), MediaController.url(m.getId()), m.getWidth(),
+        return new PhotoPostDto(p.getId(), p.getPostUrl(), MediaController.url(m.getId()), m.getWidth(),
                 m.getHeight(), p.getTitle(), p.getTakenOn(), p.getSource(), p.getPhotoCount(), slugs);
     }
 }

@@ -1,6 +1,5 @@
 package com.subtitlestudio.work;
 
-import com.subtitlestudio.common.YouTubeIds;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaController;
@@ -139,11 +138,9 @@ public class WorkService {
         List<WorkCreditDto> credits = w.getCredits().stream()
                 .map(c -> new WorkCreditDto(PersonService.toDto(c.getPerson()), c.getRole(), c.getCharacterName()))
                 .toList();
-        String trailer = w.getLinks().stream().filter(l -> l.getKind() == LinkKind.TRAILER).findFirst()
-                .flatMap(l -> YouTubeIds.videoId(l.getUrl())).orElse(null);
         return new WorkDto(w.getId(), w.getTitle(), coverUrl(w), w.getReleaseDate(),
                 List.copyOf(w.getCategories()), w.getSubcategory(), w.getProfile() == null ? null : w.getProfile().getSlug(),
-                w.getCover() == null ? null : w.getCover().getId(), w.getDescription(), links, credits, trailer);
+                w.getCover() == null ? null : w.getCover().getId(), w.getDescription(), links, credits);
     }
 
     private static String coverUrl(Work w) {

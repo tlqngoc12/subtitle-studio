@@ -15,6 +15,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { matchesPerson } from '../lib/people';
 import { peopleOf } from './PhotosPage';
 import '../components/works/WorkCard.css';
 import './WorksPage.css';
@@ -51,10 +52,14 @@ export default function WorksPage() {
   }, [source, readOnly]);
 
   const people = useMemo(() => peopleOf(profiles), [profiles]);
+  const groupSlug = profiles?.group.slug ?? null;
   const nameOf = useMemo(() => new Map(people.map((p) => [p.slug, p.name])), [people]);
   const visible = useMemo(
-    () => (works ?? []).filter((w) => (who === null || w.profile === who) && (cat === null || w.categories.includes(cat))),
-    [works, who, cat],
+    () =>
+      (works ?? []).filter(
+        (w) => matchesPerson(w.profile ? [w.profile] : [], who, groupSlug) && (cat === null || w.categories.includes(cat)),
+      ),
+    [works, who, cat, groupSlug],
   );
 
   const setFilter = (key: 'who' | 'cat', value: string | null) => {
@@ -68,7 +73,7 @@ export default function WorksPage() {
     <main className="page">
       <PageHeader
         title="Works"
-        lede={works === null ? undefined : `${visible.length} ${visible.length === 1 ? 'work' : 'works'}`}
+        lede="Series, music, shows and more."
         actions={
           !readOnly && (
             <div className="works-actions">

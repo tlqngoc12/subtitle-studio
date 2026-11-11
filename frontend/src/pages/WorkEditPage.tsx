@@ -1,5 +1,5 @@
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { ApiError, type FieldError } from '../api/client';
@@ -21,6 +21,7 @@ import { CreditsEditor, type CreditRow } from '../components/works/CreditsEditor
 import { LinksEditor, type LinkRow } from '../components/works/LinksEditor';
 import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../components/ui/ImageDropzone';
 import { Alert } from '../components/ui/Alert';
+import { Combobox } from '../components/ui/Combobox';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Field } from '../components/ui/Field';
 import { LoadingText } from '../components/ui/LoadingText';
@@ -37,7 +38,6 @@ export default function WorkEditPage() {
   const { id: raw } = useParams();
   const id = raw === undefined ? null : /^[1-9]\d*$/.test(raw) ? Number(raw) : NaN;
   const navigate = useNavigate();
-  const idPrefix = useId();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const nextKey = useRef(0);
   const newKey = () => nextKey.current++;
@@ -254,22 +254,14 @@ export default function WorkEditPage() {
 
           <Field label="Subcategory" error={errorOf('subcategory')}>
             {(f) => (
-              <>
-                <input
-                  id={f.id}
-                  type="text"
-                  list={`${idPrefix}-subs`}
-                  value={subcategory}
-                  aria-invalid={f.invalid || undefined}
-                  aria-describedby={f.describedBy}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                />
-                <datalist id={`${idPrefix}-subs`}>
-                  {suggestions.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              </>
+              <Combobox
+                id={f.id}
+                value={subcategory}
+                suggestions={suggestions}
+                aria-invalid={f.invalid || undefined}
+                aria-describedby={f.describedBy}
+                onChange={setSubcategory}
+              />
             )}
           </Field>
 

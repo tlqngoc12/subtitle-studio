@@ -79,6 +79,7 @@ export function NavBar() {
         {!active && (
           <>
             <Link className="topbar__brand" to={homePath}>
+              <img className="topbar__logo" src="/logo.webp" alt="" />
               Subtitle Studio
             </Link>
             <nav className="nav" aria-label="Main" ref={navRef}>

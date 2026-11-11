@@ -1,7 +1,7 @@
 /* Shared look of the Radix popovers (PopoverPanel): save-to-playlist, source filter, reader settings, contents and
    the date picker. Opens from its trigger: fade, 4 px drop and a slight scale; closes faster. */
 .popover {
-  z-index: 40;
+  z-index: 70;
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);

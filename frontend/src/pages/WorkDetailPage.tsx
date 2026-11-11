@@ -7,7 +7,6 @@ import type { Work } from '../api/works';
 import { CATEGORY_LABELS, peopleHeading } from '../components/works/categories';
 import { LinkButtons } from '../components/works/LinkButtons';
 import { PeopleCards } from '../components/works/PeopleCards';
-import { TrailerEmbed } from '../components/works/TrailerEmbed';
 import { Alert } from '../components/ui/Alert';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import { LoadingText } from '../components/ui/LoadingText';
@@ -123,7 +122,6 @@ export default function WorkDetailPage() {
             )}
             <LinkButtons links={work.links} />
             {work.description && <p className="work__description">{work.description}</p>}
-            {work.trailerVideoId && <TrailerEmbed videoId={work.trailerVideoId} title={work.title} />}
           </div>
 
           {work.credits.length > 0 && (

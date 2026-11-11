@@ -54,8 +54,6 @@ export interface Work extends WorkSummary {
   description: string | null;
   links: WorkLink[];
   credits: WorkCredit[];
-  /** The 11-character YouTube id of the TRAILER link, when it is a YouTube link. */
-  trailerVideoId: string | null;
 }
 
 export interface WorkInput {

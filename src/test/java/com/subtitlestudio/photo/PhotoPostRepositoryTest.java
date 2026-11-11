@@ -58,11 +58,11 @@ class PhotoPostRepositoryTest {
                 .containsExactly(sameDayLater.getId(), sameDayFirst.getId(), old.getId());
         PhotoPost loaded = posts.findById(sameDayFirst.getId()).orElseThrow();
         assertThat(loaded.getProfiles()).extracting(Profile::getSlug).containsExactlyInAnyOrder("emi", "bonnie");
-        assertThat(posts.findByInstagramUrl("https://www.instagram.com/p/AAA/")).isPresent();
+        assertThat(posts.findByPostUrl("https://www.instagram.com/p/AAA/")).isPresent();
     }
 
     @Test
-    void instagramUrlIsUnique() {
+    void postUrlIsUnique() {
         post("AAA", LocalDate.parse("2026-11-01"), Set.of());
 
         assertThatThrownBy(() -> post("AAA", LocalDate.parse("2026-11-02"), Set.of()))

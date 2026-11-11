@@ -23,7 +23,7 @@ import java.util.Set;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/** One Instagram post shown as a tile: the uploaded first image, a title, a date and the people on it. */
+/** One Instagram or X post shown as a tile: the uploaded first image, a title, a date and the people on it. */
 @Entity
 @Table(name = "t_photo_post")
 public class PhotoPost {
@@ -33,8 +33,8 @@ public class PhotoPost {
     @SequenceGenerator(name = "t_photo_post_seq", sequenceName = "t_photo_post_seq", allocationSize = 50)
     private Long id;
 
-    @Column(name = "instagram_url", length = 300, nullable = false, unique = true)
-    private String instagramUrl;
+    @Column(name = "post_url", length = 300, nullable = false, unique = true)
+    private String postUrl;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "media_id", nullable = false)
@@ -75,9 +75,9 @@ public class PhotoPost {
         this.updatedAt = now;
     }
 
-    public void set(String instagramUrl, Media media, String title, LocalDate takenOn,
+    public void set(String postUrl, Media media, String title, LocalDate takenOn,
                     PhotoSource source, Integer photoCount, Set<Profile> profiles, Instant now) {
-        this.instagramUrl = instagramUrl;
+        this.postUrl = postUrl;
         this.media = media;
         this.title = title;
         this.takenOn = takenOn;
@@ -92,8 +92,8 @@ public class PhotoPost {
         return id;
     }
 
-    public String getInstagramUrl() {
-        return instagramUrl;
+    public String getPostUrl() {
+        return postUrl;
     }
 
     public Media getMedia() {
