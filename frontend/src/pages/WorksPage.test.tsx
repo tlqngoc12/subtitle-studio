@@ -40,13 +40,13 @@ describe('WorksPage', () => {
     await screen.findByRole('link', { name: 'Coming film' });
     expect(titles()).toEqual(['Coming film', 'Old song', 'Emi show', 'New song']);
     const first = screen.getByRole('link', { name: 'Coming film' });
-    expect(within(first).getByText('Coming Soon')).toBeInTheDocument();
+    expect(within(first).getByText('Sắp ra mắt')).toBeInTheDocument();
     expect(within(first).getByText('Bonnie')).toBeInTheDocument();
     const second = screen.getByRole('link', { name: 'Old song' });
     expect(within(second).getByText('05/01/2026')).toBeInTheDocument();
-    expect(within(second).getByText('Music')).toBeInTheDocument();
+    expect(within(second).getByText('Âm nhạc')).toBeInTheDocument();
     expect(within(second).getByText('OST')).toBeInTheDocument();
-    expect(screen.getByText('Series, music, shows and more.')).toBeInTheDocument();
+    expect(screen.getByText('Phim, nhạc, chương trình và hơn thế nữa.')).toBeInTheDocument();
   });
 
   it('groups works under Coming Soon and year headings, newest year first', async () => {
@@ -57,7 +57,7 @@ describe('WorksPage', () => {
     ]);
 
     await screen.findByRole('link', { name: 'Soon film' });
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Coming Soon', '2026', '2025']);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Sắp ra mắt', '2026', '2025']);
     const section = screen.getByRole('region', { name: '2025' });
     expect(within(section).getByRole('link', { name: 'Old one' })).toBeInTheDocument();
     expect(within(section).queryByRole('link', { name: 'New one' })).not.toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('WorksPage', () => {
     await screen.findByRole('link', { name: 'Old song' });
     expect(titles()).toEqual(['Old song']);
     expect(screen.queryByText('1 work')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Music' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Âm nhạc' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Bonnie' })).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -77,11 +77,11 @@ describe('WorksPage', () => {
     renderPublic();
     await screen.findByRole('link', { name: 'Coming film' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Music' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Âm nhạc' }));
     expect(titles()).toEqual(['Old song', 'New song']);
     await userEvent.click(screen.getByRole('button', { name: 'Emi' }));
     expect(titles()).toEqual(['New song']);
-    await userEvent.click(screen.getAllByRole('button', { name: 'All' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Tất cả' })[0]);
     expect(titles()).toEqual(['Old song', 'New song']);
   });
 
@@ -92,8 +92,8 @@ describe('WorksPage', () => {
     await screen.findByRole('link', { name: 'New song film' });
     expect(titles()).toEqual(['Old song', 'New song', 'New song film']);
     const card = screen.getByRole('link', { name: 'New song film' });
-    expect(within(card).getByText('Film & TV')).toBeInTheDocument();
-    expect(within(card).getByText('Music')).toBeInTheDocument();
+    expect(within(card).getByText('Phim & TV')).toBeInTheDocument();
+    expect(within(card).getByText('Âm nhạc')).toBeInTheDocument();
   });
 
   it('links each card to its page and has no admin controls on the public site', async () => {
@@ -108,7 +108,7 @@ describe('WorksPage', () => {
   it('shows an empty state', async () => {
     renderPublic([]);
 
-    expect(await screen.findByText('No works here yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Chưa có tác phẩm nào.')).toBeInTheDocument();
   });
 });
 

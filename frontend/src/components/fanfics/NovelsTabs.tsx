@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { TabTrigger } from '../ui/TabTrigger';
 import { FanficsTab } from './FanficsTab';
+import { useT } from '../../lib/i18n';
 
 export type NovelsTab = 'translated' | 'fanfics';
 
@@ -29,7 +30,7 @@ export function NovelsTabs({
 }) {
   return (
     <Tabs.Root value={tab} onValueChange={(v) => onTabChange(v as NovelsTab)} className="tabs">
-      <Tabs.List className="tabs__list" aria-label="Novels sections">
+      <Tabs.List className="tabs__list" aria-label={useT()('Novels sections', 'Các mục truyện')}>
         <TabTrigger className="tabs__tab" value="translated">
           {labels.translated}
         </TabTrigger>

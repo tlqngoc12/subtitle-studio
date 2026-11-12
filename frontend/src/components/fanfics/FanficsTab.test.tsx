@@ -85,7 +85,7 @@ describe('FanficsTab (public)', () => {
   it('searches title, author and tags without accents', async () => {
     renderPublic();
     await screen.findByRole('link', { name: /Second Spring/ });
-    const search = screen.getByRole('searchbox', { name: 'Search fanfics' });
+    const search = screen.getByRole('searchbox', { name: 'Tìm fanfic' });
 
     await userEvent.type(search, 'cho dem');
     expect(titles()).toEqual(['Chợ Đêm Mùa Hạ']);
@@ -100,46 +100,46 @@ describe('FanficsTab (public)', () => {
 
     await userEvent.clear(search);
     await userEvent.type(search, 'nothing like this');
-    expect(await screen.findByText('No fanfics match your search.')).toBeInTheDocument();
+    expect(await screen.findByText('Không có fanfic nào khớp với tìm kiếm.')).toBeInTheDocument();
   });
 
   it('filters by status', async () => {
     renderPublic();
     await screen.findByRole('link', { name: /Second Spring/ });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Completed' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hoàn thành' }));
     expect(titles()).toEqual(['Chợ Đêm Mùa Hạ', 'Third Winter']);
-    expect(screen.getByRole('button', { name: 'Completed' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Hoàn thành' })).toHaveAttribute('aria-pressed', 'true');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ongoing' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Đang ra' }));
     expect(titles()).toEqual(['Second Spring']);
 
-    await userEvent.click(screen.getByRole('button', { name: 'All' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tất cả' }));
     expect(titles()).toHaveLength(3);
   });
 
   it('sorts by update, reads, votes and date added', async () => {
     renderPublic();
     await screen.findByRole('link', { name: /Second Spring/ });
-    const sort = screen.getByRole('combobox', { name: 'Sort by' });
+    const sort = screen.getByRole('combobox', { name: 'Sắp xếp theo' });
 
     expect(await optionNames(userEvent.setup(), sort)).toEqual([
-      'Newest update',
-      'Most read',
-      'Most voted',
-      'Recently added',
+      'Mới cập nhật',
+      'Đọc nhiều nhất',
+      'Bình chọn nhiều nhất',
+      'Mới thêm',
     ]);
-    await pickOption(userEvent.setup(), sort, 'Most read');
+    await pickOption(userEvent.setup(), sort, 'Đọc nhiều nhất');
     expect(titles()).toEqual(['Second Spring', 'Chợ Đêm Mùa Hạ', 'Third Winter']);
-    await pickOption(userEvent.setup(), sort, 'Most voted');
+    await pickOption(userEvent.setup(), sort, 'Bình chọn nhiều nhất');
     expect(titles()).toEqual(['Third Winter', 'Chợ Đêm Mùa Hạ', 'Second Spring']);
-    await pickOption(userEvent.setup(), sort, 'Recently added');
+    await pickOption(userEvent.setup(), sort, 'Mới thêm');
     expect(titles()).toEqual(['Third Winter', 'Chợ Đêm Mùa Hạ', 'Second Spring']);
-    await pickOption(userEvent.setup(), sort, 'Newest update');
+    await pickOption(userEvent.setup(), sort, 'Mới cập nhật');
     expect(titles()).toEqual(['Second Spring', 'Chợ Đêm Mùa Hạ', 'Third Winter']);
   });
 
-  it('puts a story without an update date last in Newest update', async () => {
+  it('puts a story without an update date last in Mới cập nhật', async () => {
     renderPublic([fanfic({ id: 5, title: 'Undated', storyUpdatedAt: null }), ...STORIES]);
 
     await screen.findByRole('link', { name: /Second Spring/ });
@@ -149,15 +149,15 @@ describe('FanficsTab (public)', () => {
   it('shows when the stats were last fetched', async () => {
     renderPublic();
 
-    expect(await screen.findByText(/Stats from Wattpad, updated 11[/]11[/]2026/)).toBeInTheDocument();
-    expect(screen.getByText(/Stories © their authors/)).toBeInTheDocument();
+    expect(await screen.findByText(/Số liệu từ Wattpad, cập nhật 11[/]11[/]2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Truyện thuộc bản quyền tác giả/)).toBeInTheDocument();
   });
 
   it('shows an empty state without stories and no footer', async () => {
     renderPublic([]);
 
-    expect(await screen.findByText('No fanfics yet.')).toBeInTheDocument();
-    expect(screen.queryByText(/Stats from Wattpad/)).not.toBeInTheDocument();
+    expect(await screen.findByText('Chưa có fanfic nào.')).toBeInTheDocument();
+    expect(screen.queryByText(/Số liệu từ Wattpad/)).not.toBeInTheDocument();
   });
 
   it('shows the error when the list cannot be loaded', async () => {
@@ -170,7 +170,7 @@ describe('FanficsTab (public)', () => {
       </SiteProvider>,
     );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Đã xảy ra lỗi.');
   });
 });
 

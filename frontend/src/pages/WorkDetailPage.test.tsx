@@ -50,11 +50,11 @@ describe('WorkDetailPage', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Love Story' })).toBeInTheDocument();
     expect(screen.getByText('24/04/2026')).toBeInTheDocument();
-    expect(screen.getByText('Film & TV')).toBeInTheDocument();
+    expect(screen.getByText('Phim & TV')).toBeInTheDocument();
     expect(screen.getByText('Drama')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Cast' })).toBeInTheDocument();
-    expect(screen.getByText('as Key')).toBeInTheDocument();
-    expect(screen.getAllByText(/^as /)).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: 'Diễn viên' })).toBeInTheDocument();
+    expect(screen.getByText('vai Key')).toBeInTheDocument();
+    expect(screen.getAllByText(/^vai /)).toHaveLength(1);
     const pilot = screen.getByRole('link', { name: 'Pilot' });
     expect(pilot).toHaveAttribute('href', 'https://www.netflix.com/title/1');
     expect(pilot).toHaveAttribute('target', '_blank');
@@ -73,27 +73,27 @@ describe('WorkDetailPage', () => {
       }),
     );
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Artists' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Nghệ sĩ' })).toBeInTheDocument();
     expect(screen.getByText('Singer')).toBeInTheDocument();
-    expect(screen.queryByText(/^as /)).not.toBeInTheDocument();
-    expect(screen.getByText('Coming Soon')).toBeInTheDocument();
+    expect(screen.queryByText(/^vai /)).not.toBeInTheDocument();
+    expect(screen.getByText('Sắp ra mắt')).toBeInTheDocument();
   });
 
   it('says Cast when Film & TV is one of several categories and People for music with another category', async () => {
     const credits = [{ person: person(1, 'Emi'), role: null, characterName: 'Key' }];
     const { unmount } = renderPublic(work(5, { categories: ['MUSIC', 'FILM_TV'], credits }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Cast' })).toBeInTheDocument();
-    expect(screen.getByText('Film & TV')).toBeInTheDocument();
-    expect(screen.getByText('Music')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Diễn viên' })).toBeInTheDocument();
+    expect(screen.getByText('Phim & TV')).toBeInTheDocument();
+    expect(screen.getByText('Âm nhạc')).toBeInTheDocument();
     unmount();
 
     renderPublic(work(5, { categories: ['MUSIC', 'VARIETY'], credits }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Nhân vật' })).toBeInTheDocument();
   });
 
   it('uses People for other categories and hides the section without credits', async () => {
     renderPublic(work(5, { categories: ['VARIETY'], credits: [{ person: person(1, 'Emi'), role: null, characterName: null }] }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Nhân vật' })).toBeInTheDocument();
   });
 
   it('shows a TRAILER link as a link button like Pilot, with no embedded player', async () => {
@@ -119,8 +119,8 @@ describe('WorkDetailPage', () => {
   it.each(['/works/999', '/works/abc', '/works/0', '/works/-3'])('%s shows Work not found', async (path) => {
     renderPublic(FILM, path);
 
-    expect(await screen.findByRole('heading', { name: 'Work not found' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Works' })).toHaveAttribute('href', '/works');
+    expect(await screen.findByRole('heading', { name: 'Không tìm thấy tác phẩm' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Quay lại Tác phẩm' })).toHaveAttribute('href', '/works');
   });
 
   it('shows Edit only to the admin', async () => {

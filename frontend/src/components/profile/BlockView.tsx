@@ -9,6 +9,7 @@ import { BrandIcon } from './BrandIcon';
 import { ChipList } from './ChipList';
 import { FactsGrid } from './FactsGrid';
 import './BlockView.css';
+import { useT } from '../../lib/i18n';
 
 /** Shown before a block's title so each kind of content is recognisable at a glance. */
 const TYPE_ICONS: Record<BlockType, LucideIcon> = {
@@ -54,11 +55,12 @@ function TitleIcon({ type }: { type: BlockType }) {
 }
 
 function BlockBody({ block }: { block: ProfileBlock }) {
+  const t = useT();
   switch (block.type) {
     case 'TEXT':
       return <TextBody body={block.body ?? ''} />;
     case 'IMAGE': {
-      const alt = block.caption ?? block.title ?? 'Image';
+      const alt = block.caption ?? block.title ?? t('Image', 'Ảnh');
       return (
         <ImageGrid
           images={[{ src: block.mediaUrl ?? '', alt }]}
@@ -70,7 +72,7 @@ function BlockBody({ block }: { block: ProfileBlock }) {
     case 'GALLERY':
       return (
         <ImageGrid
-          images={block.items.map((it, i) => ({ src: it.mediaUrl ?? '', alt: it.label ?? `Image ${i + 1}` }))}
+          images={block.items.map((it, i) => ({ src: it.mediaUrl ?? '', alt: it.label ?? t(`Image ${i + 1}`, `Ảnh ${i + 1}`) }))}
           captions={[]}
         />
       );
@@ -109,17 +111,18 @@ function ImageGrid({
   captions: string[];
   single?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState<number | null>(null);
   return (
     <>
       <div className={single ? 'pblock__image' : 'pblock__gallery'}>
         {images.map((img, i) => (
           <figure key={i} className="pblock__figure">
-            <Tip label="View larger">
+            <Tip label={t('View larger', 'Xem ảnh lớn')}>
               <button
                 type="button"
                 className="pblock__zoom"
-                aria-label={`View larger: ${img.alt}`}
+                aria-label={t(`View larger: ${img.alt}`, `Xem ảnh lớn: ${img.alt}`)}
                 onClick={() => setOpen(i)}
               >
                 <img src={img.src} alt={img.alt} loading="lazy" />
@@ -140,6 +143,7 @@ function ImageGrid({
 }
 
 function Embed({ url }: { url: string }) {
+  const t = useT();
   if (url.startsWith('https://open.spotify.com/embed/')) {
     const height = url.includes('/embed/track/') ? 152 : 352;
     return (
@@ -156,7 +160,7 @@ function Embed({ url }: { url: string }) {
   return (
     <div className="pblock__video">
       <iframe
-        title="YouTube video"
+        title={t('YouTube video', 'Video YouTube')}
         src={url}
         loading="lazy"
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"

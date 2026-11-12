@@ -143,7 +143,7 @@ describe('ProfilePage on the public site', () => {
       </SiteProvider>,
     );
 
-    expect(await screen.findByText('Check your internet connection and try again.')).toBeInTheDocument();
+    expect(await screen.findByText('Hãy kiểm tra kết nối mạng rồi thử lại.')).toBeInTheDocument();
     expect(screen.queryByText(/Subtitle Studio is running/)).not.toBeInTheDocument();
   });
 
@@ -151,7 +151,7 @@ describe('ProfilePage on the public site', () => {
     const old = { group: { slug: 'emibonnie', displayName: 'EmiBonnie', blocks: [] }, members: [] };
     renderPublic(old as never);
 
-    expect(await screen.findByText('Nothing here yet — check back soon.')).toBeInTheDocument();
+    expect(await screen.findByText('Chưa có gì ở đây, hãy quay lại sau nhé.')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Ảnh banner' })).not.toBeInTheDocument();
   });
 });

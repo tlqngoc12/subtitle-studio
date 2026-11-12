@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api/client';
 import type { Work } from '../api/works';
-import { CATEGORY_LABELS, peopleHeading } from '../components/works/categories';
+import { categoryLabel, PEOPLE_HEADING_VI, peopleHeading } from '../components/works/categories';
 import { LinkButtons } from '../components/works/LinkButtons';
 import { PeopleCards } from '../components/works/PeopleCards';
 import { Alert } from '../components/ui/Alert';
@@ -15,12 +15,14 @@ import { useSite } from '../data/SiteContext';
 import { formatDay } from '../lib/dates';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import './WorkDetailPage.css';
+import { useT } from '../lib/i18n';
 
 /** A work's page (/works/:id). An id that is not a positive whole number, or an unknown work, is "Work not found". */
 export default function WorkDetailPage() {
   const { id: raw = '' } = useParams();
   const id = /^[1-9]\d*$/.test(raw) ? Number(raw) : null;
   const { source, readOnly } = useSite();
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const [work, setWork] = useState<Work | null>(null);
@@ -61,14 +63,14 @@ export default function WorkDetailPage() {
       }}
     >
       <ArrowLeft className="icon" aria-hidden="true" />
-      Back to Works
+      {t('Back to Works', 'Quay lại Tác phẩm')}
     </Link>
   );
 
   if (notFound) {
     return (
       <main className="page">
-        <PageHeader title="Work not found" lede={back} />
+        <PageHeader title={t('Work not found', 'Không tìm thấy tác phẩm')} lede={back} />
       </main>
     );
   }
@@ -77,14 +79,14 @@ export default function WorkDetailPage() {
     <main className="page">
       {back}
       {error && <Alert title={error.title} hint={error.hint} />}
-      {work === null && !error && <LoadingText>Loading work…</LoadingText>}
+      {work === null && !error && <LoadingText>{t('Loading work…', 'Đang tải tác phẩm…')}</LoadingText>}
 
       {work && (
         <article className="work">
           <div className="work__cover-col">
             {work.coverUrl ? (
               <>
-                <button type="button" className="work__cover" aria-label={`View larger: ${work.title}`} onClick={() => setZoom(true)}>
+                <button type="button" className="work__cover" aria-label={t(`View larger: ${work.title}`, `Xem ảnh lớn: ${work.title}`)} onClick={() => setZoom(true)}>
                   <img src={work.coverUrl} alt={work.title} />
                 </button>
                 <ImageLightbox
@@ -105,13 +107,13 @@ export default function WorkDetailPage() {
             <div className="work__chips">
               {work.categories.map((c) => (
                 <span key={c} className="work__chip work__chip--category">
-                  {CATEGORY_LABELS[c]}
+                  {categoryLabel(c, readOnly)}
                 </span>
               ))}
               {work.subcategory && <span className="work__chip">{work.subcategory}</span>}
             </div>
             <h1 className="work__title">{work.title}</h1>
-            <p className="work__date">{work.releaseDate ? formatDay(work.releaseDate) : 'Coming Soon'}</p>
+            <p className="work__date">{work.releaseDate ? formatDay(work.releaseDate) : t('Coming Soon', 'Sắp ra mắt')}</p>
             {!readOnly && (
               <div>
                 <Link className="button button--s" to={`/works/${work.id}/edit`}>
@@ -126,7 +128,7 @@ export default function WorkDetailPage() {
 
           {work.credits.length > 0 && (
             <Reveal as="section" className="work__people" aria-labelledby="work-people">
-              <h2 id="work-people">{peopleHeading(work.categories)}</h2>
+              <h2 id="work-people">{readOnly ? PEOPLE_HEADING_VI[peopleHeading(work.categories)] : peopleHeading(work.categories)}</h2>
               <PeopleCards credits={work.credits} />
             </Reveal>
           )}

@@ -12,6 +12,7 @@ import type { PublicPlaylistDetail, PublicPlaylistSummary, PublicVideo } from '.
 import { useWatched } from '../data/watched';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { formatDuration } from '../lib/format';
+import { useT } from '../lib/i18n';
 import { matchesSearch } from '../lib/search';
 import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
@@ -43,6 +44,7 @@ function parsePlaylistId(raw: string | null): number | null {
 export default function VietsubListPage() {
   const [params, setParams] = useSearchParams();
   const { source, readOnly } = useSite();
+  const t = useT();
   const requestedPlaylist = parsePlaylistId(params.get('playlist'));
   const tab: Tab = params.get('tab') === 'all' ? 'all' : 'playlists';
   const query = params.get('q') ?? '';
@@ -117,23 +119,28 @@ export default function VietsubListPage() {
   }
 
   const backToPlaylists = query ? `/vietsub/list?${new URLSearchParams({ q: query })}` : '/vietsub/list';
-  const searchLabel = !active && !waitingForPlaylist && tab === 'playlists' ? 'Search playlists and videos' : 'Search videos';
+  const searchLabel = !active && !waitingForPlaylist && tab === 'playlists' 
+    ? t('Search playlists and videos', 'Tìm danh sách phát và video')
+    : t('Search videos', 'Tìm video');
 
   return (
     <main className="page">
-      <PageHeader title="Vietsub list" lede="Choose a video to watch with Vietsub." />
+      <PageHeader
+        title={readOnly ? 'Vietsub' : 'Vietsub list'}
+        lede={t('Choose a video to watch with Vietsub.', 'Chọn một video để xem cùng Vietsub.')}
+      />
 
       {active && (
         <Link className="back-link" to={backToPlaylists}>
           <ArrowLeft className="icon icon--sm" aria-hidden="true" />
-          Back to Playlists
+          {t('Back to Playlists', 'Quay lại danh sách phát')}
         </Link>
       )}
 
       <SearchBar value={query} onChange={setQuery} label={searchLabel} onClear={() => setQuery('')} />
 
       {waitingForPlaylist ? (
-        <LoadingText>Loading playlist…</LoadingText>
+        <LoadingText>{t('Loading playlist…', 'Đang tải danh sách phát…')}</LoadingText>
       ) : active ? (
         <>
           <PlaylistHeader playlist={active} />
@@ -143,7 +150,7 @@ export default function VietsubListPage() {
             linkFor={(e) => `/vietsub/${e.video.id}?playlist=${active.id}`}
             empty={
               <EmptyState icon={ListVideo}>
-                This playlist has no videos yet.
+                {t('This playlist has no videos yet.', 'Danh sách phát này chưa có video.')}
                 {!readOnly && <> <Link to={`/vietsub/playlists/${active.id}`}>Manage playlist</Link></>}
               </EmptyState>
             }
@@ -151,12 +158,12 @@ export default function VietsubListPage() {
         </>
       ) : (
         <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
-          <Tabs.List className="tabs__list" aria-label="Vietsub list views">
+          <Tabs.List className="tabs__list" aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
             <TabTrigger className="tabs__tab" value="playlists">
-              Playlists
+              {t('Playlists', 'Danh sách phát')}
             </TabTrigger>
             <TabTrigger className="tabs__tab" value="all">
-              All videos
+              {t('All videos', 'Tất cả video')}
             </TabTrigger>
           </Tabs.List>
           <Tabs.Content value="playlists">
@@ -173,6 +180,7 @@ export default function VietsubListPage() {
 
 /** Every video with Vietsub, newest Vietsub first (loaded by the page). */
 function AllVideosTab({ query, videos, error }: { query: string; videos: PublicVideo[] | null; error: ErrorMessage | null }) {
+  const t = useT();
   return (
     <>
       {error && (
@@ -184,7 +192,7 @@ function AllVideosTab({ query, videos, error }: { query: string; videos: PublicV
         linkFor={(e) => `/vietsub/${e.video.id}`}
         empty={
           <EmptyState icon={ListVideo}>
-            No videos with Vietsub yet.
+            {t('No videos with Vietsub yet.', 'Chưa có video nào có Vietsub.')}
           </EmptyState>
         }
       />
@@ -198,6 +206,7 @@ function AllVideosTab({ query, videos, error }: { query: string; videos: PublicV
  */
 function PlaylistsTab({ query, playlists }: { query: string; playlists: PublicPlaylistDetail[] | null }) {
   const { readOnly } = useSite();
+  const t = useT();
 
   const cards = useMemo(() => {
     if (playlists === null) return null;
@@ -212,15 +221,15 @@ function PlaylistsTab({ query, playlists }: { query: string; playlists: PublicPl
   const pager = usePagination(cards);
 
   return (
-    <section className="plcards" aria-label="Playlists">
+    <section className="plcards" aria-label={t('Playlists', 'Danh sách phát')}>
       {pager.items === null ? (
         <SkeletonList rows={4} />
       ) : pager.items.length === 0 ? (
         query.trim() ? (
-          <EmptyState icon={SearchX}>No playlists match "{query}".</EmptyState>
+          <EmptyState icon={SearchX}>{t(`No playlists match "${query}".`, `Không có danh sách phát nào khớp "${query}".`)}</EmptyState>
         ) : (
           <EmptyState icon={ListVideo}>
-            No playlists yet.{!readOnly && <> <Link to="/vietsub/playlists">Create a playlist</Link></>}
+            {t('No playlists yet.', 'Chưa có danh sách phát nào.')}{!readOnly && <> <Link to="/vietsub/playlists">Create a playlist</Link></>}
           </EmptyState>
         )
       ) : (
@@ -251,13 +260,14 @@ function VideoSection({
   );
   const pager = usePagination(filtered);
   const watched = useWatched();
+  const t = useT();
 
   return (
-    <section className="history" aria-label="Vietsub list">
+    <section className="history" aria-label={t('Vietsub list', 'Danh sách Vietsub')}>
       {pager.items === null ? (
         <SkeletonList rows={6} />
       ) : pager.items.length === 0 ? (
-        query.trim() ? <EmptyState icon={SearchX}>No videos match "{query}".</EmptyState> : empty
+        query.trim() ? <EmptyState icon={SearchX}>{t(`No videos match "${query}".`, `Không có video nào khớp "${query}".`)}</EmptyState> : empty
       ) : (
         <ul className="history__list">
           {pager.items.map((e) => {
@@ -286,7 +296,7 @@ function VideoSection({
                       {watched.has(v.id) && (
                         <span className="meta meta--watched">
                           <CircleCheck className="icon icon--sm" aria-hidden="true" />
-                          Watched
+                          {t('Watched', 'Đã xem')}
                         </span>
                       )}
                     </span>

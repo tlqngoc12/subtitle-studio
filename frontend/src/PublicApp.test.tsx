@@ -60,7 +60,7 @@ describe('PublicApp', () => {
     const scrollTo = vi.fn();
     vi.stubGlobal('scrollTo', scrollTo);
     renderAt('/vietsub/list');
-    await screen.findByRole('tab', { name: 'Playlists' });
+    await screen.findByRole('tab', { name: 'Danh sách phát' });
     scrollTo.mockClear();
 
     await userEvent.setup().click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Novels' }));
@@ -71,8 +71,8 @@ describe('PublicApp', () => {
   it('rootOpensVietsubList', async () => {
     renderAt('/');
 
-    expect(await screen.findByRole('tab', { name: 'Playlists' })).toHaveAttribute('aria-selected', 'true');
-    expect(await screen.findByText(/No playlists yet\./)).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Danh sách phát' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText(/Chưa có danh sách phát nào./)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Create a playlist' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('path')).toHaveTextContent('/vietsub/list');
   });
@@ -84,22 +84,22 @@ describe('PublicApp', () => {
     expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub', 'Profile', 'Works', 'Photos', 'Novels']);
     expect(screen.queryByRole('button', { name: /Publish/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toHaveAttribute('href', '/vietsub/list');
-    await screen.findByText(/No playlists yet\./);
+    await screen.findByText(/Chưa có danh sách phát nào./);
   });
 
   it('footerShowsCreditAndYear', async () => {
     renderAt('/vietsub/list');
 
     expect(
-      await screen.findByText('Vietsub by @byZenQN · All videos are the property of their original creators · Updated 2026'),
+      await screen.findByText('Vietsub bởi @byZenQN · Mọi video thuộc quyền sở hữu của người tạo ra chúng · Cập nhật 2026'),
     ).toBeInTheDocument();
   });
 
   it('unknownRouteShowsNotFound', async () => {
     renderAt('/vietsub');
 
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+    expect(await screen.findByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Quay lại danh sách Vietsub' })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('profileIsReadOnly', async () => {

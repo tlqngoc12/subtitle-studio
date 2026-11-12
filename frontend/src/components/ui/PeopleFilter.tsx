@@ -1,4 +1,5 @@
 import './PeopleFilter.css';
+import { useT } from '../../lib/i18n';
 
 export interface Person {
   slug: string;
@@ -19,13 +20,14 @@ export function PeopleFilter({
   value: string | null;
   onChange: (slug: string | null) => void;
 }) {
+  const t = useT();
   return (
-    <div className="people" role="group" aria-label="Filter by person">
+    <div className="people" role="group" aria-label={t('Filter by person', 'Lọc theo người')}>
       <button type="button" className="people__item" aria-pressed={value === null} onClick={() => onChange(null)}>
         <span className="people__avatar people__avatar--all" aria-hidden="true">
-          All
+          {t('All', 'Tất cả')}
         </span>
-        <span className="people__name">All</span>
+        <span className="people__name">{t('All', 'Tất cả')}</span>
       </button>
       {people.map((p) => (
         <button

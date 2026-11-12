@@ -5,7 +5,7 @@ import { Link, useSearchParams } from 'react-router';
 import type { ProfilePage } from '../api/profiles';
 import type { WorkCategory, WorkSummary } from '../api/works';
 import { EmptyState } from '../components/EmptyState';
-import { CATEGORIES, CATEGORY_LABELS } from '../components/works/categories';
+import { CATEGORIES, categoryLabel } from '../components/works/categories';
 import { PeopleDialog } from '../components/works/PeopleDialog';
 import { WorkCard } from '../components/works/WorkCard';
 import { Alert } from '../components/ui/Alert';
@@ -20,15 +20,19 @@ import { matchesPerson } from '../lib/people';
 import { peopleOf } from './PhotosPage';
 import '../components/works/WorkCard.css';
 import './WorksPage.css';
+import { useT } from '../lib/i18n';
 
-const CATEGORY_OPTIONS = [
-  { value: null, label: 'All' },
-  ...CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] })),
-] as { value: WorkCategory | null; label: string }[];
+function categoryOptions(vi: boolean) {
+  return [
+    { value: null, label: vi ? 'Tất cả' : 'All' },
+    ...CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c, vi) })),
+  ] as { value: WorkCategory | null; label: string }[];
+}
 
 /** Works (/works): poster grid filtered by person (`?who=`) and category (`?cat=`). */
 export default function WorksPage() {
   const { source, readOnly } = useSite();
+  const t = useT();
   const [params, setParams] = useSearchParams();
   const who = params.get('who');
   const catParam = params.get('cat');
@@ -80,8 +84,8 @@ export default function WorksPage() {
   return (
     <main className="page">
       <PageHeader
-        title="Works"
-        lede="Series, music, shows and more."
+        title={t('Works', 'Tác phẩm')}
+        lede={t('Series, music, shows and more.', 'Phim, nhạc, chương trình và hơn thế nữa.')}
         actions={
           !readOnly && (
             <div className="works-actions">
@@ -100,13 +104,13 @@ export default function WorksPage() {
 
       <div className="works-filters">
         {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
-        <FilterPills label="Filter by category" options={CATEGORY_OPTIONS} value={cat} onChange={(c) => setFilter('cat', c)} />
+        <FilterPills label={t('Filter by category', 'Lọc theo thể loại')} options={categoryOptions(readOnly)} value={cat} onChange={(c) => setFilter('cat', c)} />
       </div>
 
       {error && <Alert title={error.title} hint={error.hint} />}
       {works === null && !error && <SkeletonGrid count={8} aspect="4/5" />}
       {works !== null && visible.length === 0 && !error && (
-        <EmptyState icon={Clapperboard}>No works here yet.</EmptyState>
+        <EmptyState icon={Clapperboard}>{t('No works here yet.', 'Chưa có tác phẩm nào.')}</EmptyState>
       )}
 
       {groups.map((group) => {
@@ -114,7 +118,7 @@ export default function WorksPage() {
         return (
           <section key={headingId} className="works-year" aria-labelledby={headingId}>
             <h2 id={headingId} className="works-year__label">
-              {group.label}
+              {group.year === null ? t('Coming Soon', 'Sắp ra mắt') : group.label}
             </h2>
             <ul className="work-grid">
               {group.items.map((w, i) => (

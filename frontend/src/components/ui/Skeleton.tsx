@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useDelayedFlag } from '../../lib/useDelayedFlag';
 import './Skeleton.css';
+import { useT } from '../../lib/i18n';
 
 /** A grey block that pulses; sized by the caller to match the final layout. */
 export function Skeleton({ width, height, radius, style }: { width?: string; height?: string; radius?: string; style?: CSSProperties }) {
@@ -9,10 +10,11 @@ export function Skeleton({ width, height, radius, style }: { width?: string; hei
 
 /** Placeholder cards for a grid; mount it only while loading, it appears after 150 ms. */
 export function SkeletonGrid({ count, aspect }: { count: number; aspect: string }) {
+  const t = useT();
   const show = useDelayedFlag(true);
   if (!show) return null;
   return (
-    <div className="skeleton-grid" role="status" aria-busy="true" aria-label="Loading">
+    <div className="skeleton-grid" role="status" aria-busy="true" aria-label={t('Loading', 'Đang tải')}>
       {Array.from({ length: count }, (_, i) => (
         <Skeleton key={i} style={{ aspectRatio: aspect, width: '100%', height: 'auto' }} />
       ))}
@@ -22,10 +24,11 @@ export function SkeletonGrid({ count, aspect }: { count: number; aspect: string 
 
 /** Placeholder rows for a list; mount it only while loading, it appears after 150 ms. */
 export function SkeletonList({ rows }: { rows: number }) {
+  const t = useT();
   const show = useDelayedFlag(true);
   if (!show) return null;
   return (
-    <div className="skeleton-list" role="status" aria-busy="true" aria-label="Loading">
+    <div className="skeleton-list" role="status" aria-busy="true" aria-label={t('Loading', 'Đang tải')}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="skeleton-row">
           <Skeleton width="72px" height="48px" />

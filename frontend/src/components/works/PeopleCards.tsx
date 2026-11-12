@@ -1,8 +1,10 @@
 import type { WorkCredit } from '../../api/works';
 import './PeopleCards.css';
+import { useT } from '../../lib/i18n';
 
 /** Cast / artist cards: round avatar (or the initial), name, role chip and `as {character}` when set. */
 export function PeopleCards({ credits }: { credits: WorkCredit[] }) {
+  const t = useT();
   if (credits.length === 0) return null;
   return (
     <ul className="pcards">
@@ -17,7 +19,7 @@ export function PeopleCards({ credits }: { credits: WorkCredit[] }) {
           )}
           <span className="pcard__name">{c.person.name}</span>
           {c.role && <span className="pcard__role">{c.role}</span>}
-          {c.characterName && <span className="pcard__character">as {c.characterName}</span>}
+          {c.characterName && <span className="pcard__character">{t('as', 'vai')} {c.characterName}</span>}
         </li>
       ))}
     </ul>

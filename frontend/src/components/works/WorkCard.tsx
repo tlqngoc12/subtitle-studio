@@ -4,8 +4,10 @@ import { Link } from 'react-router';
 import type { WorkSummary } from '../../api/works';
 import { formatDay } from '../../lib/dates';
 import { Reveal } from '../ui/Reveal';
-import { CATEGORY_LABELS } from './categories';
+import { categoryLabel } from './categories';
 import './WorkCard.css';
+import { useT } from '../../lib/i18n';
+import { useSite } from '../../data/SiteContext';
 
 /**
  * One poster card; the whole card links to the work's page. `badge` is the profile's display name. `children` (the
@@ -23,6 +25,8 @@ export function WorkCard({
   index?: number;
   children?: ReactNode;
 }) {
+  const t = useT();
+  const { readOnly } = useSite();
   return (
     <li className="work-card">
       <Reveal delayIndex={index} layout>
@@ -37,12 +41,12 @@ export function WorkCard({
             )}
             {badge && <span className="work-card__badge">{badge}</span>}
           </span>
-          <span className="work-card__date">{work.releaseDate ? formatDay(work.releaseDate) : 'Coming Soon'}</span>
+          <span className="work-card__date">{work.releaseDate ? formatDay(work.releaseDate) : t('Coming Soon', 'Sắp ra mắt')}</span>
           <span className="work-card__title">{work.title}</span>
           <span className="work-card__chips">
             {work.categories.map((c) => (
               <span key={c} className="work-card__chip work-card__chip--category">
-                {CATEGORY_LABELS[c]}
+                {categoryLabel(c, readOnly)}
               </span>
             ))}
             {work.subcategory && <span className="work-card__chip">{work.subcategory}</span>}

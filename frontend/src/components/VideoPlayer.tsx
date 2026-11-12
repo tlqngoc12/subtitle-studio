@@ -1,4 +1,5 @@
 import { Captions, CaptionsOff, Maximize, Minimize, RectangleHorizontal } from 'lucide-react';
+import { useT } from '../lib/i18n';
 import { isTyping } from '../lib/keyboard';
 import type { CaptionSize } from '../lib/viewerPrefs';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
@@ -7,9 +8,12 @@ import type { PlayerError } from '../player/useYouTubePlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import './VideoPlayer.css';
 
-const ERROR_TEXT: Record<PlayerError, string> = {
-  EMBED_BLOCKED: 'This video cannot be played in an embedded player.',
-  LOAD_FAILED: 'Could not load the YouTube player. Check your network connection.',
+const ERROR_TEXT: Record<PlayerError, [en: string, vi: string]> = {
+  EMBED_BLOCKED: ['This video cannot be played in an embedded player.', 'Video này không thể phát trong trình phát nhúng.'],
+  LOAD_FAILED: [
+    'Could not load the YouTube player. Check your network connection.',
+    'Không tải được trình phát YouTube. Hãy kiểm tra kết nối mạng.',
+  ],
 };
 
 /** Older Safari (and iPad) only has the prefixed Fullscreen API. */
@@ -50,6 +54,7 @@ export function VideoPlayer({
   theater = false,
   onToggleTheater,
 }: Props) {
+  const t = useT();
   const frameRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [filled, setFilled] = useState(false);
@@ -109,7 +114,7 @@ export function VideoPlayer({
 
   return (
     <div className={filled ? 'player player--filled' : 'player'} ref={frameRef}>
-      {error ? <p className="player__error">{ERROR_TEXT[error]}</p> : <div className="player__video" ref={containerRef} />}
+      {error ? <p className="player__error">{t(...ERROR_TEXT[error])}</p> : <div className="player__video" ref={containerRef} />}
       <SubtitleOverlay cue={captionsOn ? cue : null} size={captionSize} />
       {/* title, not <Tip>: the tooltip portal renders outside the fullscreen frame, so it would never show there. */}
       <div className="player__tools">
@@ -118,8 +123,8 @@ export function VideoPlayer({
             className="player__btn"
             type="button"
             onClick={onToggleCaptions}
-            aria-label={captionsOn ? 'Hide Vietsub' : 'Show Vietsub'}
-            title={captionsOn ? 'Hide Vietsub (c)' : 'Show Vietsub (c)'}
+            aria-label={captionsOn ? t('Hide Vietsub', 'Ẩn Vietsub') : t('Show Vietsub', 'Hiện Vietsub')}
+            title={captionsOn ? t('Hide Vietsub (c)', 'Ẩn Vietsub (c)') : t('Show Vietsub (c)', 'Hiện Vietsub (c)')}
           >
             {captionsOn ? <Captions aria-hidden="true" /> : <CaptionsOff aria-hidden="true" />}
           </button>
@@ -129,9 +134,9 @@ export function VideoPlayer({
             className="player__btn"
             type="button"
             onClick={onToggleTheater}
-            aria-label={theater ? 'Exit theater mode' : 'Theater mode'}
+            aria-label={theater ? t('Exit theater mode', 'Thoát chế độ rạp') : t('Theater mode', 'Chế độ rạp')}
             aria-pressed={theater}
-            title={theater ? 'Exit theater mode (t)' : 'Theater mode (t)'}
+            title={theater ? t('Exit theater mode (t)', 'Thoát chế độ rạp (t)') : t('Theater mode (t)', 'Chế độ rạp (t)')}
           >
             <RectangleHorizontal aria-hidden="true" />
           </button>
@@ -140,8 +145,8 @@ export function VideoPlayer({
           className="player__btn player__fs"
           type="button"
           onClick={toggle}
-          aria-label={expanded ? 'Exit full screen' : 'Full screen'}
-          title={expanded ? 'Exit full screen (f)' : 'Full screen (f)'}
+          aria-label={expanded ? t('Exit full screen', 'Thoát toàn màn hình') : t('Full screen', 'Toàn màn hình')}
+          title={expanded ? t('Exit full screen (f)', 'Thoát toàn màn hình (f)') : t('Full screen (f)', 'Toàn màn hình (f)')}
         >
           {expanded ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}
         </button>

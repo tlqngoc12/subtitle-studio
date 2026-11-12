@@ -711,16 +711,16 @@ describe('WatchPage on the public site', () => {
     player.currentMs = 1_500;
     renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Theater mode' }));
-    expect(screen.getByRole('button', { name: 'Exit theater mode' })).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
-    expect(await screen.findByRole('radiogroup', { name: 'Caption size' })).toBeInTheDocument();
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Chế độ rạp' }));
+    expect(screen.getByRole('button', { name: 'Thoát chế độ rạp' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Phím tắt' }));
+    expect(await screen.findByRole('radiogroup', { name: 'Cỡ chữ phụ đề' })).toBeInTheDocument();
   });
 
   it('readOnlyEmptyStateHasNoAddLink', async () => {
     renderPublic(fakeSource({ getVideo: async () => ({ ...video, viCueCount: 0 }), getVietsub: async () => [] }));
 
-    expect(await screen.findByText(/This video has no Vietsub yet\./)).toBeInTheDocument();
+    expect(await screen.findByText(/Video này chưa có Vietsub\./)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Add Vietsub' })).not.toBeInTheDocument();
   });
 });

@@ -19,6 +19,7 @@ import { useYouTubePlayer } from '../player/useYouTubePlayer';
 import { Alert } from '../components/ui/Alert';
 import { PageHeader } from '../components/ui/PageHeader';
 import './WatchPage.css';
+import { useT } from '../lib/i18n';
 
 /**
  * The end result of the workflow: the YouTube video playing with its Vietsub. With `?playlist=` it also shows
@@ -29,6 +30,7 @@ import './WatchPage.css';
 export default function WatchPage() {
   const { id = '' } = useParams();
   const { source, readOnly } = useSite();
+  const t = useT();
   const [video, setVideo] = useState<PublicVideo | null>(null);
   const [cues, setCues] = useState<ViCue[]>([]);
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -97,7 +99,7 @@ export default function WatchPage() {
     <main className="page">
       <Link className="back-link" to={mode ? `/vietsub/list?playlist=${mode.playlist.id}` : '/vietsub/list'}>
         <ArrowLeft className="icon icon--sm" aria-hidden="true" />
-        Back to Vietsub list
+        {t('Back to Vietsub list', 'Quay lại danh sách Vietsub')}
       </Link>
 
       {error && (
@@ -131,7 +133,7 @@ export default function WatchPage() {
 
           {video && video.viCueCount === 0 && (
             <p className="muted">
-              This video has no Vietsub yet.
+              {t('This video has no Vietsub yet.', 'Video này chưa có Vietsub.')}
             </p>
           )}
         </div>
