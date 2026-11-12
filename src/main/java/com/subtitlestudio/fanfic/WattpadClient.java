@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -29,6 +30,11 @@ public class WattpadClient {
     private static final String FIELDS = "id,title,url,cover,description,readCount,voteCount,numParts,completed,tags,"
             + "user(username),modifyDate,lastPublishedPart(createDate),parts(wordCount)";
 
+    private static final String PARTS_FIELDS = "id,title,url,cover,description,readCount,voteCount,numParts,completed,"
+            + "tags,user(username),modifyDate,lastPublishedPart(createDate),language(name),"
+            + "parts(id,title,wordCount,createDate,modifyDate,deleted)";
+    private static final int MAX_TEXT_PAGES = 30;
+
     private final String baseUrl;
     private final Duration timeout;
     private final ObjectMapper mapper;
@@ -48,10 +54,62 @@ public class WattpadClient {
     }
 
     public WattpadStory fetch(String storyId) {
+        return toStory(storyId, storyJson(storyId, FIELDS));
+    }
+
+    /** The story plus its language and parts (in story order), for importing chapters as text. */
+    public WattpadStoryParts storyWithParts(String storyId) {
+        JsonNode root = storyJson(storyId, PARTS_FIELDS);
+        List<WattpadPart> parts = new ArrayList<>();
+        for (JsonNode p : root.path("parts")) {
+            String id = p.path("id").isNumber() || p.path("id").isTextual() ? p.path("id").asText() : null;
+            if (id == null || !id.matches("\\d{1,19}")) {
+                continue;
+            }
+            String title = text(p, "title");
+            parts.add(new WattpadPart(id, title == null ? "Part " + (parts.size() + 1) : title,
+                    Math.max(0, p.path("wordCount").asInt(0)), instant(p.path("createDate")),
+                    instant(p.path("modifyDate")), p.path("deleted").asBoolean(false)));
+        }
+        return new WattpadStoryParts(toStory(storyId, root), text(root.path("language"), "name"), parts);
+    }
+
+    /**
+     * The raw HTML of one part from {@code apiv2/storytext}, empty when Wattpad has no text for it (locked or deleted
+     * part). If a long part is paged, later pages are appended until Wattpad answers with an empty page.
+     */
+    public String partText(String partId) {
+        if (partId == null || !partId.matches("\\d{1,19}")) {
+            throw new IllegalArgumentException("Not a Wattpad part id");
+        }
+        StringBuilder all = new StringBuilder();
+        for (int page = 1; page <= MAX_TEXT_PAGES; page++) {
+            String suffix = page == 1 ? "" : "&page=" + page;
+            HttpResponse<byte[]> response = get(URI.create(baseUrl + "/apiv2/storytext?id=" + partId + suffix));
+            int code = response.statusCode();
+            if (code == 404 || code == 400 || code == 401 || code == 403) {
+                if (page == 1) {
+                    return "";
+                }
+                break;
+            }
+            if (code != 200) {
+                throw new WattpadUnavailableException("Wattpad answered " + code);
+            }
+            String chunk = new String(response.body(), StandardCharsets.UTF_8);
+            if (chunk.isBlank()) {
+                break;
+            }
+            all.append(chunk);
+        }
+        return all.toString();
+    }
+
+    private JsonNode storyJson(String storyId, String fields) {
         if (storyId == null || !storyId.matches("\\d{1,19}")) {
             throw new IllegalArgumentException("Not a Wattpad story id");
         }
-        HttpResponse<byte[]> response = get(URI.create(baseUrl + "/api/v3/stories/" + storyId + "?fields=" + FIELDS));
+        HttpResponse<byte[]> response = get(URI.create(baseUrl + "/api/v3/stories/" + storyId + "?fields=" + fields));
         int code = response.statusCode();
         if (code == 404 || code == 400) {
             throw new FanficNotFoundException();
@@ -68,7 +126,7 @@ public class WattpadClient {
         if (root == null || !root.isObject() || text(root, "title") == null) {
             throw new WattpadUnavailableException("Wattpad answer has no story");
         }
-        return toStory(storyId, root);
+        return root;
     }
 
     /** Downloads the cover, trying the larger {@code -512-} variant first and falling back to the given URL. */

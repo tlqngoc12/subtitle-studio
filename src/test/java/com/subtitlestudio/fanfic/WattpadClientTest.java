@@ -30,6 +30,9 @@ class WattpadClientTest {
     private volatile int status = 200;
     private volatile String body;
     private volatile long delayMs;
+    private final List<String> textRequests = new CopyOnWriteArrayList<>();
+    private final java.util.Map<String, String> textPages = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile int textStatus = 200;
 
     @BeforeEach
     void start() throws Exception {
@@ -45,6 +48,14 @@ class WattpadClientTest {
                 }
             }
             respond(ex, status, "application/json", body.getBytes(StandardCharsets.UTF_8));
+        });
+        server.createContext("/apiv2/storytext", ex -> {
+            String query = ex.getRequestURI().getRawQuery();
+            textRequests.add(query);
+            String page = query.contains("&page=") ? query.substring(query.indexOf("&page=") + 6) : "1";
+            String id = query.substring(3).replaceAll("&.*", "");
+            byte[] bytes = textPages.getOrDefault(id + ":" + page, "").getBytes(StandardCharsets.UTF_8);
+            respond(ex, textStatus, "text/plain", bytes);
         });
         server.createContext("/cover/", ex -> {
             String path = ex.getRequestURI().getPath();
@@ -203,5 +214,79 @@ class WattpadClientTest {
 
         assertThatThrownBy(() -> client.downloadCover(base + "/missing/x-256-k1.jpg"))
                 .isInstanceOf(WattpadUnavailableException.class);
+    }
+
+    @Test
+    void storyWithPartsReadsLanguageAndPartsInOrder() throws Exception {
+        body = Files.readString(Path.of("src/test/resources/wattpad/story-parts-396487502.json"),
+                StandardCharsets.UTF_8);
+
+        WattpadStoryParts s = client.storyWithParts("396487502");
+
+        assertThat(s.languageName()).isEqualTo("English");
+        assertThat(s.story().title()).startsWith("The Way She Warmed Me");
+        assertThat(s.parts()).extracting(WattpadPart::id)
+                .containsExactly("1552276256", "1552277732", "1552278521", "1552279145");
+        WattpadPart second = s.parts().get(1);
+        assertThat(second.title()).isEqualTo("Chapter 1: Cold Brew, Warm Smile");
+        assertThat(second.wordCount()).isEqualTo(951);
+        assertThat(second.createdAt()).isEqualTo(Instant.parse("2025-06-22T11:45:43Z"));
+        assertThat(second.modifiedAt()).isEqualTo(Instant.parse("2025-06-22T11:45:45Z"));
+        assertThat(s.parts().get(2).deleted()).isTrue();
+        assertThat(s.parts().get(0).deleted()).isFalse();
+    }
+
+    @Test
+    void storyWithPartsToleratesNoPartsAndNoLanguage() {
+        body = "{\"id\":\"5\",\"title\":\"Bare\"}";
+
+        WattpadStoryParts s = client.storyWithParts("5");
+
+        assertThat(s.parts()).isEmpty();
+        assertThat(s.languageName()).isNull();
+    }
+
+    @Test
+    void partTextReturnsTheHtmlOfASinglePage() {
+        textPages.put("77:1", "<p>Hello</p>");
+
+        assertThat(client.partText("77")).isEqualTo("<p>Hello</p>");
+        assertThat(textRequests).containsExactly("id=77", "id=77&page=2");
+    }
+
+    @Test
+    void partTextFollowsPagesUntilAnEmptyAnswer() {
+        textPages.put("77:1", "<p>One</p>");
+        textPages.put("77:2", "<p>Two</p>");
+
+        assertThat(client.partText("77")).isEqualTo("<p>One</p><p>Two</p>");
+        assertThat(textRequests).containsExactly("id=77", "id=77&page=2", "id=77&page=3");
+    }
+
+    @Test
+    void partTextIsEmptyWhenThereIsNoText() {
+        assertThat(client.partText("77")).isEmpty();
+    }
+
+    @Test
+    void partTextIsEmptyForALockedPart() {
+        textStatus = 403;
+
+        assertThat(client.partText("77")).isEmpty();
+    }
+
+    @Test
+    void partTextIsUnavailableOn429And500() {
+        for (int code : new int[] {429, 500}) {
+            textStatus = code;
+            assertThatThrownBy(() -> client.partText("77")).as("status %s", code)
+                    .isInstanceOf(WattpadUnavailableException.class);
+        }
+    }
+
+    @Test
+    void partTextRejectsANonNumericIdWithoutCallingOut() {
+        assertThatThrownBy(() -> client.partText("7/../x")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(textRequests).isEmpty();
     }
 }

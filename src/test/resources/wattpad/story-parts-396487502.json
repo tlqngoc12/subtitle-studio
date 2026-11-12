@@ -1,0 +1,39 @@
+{
+ "id": "396487502",
+ "title": "The Way She Warmed Me || EMIBONNIE ",
+ "language": {
+  "name": "English"
+ },
+ "numParts": 4,
+ "parts": [
+  {
+   "id": 1552276256,
+   "title": "PROLOGUE",
+   "modifyDate": "2025-06-21T09:32:42Z",
+   "createDate": "2025-06-21T09:32:40Z",
+   "wordCount": 190
+  },
+  {
+   "id": 1552277732,
+   "title": "Chapter 1: Cold Brew, Warm Smile",
+   "modifyDate": "2025-06-22T11:45:45Z",
+   "createDate": "2025-06-22T11:45:43Z",
+   "wordCount": 951
+  },
+  {
+   "id": 1552278521,
+   "title": "Chapter 2: Three Seconds of Eye Contact",
+   "modifyDate": "2025-06-22T14:29:37Z",
+   "createDate": "2025-06-22T14:29:36Z",
+   "wordCount": 724,
+   "deleted": true
+  },
+  {
+   "id": 1552279145,
+   "title": "Chapter 3: Don't Call Me 'P'",
+   "modifyDate": "2025-06-22T14:29:48Z",
+   "createDate": "2025-06-22T14:29:47Z",
+   "wordCount": 727
+  }
+ ]
+}
