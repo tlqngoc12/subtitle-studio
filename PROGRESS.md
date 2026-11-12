@@ -832,6 +832,7 @@ Nhánh `fix/ui-feedback-batch`, chỉ frontend.
 - **Bộ lọc:** `components/ui/FilterPills` (`role="group"`, `aria-pressed`, cuộn ngang trên điện thoại, pill chọn màu tím) dùng cho Works (thay `CategoryPills`) và Fanfics (trạng thái); khoảng cách hàng bộ lọc cùng `--space-4`.
 - **Menu public:** mục `VIETSUB_LIST` hiện nhãn `Vietsub` ở trang public, admin giữ `Vietsub list`.
 - **Profile:** `Reveal` cho banner, cột chân dung và từng khối ở chế độ xem (chế độ sửa không đổi, không đụng `rowMotion`/`expandMotion`).
+- **Đợt 2 (cùng nhánh):**  cho public;  (link bỏ qua tới , gán  khi bấm);  có nút Tạm dừng/Tiếp tục (người dùng tạm dừng thì giữ tới khi bấm lại);  theo  (bỏ scroll-margin lẻ); thang  thay mọi z-index số trần;  cho dialog; token scrim (, , …) thay màu thô; thời lượng vòng lặp trang trí qua  (reduced motion về 0 + ); **trang public tiếng Việt** ( , menu giữ tiếng Anh, admin giữ tiếng Anh); player  trong vùng an toàn iPhone (, ); breakpoint mobile-first cho Select, Combobox, ItemListEditor, BlockView facts, VideoPlayer, CueTable, ResultPanel, WatchPage, UrlForm, NavBar, FanficsTab, AddFanficDialog, PhotoPostDialog. Còn  (chuyển dần): PlaylistHeader, FanficCard, PublishButton, ChapterPage, ProfilesPage, WorkEditPage, CueEditorTable, FeaturedNovels, NovelRow, PublicNovelPage, ReaderBar, ReaderPage, FanCarousel, vietsub-lists, base.css.
 
 ## 9. Rủi ro đang theo dõi
 
