@@ -29,8 +29,8 @@ const PHOTOS: Section = { to: '/photos', label: 'Photos', isCurrent: (p) => p ==
 
 const NOVELS: Section = { to: '/novels', label: 'Novels', isCurrent: (p) => p === '/novels' || p.startsWith('/novels/') };
 
-/** Guests only read: no Get Engsub, no Vietsub management. */
-const PUBLIC_SECTIONS: Section[] = [VIETSUB_LIST, PROFILE, WORKS, PHOTOS, NOVELS];
+/** Guests only read: no Get Engsub, no Vietsub management, so the list is simply "Vietsub" for them. */
+const PUBLIC_SECTIONS: Section[] = [{ ...VIETSUB_LIST, label: 'Vietsub' }, PROFILE, WORKS, PHOTOS, NOVELS];
 
 const ADMIN_SECTIONS: Section[] = [
   { to: '/', label: 'Get Engsub', isCurrent: (p: string) => p === '/' },
