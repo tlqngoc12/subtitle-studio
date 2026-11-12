@@ -13,12 +13,13 @@
 
 .frame__caption {
   display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  align-items: center;
+  align-items: stretch;
 }
 
 .frame__input {
-  flex: 1;
+  flex: none;
   min-width: 0;
   height: var(--control-l);
   padding: 0 var(--space-4);
@@ -74,15 +75,15 @@
 }
 
 /* ---------- Small screens ---------- */
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .frame__caption {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
   }
 
-  /* In a column the input keeps its own height instead of sharing the free space. */
+  /* In a row the input shares the free space; in the column it keeps its own height. */
   .frame__input {
-    flex: none;
+    flex: 1;
   }
 }
 

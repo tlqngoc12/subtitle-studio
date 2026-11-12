@@ -37,7 +37,6 @@
 .select__trigger--frame {
   flex: none;
   width: auto;
-  max-width: 16rem;
   height: var(--control-l);
   font-size: var(--fs-control-l);
   border: 0;
@@ -86,7 +85,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: 36px;
+  min-height: 44px;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-control);
   font: inherit;
@@ -117,13 +116,13 @@
   color: var(--brand-2);
 }
 
-@media (max-width: 520px) {
+@media (min-width: 521px) {
   .select__item {
-    min-height: 44px;
+    min-height: 36px;
   }
 
   .select__trigger--frame {
-    max-width: none;
+    max-width: 16rem;
   }
 }
 

@@ -62,7 +62,8 @@ describe('Get Engsub and Manage Vietsub rows (E1, E2)', () => {
 
 describe('Cue preview on phones (E4)', () => {
   it('is capped at 60% of the viewport height', () => {
-    expect(rule('.cues', '(max-width: 760px)')).toMatch(/max-height:\s*60dvh/);
+    expect(rule('.cues')).toMatch(/max-height:\s*60dvh/);
+    expect(rule('.cues', '(min-width: 761px)')).toMatch(/max-height:\s*460px/);
   });
 });
 

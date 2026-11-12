@@ -32,7 +32,8 @@ describe('watch page CSS', () => {
   });
 
   it('makes the player buttons 44px on phones', () => {
-    expect(css).toMatch(/@media \(max-width: 760px\)\s*\{\s*\.player__btn\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px/);
+    expect(rule('.player__btn')).toMatch(/width:\s*44px;[^}]*height:\s*44px/);
+    expect(css).toMatch(/@media \(min-width: 761px\)\s*\{\s*\.player__btn\s*\{[^}]*width:\s*40px;[^}]*height:\s*40px/);
   });
 
   it('dims nothing but the thumbnail of a watched video and keeps the tick in brand ink', () => {

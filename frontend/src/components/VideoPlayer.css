@@ -86,8 +86,8 @@ html.player-filled-open body {
 .player__btn {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 6px;
@@ -113,10 +113,10 @@ html.player-filled-open body {
   height: 24px;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .player__btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 }
 

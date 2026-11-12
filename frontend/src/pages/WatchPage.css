@@ -7,7 +7,7 @@
 }
 
 .watch--playlist {
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .watch__main {
@@ -40,8 +40,8 @@
   min-width: 0;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .watch--playlist {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   }
 }

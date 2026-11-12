@@ -1,6 +1,6 @@
 /* ---------- Cue preview ---------- */
 .cues {
-  max-height: 460px;
+  max-height: 60dvh;
   overflow: auto;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -52,8 +52,8 @@
 }
 
 /* On phones the preview scrolls with the page instead of in a tall box of its own. */
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .cues {
-    max-height: 60dvh;
+    max-height: 460px;
   }
 }

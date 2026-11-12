@@ -37,7 +37,7 @@ const INTENDED = {
 
 const ALLOWED_MEDIA = [
   /^@media \(max-width: (520|760)px\)$/,
-  /^@media \(min-width: (760|1024)px\)$/,
+  /^@media \(min-width: (521|760|761|1024)px\)$/,
   /^@media \(prefers-(color-scheme: dark|reduced-motion: reduce)\)$/,
   /^@media print$/,
 ];
