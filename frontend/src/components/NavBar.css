@@ -62,13 +62,13 @@
 /* The site logo (transparent webp, 522x478) before the name; decorative, the name follows. */
 .topbar__logo {
   display: block;
-  height: 28px;
+  height: 24px;
   width: auto;
 }
 
-@media (max-width: 520px) {
+@media (min-width: 521px) {
   .topbar__logo {
-    height: 24px;
+    height: 28px;
   }
 }
 
@@ -83,10 +83,14 @@
   scrollbar-width: none;
 }
 
-@media (max-width: 760px) {
-  /* Only part of the row fits: fade the right edge so it reads as scrollable. */
+/* Only part of the row fits on a phone: fade the right edge so it reads as scrollable. */
+.nav {
+  mask-image: linear-gradient(to right, #000 82%, transparent);
+}
+
+@media (min-width: 761px) {
   .nav {
-    mask-image: linear-gradient(to right, #000 82%, transparent);
+    mask-image: none;
   }
 }
 

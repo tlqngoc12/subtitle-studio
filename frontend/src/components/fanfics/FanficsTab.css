@@ -12,12 +12,13 @@
 }
 
 .fanfics__search {
-  flex: 1 1 240px;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
 .fanfics__sort {
-  width: 180px;
+  flex-basis: 100%;
+  width: 100%;
 }
 
 .fanfics__actions {
@@ -45,10 +46,13 @@
   color: var(--muted);
 }
 
-@media (max-width: 520px) {
-  .fanfics__search,
+@media (min-width: 521px) {
+  .fanfics__search {
+    flex: 1 1 240px;
+  }
+
   .fanfics__sort {
-    flex-basis: 100%;
-    width: 100%;
+    flex-basis: auto;
+    width: 180px;
   }
 }
