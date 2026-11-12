@@ -380,6 +380,32 @@ describe('FilmStrip autoplay', () => {
     expect(scrollTo).not.toHaveBeenCalled();
   });
 
+  describe('pause button', () => {
+    it('pauses the slideshow until it is pressed again, and names itself by the state', () => {
+      const { region, scrollTo } = renderAuto();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pause slideshow' }));
+      fireEvent.pointerLeave(region);
+      act(() => (document.activeElement as HTMLElement | null)?.blur());
+      advance(20000);
+      expect(scrollTo).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Play slideshow' }));
+      act(() => (document.activeElement as HTMLElement | null)?.blur());
+      advance(5000);
+      expect(scrollTo).toHaveBeenCalled();
+    });
+
+    it('is absent with one image, without autoplay, and with reduced motion', () => {
+      renderAuto({ images: [IMAGES[0]] });
+      expect(screen.queryByRole('button', { name: /slideshow/ })).not.toBeInTheDocument();
+    });
+
+    it('is 44px on coarse pointers', () => {
+      expect(css).toMatch(/@media \(pointer: coarse\)\s*\{[^@]*\.filmstrip__toggle\s*\{[^}]*width:\s*44px/);
+    });
+  });
+
   it('does not run without autoplayMs', () => {
     render(
       <MemoryRouter>

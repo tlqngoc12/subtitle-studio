@@ -156,3 +156,42 @@ body:has(.filmstrip) {
     transition: none;
   }
 }
+
+/* Pause / Play of the slideshow, at the left end of the dots row; 44px on touch screens. */
+.filmstrip__dots {
+  position: relative;
+  align-items: center;
+}
+
+.filmstrip__toggle {
+  position: absolute;
+  top: 50%;
+  left: var(--gutter);
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: var(--control-s);
+  height: var(--control-s);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.filmstrip__toggle:hover {
+  color: var(--brand-2-ink);
+}
+
+.filmstrip__toggle:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+@media (pointer: coarse) {
+  .filmstrip__toggle {
+    width: 44px;
+    height: 44px;
+  }
+}
