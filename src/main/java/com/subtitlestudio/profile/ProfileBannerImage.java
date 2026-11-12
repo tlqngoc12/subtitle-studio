@@ -2,6 +2,7 @@ package com.subtitlestudio.profile;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,6 +14,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** One image of a profile's fanned banner; {@code altText} is optional and only read by screen readers. */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_profile_banner_image")
 public class ProfileBannerImage {

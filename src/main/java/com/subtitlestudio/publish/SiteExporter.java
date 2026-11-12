@@ -1,7 +1,6 @@
 package com.subtitlestudio.publish;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.fanfic.FanficDto;
 import com.subtitlestudio.fanfic.FanficService;
 import com.subtitlestudio.photo.PhotoPostDto;
@@ -15,6 +14,7 @@ import com.subtitlestudio.profile.ImageType;
 import com.subtitlestudio.profile.ItemDto;
 import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaRepository;
+import com.subtitlestudio.profile.MediaStorage;
 import com.subtitlestudio.profile.ProfileDto;
 import com.subtitlestudio.profile.ProfileService;
 import com.subtitlestudio.profile.ProfilePageDto;
@@ -62,7 +62,7 @@ public class SiteExporter {
     private final PlaylistService playlists;
     private final ProfileService profiles;
     private final MediaRepository media;
-    private final SubtitleStudioProperties properties;
+    private final MediaStorage storage;
     private final ObjectMapper mapper;
     private final NovelExporter novels;
     private final PhotoService photos;
@@ -72,15 +72,15 @@ public class SiteExporter {
 
     @Autowired
     public SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
-                        ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
+                        ProfileService profiles, MediaRepository media, MediaStorage storage,
                         ObjectMapper mapper, NovelExporter novels, PhotoService photos, WorkService works,
                         FanficService fanfics) {
-        this(subtitles, vietsub, playlists, profiles, media, properties, mapper, novels, photos, works, fanfics,
+        this(subtitles, vietsub, playlists, profiles, media, storage, mapper, novels, photos, works, fanfics,
                 PublishService.FILE_WARNING);
     }
 
     SiteExporter(SubtitleService subtitles, VietsubService vietsub, PlaylistService playlists,
-                 ProfileService profiles, MediaRepository media, SubtitleStudioProperties properties,
+                 ProfileService profiles, MediaRepository media, MediaStorage storage,
                  ObjectMapper mapper, NovelExporter novels, PhotoService photos, WorkService works,
                  FanficService fanfics, int fileWarning) {
         this.subtitles = subtitles;
@@ -88,7 +88,7 @@ public class SiteExporter {
         this.playlists = playlists;
         this.profiles = profiles;
         this.media = media;
-        this.properties = properties;
+        this.storage = storage;
         this.mapper = mapper;
         this.novels = novels;
         this.photos = photos;
@@ -242,8 +242,8 @@ public class SiteExporter {
             return Optional.empty();
         }
         String name = found.get().getStorageKey() + "." + type.get().extension();
-        Path source = properties.mediaDir().resolve(name);
-        if (!Files.isRegularFile(source)) {
+        Path source = storage.locate(found.get()).orElse(null);
+        if (source == null) {
             log.warn("Media {} is missing on disk; left out of the public site", id);
             return Optional.empty();
         }

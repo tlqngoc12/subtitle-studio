@@ -2,6 +2,7 @@ package com.subtitlestudio.profile;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Enumerated;
@@ -15,6 +16,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** One of the fixed profile pages, seeded by the V2 migration; {@code slug} is its URL. */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_profile")
 public class Profile {

@@ -3,6 +3,7 @@ package com.subtitlestudio.profile;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** One block of a profile page. Which columns are used depends on {@link #getType()} (spec section 3). */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_profile_block")
 public class ProfileBlock {

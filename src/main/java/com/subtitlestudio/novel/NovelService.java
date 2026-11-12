@@ -3,6 +3,7 @@ package com.subtitlestudio.novel;
 import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.Media;
+import com.subtitlestudio.profile.MediaFiler;
 import com.subtitlestudio.profile.MediaRepository;
 import com.subtitlestudio.profile.MediaService;
 import java.time.Clock;
@@ -28,11 +29,12 @@ public class NovelService {
     private final RenderCache renderCache;
     private final Clock clock;
     private final TranslatingModels models;
+    private final MediaFiler mediaFiler;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                         NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
                         NovelValidator validator, RenderCache renderCache, Clock clock,
-                        TranslatingModels models) {
+                        TranslatingModels models, MediaFiler mediaFiler) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -43,6 +45,7 @@ public class NovelService {
         this.renderCache = renderCache;
         this.clock = clock;
         this.models = models;
+        this.mediaFiler = mediaFiler;
     }
 
     @Transactional(readOnly = true)
@@ -80,12 +83,17 @@ public class NovelService {
             throw new DuplicateNovelSlugException(r.slug());
         }
         Long oldCover = n.getCover() == null ? null : n.getCover().getId();
+        boolean renamed = !r.slug().equals(n.getSlug());
         n.setSlug(r.slug());
         n.setTitle(r.title());
         n.setNovelStatus(r.novelStatus());
         apply(n, r);
         n.touch(clock.instant());
         novels.flush();
+        if (renamed) {
+            // Page screenshots live in novels/<slug>/, so a new slug means a new folder.
+            mediaFiler.fileNovelPagesAfterCommit(n.getId());
+        }
         if (oldCover != null && !oldCover.equals(r.coverMediaId())) {
             mediaService.deleteIfUnreferenced(List.of(oldCover));
         }
