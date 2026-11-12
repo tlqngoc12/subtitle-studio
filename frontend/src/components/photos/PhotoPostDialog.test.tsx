@@ -260,7 +260,7 @@ describe('PhotoPostDialog: Fetch from X', () => {
 
     expect(await screen.findByRole('img', { name: 'Selected image' })).toHaveAttribute('src', '/api/media/9');
     expect(screen.getByLabelText('Title')).toHaveValue('Fan meeting');
-    expect(screen.getByLabelText('Date')).toHaveValue('11/11/2026');
+    await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('11/11/2026'));
     expect(JSON.parse(String(calls[0].body))).toEqual({ url: X_URL });
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Fetched from X');
   });
