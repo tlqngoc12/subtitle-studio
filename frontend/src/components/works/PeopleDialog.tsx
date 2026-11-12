@@ -142,7 +142,7 @@ function PersonRow({ person, onSaved, onDelete }: { person: Person; onSaved: (p:
             </button>
             <button
               type="button"
-              className="button button--s"
+              className="button"
               onClick={() => {
                 setRenaming(false);
                 setName(person.name);
