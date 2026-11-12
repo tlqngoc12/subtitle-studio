@@ -71,6 +71,8 @@ public class NovelService {
             throw new DuplicateNovelSlugException(r.slug());
         }
         Novel n = new Novel(r.slug(), r.title(), r.novelStatus(), clock.instant());
+        n.setSourceType(r.sourceType());
+        n.setWattpadStoryId(r.wattpadStoryId());
         apply(n, r);
         return detail(novels.save(n));
     }
@@ -134,6 +136,7 @@ public class NovelService {
         n.setTranslatorCredit(r.translatorCredit());
         n.setSourceUrl(r.sourceUrl());
         n.setPromptProfile(r.promptProfile());
+        n.setSourceLanguage(r.sourceLanguage());
         n.setTrailerVideoId(r.trailerUrl());
     }
 
@@ -161,7 +164,8 @@ public class NovelService {
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),
                 n.getDescription(), tags(n), n.getNovelStatus(), n.getTranslatorCredit(), n.getSourceUrl(),
                 n.getPromptProfile(), n.getTrailerVideoId(),
-                n.getNotebookStatus(), n.getNotebookError(), list);
+                n.getNotebookStatus(), n.getNotebookError(), list, n.getSourceType(), n.getSourceLanguage(),
+                n.getWattpadStoryId());
     }
 
     static List<String> tags(Novel n) {

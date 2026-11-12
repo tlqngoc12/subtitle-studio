@@ -362,4 +362,62 @@ class NovelServiceTest {
         assertThat(service.get(d.id()).chapters()).singleElement()
                 .satisfies(c -> assertThat(c.suspectPages()).isEqualTo(1));
     }
+
+    private static NovelRequest wattpad(String storyId, String language, NovelSourceType type) {
+        NovelRequest r = valid();
+        return new NovelRequest(r.slug(), r.title(), null, r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), null, type, language,
+                storyId, "https://img.wattpad.com/cover/1-256-x.jpg");
+    }
+
+    @Test
+    void aNovelDefaultsToScreenshotsAndThai() {
+        NovelDetail d = service.create(valid());
+
+        assertThat(d.sourceType()).isEqualTo(NovelSourceType.SCREENSHOTS);
+        assertThat(d.sourceLanguage()).isEqualTo("th");
+        assertThat(d.wattpadStoryId()).isNull();
+    }
+
+    @Test
+    void aWattpadNovelKeepsItsStoryIdAndLanguage() {
+        NovelDetail d = service.create(wattpad(" 396487502 ", "EN", NovelSourceType.WATTPAD));
+
+        assertThat(d.sourceType()).isEqualTo(NovelSourceType.WATTPAD);
+        assertThat(d.sourceLanguage()).isEqualTo("en");
+        assertThat(d.wattpadStoryId()).isEqualTo("396487502");
+        assertThat(service.get(d.id()).wattpadStoryId()).isEqualTo("396487502");
+    }
+
+    @Test
+    void aWattpadNovelNeedsANumericStoryId() {
+        assertThat(errorsOf(wattpad(null, "en", NovelSourceType.WATTPAD))).extracting(FieldError::field)
+                .containsExactly("wattpadStoryId");
+        assertThat(errorsOf(wattpad("12/../x", "en", NovelSourceType.WATTPAD))).extracting(FieldError::field)
+                .containsExactly("wattpadStoryId");
+    }
+
+    @Test
+    void theSourceLanguageMustBeThaiOrEnglish() {
+        assertThat(errorsOf(wattpad("5", "fr", NovelSourceType.WATTPAD))).extracting(FieldError::field)
+                .containsExactly("sourceLanguage");
+    }
+
+    @Test
+    void aScreenshotNovelIgnoresAStrayStoryId() {
+        NovelDetail d = service.create(wattpad("5", "th", NovelSourceType.SCREENSHOTS));
+
+        assertThat(d.wattpadStoryId()).isNull();
+    }
+
+    @Test
+    void updateChangesTheLanguageButNotTheSourceType() {
+        NovelDetail d = service.create(wattpad("5", "th", NovelSourceType.WATTPAD));
+
+        NovelDetail u = service.update(d.id(), wattpad("99", "en", NovelSourceType.SCREENSHOTS));
+
+        assertThat(u.sourceLanguage()).isEqualTo("en");
+        assertThat(u.sourceType()).isEqualTo(NovelSourceType.WATTPAD);
+        assertThat(u.wattpadStoryId()).isEqualTo("5");
+    }
 }

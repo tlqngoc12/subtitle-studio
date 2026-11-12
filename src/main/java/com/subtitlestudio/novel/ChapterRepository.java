@@ -11,6 +11,10 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     /** Reading order; chapter_no breaks ties. */
     List<Chapter> findByNovelIdOrderBySortOrderAscChapterNoAsc(long novelId);
 
+    Optional<Chapter> findByNovelIdAndWattpadPartId(long novelId, String wattpadPartId);
+
+    List<Chapter> findByNovelIdAndWattpadPartIdIsNotNull(long novelId);
+
     Optional<Chapter> findByNovelIdAndChapterNo(long novelId, int chapterNo);
 
     List<Chapter> findByTranslationStatus(ChapterTranslationStatus status);

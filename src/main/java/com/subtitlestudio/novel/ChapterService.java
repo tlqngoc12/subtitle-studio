@@ -353,6 +353,7 @@ public class ChapterService {
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
                 c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
-                ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next);
+                ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
+                c.getWattpadPartId(), c.getSourceFetchedAt());
     }
 }
