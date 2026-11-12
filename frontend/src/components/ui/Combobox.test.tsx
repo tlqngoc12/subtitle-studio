@@ -153,4 +153,23 @@ describe('Combobox', () => {
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
+
+  it('opens on focus without typing when openOnFocus is set, and filters while typing', async () => {
+    const user = userEvent.setup();
+    render(<Combobox id="role" value="" onChange={() => {}} suggestions={SUGGESTIONS} openOnFocus />);
+
+    await user.tab();
+
+    expect(screen.getByRole('combobox')).toHaveFocus();
+    expect(await screen.findAllByRole('option')).toHaveLength(SUGGESTIONS.length);
+  });
+
+  it('does not open on keyboard focus by default', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.tab();
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
 });

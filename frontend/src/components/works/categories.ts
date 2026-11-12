@@ -19,6 +19,35 @@ export const ROLE_SUGGESTIONS: Partial<Record<WorkCategory, string[]>> = {
   MUSIC: ['Singer', 'Featuring', 'Vocal', 'MV cast'],
 };
 
+/** Fixed subcategory suggestions per category; any text is accepted for every category. */
+export const SUBCATEGORY_SUGGESTIONS: Record<WorkCategory, string[]> = {
+  FILM_TV: ['Series', 'Movie', 'Short film', 'Special'],
+  MUSIC: ['Single', 'OST', 'Album', 'Cover', 'Live'],
+  PERFORMANCE: ['Concert', 'Fan meeting', 'Stage'],
+  VARIETY: ['Guest', 'Regular', 'Reality'],
+  ADVERTISEMENT: ['TVC', 'Print', 'Campaign'],
+  CEREMONY: ['Awards', 'Red carpet'],
+  INTERVIEW: ['Magazine', 'TV', 'Online'],
+  FASHION: ['Runway', 'Photoshoot', 'Event'],
+};
+
+/**
+ * Subcategory suggestions for the chosen categories: the fixed list of each (in category order), then what other works
+ * in those categories already use, without repeats (case-insensitive; the first spelling wins).
+ */
+export function subcategorySuggestions(categories: WorkCategory[], used: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of [...CATEGORIES.filter((c) => categories.includes(c)).flatMap((c) => SUBCATEGORY_SUGGESTIONS[c]), ...used]) {
+    const key = s.trim().toLowerCase();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
 /** A work is a film when Film & TV is one of its categories (it then has characters). */
 export function isFilm(categories: WorkCategory[]): boolean {
   return categories.includes('FILM_TV');
