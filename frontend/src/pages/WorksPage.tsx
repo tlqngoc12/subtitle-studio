@@ -15,6 +15,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { groupByYear } from '../lib/groupByYear';
 import { matchesPerson } from '../lib/people';
 import { peopleOf } from './PhotosPage';
 import '../components/works/WorkCard.css';
@@ -62,6 +63,8 @@ export default function WorksPage() {
     [works, who, cat, groupSlug],
   );
 
+  const groups = useMemo(() => groupByYear(visible, (w) => w.releaseDate), [visible]);
+
   const setFilter = (key: 'who' | 'cat', value: string | null) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -99,19 +102,27 @@ export default function WorksPage() {
         <EmptyState icon={Clapperboard}>No works here yet.</EmptyState>
       )}
 
-      {visible.length > 0 && (
-        <ul className="work-grid" aria-label="Works">
-          {visible.map((w, i) => (
-            <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
-              {!readOnly && (
-                <div className="work-card__edit">
-                  <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />
-                </div>
-              )}
-            </WorkCard>
-          ))}
-        </ul>
-      )}
+      {groups.map((group) => {
+        const headingId = `works-year-${group.year ?? 'soon'}`;
+        return (
+          <section key={headingId} className="works-year" aria-labelledby={headingId}>
+            <h2 id={headingId} className="works-year__label">
+              {group.label}
+            </h2>
+            <ul className="work-grid">
+              {group.items.map((w, i) => (
+                <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
+                  {!readOnly && (
+                    <div className="work-card__edit">
+                      <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />
+                    </div>
+                  )}
+                </WorkCard>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
       {!readOnly && <PeopleDialog open={peopleOpen} onOpenChange={setPeopleOpen} />}
     </main>
   );

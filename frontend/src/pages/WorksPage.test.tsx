@@ -49,6 +49,20 @@ describe('WorksPage', () => {
     expect(screen.getByText('Series, music, shows and more.')).toBeInTheDocument();
   });
 
+  it('groups works under Coming Soon and year headings, newest year first', async () => {
+    renderPublic([
+      workSummary(1, { title: 'Soon film', releaseDate: null }),
+      workSummary(2, { title: 'New one', releaseDate: '2026-11-09' }),
+      workSummary(3, { title: 'Old one', releaseDate: '2025-02-01' }),
+    ]);
+
+    await screen.findByRole('link', { name: 'Soon film' });
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Coming Soon', '2026', '2025']);
+    const section = screen.getByRole('region', { name: '2025' });
+    expect(within(section).getByRole('link', { name: 'Old one' })).toBeInTheDocument();
+    expect(within(section).queryByRole('link', { name: 'New one' })).not.toBeInTheDocument();
+  });
+
   it('filters by person and category together', async () => {
     renderPublic(WORKS, '/works?who=bonnie&cat=MUSIC');
 
