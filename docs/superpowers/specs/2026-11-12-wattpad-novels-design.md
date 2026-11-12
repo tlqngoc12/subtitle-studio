@@ -1,13 +1,15 @@
 # Translated novels from Wattpad — design
 
-Date: 2026-11-12 · Status: approved in chat (scope, language, rendering, images)
+Date: 2026-11-12 · Status: revised 2026-11-13 after user review (whole-chapter translation; reuse Novels as-is; no permission flag)
 
 ## Goal
 
 Translate a Wattpad story (the author gave permission) and publish it exactly like the existing translated novels
 (Novels › Translated): same admin novel/chapter pages, same Gemini translation with the story notebook, same
-Publish that renders chapters as watermarked WebP images, same public novel/reader pages. The only difference is the
-**source**: the chapter text is fetched from Wattpad as text, instead of page screenshots read by Gemini.
+Publish that renders chapters as watermarked WebP images, same public novel/reader pages. Wattpad novels live in Novels › Translated and reuse the Novels code and screens; only two things differ:
+1. **How the story is obtained** — the novel details are prefilled from Wattpad and the chapter text is fetched as
+   text, instead of page screenshots.
+2. **How it is translated** — Gemini translates text (a whole chapter per request), instead of reading screenshots.
 
 ## Decisions (from the user)
 
@@ -15,8 +17,9 @@ Publish that renders chapters as watermarked WebP images, same public novel/read
   (`./data/prompts/novels/<Name>.md`) is chosen per novel as today.
 - Public reader: **rendered images + watermark**, same as screenshot novels (copy protection).
 - Images embedded inside Wattpad chapters are **ignored** (text only).
-- Public novel page credits the author and links to the original on Wattpad, with a note that the author gave
-  permission.
+- No new public UI: the Wattpad story URL goes into the existing **Original book link** field and the author into
+  **Original author**, so the public novel page shows today's "Truyện gốc" button and details unchanged. No
+  "permission" line, flag or checkbox.
 - Entry points: Novels › Translated › New novel › "From Wattpad", and Fanfic card menu › "Translate this story".
 
 ## Feasibility (spike 2026-11-12, plain GET, no login, UA `SubtitleStudio`)
@@ -37,15 +40,14 @@ Publish that renders chapters as watermarked WebP images, same public novel/read
 - `source_type varchar2(20) default 'SCREENSHOTS' not null` — `SCREENSHOTS | WATTPAD`.
 - `source_language varchar2(5) default 'th' not null` — `th | en`.
 - `wattpad_story_id varchar2(20)` nullable, unique.
-- `author_permission char(1) default 'N' not null` — Y when the admin confirmed the author's permission.
-- Existing `original_author` and `source_url` are reused (author username / story URL).
+- Existing `original_author` and `source_url` are reused (author username / story URL = "Original book link").
 
 `t_chapter`:
 - `source_text clob` — the fetched original text (plain text, paragraphs separated by a blank line).
 - `wattpad_part_id varchar2(20)` nullable; unique per novel (`unique (novel_id, wattpad_part_id)`).
 - `source_fetched_at timestamp(6)` nullable.
 
-Existing rows: `SCREENSHOTS`, `th`, no permission flag needed (`N`). `PersistenceOracleIT` lists tables only (no new
+Existing rows: `SCREENSHOTS`, `th`. `PersistenceOracleIT` lists tables only (no new
 table) — check it anyway.
 
 ## Behaviour
@@ -56,9 +58,10 @@ table) — check it anyway.
   **Fetch** → `POST /api/novels/wattpad/preview {url}` returns title, author, description, tags, completed, language
   name, part count, cover URL, and `existingNovelId` if a novel with this `wattpad_story_id` already exists (UI then
   links to it instead of creating a duplicate).
-- The form is prefilled (title, original author, description, tags, status Completed/Ongoing, source URL, source
-  language guessed from Wattpad `language.name`: Thai→th, else en) and stays editable; the admin picks the
-  translation profile and must tick **"The author gave permission to translate"** (required for WATTPAD).
+- The existing novel form (`NovelForm`) is prefilled — title, Original author, description, tags, status
+  Completed/Ongoing, Original book link (the story URL), source language guessed from Wattpad `language.name`
+  (Thai→th, else en) — and stays editable; the admin picks the translation profile as today. The only extra
+  field is **Source language** (Thai/English).
 - Save creates the novel (`source_type=WATTPAD`, `wattpad_story_id`), downloads the cover like Fanfic does (stored
   through `MediaService`, filed into `novels/covers` by MediaFiler), then opens the novel page on the import step.
 - `/novels/new?wattpad=<url>` preselects From Wattpad and runs Fetch (used by the Fanfic menu item).
@@ -86,27 +89,36 @@ table) — check it anyway.
   `ChapterText.of(chapter, pages)`, which returns `text_vi` when set.
 
 ### Translation of text chapters
+- **One request per chapter.** The whole `source_text` is sent in one Gemini request and the whole Vietnamese
+  chapter comes back. Wattpad chapters are short for the model (sample story: longest part 951 words ≈ 6k chars;
+  Gemini input is far larger and its output limit covers tens of thousands of words), so splitting is the rare
+  exception, never the rule.
 - New `TextChapterTranslator` (Gemini, same client/model list/fallback/429 handling/`onTrying` reporting as
   `GeminiChapterTranslator`). System rules: the same novel-translation rules as today but for text input, with the
   source language named (Thai or English) and the Thai-particle rule applied only for Thai.
-- Input: profile, novel title, chapter name, notebook text, previous chapter tail (`previousText`, same 4,000 chars),
-  and the source text. Long chapters are split on paragraph boundaries into chunks of at most ~12,000 characters;
-  each later chunk carries the tail of the previous chunk's translation (`carryOver`, same constant). Output: plain
-  Vietnamese text, paragraphs separated by blank lines (JSON answer `{ "text": "…" }`, validated non-empty; a chunk
-  answer containing >30% Thai characters for a Thai source counts as untranslated and is asked again once, like the
-  page rule).
-- Each chunk = one Gemini request (free tier: 20 requests/day/model — a typical Wattpad chapter of 1–3k words is one
-  request).
-- Failure: chapter `FAILED` with the user message; a partial multi-chunk result is not saved (simple: retry the whole
-  chapter).
+- Input: profile, novel title, chapter name, notebook text, previous chapter tail (`previousText`, same 4,000 chars)
+  and the chapter's source text. Output: JSON `{ "text": "…" }`, plain Vietnamese, paragraphs separated by a blank
+  line; validated non-empty.
+- **Cut-off detection.** The answer counts as incomplete when Gemini reports `finishReason = MAX_TOKENS` (or the JSON
+  does not parse because it was truncated), or when the translation is implausibly short (fewer than ~40% of the
+  source's paragraphs). Only then is the chapter split, and only for that chapter:
+  - split in two at a **scene break** (a line made only of `*`, `-`, `~`, `#`, `•` or similar, e.g. `***`, `* * *`)
+    closest to the middle; if none, at the **paragraph boundary** closest to the middle — never inside a paragraph
+    or sentence;
+  - the second half's request also carries the tail of the first half's **source and translation** (≈1,500 chars
+    each) as context, with an instruction to continue seamlessly without repeating it;
+  - if a half is still cut off, it is split again the same way (max depth 3 → at most 8 parts; beyond that the
+    chapter fails with a clear message).
+  - Pre-split also happens without asking Gemini first when the source exceeds a safety limit (default 60,000
+    characters, configurable), using the same scene-break/paragraph rule.
+- Thai source: an answer with >30% Thai characters counts as untranslated and is asked again once (same rule as
+  pages).
+- Each request = one Gemini request (free tier: 20 requests/day/model) — normally one per chapter.
+- Failure: chapter `FAILED` with the user message; nothing partial is saved (Translate again redoes the chapter).
 
 ### Public site
-- Export adds `sourceType`, `originalAuthor`, `sourceUrl`, `authorPermission` to the novel JSON (check what is already
-  exported).
-- Public novel page (Vietnamese) shows under the title: "Tác giả: {author}" and a link "Bản gốc trên Wattpad ↗"
-  (`rel="noopener"`, new tab), and when `authorPermission`: "Đã được tác giả cho phép dịch". Screenshot novels keep
-  today's display (show author/source if present, without the permission line).
-- Reader, chapter list, banner, "Mới cập nhật", read counts: unchanged.
+- Nothing new. The exported novel already carries `originalAuthor` and `sourceUrl`; the public novel page already
+  shows the "Truyện gốc" button; reader, chapter list, banner, "Mới cập nhật" and read counts are unchanged.
 
 ### Fanfics
 - Fanfic card menu (admin) gets **Translate this story** → `/novels/new?wattpad=<story url>`; if a novel with this
@@ -119,4 +131,4 @@ table) — check it anyway.
 ## Risks
 - `apiv2/storytext` is unofficial; when it changes, Import fails per part with a clear message and existing chapters
   are unaffected.
-- Copyright: permission is recorded per novel (`author_permission`) and shown publicly.
+- Copyright: the user has the authors' permission; it is not recorded in the app.
