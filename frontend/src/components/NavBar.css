@@ -4,7 +4,7 @@
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-sticky);
   background: var(--paper);
   border-bottom: 1px solid var(--rule);
   transition:
@@ -124,7 +124,7 @@
 .nav__pill {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: var(--z-behind);
   border-radius: 999px;
 }
 

@@ -17,7 +17,7 @@
 .featured__bg {
   position: absolute;
   inset: -40px;
-  z-index: -1;
+  z-index: var(--z-behind);
   background: var(--cover, none) center / cover no-repeat;
   filter: blur(36px);
   opacity: 0.12;

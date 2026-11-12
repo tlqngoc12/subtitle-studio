@@ -90,7 +90,7 @@
 /* Play all stays its own target above the card link. */
 .plcard__play {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 
 .plcard__preview {

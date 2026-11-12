@@ -35,3 +35,23 @@ export function peopleHeading(categories: WorkCategory[]): 'Cast' | 'Artists' | 
   if (categories.length === 1 && categories[0] === 'MUSIC') return 'Artists';
   return 'People';
 }
+
+/** Vietnamese names of the categories, shown on the public site. */
+export const CATEGORY_LABELS_VI: Record<WorkCategory, string> = {
+  FILM_TV: 'Phim & TV',
+  PERFORMANCE: 'Biểu diễn',
+  MUSIC: 'Âm nhạc',
+  VARIETY: 'Chương trình giải trí',
+  ADVERTISEMENT: 'Quảng cáo',
+  CEREMONY: 'Lễ trao giải',
+  INTERVIEW: 'Phỏng vấn',
+  FASHION: 'Thời trang',
+};
+
+/** Heading of the people section on the public site. */
+export const PEOPLE_HEADING_VI = { Cast: 'Diễn viên', Artists: 'Nghệ sĩ', People: 'Nhân vật' } as const;
+
+/** A category's name for the current site (Vietnamese when `vi`). */
+export function categoryLabel(c: WorkCategory, vi: boolean): string {
+  return vi ? CATEGORY_LABELS_VI[c] : CATEGORY_LABELS[c];
+}

@@ -17,7 +17,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: calc(10 - var(--d, 0));
+  z-index: calc(var(--z-sticky) - var(--d, 0));
   width: var(--fan-width, 180px);
   aspect-ratio: var(--fan-ratio, 2 / 3);
   padding: 0;

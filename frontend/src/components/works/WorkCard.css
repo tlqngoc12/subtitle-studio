@@ -110,7 +110,7 @@
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 2;
+  z-index: var(--z-card-action);
 }
 
 .work-card__edit .button--icon {

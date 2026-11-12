@@ -60,7 +60,7 @@
 .drawer__overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: var(--z-overlay);
   background: rgb(0 0 0 / 0.4);
   animation: drawer-fade-in var(--dur-base) var(--ease-out);
 }
@@ -74,7 +74,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 41;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   width: min(360px, 85vw);
