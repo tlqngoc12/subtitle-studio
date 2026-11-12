@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formatDay, formatInstant, formatInstantWithTime } from './dates';
+import { formatDay, formatInstant, formatInstantWithTime, parseDay } from './dates';
 
 describe('dates', () => {
   it('formats a day as dd/MM/yyyy without shifting it', () => {
@@ -28,4 +28,23 @@ describe('dates', () => {
     expect(formatInstantWithTime('2026-11-09T07:30:00Z')).toBe('09/11/2026 14:30');
     expect(formatInstantWithTime('2026-11-09T17:00:00Z')).toBe('10/11/2026 00:00');
   });
+});
+
+describe('parseDay', () => {
+  it.each([
+    ['09/11/2026', '2026-11-09'],
+    ['9/1/2026', '2026-01-09'],
+    ['09-11-2026', '2026-11-09'],
+    ['9.11.2026', '2026-11-09'],
+    [' 29/02/2028 ', '2028-02-29'],
+  ])('parses %s', (text, iso) => {
+    expect(parseDay(text)).toBe(iso);
+  });
+
+  it.each(['', '31/02/2026', '29/02/2027', '32/01/2026', '1/13/2026', '0/1/2026', '2026-11-09', '9/11/26', 'abc'])(
+    'rejects %j',
+    (text) => {
+      expect(parseDay(text)).toBeNull();
+    },
+  );
 });

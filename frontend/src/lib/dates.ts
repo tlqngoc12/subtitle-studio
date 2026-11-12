@@ -33,3 +33,16 @@ export function formatInstant(iso: string): string {
 export function formatInstantWithTime(iso: string): string {
   return DATE_TIME.format(new Date(iso)).replace(', ', ' ');
 }
+
+/**
+ * Typed `d/M/yyyy` (also `dd/MM/yyyy`, with `/`, `-` or `.` as separators) → `yyyy-mm-dd`, or null when the text is not
+ * a real calendar day (31/02 is rejected). No `Date` parsing of strings is involved.
+ */
+export function parseDay(text: string): string | null {
+  const m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(text.trim());
+  if (!m) return null;
+  const [day, month, year] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const check = new Date(year, month - 1, day);
+  if (year < 1 || check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) return null;
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}

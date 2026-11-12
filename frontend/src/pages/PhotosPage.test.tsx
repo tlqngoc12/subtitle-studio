@@ -195,7 +195,7 @@ describe('PhotosPage admin', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add post' });
     await userEvent.type(within(dialog).getByLabelText('Post link (Instagram or X)'), 'https://www.instagram.com/p/NEW/');
     await userEvent.type(within(dialog).getByLabelText('Title'), 'Brand new');
-    await userEvent.click(within(dialog).getByLabelText('Date'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Open calendar' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Today' }));
     await userEvent.upload(within(dialog).getByLabelText('Image file'), new File(['x'], 'a.png', { type: 'image/png' }));
     await within(dialog).findByRole('img', { name: 'Selected image' });

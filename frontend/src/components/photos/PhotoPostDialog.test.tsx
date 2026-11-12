@@ -99,7 +99,7 @@ describe('PhotoPostDialog', () => {
     setup();
 
     expect(screen.queryByLabelText(/End date/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Date')).toHaveTextContent('09/11/2026');
+    expect(screen.getByLabelText('Date')).toHaveValue('09/11/2026');
   });
 
   it('puts Cancel and Save in one action bar, both medium buttons, Save last', () => {
@@ -174,7 +174,7 @@ describe('PhotoPostDialog', () => {
     setup(existing);
 
     expect(screen.getByLabelText('Title')).toHaveValue('Old');
-    expect(screen.getByLabelText('Date')).toHaveTextContent('01/11/2026');
+    expect(screen.getByLabelText('Date')).toHaveValue('01/11/2026');
     expect(screen.getByLabelText('Photo count (optional)')).toHaveValue('4');
     expect(screen.getByRole('button', { name: 'Media' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Emi' })).toHaveAttribute('aria-pressed', 'true');
@@ -187,12 +187,12 @@ describe('PhotoPostDialog', () => {
   it('picks a day from the calendar opened inside the dialog', async () => {
     setup();
 
-    await userEvent.click(screen.getByLabelText('Date'));
+    await userEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
     const grid = await screen.findByRole('grid');
     expect(screen.getByRole('dialog', { name: 'Add post' }).contains(grid)).toBe(false); // portaled out of the dialog, above it
     await userEvent.click(within(grid).getByRole('button', { name: /15/ }));
 
-    expect(screen.getByLabelText('Date')).toHaveTextContent('15/11/2026');
+    expect(screen.getByLabelText('Date')).toHaveValue('15/11/2026');
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Add post' })).toBeInTheDocument();
   });

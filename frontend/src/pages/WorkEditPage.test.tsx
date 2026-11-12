@@ -32,6 +32,24 @@ const SUPPORT: FakeRoute[] = [
 ];
 
 describe('WorkEditPage', () => {
+  it('opens the subcategory list on focus and follows the chosen categories, keeping a typed value', async () => {
+    fakeFetch(SUPPORT);
+    renderAt('/works/new');
+    const box = await screen.findByRole('combobox', { name: 'Subcategory' });
+
+    await userEvent.click(box);
+    expect(await screen.findByRole('option', { name: 'Series' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Drama' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Single' })).not.toBeInTheDocument();
+    await userEvent.type(box, 'Remixed');
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(within(screen.getByRole('group', { name: 'Categories' })).getByRole('button', { name: /Music/ }));
+    await userEvent.click(box);
+    expect(await screen.findByRole('option', { name: 'Single' })).toBeInTheDocument();
+    expect(box).toHaveValue('Remixed');
+  });
+
   it('saves a new work with releaseDate null when the date is empty and goes to its page', async () => {
     const calls = fakeFetch([...SUPPORT, { method: 'POST', path: '/api/works', status: 201, body: work(7) }]);
     renderAt('/works/new');
@@ -123,7 +141,7 @@ describe('WorkEditPage', () => {
     renderAt('/works/5/edit');
 
     expect(await screen.findByLabelText('Title')).toHaveValue('Love Story');
-    expect(screen.getByLabelText('Release date')).toHaveTextContent('24/04/2026');
+    expect(screen.getByLabelText('Release date')).toHaveValue('24/04/2026');
     expect(screen.getByLabelText('Label 1')).toHaveValue('Pilot');
     expect(screen.getByLabelText('Character of Bonnie')).toHaveValue('Key');
     await user.click(screen.getByRole('button', { name: 'Music' }));
@@ -180,9 +198,9 @@ describe('WorkEditPage', () => {
     renderAt('/works/5/edit');
     await screen.findByLabelText('Title');
 
-    await userEvent.click(screen.getByLabelText('Release date'));
+    await userEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Clear' }));
-    expect(screen.getByLabelText('Release date')).toHaveTextContent('Coming Soon');
+    expect(screen.getByLabelText('Release date')).toHaveValue('');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
