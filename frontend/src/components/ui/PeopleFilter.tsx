@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react';
 import './PeopleFilter.css';
 import { useT } from '../../lib/i18n';
 
@@ -25,7 +26,7 @@ export function PeopleFilter({
     <div className="people" role="group" aria-label={t('Filter by person', 'Lọc theo người')}>
       <button type="button" className="people__item" aria-pressed={value === null} onClick={() => onChange(null)}>
         <span className="people__avatar people__avatar--all" aria-hidden="true">
-          {t('All', 'Tất cả')}
+          <Users className="icon" />
         </span>
         <span className="people__name">{t('All', 'Tất cả')}</span>
       </button>

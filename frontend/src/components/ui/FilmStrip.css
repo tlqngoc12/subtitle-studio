@@ -157,27 +157,29 @@ body:has(.filmstrip) {
   }
 }
 
-/* Pause / Play of the slideshow, at the left end of the dots row; 44px on touch screens. */
+/* Pause / Play of the slideshow: first item of the centred dots row, as big as the arrows; 44px on touch screens. */
 .filmstrip__dots {
-  position: relative;
   align-items: center;
 }
 
 .filmstrip__toggle {
-  position: absolute;
-  top: 50%;
-  left: var(--gutter);
-  transform: translateY(-50%);
   display: grid;
+  flex: none;
   place-items: center;
-  width: var(--control-s);
-  height: var(--control-s);
+  width: var(--control-m);
+  height: var(--control-m);
+  margin-right: var(--space-1);
   padding: 0;
   border: 0;
   border-radius: var(--radius-control);
   background: none;
   color: var(--ink);
   cursor: pointer;
+}
+
+.filmstrip__toggle .icon {
+  width: 22px;
+  height: 22px;
 }
 
 .filmstrip__toggle:hover {
