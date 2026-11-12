@@ -26,3 +26,10 @@
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+
+/* Filled player (iPhone Safari): keep the captions inside the safe area. */
+.player--filled .overlay {
+  left: var(--safe-left, 0);
+  right: var(--safe-right, 0);
+  bottom: calc(14% + var(--safe-bottom, 0px));
+}

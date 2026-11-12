@@ -79,6 +79,7 @@
   flex-direction: column;
   width: min(360px, 85vw);
   height: 100dvh;
+  padding-right: env(safe-area-inset-right);
   background: var(--surface);
   color: var(--ink);
   border-left: 1px solid var(--rule);

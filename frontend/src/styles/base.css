@@ -6,6 +6,8 @@
 
 body {
   margin: 0;
+  /* viewport-fit=cover: in landscape the notch side bands are keep-clear. Fixed bars add their own insets. */
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font);
