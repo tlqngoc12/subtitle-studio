@@ -1,5 +1,13 @@
 .reader-page {
   max-width: 960px;
+  /* Leave room for the bottom bar under the end-of-chapter buttons (compact screens). */
+  padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-4));
+}
+
+@media (min-width: 768px) {
+  .reader-page {
+    padding-bottom: var(--space-16);
+  }
 }
 
 /* End of chapter: previous in the left corner and next in the right corner of the reader column (orange primary
@@ -61,8 +69,9 @@
   position: relative;
   display: grid;
   gap: 0;
-  max-width: var(--reader-width, 600px);
-  margin-inline: auto;
+  /* Compact screens: the paper runs edge to edge, out of the page gutter. */
+  max-width: none;
+  margin-inline: calc(-1 * var(--gutter));
   background: var(--reader-paper);
   user-select: none;
   -webkit-user-select: none;
@@ -125,11 +134,10 @@
   }
 }
 
-/* Compact screens: the paper runs edge to edge, out of the page gutter. */
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .reader {
-    max-width: none;
-    margin-inline: calc(-1 * var(--gutter));
+    max-width: var(--reader-width, 600px);
+    margin-inline: auto;
   }
 }
 
@@ -142,13 +150,6 @@
   background: var(--brand);
   transform-origin: left;
   pointer-events: none;
-}
-
-@media (max-width: 767px) {
-  /* Leave room for the bottom bar under the end-of-chapter buttons. */
-  .reader-page {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-4));
-  }
 }
 
 @media print {

@@ -25,6 +25,8 @@
 
 .reader-bar__right {
   flex: none;
+  /* Compact screens: the top bar keeps only the back arrow and the names; the controls live in the bottom bar. */
+  display: none;
 }
 
 .reader-bar__text {
@@ -189,9 +191,8 @@
   }
 }
 
-/* Compact screens: the top bar keeps only the back arrow and the names; the controls live in the bottom bar. */
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .reader-bar__right {
-    display: none;
+    display: flex;
   }
 }
