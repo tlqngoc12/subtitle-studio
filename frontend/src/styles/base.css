@@ -232,8 +232,9 @@ a:not([class]):hover {
 /* Form action bar: right-aligned, Delete apart on the left; stacked full width on phones with Save on top. */
 .form-actions {
   display: flex;
+  flex-direction: column-reverse;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-end;
   gap: var(--space-3);
   margin-top: var(--space-8);
@@ -244,21 +245,26 @@ a:not([class]):hover {
 }
 
 .form-actions > .form-actions__start {
-  margin-right: auto;
+  margin-right: 0;
 }
 
-@media (max-width: 520px) {
+/* Phones: stacked full-width buttons (Cancel above Save reads bottom-up); from 521px a row. */
+.form-actions .button:not(.button--icon) {
+  width: 100%;
+}
+
+@media (min-width: 521px) {
   .form-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
   }
 
   .form-actions > .form-actions__start {
-    margin-right: 0;
+    margin-right: auto;
   }
 
-  .form-actions .button {
-    width: 100%;
+  .form-actions .button:not(.button--icon) {
+    width: auto;
   }
 }
 
@@ -459,21 +465,35 @@ label.button:has(input:focus-visible) {
   width: 100%;
 }
 
-@media (max-width: 760px) {
-  /* Watch page: a compact title so the player starts near the top. */
+/* Phones: a compact watch-page title so the player starts near the top, and 44px touch targets. */
+.masthead--watch .masthead__name {
+  font-size: var(--step-1);
+}
+
+.masthead--watch .masthead__lede {
+  font-size: var(--step--1);
+}
+
+.back-link,
+.tabs__tab {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (min-width: 761px) {
   .masthead--watch .masthead__name {
-    font-size: var(--step-1);
+    font-size: var(--step-3);
   }
 
   .masthead--watch .masthead__lede {
-    font-size: var(--step--1);
+    font-size: inherit;
   }
 
-  .back-link,
   .tabs__tab {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
+    min-height: 0;
+    display: revert;
+    align-items: normal;
   }
 }
 

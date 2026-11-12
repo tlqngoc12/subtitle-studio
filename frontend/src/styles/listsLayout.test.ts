@@ -48,14 +48,17 @@ describe('Get Engsub and Manage Vietsub rows (E1, E2)', () => {
   });
 
   it('on phones lines the buttons up under the title instead of in a row of their own', () => {
-    const r = rule('.history__actions', '(max-width: 760px)');
+    // Mobile-first: the base rule is the phone layout; from 761px the buttons go back to the end of the row.
+    const r = rule('.history__actions');
     expect(r).toMatch(/margin-left:\s*calc\(var\(--history-thumb\)/);
     expect(r).toMatch(/justify-content:\s*flex-start/);
     expect(r).toMatch(/flex-wrap:\s*wrap/);
+    expect(rule('.history__actions', '(min-width: 761px)')).toMatch(/margin-left:\s*0/);
   });
 
   it('the thumbnail is smaller on narrow phones and the buttons follow it', () => {
-    expect(rule('.history__item', '(max-width: 520px)')).toMatch(/--history-thumb:\s*96px/);
+    expect(rule('.history__item')).toMatch(/--history-thumb:\s*96px/);
+    expect(rule('.history__item', '(min-width: 521px)')).toMatch(/--history-thumb:\s*120px/);
     expect(rule('.history__open img', '(max-width: 520px)')).toMatch(/width:\s*96px/);
   });
 });

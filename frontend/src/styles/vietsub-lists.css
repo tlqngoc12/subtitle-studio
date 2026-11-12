@@ -11,11 +11,14 @@
   border-top: 1px solid var(--rule);
 }
 
+/* Phones: thumbnail and text on top; the buttons below, lined up with the title instead of under the thumbnail. */
 .history__item {
+  --history-thumb: 96px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-1);
   padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--rule);
   transition: background-color var(--dur-fast) var(--ease-out);
@@ -100,7 +103,10 @@ a.history__open {
 .history__actions {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: var(--space-2);
+  margin-left: calc(var(--history-thumb) + var(--space-4) + var(--space-1));
 }
 
 /* The destructive action sits apart from the others so a slip does not hit it. */
@@ -108,32 +114,31 @@ a.history__open {
   margin-left: var(--space-4);
 }
 
-@media (max-width: 760px) {
-  /* Thumbnail and text on top; the buttons below, lined up with the title instead of under the thumbnail. */
+@media (min-width: 521px) {
   .history__item {
     --history-thumb: 120px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-1);
-  }
-
-  .history__actions {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    margin-left: calc(var(--history-thumb) + var(--space-4) + var(--space-1));
   }
 }
 
-@media (max-width: 520px) {
+/* From 761px a row: thumbnail and text, the buttons at the end. */
+@media (min-width: 761px) {
   .history__item {
-    --history-thumb: 96px;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .history__actions {
+    flex-wrap: nowrap;
+    justify-content: normal;
+    margin-left: 0;
   }
 }
 
 /* ---------- Vietsub form ---------- */
 .vsform {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) auto;
+  grid-template-columns: 1fr;
   gap: var(--space-4);
   align-items: end;
   padding: var(--space-5);
@@ -163,9 +168,9 @@ a.history__open {
   font: inherit;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .vsform {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) auto;
   }
 }
 
@@ -202,21 +207,26 @@ a.history__open {
 
 /* ---------- Playlists (Vietsub › Playlists) ---------- */
 .vsform--playlist {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .vsform--playlist {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
   }
+}
 
+/* Exception: kept as max-width, because the img width/height attributes (160x90, 96x54) cannot be restored from a
+   min-width override (revert drops them). */
+@media (max-width: 760px) {
   .history__open img {
     width: 120px;
     height: auto;
   }
 }
 
+/* Exception (same reason as above): the smaller 96px thumbnail on narrow phones. */
 @media (max-width: 520px) {
   /* Smaller thumbnail on narrow phones, so the buttons below still fit beside the title's left edge. */
   .history__open img {
