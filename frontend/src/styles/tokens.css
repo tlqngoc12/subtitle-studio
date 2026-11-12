@@ -75,6 +75,24 @@
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* Stacking order, lowest to highest. Every z-index uses one of these (a dialog is above the sticky bars; popovers,
+     selects and tooltips opened inside a dialog are above the dialog). */
+  --z-behind: -1;
+  --z-raised: 1;
+  --z-card-action: 2;
+  --z-drag: 5;
+  --z-sticky: 10;
+  --z-progress: 11;
+  --z-fixed-bar: 20;
+  --z-overlay: 40;
+  --z-modal: 41;
+  --z-dialog-overlay: 50;
+  --z-dialog: 51;
+  --z-popover: 70;
+  --z-tooltip: 80;
+  --z-skip: 90;
+  --z-fullscreen: 1000;
+
   --font: 'Be Vietnam Pro', 'Noto Sans Thai', system-ui, sans-serif;
   /* Modular scale, ratio 1.25 */
   --step--1: 0.8rem;

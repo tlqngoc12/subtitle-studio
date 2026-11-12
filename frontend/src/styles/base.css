@@ -1,3 +1,8 @@
+/* The sticky top bar must not cover what an anchor link, scrollIntoView or keyboard focus brings into view. */
+html {
+  scroll-padding-top: calc(var(--topbar-h, 56px) + var(--space-4));
+}
+
 *,
 *::before,
 *::after {

@@ -1,7 +1,5 @@
 .reader-page {
   max-width: 960px;
-  /* Opening a chapter scrolls here; keep the heading clear of the sticky top bar. */
-  scroll-margin-top: calc(var(--topbar-h, 56px) + 24px);
 }
 
 /* End of chapter: previous in the left corner and next in the right corner of the reader column (orange primary
@@ -139,7 +137,7 @@
 .reader-progress {
   position: fixed;
   inset: 0 0 auto 0;
-  z-index: 11;
+  z-index: var(--z-progress);
   height: 3px;
   background: var(--brand);
   transform-origin: left;

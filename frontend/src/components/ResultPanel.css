@@ -1,7 +1,6 @@
 /* ---------- Result ---------- */
 .result {
-  /* Leave room for the sticky top bar when the panel is scrolled into view. */
-  scroll-margin-top: calc(var(--topbar-h, 56px) + 32px);
+  /* html's scroll-padding-top leaves room for the sticky top bar when the panel is scrolled into view. */
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
   gap: var(--space-8);
