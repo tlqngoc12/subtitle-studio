@@ -36,10 +36,10 @@ describe('PhotosPage', () => {
     renderPhotos(many(30));
 
     expect(await screen.findAllByRole('link', { name: /^Post / })).toHaveLength(24);
-    await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xem thêm' }));
 
     expect(screen.getAllByRole('link', { name: /^Post / })).toHaveLength(30);
-    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xem thêm' })).not.toBeInTheDocument();
   });
 
   it('filters by person from ?who=', async () => {
@@ -82,7 +82,7 @@ describe('PhotosPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bonnie' }));
 
     expect(screen.getAllByRole('link', { name: /^Post / }).map((l) => l.getAttribute('aria-label'))).toEqual(['Post 2']);
-    await userEvent.click(screen.getByRole('button', { name: 'All' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tất cả' }));
     expect(screen.getAllByRole('link', { name: /^Post / })).toHaveLength(2);
   });
 
@@ -97,9 +97,9 @@ describe('PhotosPage', () => {
     expect(tile).toHaveAttribute('target', '_blank');
     expect(tile).toHaveAttribute('rel', 'noopener noreferrer');
     expect(within(tile).getByText('Fan')).toBeInTheDocument();
-    expect(within(tile).getByText('3 photos')).toBeInTheDocument();
-    expect(within(tile).getByText('31 Oct 2026')).toBeInTheDocument();
-    expect(screen.getByText('1 photo')).toBeInTheDocument();
+    expect(within(tile).getByText('3 ảnh')).toBeInTheDocument();
+    expect(within(tile).getByText('31/10/2026')).toBeInTheDocument();
+    expect(screen.getByText('1 ảnh')).toBeInTheDocument();
   });
 
   it('gives each tile a shape class from the image size', async () => {
@@ -118,7 +118,7 @@ describe('PhotosPage', () => {
   it('shows an empty state without posts', async () => {
     renderPhotos([]);
 
-    expect(await screen.findByText('No photos here yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Chưa có ảnh nào.')).toBeInTheDocument();
   });
 });
 
@@ -195,7 +195,7 @@ describe('PhotosPage admin', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add post' });
     await userEvent.type(within(dialog).getByLabelText('Post link (Instagram or X)'), 'https://www.instagram.com/p/NEW/');
     await userEvent.type(within(dialog).getByLabelText('Title'), 'Brand new');
-    await userEvent.click(within(dialog).getByLabelText('Date'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Open calendar' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Today' }));
     await userEvent.upload(within(dialog).getByLabelText('Image file'), new File(['x'], 'a.png', { type: 'image/png' }));
     await within(dialog).findByRole('img', { name: 'Selected image' });

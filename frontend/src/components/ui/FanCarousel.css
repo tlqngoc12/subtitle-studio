@@ -7,18 +7,17 @@
   min-width: 0;
 }
 
+/* Phones: the current image only, no fan. From 761px the images fan out (see the end of the file). */
 .fan__stage {
   position: relative;
-  height: var(--fan-height, 340px);
+  display: grid;
+  justify-items: center;
 }
 
 /* --o is the signed distance to the current item, --d its absolute value (set inline). */
 .fan__item {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: calc(10 - var(--d, 0));
-  width: var(--fan-width, 180px);
+  position: static;
+  width: var(--fan-width-narrow, 150px);
   aspect-ratio: var(--fan-ratio, 2 / 3);
   padding: 0;
   border: 0;
@@ -26,9 +25,8 @@
   background: none;
   color: inherit;
   cursor: pointer;
-  transform: translate(-50%, -50%) translateX(calc(var(--o, 0) * 44%)) rotate(calc(var(--o, 0) * 7deg))
-    scale(calc(1.08 - 0.15 * var(--d, 0)));
-  filter: brightness(calc(1 - 0.12 * var(--d, 0)));
+  transform: none;
+  filter: none;
   transition: transform var(--dur-slow) var(--ease-out), filter var(--dur-slow) var(--ease-out);
 }
 
@@ -63,23 +61,30 @@ div.fan__item {
   }
 }
 
-/* Phones: the current image only; no fan. */
-@media (max-width: 760px) {
+.fan__item:not([aria-current='true']) {
+  display: none;
+}
+
+/* Wider screens: the images are fanned around the middle of the stage. */
+@media (min-width: 761px) {
   .fan__stage {
-    height: auto;
-    display: grid;
-    justify-items: center;
+    display: block;
+    height: var(--fan-height, 340px);
   }
 
   .fan__item:not([aria-current='true']) {
-    display: none;
+    display: block;
   }
 
   .fan__item {
-    position: static;
-    width: var(--fan-width-narrow, 150px);
-    transform: none;
-    filter: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: calc(var(--z-sticky) - var(--d, 0));
+    width: var(--fan-width, 180px);
+    transform: translate(-50%, -50%) translateX(calc(var(--o, 0) * 44%)) rotate(calc(var(--o, 0) * 7deg))
+      scale(calc(1.08 - 0.15 * var(--d, 0)));
+    filter: brightness(calc(1 - 0.12 * var(--d, 0)));
   }
 }
 

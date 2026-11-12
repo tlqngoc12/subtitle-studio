@@ -375,7 +375,7 @@ describe('ReaderPage', () => {
       expect(drawer).toContain('background: var(--surface)');
       expect(drawer).toContain('border-left: 1px solid');
       expect(drawer).toContain('box-shadow: var(--shadow-overlay)');
-      expect(ruleBody('.drawer__overlay')).toContain('rgb(0 0 0 / 0.4)');
+      expect(ruleBody('.drawer__overlay')).toContain('var(--scrim)');
       const body = ruleBody('.drawer__body');
       expect(body).toContain('overflow-y: auto');
       expect(body).toContain('scrollbar-width: thin');

@@ -14,8 +14,8 @@ describe('site logo', () => {
 
   it('sizes the brand logo 28px on desktop and 24px on a phone, 8px from the name', () => {
     const base = /\.topbar__logo\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
-    expect(base).toMatch(/height:\s*28px/);
+    expect(base).toMatch(/height:\s*24px/);
     expect(/\.topbar__brand\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/gap:\s*8px/);
-    expect(css).toMatch(/@media \(max-width: 520px\)\s*\{\s*\.topbar__logo\s*\{\s*height:\s*24px/);
+    expect(css).toMatch(/@media \(min-width: 521px\)\s*\{\s*\.topbar__logo\s*\{\s*height:\s*28px/);
   });
 });

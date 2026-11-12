@@ -27,10 +27,12 @@ describe('calendar CSS', () => {
     expect(css).toMatch(/\.date-picker \.rdp-button_next:focus-visible/);
   });
 
-  it('puts popovers, tooltips and selects above the dialogs (z-index 50/51) they open from', () => {
+  it('puts popovers, tooltips and selects above the dialogs (--z-dialog) they open from', () => {
     for (const selector of ['.popover', '.tip', '.select__content']) {
-      const z = Number(/z-index:\s*(\d+)/.exec(rule(selector))?.[1]);
-      expect(z, selector).toBeGreaterThan(51);
+      const name = /z-index:\s*var\((--z-[a-z-]+)\)/.exec(rule(selector))?.[1] ?? '';
+      const z = Number(new RegExp(`${name}:\\s*(\\d+)`).exec(css)?.[1]);
+      const dialog = Number(/--z-dialog:\s*(\d+)/.exec(css)?.[1]);
+      expect(z, selector).toBeGreaterThan(dialog);
     }
   });
 });

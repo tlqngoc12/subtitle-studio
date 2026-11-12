@@ -277,7 +277,9 @@ describe('FanCarousel', () => {
     });
 
     it('keeps the mobile layout to the current item only', () => {
-      expect(css).toMatch(/@media \(max-width: 760px\)\s*\{[^@]*\.fan__item:not\(\[aria-current='true'\]\)\s*\{[^}]*display:\s*none/);
+      // Mobile-first: the base rule hides the other items; the fan itself only exists from 761px.
+      expect(css).toMatch(/\.fan__item:not\(\[aria-current='true'\]\)\s*\{\s*display:\s*none/);
+      expect(css).toMatch(/@media \(min-width: 761px\)\s*\{[^@]*\.fan__item\s*\{[^}]*position:\s*absolute/);
     });
 
     it('does not move without motion and uses no gradient or hard-coded colour', () => {

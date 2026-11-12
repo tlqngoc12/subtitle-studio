@@ -2,8 +2,8 @@
 .confirm__overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background: rgb(0 0 0 / 0.45);
+  z-index: var(--z-overlay);
+  background: var(--scrim);
   animation: overlay-fade-in var(--dur-base) var(--ease-out);
 }
 
@@ -11,7 +11,7 @@
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 41;
+  z-index: var(--z-modal);
   width: min(92vw, 420px);
   transform: translate(-50%, -50%);
   padding: var(--space-6) var(--space-6) var(--space-5);

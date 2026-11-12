@@ -10,6 +10,8 @@ interface Props {
   onChange: (value: string) => void;
   suggestions: string[];
   placeholder?: string;
+  /** Open the list when the field gets focus (by keyboard or click), not only when it is clicked or typed in. */
+  openOnFocus?: boolean;
   disabled?: boolean;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
@@ -26,6 +28,7 @@ export function Combobox({
   onChange,
   suggestions,
   placeholder,
+  openOnFocus,
   disabled,
   'aria-invalid': invalid,
   'aria-describedby': describedBy,
@@ -107,6 +110,12 @@ export function Combobox({
             }}
             onClick={() => {
               if (!open) {
+                setDirty(false);
+                setOpen(true);
+              }
+            }}
+            onFocus={() => {
+              if (openOnFocus && !open) {
                 setDirty(false);
                 setOpen(true);
               }

@@ -35,7 +35,7 @@ p.vietsub-status,
 }
 
 .icon--spin {
-  animation: spin 1s linear infinite;
+  animation: spin var(--dur-spin) linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

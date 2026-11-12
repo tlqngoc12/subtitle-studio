@@ -509,7 +509,7 @@ describe('VietsubListPage on the public site', () => {
   it('usesTheSiteSource', async () => {
     renderPublic(fakeSource({ listVideos: async () => [newer, older] }));
 
-    const list = await loadedRegion('Vietsub list');
+    const list = await loadedRegion('Danh sách Vietsub');
     expect(within(list).getByText('Học Spring Boot')).toBeInTheDocument();
     expect(within(list).getByText('Video cũ hơn')).toBeInTheDocument();
   });
@@ -517,7 +517,7 @@ describe('VietsubListPage on the public site', () => {
   it('readOnlyEmptyStateHasNoAddLink', async () => {
     renderPublic(fakeSource({ listVideos: async () => [] }));
 
-    expect(await screen.findByText(/No videos with Vietsub yet\./)).toBeInTheDocument();
+    expect(await screen.findByText(/Chưa có video nào có Vietsub\./)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Add Vietsub' })).not.toBeInTheDocument();
   });
 });

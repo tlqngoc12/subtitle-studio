@@ -6,6 +6,7 @@
 
 .novel-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   border-bottom: 1px solid var(--rule);
@@ -60,18 +61,22 @@
   display: inline-flex;
   flex: none;
   align-items: center;
+  flex-basis: 100%;
+  padding-left: calc(56px + var(--space-3));
   min-height: 44px;
   color: var(--brand);
   font-weight: 600;
   text-decoration: none;
 }
 
-@media (max-width: 639px) {
+/* From 640px the Continue link sits at the end of the row instead of on a line of its own. */
+@media (min-width: 640px) {
   .novel-row {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
+
   .novel-row__continue {
-    flex-basis: 100%;
-    padding-left: calc(56px + var(--space-3));
+    flex-basis: auto;
+    padding-left: 0;
   }
 }

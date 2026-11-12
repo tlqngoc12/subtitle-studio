@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react';
 import { Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { NavBar } from './components/NavBar';
+import { SkipLink } from './components/SkipLink';
 import { ScrollToTop } from './components/ScrollToTop';
 import { TopbarSlotProvider } from './components/TopbarSlot';
 import ChapterPage from './pages/ChapterPage';
@@ -28,6 +29,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <TopbarSlotProvider>
         <ScrollToTop />
+        <SkipLink />
         <NavBar />
         <AppToaster />
         <Routes>

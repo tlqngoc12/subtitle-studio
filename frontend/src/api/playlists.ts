@@ -60,6 +60,7 @@ export async function reorderPlaylist(id: number, videoIds: string[]): Promise<P
 }
 
 /** "1 video", "3 videos". */
-export function videoCountLabel(n: number): string {
+export function videoCountLabel(n: number, vi = false): string {
+  if (vi) return `${n} video`;
   return n === 1 ? '1 video' : `${n} videos`;
 }

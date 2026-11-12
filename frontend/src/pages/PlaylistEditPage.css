@@ -25,7 +25,7 @@
 
 .plitem--dragging {
   position: relative;
-  z-index: 2;
+  z-index: var(--z-card-action);
   box-shadow: var(--shadow-drag);
 }
 

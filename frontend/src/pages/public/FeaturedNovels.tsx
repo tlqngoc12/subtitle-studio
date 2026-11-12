@@ -16,8 +16,8 @@ import {
   latestUpdate,
   publicChapterName,
   publicChapterProgress,
-  publicDate,
 } from "./publicNames";
+import { formatInstant } from "../../lib/dates";
 import { readProgress } from "./readerPrefs";
 import { FanCarousel } from '../../components/ui/FanCarousel';
 import { IconLink } from '../../components/ui/IconButton';
@@ -108,7 +108,7 @@ export default function FeaturedNovels({
           )}
           <li>
             <span>Cập nhật</span>
-            <span>{publicDate(latestUpdate(novel))}</span>
+            <span>{formatInstant(latestUpdate(novel))}</span>
           </li>
         </ul>
         <div className="featured__actions">

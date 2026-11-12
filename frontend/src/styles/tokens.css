@@ -39,6 +39,18 @@
   --frame: #221c26;
   --on-frame: #eee8f3;
   --hover: color-mix(in srgb, var(--brand-2) 14%, transparent);
+  /* Over images and video the colours are the same in both themes: dark scrims with white text. --scrim dims the
+     page behind a dialog and sits under controls on video; --scrim-strong backs chips and bars on images;
+     --scrim-heavy is the foot of a caption gradient. */
+  --scrim: rgb(0 0 0 / 0.45);
+  --scrim-strong: rgb(0 0 0 / 0.65);
+  --scrim-heavy: rgb(0 0 0 / 0.75);
+  --on-scrim: #ffffff;
+  --on-scrim-muted: rgb(255 255 255 / 0.55);
+  --on-scrim-faint: rgb(255 255 255 / 0.15);
+  --video-bg: #000000;
+  --caption-bg: rgb(8 8 8 / 0.75);
+  --text-shadow-on-video: 0 0 2px #000, 0 1px 2px #000;
   /* Only floating layers (tooltip, dialog, menus, popovers) cast a shadow; a dragged item gets the lighter one. */
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.12);
   --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.16);
@@ -72,8 +84,32 @@
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 320ms;
+  /* Long decorative loops (skeleton pulse, spinner, scrubber, row flash). Each also has an explicit
+     animation: none under prefers-reduced-motion, so it stays a static state. */
+  --dur-pulse: 1200ms;
+  --dur-scrub: 1400ms;
+  --dur-spin: 1000ms;
+  --dur-flash: 1600ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Stacking order, lowest to highest. Every z-index uses one of these (a dialog is above the sticky bars; popovers,
+     selects and tooltips opened inside a dialog are above the dialog). */
+  --z-behind: -1;
+  --z-raised: 1;
+  --z-card-action: 2;
+  --z-drag: 5;
+  --z-sticky: 10;
+  --z-progress: 11;
+  --z-fixed-bar: 20;
+  --z-overlay: 40;
+  --z-modal: 41;
+  --z-dialog-overlay: 50;
+  --z-dialog: 51;
+  --z-popover: 70;
+  --z-tooltip: 80;
+  --z-skip: 90;
+  --z-fullscreen: 1000;
 
   --font: 'Be Vietnam Pro', 'Noto Sans Thai', system-ui, sans-serif;
   /* Modular scale, ratio 1.25 */
@@ -140,5 +176,9 @@
     --dur-fast: 0ms;
     --dur-base: 0ms;
     --dur-slow: 0ms;
+    --dur-pulse: 0ms;
+    --dur-scrub: 0ms;
+    --dur-spin: 0ms;
+    --dur-flash: 0ms;
   }
 }

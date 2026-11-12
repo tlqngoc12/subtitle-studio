@@ -5,9 +5,35 @@ export interface ErrorMessage {
   hint?: string;
 }
 
+/** What a guest of the public site sees: Vietnamese, and only the errors reading can cause. */
+function publicErrorMessage(error: unknown): ErrorMessage {
+  if (!(error instanceof ApiError)) return { title: 'Đã xảy ra lỗi.' };
+  switch (error.code) {
+    case 'NETWORK':
+      return { title: 'Không kết nối được với máy chủ.', hint: 'Hãy kiểm tra kết nối mạng rồi thử lại.' };
+    case 'VIDEO_NOT_FOUND':
+      return { title: 'Không tìm thấy video này.', hint: 'Có thể video đã bị gỡ. Hãy quay lại danh sách Vietsub.' };
+    case 'PLAYLIST_NOT_FOUND':
+      return { title: 'Không tìm thấy danh sách phát này.' };
+    case 'PROFILE_NOT_FOUND':
+      return { title: 'Không tìm thấy hồ sơ.' };
+    case 'WORK_NOT_FOUND':
+      return { title: 'Không tìm thấy tác phẩm.' };
+    case 'NOVEL_NOT_FOUND':
+      return { title: 'Không tìm thấy truyện này.' };
+    case 'CHAPTER_NOT_FOUND':
+      return { title: 'Không tìm thấy chương này.' };
+    case 'INTERNAL_ERROR':
+      return { title: 'Máy chủ gặp lỗi.', hint: 'Hãy thử lại sau.' };
+    default:
+      return { title: `Đã xảy ra lỗi (HTTP ${error.status}).` };
+  }
+}
+
 /** Turns an API error into user-facing English copy, keyed by the backend's ProblemDetail `code`. */
 /** `readOnly`: the reader is a guest on the public site, so hints never mention running the app. */
 export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: boolean } = {}): ErrorMessage {
+  if (readOnly) return publicErrorMessage(error);
   if (!(error instanceof ApiError)) {
     return { title: 'Something went wrong.', hint: error instanceof Error ? error.message : undefined };
   }

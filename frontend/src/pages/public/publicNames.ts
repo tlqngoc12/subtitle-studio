@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { NovelStatus } from '../../api/novels';
+import { formatInstant } from '../../lib/dates';
 
 /** Vietnamese names and copy shared by the public Novels pages (the admin UI stays English). */
 
@@ -35,18 +36,6 @@ export function byLatestUpdate<T extends { lastPublishedAt?: string | null; upda
   return [...novels].sort((a, b) => Date.parse(latestUpdate(b)) - Date.parse(latestUpdate(a)));
 }
 
-const VIETNAM_DATE = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Asia/Ho_Chi_Minh',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-
-/** `dd/MM/yyyy` in Vietnam time (the site's readers). */
-export function publicDate(iso: string): string {
-  return VIETNAM_DATE.format(new Date(iso));
-}
-
 /** "vừa xong", "5 phút trước", "3 giờ trước", "2 ngày trước"; from 30 days on the plain date. */
 export function relativeTime(iso: string, now: Date = new Date()): string {
   const sec = Math.max(0, Math.floor((now.getTime() - Date.parse(iso)) / 1000));
@@ -54,7 +43,7 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
   if (sec < 3600) return `${Math.floor(sec / 60)} phút trước`;
   if (sec < 86400) return `${Math.floor(sec / 3600)} giờ trước`;
   if (sec < 30 * 86400) return `${Math.floor(sec / 86400)} ngày trước`;
-  return publicDate(iso);
+  return formatInstant(iso);
 }
 
 /** What guests see for any load error, whatever the cause. */

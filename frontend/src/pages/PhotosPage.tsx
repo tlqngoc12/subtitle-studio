@@ -18,6 +18,7 @@ import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { matchesPerson } from '../lib/people';
 import '../components/photos/PhotoTile.css';
 import './PhotosPage.css';
+import { useT } from '../lib/i18n';
 
 const PAGE_SIZE = 24;
 
@@ -30,6 +31,7 @@ export function peopleOf(page: ProfilePage | null): Person[] {
 /** Photos (/photos): Instagram posts as a bento grid, filtered by person (`?who=`), 24 tiles at a time. */
 export default function PhotosPage() {
   const { source, readOnly } = useSite();
+  const t = useT();
   const [params, setParams] = useSearchParams();
   const who = params.get('who');
   const [posts, setPosts] = useState<PhotoPost[] | null>(null);
@@ -98,8 +100,8 @@ export default function PhotosPage() {
     <main className="page">
       {confirmDialog}
       <PageHeader
-        title="Photos"
-        lede="Official, media and fan photos"
+        title={t('Photos', 'Hình ảnh')}
+        lede={t('Official, media and fan photos', 'Ảnh chính thức, báo chí và fan')}
         actions={
           !readOnly && (
             <button type="button" className="button button--primary" onClick={() => setDialog({})}>
@@ -123,11 +125,11 @@ export default function PhotosPage() {
       {posts === null && !error && <SkeletonGrid count={8} aspect="1/1" />}
 
       {posts !== null && visible.length === 0 && !error && (
-        <EmptyState icon={Camera}>No photos here yet.</EmptyState>
+        <EmptyState icon={Camera}>{t('No photos here yet.', 'Chưa có ảnh nào.')}</EmptyState>
       )}
 
       {visible.length > 0 && (
-        <ul className="photo-grid" aria-label="Photos">
+        <ul className="photo-grid" aria-label={t('Photos', 'Hình ảnh')}>
           {visible.slice(0, shown).map((post, i) => (
             <PhotoTile key={post.id} post={post} index={i}>
               {!readOnly && (
@@ -141,7 +143,7 @@ export default function PhotosPage() {
       {visible.length > shown && (
         <div className="photo-more">
           <button type="button" className="button" onClick={() => setShown((n) => n + PAGE_SIZE)}>
-            Load more
+            {t('Load more', 'Xem thêm')}
           </button>
         </div>
       )}

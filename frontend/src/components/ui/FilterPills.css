@@ -1,0 +1,21 @@
+.filter-pills {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-x: auto;
+  /* Room for the focus ring, which overflow would otherwise clip. */
+  padding: 3px;
+  margin: -3px;
+}
+
+.filter-pills__pill {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* The chosen pill is state, so it is purple. */
+.filter-pills__pill[aria-pressed='true'] {
+  border-color: var(--brand-2);
+  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
+  font-weight: 700;
+}

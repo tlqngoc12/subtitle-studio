@@ -16,6 +16,7 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { expandMotion, rowMotion } from '../../lib/motion';
 import { Alert } from '../ui/Alert';
 import { ImageLightbox } from '../ui/ImageLightbox';
+import { Reveal } from '../ui/Reveal';
 import { useConfirmDialog } from '../useConfirmDialog';
 import { BLOCK_TYPE_LABELS, BlockEditor } from './BlockEditor';
 import { BlockToolbar } from './BlockToolbar';
@@ -24,6 +25,7 @@ import { MemberHeaderEditor } from './MemberHeaderEditor';
 import { MemberMenu } from './MemberMenu';
 import { SocialIcons } from './SocialIcons';
 import './MemberSection.css';
+import { useT } from '../../lib/i18n';
 
 type OpenForm = { mode: 'edit'; id: number } | { mode: 'add'; type: BlockType } | null;
 
@@ -54,6 +56,7 @@ export function MemberSection({
   admin?: MemberAdmin;
   onChange?: (profile: Profile) => void;
 }) {
+  const t = useT();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [zoom, setZoom] = useState(false);
   const [headerOpen, setHeaderOpen] = useState(false);
@@ -110,10 +113,10 @@ export function MemberSection({
   return (
     <section id={profile.slug} className={`member member--${side}`} aria-labelledby={nameId}>
       {confirmDialog}
-      <div className="member__aside">
+      <Reveal className="member__aside">
         {profile.portraitUrl ? (
           <>
-            <button type="button" className="member__portrait" aria-label={`View larger: ${profile.displayName}`} onClick={() => setZoom(true)}>
+            <button type="button" className="member__portrait" aria-label={t(`View larger: ${profile.displayName}`, `Xem ảnh lớn: ${profile.displayName}`)} onClick={() => setZoom(true)}>
               <img src={profile.portraitUrl} alt={profile.displayName} />
             </button>
             <ImageLightbox
@@ -145,7 +148,7 @@ export function MemberSection({
         </div>
         {profile.tagline && <p className="member__tagline">{profile.tagline}</p>}
         <SocialIcons blocks={profile.blocks} />
-      </div>
+      </Reveal>
 
       <div className="member__details">
         {headerOpen && (
@@ -184,7 +187,14 @@ export function MemberSection({
                       onDelete={() => remove(b.id)}
                     />
                   )}
-                  <BlockView block={b} plain hideTitle={!editing && b === firstFacts} />
+                  {editing ? (
+                    <BlockView block={b} plain />
+                  ) : (
+                    // Read view only: each block fades and lifts in as it scrolls into view.
+                    <Reveal delayIndex={i}>
+                      <BlockView block={b} plain hideTitle={b === firstFacts} />
+                    </Reveal>
+                  )}
                 </>
               )}
             </motion.div>
@@ -211,17 +221,17 @@ export function MemberSection({
             </button>
             {choosingType && !formOpen && (
               <div className="padd__types" role="group" aria-label="Choose block type">
-                {TYPES.map((t) => (
+                {TYPES.map((ty) => (
                   <button
-                    key={t}
+                    key={ty}
                     type="button"
                     className="button button--s"
                     onClick={() => {
                       setChoosingType(false);
-                      setForm({ mode: 'add', type: t });
+                      setForm({ mode: 'add', type: ty });
                     }}
                   >
-                    {BLOCK_TYPE_LABELS[t]}
+                    {BLOCK_TYPE_LABELS[ty]}
                   </button>
                 ))}
               </div>

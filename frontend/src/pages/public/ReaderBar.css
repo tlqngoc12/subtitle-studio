@@ -25,6 +25,8 @@
 
 .reader-bar__right {
   flex: none;
+  /* Compact screens: the top bar keeps only the back arrow and the names; the controls live in the bottom bar. */
+  display: none;
 }
 
 .reader-bar__text {
@@ -60,8 +62,8 @@
 .drawer__overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background: rgb(0 0 0 / 0.4);
+  z-index: var(--z-overlay);
+  background: var(--scrim);
   animation: drawer-fade-in var(--dur-base) var(--ease-out);
 }
 
@@ -74,11 +76,12 @@
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 41;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   width: min(360px, 85vw);
   height: 100dvh;
+  padding-right: env(safe-area-inset-right);
   background: var(--surface);
   color: var(--ink);
   border-left: 1px solid var(--rule);
@@ -188,9 +191,8 @@
   }
 }
 
-/* Compact screens: the top bar keeps only the back arrow and the names; the controls live in the bottom bar. */
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .reader-bar__right {
-    display: none;
+    display: flex;
   }
 }

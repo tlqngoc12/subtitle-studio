@@ -1,20 +1,58 @@
-.date-picker__trigger {
+.date-picker__field {
+  display: grid;
+  gap: var(--space-1);
   width: 100%;
   max-width: 220px;
-  justify-content: flex-start;
 }
 
-.date-picker__trigger:hover:not(:disabled) {
-  border-color: var(--brand-2);
+.date-picker__control {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.date-picker__trigger:disabled {
+.date-picker__input {
+  width: 100%;
+  padding-right: calc(var(--space-3) + 28px);
+}
+
+.date-picker__input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.date-picker__input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.date-picker__placeholder {
+.date-picker__open {
+  position: absolute;
+  right: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
   color: var(--muted);
+  cursor: pointer;
+}
+
+.date-picker__open:hover:not(:disabled) {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 16%, var(--surface));
+}
+
+.date-picker__open:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.date-picker__open:disabled {
+  cursor: not-allowed;
 }
 
 .date-picker {

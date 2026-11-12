@@ -16,7 +16,7 @@ import {
   type WorkSummary,
 } from '../api/works';
 import { CategoryToggleGroup } from '../components/works/CategoryToggleGroup';
-import { isFilm } from '../components/works/categories';
+import { isFilm, subcategorySuggestions } from '../components/works/categories';
 import { CreditsEditor, type CreditRow } from '../components/works/CreditsEditor';
 import { LinksEditor, type LinkRow } from '../components/works/LinksEditor';
 import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../components/ui/ImageDropzone';
@@ -104,9 +104,14 @@ export default function WorkEditPage() {
   }, [id]);
 
   const suggestions = useMemo(
-    () => [...new Set(allWorks.filter((w) => w.categories.some((c) => categories.includes(c)) && w.subcategory).map((w) => w.subcategory as string))],
+    () =>
+      subcategorySuggestions(
+        categories,
+        allWorks.filter((w) => w.categories.some((c) => categories.includes(c)) && w.subcategory).map((w) => w.subcategory as string),
+      ),
     [allWorks, categories],
   );
+
 
   const input = (): WorkInput => ({
     title: title.trim(),
@@ -237,7 +242,6 @@ export default function WorkEditPage() {
                   aria-describedby={f.describedBy}
                   value={releaseDate}
                   onChange={setReleaseDate}
-                  placeholder="Coming Soon"
                   clearable
                 />
               )}
@@ -258,6 +262,7 @@ export default function WorkEditPage() {
                 id={f.id}
                 value={subcategory}
                 suggestions={suggestions}
+                openOnFocus
                 aria-invalid={f.invalid || undefined}
                 aria-describedby={f.describedBy}
                 onChange={setSubcategory}

@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n';
 import * as Popover from '@radix-ui/react-popover';
 import { Check, Pencil, Sparkles, SquarePlus, UserPlus } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -21,6 +22,7 @@ import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PopoverPanel } from '../components/ui/PopoverPanel';
+import { Reveal } from '../components/ui/Reveal';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -36,6 +38,7 @@ export function ProfileRedirect() {
 export default function ProfilePage() {
   const { source, readOnly } = useSite();
   const { hash } = useLocation();
+  const t = useT();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [data, setData] = useState<ProfilePageData | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -127,7 +130,7 @@ export default function ProfilePage() {
     <main className="page">
       {confirmDialog}
       <PageHeader
-        title="Profile"
+        title={t('Profile', 'Hồ sơ')}
         actions={
           admin && (
             <div className="pmasthead">
@@ -157,11 +160,13 @@ export default function ProfilePage() {
 
       {error && <Alert title={error.title} hint={error.hint} />}
       {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
-      {data === null && !error && <LoadingText>Loading profile…</LoadingText>}
+      {data === null && !error && <LoadingText>{t('Loading profile…', 'Đang tải hồ sơ…')}</LoadingText>}
 
       {data && (
         <>
-          <ProfileBanner images={banner} />
+          <Reveal>
+            <ProfileBanner images={banner} />
+          </Reveal>
           {editing && admin && (
             <div className="pgroup">
               <BannerEditor slug={data.group.slug} images={banner} onChange={setBanner} />
@@ -187,7 +192,7 @@ export default function ProfilePage() {
             admin ? (
               <EmptyState icon={SquarePlus}>No members yet. Choose Add member to add the first one.</EmptyState>
             ) : (
-              <EmptyState icon={Sparkles}>Nothing here yet — check back soon.</EmptyState>
+              <EmptyState icon={Sparkles}>{t('Nothing here yet — check back soon.', 'Chưa có gì ở đây, hãy quay lại sau nhé.')}</EmptyState>
             )
           ) : (
             <div className="pmembers">

@@ -1,10 +1,10 @@
-/* ImageLightbox (Radix Dialog): a flat surface panel centred over a dim overlay. The tooltip layer (z-index 50)
+/* ImageLightbox (Radix Dialog): a flat surface panel centred over a dim overlay. The tooltip layer (--z-dialog-overlay)
    stays above both. */
 .lightbox__overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background: rgb(0 0 0 / 0.6);
+  z-index: var(--z-overlay);
+  background: var(--scrim-strong);
   animation: overlay-fade-in var(--dur-base) var(--ease-out);
 }
 
@@ -12,7 +12,7 @@
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 41;
+  z-index: var(--z-modal);
   display: grid;
   gap: var(--space-3);
   justify-items: center;

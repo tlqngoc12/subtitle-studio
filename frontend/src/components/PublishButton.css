@@ -5,15 +5,23 @@
   display: inline-flex;
 }
 
-@media (max-width: 520px) {
-  /* Publish becomes an icon button (its tooltip and accessible name stay). */
+/* On a phone Publish is an icon button (its tooltip and accessible name stay): the label is visually hidden. */
+.publish__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 521px) {
   .publish__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
   }
 }
 

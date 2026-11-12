@@ -5,6 +5,7 @@ import type { PublicPlaylistDetail } from '../data/types';
 import { useWatched } from '../data/watched';
 import { Tip } from './Tip';
 import './PlaylistPanel.css';
+import { useT } from '../lib/i18n';
 
 interface Props {
   playlist: PublicPlaylistDetail;
@@ -20,6 +21,7 @@ interface Props {
 
 /** YouTube-like playlist panel beside the player: position, Previous / Next, Autoplay and the numbered list. */
 export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChange, onPrevious, onNext }: Props) {
+  const t = useT();
   const currentRef = useRef<HTMLAnchorElement>(null);
   const count = playlist.videos.length;
   const watched = useWatched();
@@ -31,32 +33,32 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
   }, [index]);
 
   return (
-    <aside className="plpanel" aria-label={`Playlist ${playlist.name}`}>
+    <aside className="plpanel" aria-label={t(`Playlist ${playlist.name}`, `Danh sách phát ${playlist.name}`)}>
       <div className="plpanel__head">
         <p className="plpanel__name">{playlist.name}</p>
         <p className="plpanel__position muted">
           {index + 1} / {count}
         </p>
-        {next && <p className="plpanel__upnext">{`Up next: ${next.title}`}</p>}
+        {next && <p className="plpanel__upnext">{t(`Up next: ${next.title}`, `Tiếp theo: ${next.title}`)}</p>}
         <div className="plpanel__controls">
-          <Tip label="Previous (Shift+P)">
+          <Tip label={t('Previous (Shift+P)', 'Trước (Shift+P)')}>
             <button
               className="button button--icon button--s"
               type="button"
               disabled={index === 0}
               onClick={onPrevious}
-              aria-label="Previous video"
+              aria-label={t('Previous video', 'Video trước')}
             >
               <SkipBack className="icon" aria-hidden="true" />
             </button>
           </Tip>
-          <Tip label="Next (Shift+N)">
+          <Tip label={t('Next (Shift+N)', 'Kế tiếp (Shift+N)')}>
             <button
               className="button button--icon button--s"
               type="button"
               disabled={index === count - 1}
               onClick={onNext}
-              aria-label="Next video"
+              aria-label={t('Next video', 'Video kế tiếp')}
             >
               <SkipForward className="icon" aria-hidden="true" />
             </button>
@@ -68,10 +70,10 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
               checked={autoplay}
               onChange={(e) => onAutoplayChange(e.target.checked)}
             />
-            Autoplay
+            {t('Autoplay', 'Tự động phát')}
           </label>
         </div>
-        {ended && <p className="plpanel__ended">End of playlist</p>}
+        {ended && <p className="plpanel__ended">{t('End of playlist', 'Hết danh sách phát')}</p>}
       </div>
       <ol className="plpanel__list">
         {playlist.videos.map((v, i) => {
@@ -95,13 +97,13 @@ export function PlaylistPanel({ playlist, index, autoplay, ended, onAutoplayChan
                   {seen && (
                     <>
                       <CircleCheck className="icon icon--sm plpanel__seen" aria-hidden="true" />
-                      <span className="visually-hidden">Watched</span>
+                      <span className="visually-hidden">{t('Watched', 'Đã xem')}</span>
                     </>
                   )}
                 </span>
                 <img src={v.thumbnailUrl} alt="" width={96} height={54} loading="lazy" />
                 <span className="plpanel__text">
-                  {i === index + 1 && <span className="plpanel__tag">Next</span>}
+                  {i === index + 1 && <span className="plpanel__tag">{t('Next', 'Kế tiếp')}</span>}
                   <span className="plpanel__title title-clamp">{v.title}</span>
                 </span>
               </Link>

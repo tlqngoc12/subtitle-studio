@@ -73,8 +73,8 @@ describe('errorMessage', () => {
 
   it('gives guests a network hint without admin instructions', () => {
     const msg = errorMessage(new ApiError(0, 'NETWORK', 'Failed to fetch'), { readOnly: true });
-    expect(msg.title).toBe('Cannot reach the server.');
-    expect(msg.hint).toBe('Check your internet connection and try again.');
+    expect(msg.title).toBe('Không kết nối được với máy chủ.');
+    expect(msg.hint).toBe('Hãy kiểm tra kết nối mạng rồi thử lại.');
   });
 
   it('explains network failures', () => {

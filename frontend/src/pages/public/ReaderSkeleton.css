@@ -14,7 +14,7 @@
   margin-bottom: 10px; /* 12px bar + 10px gap = 22px pitch */
   border-radius: 4px;
   background: color-mix(in srgb, var(--reader-ink, currentColor) 14%, transparent);
-  animation: reader-shimmer 1.2s var(--ease-in-out) infinite;
+  animation: reader-shimmer var(--dur-pulse) var(--ease-in-out) infinite;
 }
 
 .reader-skeleton__bar--title {

@@ -3,6 +3,8 @@ import { Link } from 'react-router';
 import { videoCountLabel } from '../api/playlists';
 import type { PublicPlaylistDetail } from '../data/types';
 import { continueIndex, useWatched } from '../data/watched';
+import { useT } from '../lib/i18n';
+import { useSite } from '../data/SiteContext';
 import './PlaylistHeader.css';
 
 interface Props {
@@ -17,13 +19,15 @@ const PREVIEW = 3;
 
 /** YouTube-like playlist card: cover (first video), name, description, count and Play all. */
 export function PlaylistHeader({ playlist, href, count }: Props) {
+  const t = useT();
+  const { readOnly } = useSite();
   const first = playlist.videos[0];
   const resume = continueIndex(playlist.videos, useWatched());
   const resumeVideo = resume === null ? undefined : playlist.videos[resume];
   // A card without a description previews its first videos instead of leaving the space empty.
   const preview = href && !playlist.description ? playlist.videos.slice(0, PREVIEW) : [];
   return (
-    <section className={href ? 'plcard plcard--link' : 'plcard'} aria-label={`Playlist ${playlist.name}`}>
+    <section className={href ? 'plcard plcard--link' : 'plcard'} aria-label={t(`Playlist ${playlist.name}`, `Danh sách phát ${playlist.name}`)}>
       {first ? (
         <img className="plcard__cover" src={first.thumbnailUrl} alt="" width={320} height={180} />
       ) : (
@@ -36,14 +40,14 @@ export function PlaylistHeader({ playlist, href, count }: Props) {
         <h2 className="plcard__name">{href ? <Link to={href}>{playlist.name}</Link> : playlist.name}</h2>
         {playlist.description && <p className="plcard__description">{playlist.description}</p>}
         {preview.length > 0 && (
-          <ol className="plcard__preview" aria-label="First videos">
+          <ol className="plcard__preview" aria-label={t('First videos', 'Các video đầu tiên')}>
             {preview.map((v) => (
               <li key={v.id} className="title-clamp">{v.title}</li>
             ))}
           </ol>
         )}
         <div className="plcard__foot">
-          <p className="muted">{videoCountLabel(count ?? playlist.videos.length)}</p>
+          <p className="muted">{videoCountLabel(count ?? playlist.videos.length, readOnly)}</p>
           {first && (
             <div className="plcard__actions">
               <Link
@@ -52,7 +56,7 @@ export function PlaylistHeader({ playlist, href, count }: Props) {
                 state={{ autoplay: true }}
               >
                 <Play className="icon" aria-hidden="true" />
-                Play all
+                {t('Play all', 'Phát tất cả')}
               </Link>
               {resumeVideo && resume !== null && (
                 <Link
@@ -61,7 +65,7 @@ export function PlaylistHeader({ playlist, href, count }: Props) {
                   state={{ autoplay: true }}
                 >
                   <StepForward className="icon" aria-hidden="true" />
-                  {`Continue: EP ${resume + 1}`}
+                  {t(`Continue: EP ${resume + 1}`, `Xem tiếp: tập ${resume + 1}`)}
                 </Link>
               )}
             </div>

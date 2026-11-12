@@ -4,6 +4,7 @@ import type { FanficBase } from '../../api/fanfics';
 import { Cover } from '../ui/Cover';
 import { formatCompact, formatReadingTime } from './format';
 import './FanficCard.css';
+import { useT } from '../../lib/i18n';
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
@@ -22,6 +23,7 @@ function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; v
  * The whole card is a link to the story on Wattpad; `menu` (the admin actions) sits beside it, never inside it.
  */
 export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactNode }) {
+  const t = useT();
   return (
     <article className={menu ? 'fanfic-card fanfic-card--menu' : 'fanfic-card'}>
       <a className="fanfic-card__link" href={fanfic.url} target="_blank" rel="noopener noreferrer">
@@ -29,13 +31,13 @@ export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactN
         <span className="fanfic-card__body">
           <span className="fanfic-card__title">{fanfic.title}</span>
           <span className={fanfic.completed ? 'fanfic-card__badge fanfic-card__badge--complete' : 'fanfic-card__badge'}>
-            {fanfic.completed ? 'Complete' : 'Ongoing'}
+            {fanfic.completed ? t('Complete', 'Hoàn thành') : t('Ongoing', 'Đang ra')}
           </span>
           <span className="fanfic-card__stats">
-            <Stat icon={Eye} label="Reads" value={formatCompact(fanfic.readCount)} />
-            <Stat icon={Star} label="Votes" value={formatCompact(fanfic.voteCount)} />
-            <Stat icon={List} label="Parts" value={formatCompact(fanfic.partCount)} />
-            <Stat icon={BookOpen} label="Time" value={formatReadingTime(fanfic.readingMinutes)} />
+            <Stat icon={Eye} label={t('Reads', 'Lượt đọc')} value={formatCompact(fanfic.readCount)} />
+            <Stat icon={Star} label={t('Votes', 'Bình chọn')} value={formatCompact(fanfic.voteCount)} />
+            <Stat icon={List} label={t('Parts', 'Phần')} value={formatCompact(fanfic.partCount)} />
+            <Stat icon={BookOpen} label={t('Time', 'Thời gian đọc')} value={formatReadingTime(fanfic.readingMinutes)} />
           </span>
           {fanfic.description && <span className="fanfic-card__desc">{fanfic.description}</span>}
         </span>

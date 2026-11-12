@@ -16,7 +16,7 @@
   border: 1px solid var(--rule);
   border-radius: var(--radius-control);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
   align-items: start;
 }
@@ -34,8 +34,8 @@
   min-width: 0;
 }
 
-@media (max-width: 520px) {
+@media (min-width: 521px) {
   .items__row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }

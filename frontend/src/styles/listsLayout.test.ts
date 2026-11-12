@@ -48,27 +48,32 @@ describe('Get Engsub and Manage Vietsub rows (E1, E2)', () => {
   });
 
   it('on phones lines the buttons up under the title instead of in a row of their own', () => {
-    const r = rule('.history__actions', '(max-width: 760px)');
+    // Mobile-first: the base rule is the phone layout; from 761px the buttons go back to the end of the row.
+    const r = rule('.history__actions');
     expect(r).toMatch(/margin-left:\s*calc\(var\(--history-thumb\)/);
     expect(r).toMatch(/justify-content:\s*flex-start/);
     expect(r).toMatch(/flex-wrap:\s*wrap/);
+    expect(rule('.history__actions', '(min-width: 761px)')).toMatch(/margin-left:\s*0/);
   });
 
   it('the thumbnail is smaller on narrow phones and the buttons follow it', () => {
-    expect(rule('.history__item', '(max-width: 520px)')).toMatch(/--history-thumb:\s*96px/);
+    expect(rule('.history__item')).toMatch(/--history-thumb:\s*96px/);
+    expect(rule('.history__item', '(min-width: 521px)')).toMatch(/--history-thumb:\s*120px/);
     expect(rule('.history__open img', '(max-width: 520px)')).toMatch(/width:\s*96px/);
   });
 });
 
 describe('Cue preview on phones (E4)', () => {
   it('is capped at 60% of the viewport height', () => {
-    expect(rule('.cues', '(max-width: 760px)')).toMatch(/max-height:\s*60dvh/);
+    expect(rule('.cues')).toMatch(/max-height:\s*60dvh/);
+    expect(rule('.cues', '(min-width: 761px)')).toMatch(/max-height:\s*460px/);
   });
 });
 
 describe('Placeholder in the dark URL frame (E5)', () => {
   it('is at least 55% white', () => {
-    expect(rule('.frame__input::placeholder')).toMatch(/rgb\(255 255 255 \/ 0\.55\)/);
+    expect(rule('.frame__input::placeholder')).toMatch(/color:\s*var\(--on-scrim-muted\)/);
+    expect(css).toMatch(/--on-scrim-muted:\s*rgb\(255 255 255 \/ 0\.55\)/);
   });
 });
 
@@ -84,9 +89,11 @@ describe('Vietsub list (L1, P3)', () => {
   });
 
   it('on narrow phones a playlist card is a full-width cover with no preview and count + Play all on one row', () => {
-    expect(rule('.plcards .plcard', '(max-width: 520px)')).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
-    expect(rule('.plcards .plcard__preview', '(max-width: 520px)')).toMatch(/display:\s*none/);
-    expect(rule('.plcards .plcard__foot', '(max-width: 520px)')).toMatch(/justify-content:\s*space-between/);
+    // Mobile-first: these are the base rules; from 521px the compact cover-left card takes over.
+    expect(rule('.plcard')).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(rule('.plcards .plcard__preview')).toMatch(/display:\s*none/);
+    expect(rule('.plcards .plcard__foot')).toMatch(/justify-content:\s*space-between/);
+    expect(rule('.plcards .plcard', '(min-width: 521px)')).toMatch(/grid-template-columns:\s*120px/);
   });
 
   it('colours the watched tick with the brand ink, never red', () => {

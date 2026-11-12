@@ -2,6 +2,7 @@ import { UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getPublishStatus, startPublish, type PublishStatus } from '../api/publish';
+import { formatInstantWithTime } from '../lib/dates';
 import { errorMessage } from '../lib/errors';
 import { Tip } from './Tip';
 import { useConfirmDialog } from './useConfirmDialog';
@@ -17,7 +18,7 @@ function tipFor(state: PublishStatus | null): string {
   if (!state.configured) return NOT_CONFIGURED_TIP;
   if (state.status === 'PUBLISHING') return 'Publishing…';
   if (!state.lastPublishedAt) return 'Not published yet';
-  const when = new Date(state.lastPublishedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  const when = formatInstantWithTime(state.lastPublishedAt);
   return `Last published ${when}`;
 }
 

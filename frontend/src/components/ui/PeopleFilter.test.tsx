@@ -13,6 +13,9 @@ describe('PeopleFilter', () => {
     render(<PeopleFilter people={PEOPLE} value={null} onChange={() => {}} />);
 
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    // The circle holds an icon, not a second copy of the label.
+    expect(screen.getByRole('button', { name: 'All' }).querySelector('.people__avatar--all svg')).not.toBeNull();
+    expect(screen.getAllByText('All')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Emi' })).toHaveAttribute('aria-pressed', 'false');
   });
 

@@ -67,8 +67,8 @@
   right: var(--space-2);
   padding: 2px var(--space-2);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  background: var(--scrim-strong);
+  color: var(--on-scrim);
   font-size: var(--step--1);
   font-weight: 700;
 }
@@ -110,7 +110,7 @@
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 2;
+  z-index: var(--z-card-action);
 }
 
 .work-card__edit .button--icon {

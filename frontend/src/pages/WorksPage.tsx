@@ -5,24 +5,34 @@ import { Link, useSearchParams } from 'react-router';
 import type { ProfilePage } from '../api/profiles';
 import type { WorkCategory, WorkSummary } from '../api/works';
 import { EmptyState } from '../components/EmptyState';
-import { CATEGORIES } from '../components/works/categories';
-import { CategoryPills } from '../components/works/CategoryPills';
+import { CATEGORIES, categoryLabel } from '../components/works/categories';
 import { PeopleDialog } from '../components/works/PeopleDialog';
 import { WorkCard } from '../components/works/WorkCard';
 import { Alert } from '../components/ui/Alert';
+import { FilterPills } from '../components/ui/FilterPills';
 import { IconLink } from '../components/ui/IconButton';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { groupByYear } from '../lib/groupByYear';
 import { matchesPerson } from '../lib/people';
 import { peopleOf } from './PhotosPage';
 import '../components/works/WorkCard.css';
 import './WorksPage.css';
+import { useT } from '../lib/i18n';
+
+function categoryOptions(vi: boolean) {
+  return [
+    { value: null, label: vi ? 'Tất cả' : 'All' },
+    ...CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c, vi) })),
+  ] as { value: WorkCategory | null; label: string }[];
+}
 
 /** Works (/works): poster grid filtered by person (`?who=`) and category (`?cat=`). */
 export default function WorksPage() {
   const { source, readOnly } = useSite();
+  const t = useT();
   const [params, setParams] = useSearchParams();
   const who = params.get('who');
   const catParam = params.get('cat');
@@ -62,6 +72,8 @@ export default function WorksPage() {
     [works, who, cat, groupSlug],
   );
 
+  const groups = useMemo(() => groupByYear(visible, (w) => w.releaseDate), [visible]);
+
   const setFilter = (key: 'who' | 'cat', value: string | null) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -72,8 +84,8 @@ export default function WorksPage() {
   return (
     <main className="page">
       <PageHeader
-        title="Works"
-        lede="Series, music, shows and more."
+        title={t('Works', 'Tác phẩm')}
+        lede={t('Series, music, shows and more.', 'Phim, nhạc, chương trình và hơn thế nữa.')}
         actions={
           !readOnly && (
             <div className="works-actions">
@@ -90,28 +102,38 @@ export default function WorksPage() {
         }
       />
 
-      {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
-      <CategoryPills value={cat} onChange={(c) => setFilter('cat', c)} />
+      <div className="works-filters">
+        {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
+        <FilterPills label={t('Filter by category', 'Lọc theo thể loại')} options={categoryOptions(readOnly)} value={cat} onChange={(c) => setFilter('cat', c)} />
+      </div>
 
       {error && <Alert title={error.title} hint={error.hint} />}
       {works === null && !error && <SkeletonGrid count={8} aspect="4/5" />}
       {works !== null && visible.length === 0 && !error && (
-        <EmptyState icon={Clapperboard}>No works here yet.</EmptyState>
+        <EmptyState icon={Clapperboard}>{t('No works here yet.', 'Chưa có tác phẩm nào.')}</EmptyState>
       )}
 
-      {visible.length > 0 && (
-        <ul className="work-grid" aria-label="Works">
-          {visible.map((w, i) => (
-            <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
-              {!readOnly && (
-                <div className="work-card__edit">
-                  <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />
-                </div>
-              )}
-            </WorkCard>
-          ))}
-        </ul>
-      )}
+      {groups.map((group) => {
+        const headingId = `works-year-${group.year ?? 'soon'}`;
+        return (
+          <section key={headingId} className="works-year" aria-labelledby={headingId}>
+            <h2 id={headingId} className="works-year__label">
+              {group.year === null ? t('Coming Soon', 'Sắp ra mắt') : group.label}
+            </h2>
+            <ul className="work-grid">
+              {group.items.map((w, i) => (
+                <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
+                  {!readOnly && (
+                    <div className="work-card__edit">
+                      <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />
+                    </div>
+                  )}
+                </WorkCard>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
       {!readOnly && <PeopleDialog open={peopleOpen} onOpenChange={setPeopleOpen} />}
     </main>
   );

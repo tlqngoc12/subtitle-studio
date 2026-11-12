@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { publicChapterLabel, publicChapterName, publicDate, relativeTime } from './publicNames';
+import { publicChapterLabel, publicChapterName, relativeTime } from './publicNames';
+import { formatInstant } from '../../lib/dates';
 
 describe('publicNames', () => {
   it('names a chapter by its number or label', () => {
@@ -22,6 +23,6 @@ describe('publicNames', () => {
     expect(relativeTime(ago(5 * 60e3), now)).toBe('5 phút trước');
     expect(relativeTime(ago(3 * 3600e3), now)).toBe('3 giờ trước');
     expect(relativeTime(ago(2 * 86400e3), now)).toBe('2 ngày trước');
-    expect(relativeTime(ago(40 * 86400e3), now)).toBe(publicDate(ago(40 * 86400e3)));
+    expect(relativeTime(ago(40 * 86400e3), now)).toBe(formatInstant(ago(40 * 86400e3)));
   });
 });

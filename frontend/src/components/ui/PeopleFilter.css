@@ -46,3 +46,8 @@
 .people__name {
   font-size: var(--step--1);
 }
+
+.people__avatar--all .icon {
+  width: 24px;
+  height: 24px;
+}

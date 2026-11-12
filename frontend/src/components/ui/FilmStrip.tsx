@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useT } from '../../lib/i18n';
 import { usePrefersReducedMotion } from '../../lib/usePrefersReducedMotion';
 import { Cover } from './Cover';
 import { IconButton } from './IconButton';
@@ -17,7 +18,8 @@ export interface FilmImage {
  * A full-bleed one-image-at-a-time slider: each slide is the strip's full width and its image shows whole, at its
  * natural ratio. It scrolls natively (swipe, wheel, snap one slide); on hover devices `‹ ›` buttons scroll one slide
  * and hide at the ends, and dots below show and jump to the current slide. Hovering or focusing an image shows its
- * description in a bar. Each image is a button calling `onOpen(index)`.
+ * description in a bar. Each image is a button calling `onOpen(index)`. While autoplay can run, a Pause / Play button
+ * sits with the dots; the visitor's pause lasts until they press it again.
  */
 export function FilmStrip({
   images,
@@ -43,9 +45,12 @@ export function FilmStrip({
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
   const [tick, setTick] = useState(0);
+  const [userPaused, setUserPaused] = useState(false);
+  const t = useT();
   const reduced = usePrefersReducedMotion();
   const count = images.length;
-  const running = autoplayMs !== undefined && autoplayMs > 0 && count > 1 && !reduced && !paused && !hovered && !focused && !hidden;
+  const canAutoplay = autoplayMs !== undefined && autoplayMs > 0 && count > 1 && !reduced;
+  const running = canAutoplay && !userPaused && !paused && !hovered && !focused && !hidden;
 
   const measure = useCallback(() => {
     const el = row.current;
@@ -148,6 +153,16 @@ export function FilmStrip({
       </div>
       {many && (
         <div className="filmstrip__dots">
+          {canAutoplay && (
+            <button
+              type="button"
+              className="filmstrip__toggle"
+              aria-label={userPaused ? t('Play slideshow', 'Tiếp tục') : t('Pause slideshow', 'Tạm dừng')}
+              onClick={() => setUserPaused((p) => !p)}
+            >
+              {userPaused ? <Play className="icon icon--sm" aria-hidden="true" /> : <Pause className="icon icon--sm" aria-hidden="true" />}
+            </button>
+          )}
           {images.map((image, i) => (
             <button
               key={image.key}

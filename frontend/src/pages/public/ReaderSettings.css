@@ -99,14 +99,14 @@
 .sheet__overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background: rgb(0 0 0 / 0.4);
+  z-index: var(--z-overlay);
+  background: var(--scrim);
 }
 
 .sheet {
   position: fixed;
   inset: auto 0 0 0;
-  z-index: 41;
+  z-index: var(--z-modal);
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4);

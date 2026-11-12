@@ -3,11 +3,11 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   align-items: center;
   margin-bottom: var(--space-8);
-  padding: var(--space-8);
+  padding: var(--space-5);
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -17,7 +17,7 @@
 .featured__bg {
   position: absolute;
   inset: -40px;
-  z-index: -1;
+  z-index: var(--z-behind);
   background: var(--cover, none) center / cover no-repeat;
   filter: blur(36px);
   opacity: 0.12;
@@ -74,16 +74,17 @@
   display: grid;
   gap: var(--space-3);
   min-width: 0;
+  /* Phones: the current cover on top, the details below; no fan. */
+  order: -1;
 }
 
-/* Phones: the current cover on top, the details below; no fan. */
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .featured {
-    grid-template-columns: minmax(0, 1fr);
-    padding: var(--space-5);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    padding: var(--space-8);
   }
 
   .featured__stage {
-    order: -1;
+    order: 0;
   }
 }

@@ -5,14 +5,20 @@ import { iconFor, LinkIcon } from '../ui/LinkIcon';
 import { Reveal } from '../ui/Reveal';
 import { tileShape } from './tileShape';
 import './PhotoTile.css';
+import { useT } from '../../lib/i18n';
 
-const SOURCE_LABEL: Record<PhotoSource, string> = { OFFICIAL: 'Official', MEDIA: 'Media', FAN: 'Fan' };
+const SOURCE_LABEL: Record<PhotoSource, [en: string, vi: string]> = {
+  OFFICIAL: ['Official', 'Chính thức'],
+  MEDIA: ['Media', 'Báo chí'],
+  FAN: ['Fan', 'Fan'],
+};
 
 /**
  * One bento tile: the whole tile links to the Instagram or X post in a new tab. `children` (the admin menu) is drawn
  * beside the link, not inside it. Renders the grid item (<li>), so the menu button is never a link descendant.
  */
 export function PhotoTile({ post, index, children }: { post: PhotoPost; index?: number; children?: ReactNode }) {
+  const t = useT();
   const shape = tileShape(post.width, post.height);
   return (
     <Reveal as="li" className={`photo-cell photo-cell--${shape}`} delayIndex={index} layout>
@@ -27,10 +33,10 @@ export function PhotoTile({ post, index, children }: { post: PhotoPost; index?: 
         <span className="photo-tile__chips">
           <span className="photo-tile__chip">
             <LinkIcon iconKey={iconFor(post.postUrl, null)} className="icon photo-tile__platform" />
-            {SOURCE_LABEL[post.source]}
+            {t(...SOURCE_LABEL[post.source])}
           </span>
           {post.photoCount != null && (
-            <span className="photo-tile__chip">{post.photoCount === 1 ? '1 photo' : `${post.photoCount} photos`}</span>
+            <span className="photo-tile__chip">{post.photoCount === 1 ? t('1 photo', '1 ảnh') : t(`${post.photoCount} photos`, `${post.photoCount} ảnh`)}</span>
           )}
         </span>
         <span className="photo-tile__caption">

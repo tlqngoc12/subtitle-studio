@@ -1,6 +1,8 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SiteProvider } from '../data/SiteContext';
+import { fakeSource, publicSite } from '../test/fakeSource';
 import { NavBar } from './NavBar';
 
 function currentAt(path: string) {
@@ -53,6 +55,22 @@ describe('NavBar', () => {
     const links = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
     expect(links.slice(-6)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Works', 'Photos', 'Novels']);
     expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Photos' })).toHaveAttribute('href', '/photos');
+  });
+
+  it('calls the list "Vietsub" on the public site and keeps it current on the list and watch pages', () => {
+    const site = publicSite(fakeSource({}));
+    render(
+      <SiteProvider value={site}>
+        <MemoryRouter initialEntries={['/vietsub/abc123']}>
+          <NavBar />
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+    const nav = screen.getByRole('navigation');
+    const link = within(nav).getByRole('link', { name: 'Vietsub' });
+    expect(link).toHaveAttribute('href', '/vietsub/list');
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).queryByRole('link', { name: 'Vietsub list' })).not.toBeInTheDocument();
   });
 
   it('lists Novels after Photos and marks it current on chapter pages', () => {

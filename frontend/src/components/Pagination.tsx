@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactPaginateModule from 'react-paginate';
+import { useT } from '../lib/i18n';
 import './Pagination.css';
 
 // react-paginate ships a webpack UMD bundle whose component sits on `module.exports.default`.
@@ -17,6 +18,7 @@ interface Props {
 
 /** `‹ 1 2 3 … 8 ›` under a list; renders nothing when everything fits on one page. */
 export function Pagination({ page, pageCount, onChange }: Props) {
+  const t = useT();
   if (pageCount <= 1) return null;
   return (
     <ReactPaginate
@@ -28,9 +30,9 @@ export function Pagination({ page, pageCount, onChange }: Props) {
       breakLabel="…"
       previousLabel={<ChevronLeft className="icon" aria-hidden="true" />}
       nextLabel={<ChevronRight className="icon" aria-hidden="true" />}
-      previousAriaLabel="Previous page"
-      nextAriaLabel="Next page"
-      ariaLabelBuilder={(n) => `Page ${n}`}
+      previousAriaLabel={t('Previous page', 'Trang trước')}
+      nextAriaLabel={t('Next page', 'Trang sau')}
+      ariaLabelBuilder={(n) => t(`Page ${n}`, `Trang ${n}`)}
       containerClassName="pager"
       pageLinkClassName="pager__link"
       previousLinkClassName="pager__link"

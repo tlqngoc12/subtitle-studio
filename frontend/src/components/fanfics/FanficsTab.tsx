@@ -10,36 +10,37 @@ import {
 } from '../../api/fanfics';
 import { useSite } from '../../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
-import { formatDay } from '../../lib/dates';
+import { formatInstant } from '../../lib/dates';
 import { normalizeForSearch } from '../../lib/search';
 import { EmptyState } from '../EmptyState';
 import { useConfirmDialog } from '../useConfirmDialog';
 import { Alert } from '../ui/Alert';
 import { Reveal } from '../ui/Reveal';
 import { SearchBar } from '../ui/SearchBar';
+import { FilterPills } from '../ui/FilterPills';
 import { Select } from '../ui/Select';
 import { Skeleton } from '../ui/Skeleton';
 import { useDelayedFlag } from '../../lib/useDelayedFlag';
-import { toIsoDay } from '../ui/DatePicker';
 import { AddFanficDialog } from './AddFanficDialog';
 import { FanficCard } from './FanficCard';
 import { FanficMenu } from './FanficMenu';
 import './FanficsTab.css';
+import { useT, type Translate } from '../../lib/i18n';
 
 type Status = 'all' | 'completed' | 'ongoing';
 type Sort = 'updated' | 'read' | 'voted' | 'added';
 
-const STATUSES: { value: Status; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'ongoing', label: 'Ongoing' },
+const statuses = (t: Translate): { value: Status; label: string }[] => [
+  { value: 'all', label: t('All', 'Tất cả') },
+  { value: 'completed', label: t('Completed', 'Hoàn thành') },
+  { value: 'ongoing', label: t('Ongoing', 'Đang ra') },
 ];
 
-const SORTS: { value: Sort; label: string }[] = [
-  { value: 'updated', label: 'Newest update' },
-  { value: 'read', label: 'Most read' },
-  { value: 'voted', label: 'Most voted' },
-  { value: 'added', label: 'Recently added' },
+const sorts = (t: Translate): { value: Sort; label: string }[] => [
+  { value: 'updated', label: t('Newest update', 'Mới cập nhật') },
+  { value: 'read', label: t('Most read', 'Đọc nhiều nhất') },
+  { value: 'voted', label: t('Most voted', 'Bình chọn nhiều nhất') },
+  { value: 'added', label: t('Recently added', 'Mới thêm') },
 ];
 
 const time = (iso: string | null) => (iso ? Date.parse(iso) : Number.NEGATIVE_INFINITY);
@@ -58,10 +59,11 @@ function matches(f: Fanfic, query: string): boolean {
 }
 
 function FanficSkeletons() {
+  const t = useT();
   const show = useDelayedFlag(true);
   if (!show) return null;
   return (
-    <div className="fanfic-list" role="status" aria-busy="true" aria-label="Loading">
+    <div className="fanfic-list" role="status" aria-busy="true" aria-label={t('Loading', 'Đang tải')}>
       {[0, 1, 2].map((i) => (
         <Skeleton key={i} height="204px" radius="var(--radius-frame)" />
       ))}
@@ -75,6 +77,7 @@ function FanficSkeletons() {
  */
 export function FanficsTab() {
   const { source, readOnly } = useSite();
+  const t = useT();
   const [fanfics, setFanfics] = useState<Fanfic[] | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [actionError, setActionError] = useState<ErrorMessage | null>(null);
@@ -113,7 +116,7 @@ export function FanficsTab() {
 
   const latestFetch = useMemo(() => {
     const times = (fanfics ?? []).map((f) => Date.parse(f.fetchedAt)).filter(Number.isFinite);
-    return times.length ? formatDay(toIsoDay(new Date(Math.max(...times)))) : null;
+    return times.length ? formatInstant(new Date(Math.max(...times)).toISOString()) : null;
   }, [fanfics]);
 
   const replace = (updated: Fanfic) => setFanfics((all) => (all ?? []).map((f) => (f.id === updated.id ? updated : f)));
@@ -166,26 +169,14 @@ export function FanficsTab() {
       {confirmDialog}
       <div className="fanfics__toolbar">
         <div className="fanfics__search">
-          <SearchBar value={query} onChange={setQuery} label="Search fanfics" onClear={() => setQuery('')} />
+          <SearchBar value={query} onChange={setQuery} label={t('Search fanfics', 'Tìm fanfic')} onClear={() => setQuery('')} />
         </div>
-        <div className="fanfics__status" role="group" aria-label="Status">
-          {STATUSES.map((s) => (
-            <button
-              key={s.value}
-              type="button"
-              className="button button--s fanfics__status-item"
-              aria-pressed={status === s.value}
-              onClick={() => setStatus(s.value)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <FilterPills label={t('Status', 'Trạng thái')} options={statuses(t)} value={status} onChange={setStatus} />
         <div className="fanfics__sort">
           <label className="visually-hidden" htmlFor="fanfics-sort">
-            Sort by
+            {t('Sort by', 'Sắp xếp theo')}
           </label>
-          <Select id="fanfics-sort" value={sort} onChange={(v) => setSort(v as Sort)} options={SORTS} />
+          <Select id="fanfics-sort" value={sort} onChange={(v) => setSort(v as Sort)} options={sorts(t)} />
         </div>
         {!readOnly && (
           <div className="fanfics__actions">
@@ -219,16 +210,17 @@ export function FanficsTab() {
 
       {fanfics !== null && fanfics.length === 0 && !error && (
         <EmptyState icon={BookHeart}>
-          No fanfics yet.{!readOnly && ' Choose Add fanfic and paste a Wattpad story link.'}
+          {t('No fanfics yet.', 'Chưa có fanfic nào.')}
+          {!readOnly && ' Choose Add fanfic and paste a Wattpad story link.'}
         </EmptyState>
       )}
 
       {fanfics !== null && fanfics.length > 0 && visible.length === 0 && (
-        <EmptyState icon={SearchX}>No fanfics match your search.</EmptyState>
+        <EmptyState icon={SearchX}>{t('No fanfics match your search.', 'Không có fanfic nào khớp với tìm kiếm.')}</EmptyState>
       )}
 
       {visible.length > 0 && (
-        <ul className="fanfic-list" aria-label="Fanfic list">
+        <ul className="fanfic-list" aria-label={t('Fanfic list', 'Danh sách fanfic')}>
           {visible.map((f, i) => (
             <Reveal as="li" key={f.id} delayIndex={i} layout>
               <FanficCard
@@ -250,7 +242,9 @@ export function FanficsTab() {
       )}
 
       {latestFetch && (
-        <p className="fanfics__note">Stats from Wattpad, updated {latestFetch} · Stories © their authors</p>
+        <p className="fanfics__note">
+          {t(`Stats from Wattpad, updated ${latestFetch} · Stories © their authors`, `Số liệu từ Wattpad, cập nhật ${latestFetch} · Truyện thuộc bản quyền tác giả`)}
+        </p>
       )}
 
       {!readOnly && (

@@ -5,7 +5,7 @@
   aspect-ratio: 16 / 9;
   container-type: inline-size;
   overflow: hidden;
-  background: #000;
+  background: var(--video-bg);
   border-radius: var(--radius-frame);
 }
 
@@ -17,16 +17,33 @@
 }
 
 /* iPhone Safari has no Fullscreen API for this frame: it fills the viewport instead (above the top bar),
-   so the Vietsub overlay stays on the video. dvh follows Safari's collapsing address bar. */
+   so the Vietsub overlay stays on the video. Sized by inset only (100vw is the full screen, wider than the safe
+   area when a phone is in landscape); the safe-area padding keeps the video clear of the notch and home bar. */
 .player--filled {
+  --safe-top: env(safe-area-inset-top);
+  --safe-right: env(safe-area-inset-right);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
   position: fixed;
   inset: 0;
-  z-index: 1000;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  z-index: var(--z-fullscreen);
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   aspect-ratio: auto;
   border-radius: 0;
+  background: var(--video-bg);
+}
+
+/* Absolute children ignore the padding, so they take the safe-area insets themselves. */
+.player--filled .player__video {
+  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  width: auto;
+  height: auto;
+}
+
+.player--filled .player__tools {
+  right: calc(10px + var(--safe-right));
+  bottom: calc(8px + var(--safe-bottom));
 }
 
 html.player-filled-open,
@@ -61,7 +78,7 @@ html.player-filled-open body {
   position: absolute;
   right: 10px;
   bottom: 8px;
-  z-index: 2;
+  z-index: var(--z-card-action);
   display: flex;
   gap: var(--space-2);
 }
@@ -69,13 +86,13 @@ html.player-filled-open body {
 .player__btn {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 6px;
-  background: rgb(0 0 0 / 0.45);
-  color: #fff;
+  background: var(--scrim);
+  color: var(--on-scrim);
   cursor: pointer;
   opacity: 0.6;
   transition: opacity var(--dur-base);
@@ -96,10 +113,10 @@ html.player-filled-open body {
   height: 24px;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .player__btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 }
 
