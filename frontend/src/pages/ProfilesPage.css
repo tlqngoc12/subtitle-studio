@@ -13,6 +13,7 @@
 
 .profiles__select {
   min-width: 220px;
+  width: 100%;
 }
 
 .profiles__stats {
@@ -21,7 +22,7 @@
 }
 
 .profiles__analyze {
-  margin-left: auto;
+  width: 100%;
 }
 
 /* Tooltip-carrying button that is unavailable: it stays focusable so the reason can be read. */
@@ -128,15 +129,15 @@
   color: var(--ink);
 }
 
-@media (max-width: 760px) {
+@media (min-width: 521px) {
+  .profiles__select,
   .profiles__analyze {
-    margin-left: 0;
+    width: auto;
   }
 }
 
-@media (max-width: 520px) {
-  .profiles__select,
+@media (min-width: 761px) {
   .profiles__analyze {
-    width: 100%;
+    margin-left: auto;
   }
 }

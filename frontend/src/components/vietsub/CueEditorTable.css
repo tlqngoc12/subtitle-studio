@@ -16,7 +16,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-raised);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2);
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
   color: var(--muted);
@@ -26,7 +26,7 @@
 }
 
 .cue-row td {
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
@@ -123,10 +123,10 @@
   padding-right: var(--space-5);
 }
 
-@media (max-width: 520px) {
+@media (min-width: 521px) {
   .cue-row td,
   .cue-table__grid th {
-    padding-inline: var(--space-2);
+    padding-inline: var(--space-3);
   }
 }
 

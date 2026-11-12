@@ -86,9 +86,11 @@ describe('Vietsub list (L1, P3)', () => {
   });
 
   it('on narrow phones a playlist card is a full-width cover with no preview and count + Play all on one row', () => {
-    expect(rule('.plcards .plcard', '(max-width: 520px)')).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
-    expect(rule('.plcards .plcard__preview', '(max-width: 520px)')).toMatch(/display:\s*none/);
-    expect(rule('.plcards .plcard__foot', '(max-width: 520px)')).toMatch(/justify-content:\s*space-between/);
+    // Mobile-first: these are the base rules; from 521px the compact cover-left card takes over.
+    expect(rule('.plcard')).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(rule('.plcards .plcard__preview')).toMatch(/display:\s*none/);
+    expect(rule('.plcards .plcard__foot')).toMatch(/justify-content:\s*space-between/);
+    expect(rule('.plcards .plcard', '(min-width: 521px)')).toMatch(/grid-template-columns:\s*120px/);
   });
 
   it('colours the watched tick with the brand ink, never red', () => {

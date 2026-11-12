@@ -6,7 +6,7 @@
 
 .plcard {
   display: grid;
-  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   align-items: start;
   padding: var(--space-4);
@@ -59,7 +59,6 @@
 /* A card in the Playlists tab: compact, and the name's link covers the whole card. */
 .plcard--link {
   position: relative;
-  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
   transition: border-color var(--dur-fast) var(--ease-out);
 }
 
@@ -128,43 +127,60 @@
   }
 }
 
-@media (max-width: 760px) {
-  .plcard {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* In the Playlists tab the cards stay compact on phones: small cover on the left. */
-  .plcards .plcard {
-    grid-template-columns: 120px minmax(0, 1fr);
-    gap: var(--space-3);
-    padding: var(--space-3);
-  }
-
-  .plcards .plcard__name {
-    font-size: var(--step-1);
-  }
+/* A card on a small phone: the cover on top at full width, no preview, count and Play all on one row. */
+.plcards .plcard {
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 
-@media (max-width: 520px) {
-  /* A card on a small phone: the cover on top at full width, no preview, count and Play all on one row. */
+.plcards .plcard__preview {
+  display: none;
+}
+
+.plcards .plcard__body {
+  justify-items: stretch;
+}
+
+.plcards .plcard__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+@media (min-width: 521px) {
+  /* In the Playlists tab the cards stay compact on larger phones: small cover on the left. */
   .plcards .plcard {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-3);
+    grid-template-columns: 120px minmax(0, 1fr);
   }
 
   .plcards .plcard__preview {
-    display: none;
+    display: block;
   }
 
   .plcards .plcard__body {
-    justify-items: stretch;
+    justify-items: start;
   }
 
   .plcards .plcard__foot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-3);
+    display: grid;
+    flex-wrap: nowrap;
+    align-items: normal;
+    justify-content: normal;
+    justify-items: start;
+    gap: var(--space-2);
+  }
+}
+
+@media (min-width: 761px) {
+  .plcard {
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  }
+
+  .plcards .plcard {
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+    gap: var(--space-5);
+    padding: var(--space-4);
   }
 }

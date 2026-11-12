@@ -580,7 +580,9 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     const rule = (name: string) => new RegExp(`\\.chapter-meta__${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
     expect(/\.chapter-meta__row\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/.test(css)).toBe(true);
     expect(rule('number')).toMatch(/flex:\s*0 0 1\d\dpx/);
-    expect(rule('label')).toMatch(/flex:\s*0 0 2[0-4]\dpx/);
+    // Mobile-first: the label shares the row on a phone and is a fixed column from 521px.
+    expect(rule('label')).toMatch(/flex:\s*1 1 0/);
+    expect(/@media \(min-width: 521px\)\s*\{\s*\.chapter-meta__label\s*\{[^}]*flex:\s*0 0 2[0-4]\dpx/.test(css)).toBe(true);
     expect(rule('title')).toMatch(/flex:\s*1 1 /);
   });
 
