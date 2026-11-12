@@ -8,24 +8,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .fanfics__search {
   flex: 1 1 240px;
   min-width: 0;
-}
-
-.fanfics__status {
-  display: inline-flex;
-  gap: var(--space-2);
-}
-
-/* The chosen status is state, so it is purple. */
-.fanfics__status-item[aria-pressed='true'] {
-  border-color: var(--brand-2);
-  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
-  font-weight: 700;
 }
 
 .fanfics__sort {

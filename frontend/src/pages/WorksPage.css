@@ -5,12 +5,11 @@
   gap: var(--space-2);
 }
 
-.works-year {
-  margin-top: var(--space-6);
-}
-
-.works-year:first-of-type {
-  margin-top: var(--space-5);
+/* The people row and the category pills sit together, one step apart (same as the Fanfics toolbar). */
+.works-filters {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 /* Horizontal rule filling the width with the label on the right. */

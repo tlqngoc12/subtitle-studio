@@ -17,6 +17,7 @@ import { useConfirmDialog } from '../useConfirmDialog';
 import { Alert } from '../ui/Alert';
 import { Reveal } from '../ui/Reveal';
 import { SearchBar } from '../ui/SearchBar';
+import { FilterPills } from '../ui/FilterPills';
 import { Select } from '../ui/Select';
 import { Skeleton } from '../ui/Skeleton';
 import { useDelayedFlag } from '../../lib/useDelayedFlag';
@@ -167,19 +168,7 @@ export function FanficsTab() {
         <div className="fanfics__search">
           <SearchBar value={query} onChange={setQuery} label="Search fanfics" onClear={() => setQuery('')} />
         </div>
-        <div className="fanfics__status" role="group" aria-label="Status">
-          {STATUSES.map((s) => (
-            <button
-              key={s.value}
-              type="button"
-              className="button button--s fanfics__status-item"
-              aria-pressed={status === s.value}
-              onClick={() => setStatus(s.value)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <FilterPills label="Status" options={STATUSES} value={status} onChange={setStatus} />
         <div className="fanfics__sort">
           <label className="visually-hidden" htmlFor="fanfics-sort">
             Sort by

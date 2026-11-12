@@ -5,11 +5,11 @@ import { Link, useSearchParams } from 'react-router';
 import type { ProfilePage } from '../api/profiles';
 import type { WorkCategory, WorkSummary } from '../api/works';
 import { EmptyState } from '../components/EmptyState';
-import { CATEGORIES } from '../components/works/categories';
-import { CategoryPills } from '../components/works/CategoryPills';
+import { CATEGORIES, CATEGORY_LABELS } from '../components/works/categories';
 import { PeopleDialog } from '../components/works/PeopleDialog';
 import { WorkCard } from '../components/works/WorkCard';
 import { Alert } from '../components/ui/Alert';
+import { FilterPills } from '../components/ui/FilterPills';
 import { IconLink } from '../components/ui/IconButton';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
@@ -20,6 +20,11 @@ import { matchesPerson } from '../lib/people';
 import { peopleOf } from './PhotosPage';
 import '../components/works/WorkCard.css';
 import './WorksPage.css';
+
+const CATEGORY_OPTIONS = [
+  { value: null, label: 'All' },
+  ...CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] })),
+] as { value: WorkCategory | null; label: string }[];
 
 /** Works (/works): poster grid filtered by person (`?who=`) and category (`?cat=`). */
 export default function WorksPage() {
@@ -93,8 +98,10 @@ export default function WorksPage() {
         }
       />
 
-      {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
-      <CategoryPills value={cat} onChange={(c) => setFilter('cat', c)} />
+      <div className="works-filters">
+        {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
+        <FilterPills label="Filter by category" options={CATEGORY_OPTIONS} value={cat} onChange={(c) => setFilter('cat', c)} />
+      </div>
 
       {error && <Alert title={error.title} hint={error.hint} />}
       {works === null && !error && <SkeletonGrid count={8} aspect="4/5" />}
