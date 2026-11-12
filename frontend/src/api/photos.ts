@@ -39,3 +39,37 @@ export async function updatePhoto(id: number, input: PhotoPostInput): Promise<Ph
 export async function deletePhoto(id: number): Promise<void> {
   await send(`/api/photos/${id}`, { method: 'DELETE' });
 }
+
+/** What "Fetch from X" returns: the image already stored as an uploaded media item, plus the post's day and caption. */
+export interface XFetchResult {
+  mediaId: number;
+  mediaUrl: string;
+  width: number;
+  height: number;
+  /** `yyyy-mm-dd` in Vietnam time, or null when X gave no date. */
+  takenOn: string | null;
+  /** The post text without its t.co links, or null when empty. */
+  title: string | null;
+}
+
+const X_HOSTS = /^(?:www\.|mobile\.)?(?:x\.com|twitter\.com)$|^(?:www\.)?(?:fxtwitter\.com|vxtwitter\.com|fixupx\.com)$/i;
+
+/** True for an X / Twitter post link (x.com, twitter.com, mobile., fxtwitter, vxtwitter; `/status/{id}`). */
+export function isXStatusUrl(raw: string): boolean {
+  const text = raw.trim();
+  if (!text) return false;
+  try {
+    const url = new URL(text.includes('://') ? text : `https://${text}`);
+    return (
+      (url.protocol === 'https:' || url.protocol === 'http:') &&
+      X_HOSTS.test(url.hostname) &&
+      /\/status\/\d+/.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchFromX(url: string): Promise<XFetchResult> {
+  return (await send('/api/photos/x-fetch', json('POST', { url }))).json();
+}

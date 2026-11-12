@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fakeFetch } from '../test/fakeFetch';
-import { createPhoto, deletePhoto, listPhotos, updatePhoto, type PhotoPostInput } from './photos';
+import { createPhoto, deletePhoto, listPhotos, isXStatusUrl, updatePhoto, type PhotoPostInput } from './photos';
 
 const INPUT: PhotoPostInput = {
   postUrl: 'https://www.instagram.com/p/AAA/',
@@ -34,4 +34,21 @@ describe('photos api', () => {
     ]);
     expect(JSON.parse(String(calls[1].body))).toEqual(INPUT);
   });
+});
+
+describe('isXStatusUrl', () => {
+  it.each([
+    'https://x.com/emi/status/123',
+    'http://www.twitter.com/emi/status/123/photo/1',
+    'https://mobile.twitter.com/emi/status/123',
+    'https://mobile.x.com/emi/status/123',
+    'https://fxtwitter.com/emi/status/123',
+    'https://vxtwitter.com/emi/status/123?s=20',
+    'x.com/i/status/123',
+  ])('accepts %s', (url) => expect(isXStatusUrl(url)).toBe(true));
+
+  it.each(['', 'https://x.com/emi', 'https://x.com/emi/status/abc', 'https://www.instagram.com/p/AAA/', 'nope', 'https://evilx.com/a/status/1'])(
+    'rejects %j',
+    (url) => expect(isXStatusUrl(url)).toBe(false),
+  );
 });

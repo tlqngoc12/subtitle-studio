@@ -103,3 +103,30 @@
     animation: none !important;
   }
 }
+
+/* The link input with the "Fetch from X" button: stacked on a phone, side by side from 521px. */
+.pdialog__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pdialog__link .button {
+  align-self: flex-start;
+}
+
+@media (min-width: 521px) {
+  .pdialog__link {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .pdialog__link input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pdialog__link .button {
+    flex: none;
+  }
+}
