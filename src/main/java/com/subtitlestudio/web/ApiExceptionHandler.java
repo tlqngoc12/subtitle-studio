@@ -23,6 +23,9 @@ import com.subtitlestudio.playlist.PlaylistNotFoundException;
 import com.subtitlestudio.playlist.VideoHasNoVietsubException;
 import com.subtitlestudio.photo.PhotoPostExistsException;
 import com.subtitlestudio.photo.PhotoPostNotFoundException;
+import com.subtitlestudio.photo.XPostHasNoImageException;
+import com.subtitlestudio.photo.XPostNotFoundException;
+import com.subtitlestudio.photo.XUnavailableException;
 import com.subtitlestudio.profile.BannerImageNotFoundException;
 import com.subtitlestudio.work.InvalidWorkException;
 import com.subtitlestudio.work.PersonInUseException;
@@ -143,6 +146,22 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = problem(HttpStatus.CONFLICT, "PHOTO_POST_EXISTS", e.getMessage());
         pd.setProperty("title", e.title());
         return pd;
+    }
+
+    @ExceptionHandler(XPostNotFoundException.class)
+    ProblemDetail xPostNotFound(XPostNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "X_POST_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(XPostHasNoImageException.class)
+    ProblemDetail xPostHasNoImage(XPostHasNoImageException e) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "X_POST_NO_IMAGE", e.getMessage());
+    }
+
+    @ExceptionHandler(XUnavailableException.class)
+    ProblemDetail xUnavailable(XUnavailableException e) {
+        log.warn("X unavailable: {}", e.getMessage());
+        return problem(HttpStatus.BAD_GATEWAY, "X_UNAVAILABLE", "X didn't answer, try again or upload the image yourself");
     }
 
     @ExceptionHandler(InvalidFanficLinkException.class)

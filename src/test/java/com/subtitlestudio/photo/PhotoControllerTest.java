@@ -42,6 +42,9 @@ class PhotoControllerTest {
     @MockitoBean
     private PhotoService service;
 
+    @MockitoBean
+    private XFetchService xFetch;
+
     private ResultActions json(MockHttpServletRequestBuilder request) throws Exception {
         return mvc.perform(request.contentType(MediaType.APPLICATION_JSON).content(BODY));
     }
@@ -82,5 +85,35 @@ class PhotoControllerTest {
         doThrow(new InvalidBlockException(List.of(new FieldError("title", "x")))).when(service).delete(8);
         mvc.perform(delete("/api/photos/8")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("title"));
+    }
+
+    @Test
+    void xFetchReturnsTheImageAndMapsItsErrors() throws Exception {
+        when(xFetch.fetch("https://x.com/a/status/1")).thenReturn(
+                new XFetchResult(9, "/api/media/9", 1600, 900, LocalDate.parse("2026-11-11"), "Caption"));
+        String req = "{\"url\":\"https://x.com/a/status/1\"}";
+
+        mvc.perform(post("/api/photos/x-fetch").contentType(MediaType.APPLICATION_JSON).content(req))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.mediaId").value(9))
+                .andExpect(jsonPath("$.mediaUrl").value("/api/media/9")).andExpect(jsonPath("$.width").value(1600))
+                .andExpect(jsonPath("$.takenOn").value("2026-11-11")).andExpect(jsonPath("$.title").value("Caption"));
+
+        doThrow(new XPostNotFoundException()).when(xFetch).fetch(any());
+        mvc.perform(post("/api/photos/x-fetch").contentType(MediaType.APPLICATION_JSON).content(req))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("X_POST_NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("Couldn't find a public post at this link"));
+
+        doThrow(new XPostHasNoImageException()).when(xFetch).fetch(any());
+        mvc.perform(post("/api/photos/x-fetch").contentType(MediaType.APPLICATION_JSON).content(req))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.detail").value("This post has no image"));
+
+        doThrow(new XUnavailableException("X answered 429")).when(xFetch).fetch(any());
+        mvc.perform(post("/api/photos/x-fetch").contentType(MediaType.APPLICATION_JSON).content(req))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.detail").value("X didn't answer, try again or upload the image yourself"));
+
+        doThrow(new InvalidBlockException(List.of(new FieldError("postUrl", "bad")))).when(xFetch).fetch(any());
+        mvc.perform(post("/api/photos/x-fetch").contentType(MediaType.APPLICATION_JSON).content(req))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("postUrl"));
     }
 }
