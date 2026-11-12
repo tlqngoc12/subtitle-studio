@@ -16,6 +16,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VietsubTabs } from '../components/VietsubTabs';
+import { formatInstant } from '../lib/dates';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { rowMotion } from '../lib/motion';
 import { Alert } from '../components/ui/Alert';
@@ -33,9 +34,6 @@ function toSummary(d: PlaylistDetail): PlaylistSummary {
   };
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 /** Vietsub › Playlists: create, list and delete playlists (playlists spec section 5). */
 export default function PlaylistsPage() {
@@ -109,7 +107,7 @@ export default function PlaylistsPage() {
                         <span className="history__title">{p.name}</span>
                         <span className="history__sub">
                           <span className="meta">{videoCountLabel(p.videoCount)}</span>
-                          <span className="meta">Updated {formatDate(p.updatedAt)}</span>
+                          <span className="meta">Updated {formatInstant(p.updatedAt)}</span>
                         </span>
                       </span>
                     </Link>

@@ -149,7 +149,7 @@ describe('FanficsTab (public)', () => {
   it('shows when the stats were last fetched', async () => {
     renderPublic();
 
-    expect(await screen.findByText(/Stats from Wattpad, updated 11 Nov 2026/)).toBeInTheDocument();
+    expect(await screen.findByText(/Stats from Wattpad, updated 11[/]11[/]2026/)).toBeInTheDocument();
     expect(screen.getByText(/Stories © their authors/)).toBeInTheDocument();
   });
 

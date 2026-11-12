@@ -10,7 +10,7 @@ import {
 } from '../../api/fanfics';
 import { useSite } from '../../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
-import { formatDay } from '../../lib/dates';
+import { formatInstant } from '../../lib/dates';
 import { normalizeForSearch } from '../../lib/search';
 import { EmptyState } from '../EmptyState';
 import { useConfirmDialog } from '../useConfirmDialog';
@@ -20,7 +20,6 @@ import { SearchBar } from '../ui/SearchBar';
 import { Select } from '../ui/Select';
 import { Skeleton } from '../ui/Skeleton';
 import { useDelayedFlag } from '../../lib/useDelayedFlag';
-import { toIsoDay } from '../ui/DatePicker';
 import { AddFanficDialog } from './AddFanficDialog';
 import { FanficCard } from './FanficCard';
 import { FanficMenu } from './FanficMenu';
@@ -113,7 +112,7 @@ export function FanficsTab() {
 
   const latestFetch = useMemo(() => {
     const times = (fanfics ?? []).map((f) => Date.parse(f.fetchedAt)).filter(Number.isFinite);
-    return times.length ? formatDay(toIsoDay(new Date(Math.max(...times)))) : null;
+    return times.length ? formatInstant(new Date(Math.max(...times)).toISOString()) : null;
   }, [fanfics]);
 
   const replace = (updated: Fanfic) => setFanfics((all) => (all ?? []).map((f) => (f.id === updated.id ? updated : f)));

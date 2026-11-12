@@ -98,7 +98,7 @@ describe('PhotosPage', () => {
     expect(tile).toHaveAttribute('rel', 'noopener noreferrer');
     expect(within(tile).getByText('Fan')).toBeInTheDocument();
     expect(within(tile).getByText('3 photos')).toBeInTheDocument();
-    expect(within(tile).getByText('31 Oct 2026')).toBeInTheDocument();
+    expect(within(tile).getByText('31/10/2026')).toBeInTheDocument();
     expect(screen.getByText('1 photo')).toBeInTheDocument();
   });
 

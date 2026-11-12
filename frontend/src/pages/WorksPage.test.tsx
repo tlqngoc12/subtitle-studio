@@ -43,7 +43,7 @@ describe('WorksPage', () => {
     expect(within(first).getByText('Coming Soon')).toBeInTheDocument();
     expect(within(first).getByText('Bonnie')).toBeInTheDocument();
     const second = screen.getByRole('link', { name: 'Old song' });
-    expect(within(second).getByText('5 Jan 2026')).toBeInTheDocument();
+    expect(within(second).getByText('05/01/2026')).toBeInTheDocument();
     expect(within(second).getByText('Music')).toBeInTheDocument();
     expect(within(second).getByText('OST')).toBeInTheDocument();
     expect(screen.getByText('Series, music, shows and more.')).toBeInTheDocument();

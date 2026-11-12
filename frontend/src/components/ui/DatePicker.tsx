@@ -3,6 +3,7 @@ import { CalendarDays } from 'lucide-react';
 import { useState } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
+import { formatDay } from '../../lib/dates';
 import { PopoverPanel } from './PopoverPanel';
 import './DatePicker.css';
 
@@ -19,11 +20,6 @@ export function toIsoDay(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/** `2026-11-09` → `09/11/2026`. */
-function display(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
 
 interface Props {
   id?: string;
@@ -61,7 +57,7 @@ export function DatePicker({ id, value, onChange, placeholder = 'Select a date',
           {...aria}
         >
           <CalendarDays className="icon icon--sm" aria-hidden="true" />
-          <span className={value ? undefined : 'date-picker__placeholder'}>{value ? display(value) : placeholder}</span>
+          <span className={value ? undefined : 'date-picker__placeholder'}>{value ? formatDay(value) : placeholder}</span>
         </button>
       </Popover.Trigger>
       <PopoverPanel className="date-picker" align="start">

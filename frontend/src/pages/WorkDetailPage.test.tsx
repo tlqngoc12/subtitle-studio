@@ -49,7 +49,7 @@ describe('WorkDetailPage', () => {
     renderPublic(FILM);
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Love Story' })).toBeInTheDocument();
-    expect(screen.getByText('24 Apr 2026')).toBeInTheDocument();
+    expect(screen.getByText('24/04/2026')).toBeInTheDocument();
     expect(screen.getByText('Film & TV')).toBeInTheDocument();
     expect(screen.getByText('Drama')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Cast' })).toBeInTheDocument();
