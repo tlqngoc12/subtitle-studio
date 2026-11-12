@@ -24,8 +24,11 @@ public class ChapterController {
 
     private final ChapterService service;
     private final ChapterTranslationService translation;
+    private final com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
 
-    public ChapterController(ChapterService service, ChapterTranslationService translation) {
+    public ChapterController(ChapterService service, ChapterTranslationService translation,
+                             com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels) {
+        this.wattpadNovels = wattpadNovels;
         this.service = service;
         this.translation = translation;
     }
@@ -34,6 +37,11 @@ public class ChapterController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ChapterDetail translate(@PathVariable long id) {
         return translation.start(id);
+    }
+
+    @PostMapping("/api/chapters/{id}/reload-original")
+    public ChapterDetail reloadOriginal(@PathVariable long id) {
+        return wattpadNovels.reloadOriginal(id);
     }
 
     @PostMapping("/api/chapters/{id}/publish")

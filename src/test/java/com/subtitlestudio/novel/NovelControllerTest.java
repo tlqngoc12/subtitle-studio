@@ -201,4 +201,29 @@ class NovelControllerTest {
                 .content("{\"url\":\"x\"}")).andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.code").value("WATTPAD_UNAVAILABLE"));
     }
+
+    @Test
+    void wattpadPartsAndImport() throws Exception {
+        when(wattpadNovels.parts(3L)).thenReturn(List.of(new com.subtitlestudio.novel.wattpad.WattpadPartRow("1",
+                "Prologue", 190, AT, AT, false, null)));
+        when(wattpadNovels.importParts(eq(3L), any())).thenReturn(new com.subtitlestudio.novel.wattpad.WattpadImportResult(
+                List.of(new com.subtitlestudio.novel.wattpad.WattpadImportResult.Imported("1", 20)), List.of("2"),
+                List.of(new com.subtitlestudio.novel.wattpad.WattpadImportResult.Failure("3", "Three", "No text"))));
+
+        mvc.perform(get("/api/novels/3/wattpad/parts")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].partId").value("1")).andExpect(jsonPath("$[0].wordCount").value(190))
+                .andExpect(jsonPath("$[0].importedChapterId").doesNotExist());
+        mvc.perform(post("/api/novels/3/wattpad/import").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"partIds\":[\"1\",\"2\",\"3\"]}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported[0].chapterId").value(20)).andExpect(jsonPath("$.skipped[0]").value("2"))
+                .andExpect(jsonPath("$.failed[0].reason").value("No text"));
+    }
+
+    @Test
+    void wattpadPartsOfAScreenshotNovelIs409() throws Exception {
+        when(wattpadNovels.parts(3L)).thenThrow(new NovelNotWattpadException(3));
+
+        mvc.perform(get("/api/novels/3/wattpad/parts")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_NOT_WATTPAD"));
+    }
 }

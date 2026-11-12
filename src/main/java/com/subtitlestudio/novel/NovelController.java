@@ -1,6 +1,9 @@
 package com.subtitlestudio.novel;
 
+import com.subtitlestudio.novel.wattpad.WattpadImportRequest;
+import com.subtitlestudio.novel.wattpad.WattpadImportResult;
 import com.subtitlestudio.novel.wattpad.WattpadNovelPreview;
+import com.subtitlestudio.novel.wattpad.WattpadPartRow;
 import com.subtitlestudio.novel.wattpad.WattpadNovelService;
 import com.subtitlestudio.novel.wattpad.WattpadUrlRequest;
 import java.util.List;
@@ -54,6 +57,16 @@ public class NovelController {
     @PostMapping("/wattpad/preview")
     public WattpadNovelPreview wattpadPreview(@RequestBody WattpadUrlRequest request) {
         return wattpadNovels.preview(request.url());
+    }
+
+    @GetMapping("/{id}/wattpad/parts")
+    public List<WattpadPartRow> wattpadParts(@PathVariable long id) {
+        return wattpadNovels.parts(id);
+    }
+
+    @PostMapping("/{id}/wattpad/import")
+    public WattpadImportResult wattpadImport(@PathVariable long id, @RequestBody WattpadImportRequest request) {
+        return wattpadNovels.importParts(id, request.partIds());
     }
 
     @GetMapping

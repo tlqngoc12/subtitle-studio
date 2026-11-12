@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -48,6 +49,10 @@ class WattpadNovelServiceTest {
     private NovelService novelService;
     private MediaService mediaService;
     private WattpadNovelService service;
+    private com.subtitlestudio.novel.ChapterRepository chapters;
+    private com.subtitlestudio.novel.ChapterService chapterService;
+    private com.subtitlestudio.fanfic.Sleeper sleeper;
+    private static final Instant NOW = Instant.parse("2026-11-13T01:00:00Z");
 
     @BeforeEach
     void setUp() {
@@ -55,7 +60,11 @@ class WattpadNovelServiceTest {
         novels = mock(NovelRepository.class);
         novelService = mock(NovelService.class);
         mediaService = mock(MediaService.class);
-        service = new WattpadNovelService(wattpad, novels, novelService, mediaService);
+        chapters = mock(com.subtitlestudio.novel.ChapterRepository.class);
+        chapterService = mock(com.subtitlestudio.novel.ChapterService.class);
+        sleeper = mock(com.subtitlestudio.fanfic.Sleeper.class);
+        service = new WattpadNovelService(wattpad, novels, novelService, mediaService, chapters, chapterService,
+                sleeper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
     private static WattpadStoryParts story(String language) {
@@ -218,5 +227,157 @@ class WattpadNovelServiceTest {
         assertThatThrownBy(() -> service.create(request(COVER, null))).isInstanceOf(DuplicateNovelSlugException.class);
 
         verify(mediaService).deleteIfUnreferenced(List.of(7L));
+    }
+
+    // ---- parts, import, reload ----
+
+    private Novel wattpadNovel(long id) {
+        Novel n = new Novel("warm", "Warm", NovelStatus.COMPLETED, NOW);
+        ReflectionTestUtils.setField(n, "id", id);
+        n.setSourceType(NovelSourceType.WATTPAD);
+        n.setWattpadStoryId("396487502");
+        when(novels.findById(id)).thenReturn(Optional.of(n));
+        return n;
+    }
+
+    private static com.subtitlestudio.fanfic.WattpadPart part(String id, String title, boolean deleted) {
+        return new com.subtitlestudio.fanfic.WattpadPart(id, title, 100, NOW, NOW, deleted);
+    }
+
+    private void storyParts(com.subtitlestudio.fanfic.WattpadPart... parts) {
+        WattpadStoryParts base = story("English");
+        when(wattpad.storyWithParts("396487502")).thenReturn(new WattpadStoryParts(base.story(), "English",
+                List.of(parts)));
+    }
+
+    private static final java.util.List<Object[]> NONE = new java.util.ArrayList<>();
+
+    @Test
+    void partsAreListedInStoryOrderWithTheirImportedChapter() {
+        wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "One", false), part("3", "Two", true));
+        when(chapters.importedParts(3L)).thenReturn(java.util.Collections.singletonList(new Object[] {"2", 55L}));
+
+        List<WattpadPartRow> rows = service.parts(3);
+
+        assertThat(rows).extracting(WattpadPartRow::partId).containsExactly("1", "2", "3");
+        assertThat(rows).extracting(WattpadPartRow::importedChapterId).containsExactly(null, 55L, null);
+        assertThat(rows.get(2).deleted()).isTrue();
+    }
+
+    @Test
+    void partsAndImportNeedAWattpadNovel() {
+        Novel plain = new Novel("p", "P", NovelStatus.ONGOING, NOW);
+        when(novels.findById(4L)).thenReturn(Optional.of(plain));
+        when(novels.findById(9L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.parts(4)).isInstanceOf(com.subtitlestudio.novel.NovelNotWattpadException.class);
+        assertThatThrownBy(() -> service.importParts(4, List.of("1")))
+                .isInstanceOf(com.subtitlestudio.novel.NovelNotWattpadException.class);
+        assertThatThrownBy(() -> service.parts(9)).isInstanceOf(com.subtitlestudio.novel.NovelNotFoundException.class);
+        verify(wattpad, never()).storyWithParts(anyString());
+    }
+
+    @Test
+    void importCreatesChaptersInStoryOrderWhateverTheRequestOrder() {
+        wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "One", false), part("3", "Two", false));
+        when(chapters.importedParts(3L)).thenReturn(NONE);
+        when(wattpad.partText("1")).thenReturn("<p>Prologue text</p>");
+        when(wattpad.partText("3")).thenReturn("<p>Two text</p><p>***</p><p>More</p>");
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any())).thenReturn(101L, 102L);
+
+        WattpadImportResult r = service.importParts(3, List.of("3", "1"));
+
+        assertThat(r.imported()).extracting(WattpadImportResult.Imported::partId).containsExactly("1", "3");
+        assertThat(r.imported()).extracting(WattpadImportResult.Imported::chapterId).containsExactly(101L, 102L);
+        assertThat(r.skipped()).isEmpty();
+        assertThat(r.failed()).isEmpty();
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(chapterService);
+        order.verify(chapterService).addFromSource(3L, "Prologue", "Prologue text", "1", NOW);
+        order.verify(chapterService).addFromSource(3L, "Two", "Two text\n\n***\n\nMore", "3", NOW);
+        verify(sleeper).sleep(500);
+    }
+
+    @Test
+    void importSkipsPartsThatAreAlreadyChapters() {
+        wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "One", false));
+        when(chapters.importedParts(3L)).thenReturn(java.util.Collections.singletonList(new Object[] {"1", 50L}));
+        when(wattpad.partText("2")).thenReturn("<p>One</p>");
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any())).thenReturn(60L);
+
+        WattpadImportResult r = service.importParts(3, List.of("1", "2"));
+
+        assertThat(r.skipped()).containsExactly("1");
+        assertThat(r.imported()).extracting(WattpadImportResult.Imported::partId).containsExactly("2");
+        verify(wattpad, never()).partText("1");
+        verify(sleeper, never()).sleep(500);
+    }
+
+    @Test
+    void oneFailingPartDoesNotStopTheOthers() {
+        wattpadNovel(3);
+        storyParts(part("1", "A", false), part("2", "B", false), part("3", "C", false), part("4", "D", true),
+                part("5", "E", false));
+        when(chapters.importedParts(3L)).thenReturn(NONE);
+        when(wattpad.partText("1")).thenThrow(new WattpadUnavailableException("down"));
+        when(wattpad.partText("2")).thenReturn("");
+        when(wattpad.partText("3")).thenReturn("<p>C</p>");
+        when(wattpad.partText("5")).thenReturn("<p>E</p>");
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any())).thenReturn(7L, 8L);
+
+        WattpadImportResult r = service.importParts(3, List.of("1", "2", "3", "4", "5", "99"));
+
+        assertThat(r.imported()).extracting(WattpadImportResult.Imported::partId).containsExactly("3", "5");
+        assertThat(r.failed()).extracting(WattpadImportResult.Failure::partId)
+                .containsExactly("1", "2", "4", "99");
+        assertThat(r.failed().get(0).reason()).isEqualTo(WattpadNovelService.DID_NOT_ANSWER);
+        assertThat(r.failed().get(1).reason()).isEqualTo(WattpadNovelService.NO_TEXT);
+        assertThat(r.failed().get(1).title()).isEqualTo("B");
+    }
+
+    @Test
+    void aSaveErrorIsReportedPerPart() {
+        wattpadNovel(3);
+        storyParts(part("1", "A", false), part("2", "B", false));
+        when(chapters.importedParts(3L)).thenReturn(NONE);
+        when(wattpad.partText(anyString())).thenReturn("<p>x</p>");
+        when(chapterService.addFromSource(eq(3L), eq("A"), anyString(), eq("1"), any()))
+                .thenThrow(new IllegalStateException("db"));
+        when(chapterService.addFromSource(eq(3L), eq("B"), anyString(), eq("2"), any())).thenReturn(9L);
+
+        WattpadImportResult r = service.importParts(3, List.of("1", "2"));
+
+        assertThat(r.imported()).extracting(WattpadImportResult.Imported::partId).containsExactly("2");
+        assertThat(r.failed()).extracting(WattpadImportResult.Failure::partId).containsExactly("1");
+    }
+
+    @Test
+    void reloadReplacesTheOriginalText() {
+        when(chapterService.reloadablePartId(5L)).thenReturn("1552");
+        when(wattpad.partText("1552")).thenReturn("<p>Fresh</p>");
+        com.subtitlestudio.novel.ChapterDetail detail = mock(com.subtitlestudio.novel.ChapterDetail.class);
+        when(chapterService.replaceSourceText(5L, "Fresh", NOW)).thenReturn(detail);
+
+        assertThat(service.reloadOriginal(5L)).isSameAs(detail);
+    }
+
+    @Test
+    void reloadWithNoTextFromWattpadChangesNothing() {
+        when(chapterService.reloadablePartId(5L)).thenReturn("1552");
+        when(wattpad.partText("1552")).thenReturn("");
+
+        assertThatThrownBy(() -> service.reloadOriginal(5L)).isInstanceOf(WattpadUnavailableException.class);
+        verify(chapterService, never()).replaceSourceText(anyLong(), anyString(), any());
+    }
+
+    @Test
+    void reloadIsRefusedBeforeCallingWattpadWhenTheChapterIsNotReloadable() {
+        when(chapterService.reloadablePartId(5L)).thenThrow(new com.subtitlestudio.novel.ChapterPublishedException(5));
+
+        assertThatThrownBy(() -> service.reloadOriginal(5L))
+                .isInstanceOf(com.subtitlestudio.novel.ChapterPublishedException.class);
+        verify(wattpad, never()).partText(anyString());
     }
 }

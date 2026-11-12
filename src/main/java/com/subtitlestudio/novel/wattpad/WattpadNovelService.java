@@ -6,7 +6,16 @@ import com.subtitlestudio.fanfic.WattpadClient;
 import com.subtitlestudio.fanfic.WattpadLink;
 import com.subtitlestudio.fanfic.WattpadStory;
 import com.subtitlestudio.fanfic.WattpadStoryParts;
+import com.subtitlestudio.fanfic.Sleeper;
+import com.subtitlestudio.fanfic.WattpadPart;
+import com.subtitlestudio.fanfic.WattpadUnavailableException;
+import com.subtitlestudio.novel.ChapterDetail;
+import com.subtitlestudio.novel.ChapterRepository;
+import com.subtitlestudio.novel.ChapterService;
 import com.subtitlestudio.novel.DuplicateWattpadNovelException;
+import com.subtitlestudio.novel.NovelNotFoundException;
+import com.subtitlestudio.novel.NovelNotWattpadException;
+import com.subtitlestudio.novel.NovelSourceType;
 import com.subtitlestudio.novel.InvalidNovelException;
 import com.subtitlestudio.novel.Novel;
 import com.subtitlestudio.novel.NovelDetail;
@@ -17,6 +26,12 @@ import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaService;
 import java.net.URI;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.List;
 import java.util.Locale;
 import org.slf4j.Logger;
@@ -33,14 +48,26 @@ public class WattpadNovelService {
 
     private static final Logger log = LoggerFactory.getLogger(WattpadNovelService.class);
     private static final int COVER_SIDE = 512;
+    static final int PAUSE_BETWEEN_PARTS_MS = 500;
+    static final String NO_TEXT = "Wattpad has no text for this part (locked, empty or removed).";
+    static final String DID_NOT_ANSWER = "Wattpad did not answer. Try again later.";
 
     private final WattpadClient wattpad;
     private final NovelRepository novels;
     private final NovelService novelService;
     private final MediaService mediaService;
+    private final ChapterRepository chapters;
+    private final ChapterService chapterService;
+    private final Sleeper sleeper;
+    private final Clock clock;
 
     public WattpadNovelService(WattpadClient wattpad, NovelRepository novels, NovelService novelService,
-                               MediaService mediaService) {
+                               MediaService mediaService, ChapterRepository chapters, ChapterService chapterService,
+                               Sleeper sleeper, Clock clock) {
+        this.chapters = chapters;
+        this.chapterService = chapterService;
+        this.sleeper = sleeper;
+        this.clock = clock;
         this.wattpad = wattpad;
         this.novels = novels;
         this.novelService = novelService;
@@ -84,6 +111,101 @@ public class WattpadNovelService {
             }
             throw e;
         }
+    }
+
+    /** The story's parts in story order, each with the chapter it was imported as (if any). */
+    public List<WattpadPartRow> parts(long novelId) {
+        String storyId = wattpadStoryOf(novelId);
+        List<WattpadPart> parts = wattpad.storyWithParts(storyId).parts();
+        Map<String, Long> imported = importedParts(novelId);
+        return parts.stream().map(p -> new WattpadPartRow(p.id(), p.title(), p.wordCount(), p.createdAt(),
+                p.modifiedAt(), p.deleted(), imported.get(p.id()))).toList();
+    }
+
+    /**
+     * Imports the chosen parts, in story order, as Draft chapters at the end of the novel. A part that is already a
+     * chapter is skipped; a part that fails is reported and the others go on. Wattpad is called outside any
+     * transaction, with a short pause between parts.
+     */
+    public WattpadImportResult importParts(long novelId, List<String> partIds) {
+        String storyId = wattpadStoryOf(novelId);
+        Set<String> wanted = partIds == null ? Set.of() : new HashSet<>(partIds);
+        List<WattpadPart> parts = wattpad.storyWithParts(storyId).parts();
+        Map<String, Long> already = importedParts(novelId);
+        List<WattpadImportResult.Imported> imported = new ArrayList<>();
+        List<String> skipped = new ArrayList<>();
+        List<WattpadImportResult.Failure> failed = new ArrayList<>();
+        Set<String> known = new HashSet<>();
+        boolean fetchedBefore = false;
+        for (WattpadPart part : parts) {
+            known.add(part.id());
+            if (!wanted.contains(part.id())) {
+                continue;
+            }
+            if (already.containsKey(part.id())) {
+                skipped.add(part.id());
+                continue;
+            }
+            if (part.deleted()) {
+                failed.add(new WattpadImportResult.Failure(part.id(), part.title(), "This part was deleted on Wattpad."));
+                continue;
+            }
+            if (fetchedBefore) {
+                sleeper.sleep(PAUSE_BETWEEN_PARTS_MS);
+            }
+            fetchedBefore = true;
+            try {
+                String text = WattpadText.toPlain(wattpad.partText(part.id()));
+                if (text.isEmpty()) {
+                    failed.add(new WattpadImportResult.Failure(part.id(), part.title(), NO_TEXT));
+                    continue;
+                }
+                long chapterId = chapterService.addFromSource(novelId, part.title(), text, part.id(), clock.instant());
+                imported.add(new WattpadImportResult.Imported(part.id(), chapterId));
+            } catch (WattpadUnavailableException e) {
+                failed.add(new WattpadImportResult.Failure(part.id(), part.title(), DID_NOT_ANSWER));
+            } catch (RuntimeException e) {
+                log.warn("Could not import Wattpad part {}: {}", part.id(), e.toString());
+                failed.add(new WattpadImportResult.Failure(part.id(), part.title(), "Could not save this part."));
+            }
+        }
+        for (String id : wanted) {
+            if (!known.contains(id)) {
+                failed.add(new WattpadImportResult.Failure(id, id, "This part is not in the story."));
+            }
+        }
+        return new WattpadImportResult(imported, skipped, failed);
+    }
+
+    /** Fetches the part again and replaces the chapter's original text (Draft chapters only). */
+    public ChapterDetail reloadOriginal(long chapterId) {
+        String partId = chapterService.reloadablePartId(chapterId);
+        String text;
+        try {
+            text = WattpadText.toPlain(wattpad.partText(partId));
+        } catch (WattpadUnavailableException e) {
+            throw e;
+        }
+        if (text.isEmpty()) {
+            throw new WattpadUnavailableException("Wattpad has no text for part " + partId);
+        }
+        return chapterService.replaceSourceText(chapterId, text, clock.instant());
+    }
+
+    private String wattpadStoryOf(long novelId) {
+        Novel n = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
+        if (n.getSourceType() != NovelSourceType.WATTPAD || n.getWattpadStoryId() == null) {
+            throw new NovelNotWattpadException(novelId);
+        }
+        return n.getWattpadStoryId();
+    }
+
+    private Map<String, Long> importedParts(long novelId) {
+        Map<String, Long> map = new HashMap<>();
+        for (Object[] row : chapters.importedParts(novelId)) {
+            map.put((String) row[0], ((Number) row[1]).longValue());
+        }
+        return map;
     }
 
     static String guessLanguage(String languageName) {
