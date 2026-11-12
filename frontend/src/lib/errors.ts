@@ -113,6 +113,12 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
         title: 'This chapter is published.',
         hint: 'Only its text can be edited. Unpublish it to change pages or translate again.',
       };
+    case 'CHAPTER_TEXT_SOURCE':
+      return { title: 'This chapter comes from Wattpad text, so it has no pages.' };
+    case 'NOVEL_NOT_WATTPAD':
+      return { title: 'This novel does not come from Wattpad.' };
+    case 'NOVEL_WATTPAD_EXISTS':
+      return { title: error.detail || 'This Wattpad story is already translated.', hint: 'Open that novel instead.' };
     case 'CHAPTER_NOT_TRANSLATED':
       return { title: 'Every page needs a translation before publishing.' };
     case 'NOTEBOOK_UPDATE_IN_PROGRESS':

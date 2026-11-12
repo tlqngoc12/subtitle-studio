@@ -7,6 +7,7 @@ import {
   Copy,
   Info,
   Languages,
+  RefreshCw,
   RotateCcw,
   RotateCw,
   Send,
@@ -24,6 +25,7 @@ import {
   deletePage,
   getChapter,
   publishChapter,
+  reloadChapterOriginal,
   reorderPages,
   rotatePage,
   rotatePages,
@@ -36,6 +38,7 @@ import {
   type RotateDirection,
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
+import { formatInstantWithTime } from '../lib/dates';
 import { PageRow } from '../components/novel/PageRow';
 import { PageUploader } from '../components/novel/PageUploader';
 import { StatusBadges } from '../components/novel/StatusBadges';
@@ -184,6 +187,8 @@ export default function ChapterPage() {
   const locked = translating || busy;
   // Published: the notebook was built from this chapter, so only its text and title change (Unpublish to do more).
   const published = chapter.publishStatus === 'PUBLISHED';
+  // A Wattpad chapter: the original is text on the left, there are no page screenshots.
+  const fromText = chapter.sourceText !== null;
   const suspectNumbers = chapter.pages.flatMap((p, i) => (p.suspect ? [i + 1] : []));
 
   async function translate() {
@@ -206,6 +211,21 @@ export default function ChapterPage() {
       if (!ok) return;
     }
     await run(async () => load(await translateChapter(chapterId)));
+  }
+
+  async function reloadOriginal() {
+    const ok = await confirm({
+      title: 'Reload the original text?',
+      description: 'The original is fetched from Wattpad again and replaces the one shown here. Your translation is not changed.',
+      confirmLabel: 'Reload original',
+    });
+    if (!ok) return;
+    await run(async () => {
+      const fresh = await reloadChapterOriginal(chapterId);
+      // Only the original changes: edits in the boxes below stay.
+      setChapter((c) => (c ? { ...c, sourceText: fresh.sourceText, sourceFetchedAt: fresh.sourceFetchedAt } : c));
+      toast.success('Original reloaded');
+    });
   }
 
   async function save(auto = false) {
@@ -304,7 +324,7 @@ export default function ChapterPage() {
         <div className="chapter-head__actions">
           {!published && (
             <button className="button button--primary" type="button" onClick={() => void translate()}
-              disabled={locked || chapter.pages.length === 0}>
+              disabled={locked || (!fromText && chapter.pages.length === 0)}>
               <Languages className="icon" aria-hidden="true" />
               {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
             </button>
@@ -338,7 +358,9 @@ export default function ChapterPage() {
           <p className="muted" aria-live="polite">
             {chapter.translationModel
               ? `Translating with ${chapter.translationModel}…`
-              : 'Gemini is reading and translating the pages…'}
+              : fromText
+                ? 'Gemini is translating the chapter…'
+                : 'Gemini is reading and translating the pages…'}
           </p>
         )}
         {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
@@ -390,7 +412,13 @@ export default function ChapterPage() {
         </div>
       </div>
 
-      {published ? (
+      {fromText ? (
+        published && (
+          <p className="chapter-note">
+            This chapter is published: only the text can be edited. Unpublish to translate again or reload the original.
+          </p>
+        )
+      ) : published ? (
         <p className="chapter-note">
           This chapter is published: only the text can be edited. Unpublish to change pages or translate again.
         </p>
@@ -447,10 +475,34 @@ export default function ChapterPage() {
         </p>
       )}
 
-      <div className="field chapter-text">
-        <label htmlFor={`${ids}-text`}>Chapter text</label>
-        <textarea id={`${ids}-text`} rows={24} value={text} disabled={locked}
-          onChange={(e) => setText(e.target.value)} />
+      <div className={fromText ? 'chapter-columns' : undefined}>
+        {fromText && (
+          <section className="chapter-original" aria-labelledby={`${ids}-original`}>
+            <div className="chapter-original__head">
+              <h2 id={`${ids}-original`} className="history__heading">
+                Original ({chapter.sourceLanguage === 'en' ? 'English' : 'Thai'})
+              </h2>
+              {!published && (
+                <button className="button button--s" type="button" disabled={locked} onClick={() => void reloadOriginal()}>
+                  <RefreshCw className="icon" aria-hidden="true" />
+                  Reload original
+                </button>
+              )}
+            </div>
+            <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0}
+              lang={chapter.sourceLanguage}>
+              {chapter.sourceText}
+            </div>
+            {chapter.sourceFetchedAt && (
+              <p className="muted">Fetched from Wattpad {formatInstantWithTime(chapter.sourceFetchedAt)}</p>
+            )}
+          </section>
+        )}
+        <div className="field chapter-text">
+          <label htmlFor={`${ids}-text`}>Chapter text</label>
+          <textarea id={`${ids}-text`} rows={24} value={text} disabled={locked}
+            onChange={(e) => setText(e.target.value)} />
+        </div>
       </div>
 
       <div className="chapter-save">

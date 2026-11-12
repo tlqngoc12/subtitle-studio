@@ -599,3 +599,138 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     expect(screen.getByRole('button', { name: 'About Chapter label' })).toBeInTheDocument();
   });
 });
+
+describe('ChapterPage from Wattpad (original text, no pages)', () => {
+  beforeEach(() => vi.mocked(toast.success).mockClear());
+
+  const detail = (over: Partial<ChapterDetail> = {}) =>
+    chapterDetail({
+      pages: [],
+      text: '',
+      translationStatus: 'NONE',
+      sourceText: 'First paragraph.\n\nSecond paragraph.',
+      wattpadPartId: '1552',
+      sourceFetchedAt: '2026-11-13T01:00:00Z',
+      sourceLanguage: 'en',
+      ...over,
+    });
+  const wattpad = (over: Partial<ChapterDetail> = {}): FakeRoute => ({
+    method: 'GET',
+    path: '/api/chapters/9',
+    status: 200,
+    body: detail(over),
+  });
+
+  it('shows the original beside the chapter text and no page tools', async () => {
+    renderPage([wattpad()]);
+    await loaded();
+
+    const original = screen.getByRole('region', { name: 'Original text' });
+    expect(original).toHaveTextContent('First paragraph.');
+    expect(original).toHaveTextContent('Second paragraph.');
+    expect(original).toHaveAttribute('lang', 'en');
+    expect(screen.getByRole('heading', { name: 'Original (English)' })).toBeInTheDocument();
+    expect(screen.getByText(/Fetched from Wattpad 13\/11\/2026/)).toBeInTheDocument();
+    expect(textBox()).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Pages' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Rotate all/)).not.toBeInTheDocument();
+  });
+
+  it('labels a Thai original', async () => {
+    renderPage([wattpad({ sourceLanguage: 'th' })]);
+    await loaded();
+
+    expect(screen.getByRole('heading', { name: 'Original (Thai)' })).toBeInTheDocument();
+  });
+
+  it('can translate without pages', async () => {
+    const calls = renderPage([
+      wattpad(),
+      { method: 'POST', path: '/api/chapters/9/translate', status: 202, body: detail({ translationStatus: 'TRANSLATING' }) },
+      { method: 'GET', path: '/api/chapters/9', status: 200, body: detail({ translationStatus: 'TRANSLATING' }) },
+    ]);
+    await loaded();
+
+    const translate = screen.getByRole('button', { name: 'Translate' });
+    expect(translate).toBeEnabled();
+    await userEvent.setup().click(translate);
+
+    expect(await screen.findByText('Gemini is translating the chapter…')).toBeInTheDocument();
+    expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(true);
+  });
+
+  it('asks before Translate again when the text was edited', async () => {
+    renderPage([
+      wattpad({ translationStatus: 'TRANSLATED', text: 'Bản dịch', editedAfterTranslation: true }),
+      { method: 'POST', path: '/api/chapters/9/translate', status: 202, body: detail({ translationStatus: 'TRANSLATING' }) },
+    ]);
+    await loaded();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Translate again' }));
+    await answerConfirm('Translate again', 'Translate this chapter again?');
+
+    expect(await screen.findByText('Gemini is translating the chapter…')).toBeInTheDocument();
+  });
+
+  it('Reload original asks first, replaces only the original and keeps unsaved edits', async () => {
+    const calls = renderPage([
+      wattpad({ text: 'Bản dịch' }),
+      {
+        method: 'POST',
+        path: '/api/chapters/9/reload-original',
+        status: 200,
+        body: detail({ text: 'Bản dịch', sourceText: 'Fresh original.', sourceFetchedAt: '2026-11-14T02:00:00Z' }),
+      },
+    ]);
+    await loaded();
+    const u = userEvent.setup();
+    await u.type(textBox(), ' sửa');
+
+    await u.click(screen.getByRole('button', { name: 'Reload original' }));
+    await answerConfirm('Reload original', 'Reload the original text?');
+
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Original text' })).toHaveTextContent('Fresh original.'));
+    expect(calls.some((c) => c.path === '/api/chapters/9/reload-original')).toBe(true);
+    expect(textBox()).toHaveValue('Bản dịch sửa');
+    expect(screen.getByText(/Fetched from Wattpad 14\/11\/2026/)).toBeInTheDocument();
+  });
+
+  it('does not reload when the confirm is cancelled', async () => {
+    const calls = renderPage([wattpad()]);
+    await loaded();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reload original' }));
+    await answerConfirm('Cancel');
+
+    expect(calls.some((c) => c.path === '/api/chapters/9/reload-original')).toBe(false);
+  });
+
+  it('a published chapter cannot reload the original', async () => {
+    renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'Bản dịch' })]);
+    await loaded();
+
+    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+    expect(screen.getByText(/only the text can be edited/)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Original text' })).toBeInTheDocument();
+  });
+
+  it('shows the reload error', async () => {
+    renderPage([
+      wattpad(),
+      { method: 'POST', path: '/api/chapters/9/reload-original', status: 502, body: problem(502, 'WATTPAD_UNAVAILABLE', 'x') },
+    ]);
+    await loaded();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reload original' }));
+    await answerConfirm('Reload original');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Wattpad did not answer. Try again later.');
+  });
+
+  it('a screenshot chapter shows no Original panel', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+  });
+});

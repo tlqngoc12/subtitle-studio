@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useParams } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import { optionNames, pickOption } from '../test/select';
@@ -10,12 +10,18 @@ import NovelNewPage from './NovelNewPage';
 
 function NovelStub() {
   const { id } = useParams();
-  return <p>novel {id}</p>;
+  const { search } = useLocation();
+  return (
+    <p>
+      novel {id}
+      {search}
+    </p>
+  );
 }
 
-function renderPage() {
+function renderPage(path = '/novels/new') {
   return render(
-    <MemoryRouter initialEntries={['/novels/new']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/novels/new" element={<NovelNewPage />} />
         <Route path="/novels/:id" element={<NovelStub />} />
@@ -168,5 +174,159 @@ describe('NovelNewPage', () => {
     const select = await screen.findByLabelText('Translation profile');
     expect(select).toHaveTextContent('None (Translate is off)');
     expect(await optionNames(userEvent.setup(), select)).toEqual(['None (Translate is off)']);
+  });
+
+  describe('from Wattpad', () => {
+    const STORY = 'https://www.wattpad.com/story/396487502-the-way-she-warmed-me';
+    const preview = {
+      storyId: '396487502',
+      title: 'The Way She Warmed Me',
+      author: 'emibonnie',
+      description: 'Emi never expected the cold winter to end like this.',
+      tags: ['gl', 'fluff'],
+      completed: true,
+      languageName: 'English',
+      sourceLanguage: 'en',
+      partCount: 28,
+      coverUrl: 'https://img.wattpad.com/cover/396487502-256-k1.jpg',
+      storyUrl: 'https://www.wattpad.com/story/396487502',
+      existingNovelId: null,
+    };
+    const previewRoute = { method: 'POST', path: '/api/novels/wattpad/preview', status: 200, body: preview };
+
+    it('keeps the Screenshots form by default and switches to a Fetch field', async () => {
+      fakeFetch([profiles]);
+      renderPage();
+      const user = userEvent.setup();
+
+      expect(screen.getByRole('button', { name: 'Screenshots' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByLabelText('Source language')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+
+      expect(screen.getByLabelText('Wattpad story link')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fetch' })).toBeDisabled();
+      expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
+    });
+
+    it('fetches the story and prefills the novel form', async () => {
+      const calls = fakeFetch([profiles, previewRoute]);
+      renderPage();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), STORY);
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+
+      expect(await screen.findByLabelText('Title')).toHaveValue('The Way She Warmed Me');
+      expect(JSON.parse(calls.find((c) => c.path === '/api/novels/wattpad/preview')!.body as string)).toEqual({ url: STORY });
+      expect(screen.getByLabelText('Slug')).toHaveValue('the-way-she-warmed-me');
+      expect(screen.getByLabelText('Original author (optional)')).toHaveValue('emibonnie');
+      expect(screen.getByLabelText('Description (optional)')).toHaveValue(preview.description);
+      expect(screen.getByLabelText('Tags (optional)')).toHaveValue('gl, fluff');
+      expect(screen.getByLabelText('Status')).toHaveTextContent('Completed');
+      expect(screen.getByLabelText('Original book link (optional)')).toHaveValue('https://www.wattpad.com/story/396487502');
+      expect(screen.getByLabelText('Source language')).toHaveTextContent('English');
+      expect(screen.getByRole('img', { name: 'Cover from Wattpad' })).toHaveAttribute('src', preview.coverUrl);
+    });
+
+    it('creates a WATTPAD novel with the story id, language and cover, then opens its Wattpad tab', async () => {
+      const calls = fakeFetch([
+        profiles,
+        previewRoute,
+        { method: 'POST', path: '/api/novels', status: 201, body: novelDetail({ sourceType: 'WATTPAD' }) },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), STORY);
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      await screen.findByLabelText('Title');
+
+      await pickOption(user, screen.getByLabelText('Source language'), 'Thai');
+      await user.click(screen.getByRole('button', { name: 'Create novel' }));
+
+      expect(await screen.findByText(/novel 3\?tab=wattpad/)).toBeInTheDocument();
+      expect(JSON.parse(calls.find((c) => c.method === 'POST' && c.path === '/api/novels')!.body as string)).toMatchObject({
+        sourceType: 'WATTPAD',
+        sourceLanguage: 'th',
+        wattpadStoryId: '396487502',
+        coverUrl: preview.coverUrl,
+        title: 'The Way She Warmed Me',
+        originalAuthor: 'emibonnie',
+        sourceUrl: 'https://www.wattpad.com/story/396487502',
+        novelStatus: 'COMPLETED',
+        tags: ['gl', 'fluff'],
+      });
+    });
+
+    it('offers Open instead of Save when a novel already uses the story', async () => {
+      fakeFetch([profiles, { ...previewRoute, body: { ...preview, existingNovelId: 41 } }]);
+      renderPage();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), STORY);
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+
+      expect(await screen.findByRole('link', { name: 'Open' })).toHaveAttribute('href', '/novels/41');
+      expect(screen.queryByRole('button', { name: 'Create novel' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
+    });
+
+    it('shows the Wattpad error under the field and keeps the link', async () => {
+      fakeFetch([
+        profiles,
+        { ...previewRoute, status: 400, body: problem(400, 'INVALID_FANFIC_LINK', 'Use the story link (wattpad.com/story/…), not a chapter link.') },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), 'https://www.wattpad.com/123-chapter');
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('not a chapter link');
+      expect(screen.getByLabelText('Wattpad story link')).toHaveValue('https://www.wattpad.com/123-chapter');
+      expect(screen.getByRole('button', { name: 'Fetch' })).toBeEnabled();
+    });
+
+    it('?wattpad=<link> opens on From Wattpad and fetches at once', async () => {
+      const calls = fakeFetch([profiles, previewRoute]);
+      renderPage(`/novels/new?wattpad=${encodeURIComponent(STORY)}`);
+
+      expect(await screen.findByLabelText('Title')).toHaveValue('The Way She Warmed Me');
+      expect(screen.getByRole('button', { name: 'From Wattpad' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByLabelText('Wattpad story link')).toHaveValue(STORY);
+      expect(calls.filter((c) => c.path === '/api/novels/wattpad/preview')).toHaveLength(1);
+    });
+
+    it('a duplicate on Create shows the server message', async () => {
+      fakeFetch([
+        profiles,
+        previewRoute,
+        { method: 'POST', path: '/api/novels', status: 409, body: { ...problem(409, 'NOVEL_WATTPAD_EXISTS', 'This Wattpad story is already translated as “X”.'), novelId: 5 } },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), STORY);
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      await screen.findByLabelText('Title');
+      await user.click(screen.getByRole('button', { name: 'Create novel' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('already translated');
+    });
+
+    it('does not send Wattpad fields from the Screenshots form', async () => {
+      const calls = fakeFetch([profiles, { method: 'POST', path: '/api/novels', status: 201, body: novelDetail() }]);
+      renderPage();
+      const user = userEvent.setup();
+      await user.type(screen.getByLabelText('Title'), 'X');
+      await user.click(screen.getByRole('button', { name: 'Create novel' }));
+
+      await screen.findByText(/novel 3/);
+      const sent = JSON.parse(calls.find((c) => c.method === 'POST')!.body as string);
+      expect(sent).not.toHaveProperty('sourceType');
+      expect(sent).not.toHaveProperty('wattpadStoryId');
+      expect(sent).not.toHaveProperty('sourceLanguage');
+    });
   });
 });

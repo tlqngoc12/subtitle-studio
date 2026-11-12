@@ -51,6 +51,9 @@ export function novelDetail(over: Partial<NovelDetail> = {}): NovelDetail {
     sourceUrl: 'https://example.com/book',
     promptProfile: 'SummerLove',
     trailerVideoId: null,
+    sourceType: 'SCREENSHOTS',
+    sourceLanguage: 'th',
+    wattpadStoryId: null,
     notebookStatus: 'IDLE',
     notebookError: null,
     chapters: [
@@ -82,6 +85,10 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     text: 'Trang một\n\nTrang hai',
     prevChapterId: null,
     nextChapterId: 10,
+    sourceText: null,
+    wattpadPartId: null,
+    sourceFetchedAt: null,
+    sourceLanguage: 'th',
     ...over,
   };
 }

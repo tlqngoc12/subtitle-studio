@@ -3,3 +3,15 @@
   gap: var(--space-4);
   max-width: 640px;
 }
+
+.novel-form__wattpad-cover {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.novel-form__wattpad-cover img {
+  height: auto;
+  border-radius: var(--radius-s, 8px);
+  border: 1px solid var(--rule);
+}

@@ -267,6 +267,30 @@ describe('PublicNovelPage', () => {
   });
 });
 
+describe('PublicNovelPage from Wattpad', () => {
+  it('shows the author and the original link like any other novel', async () => {
+    const s = source({
+      getNovel: async () => ({
+        ...DETAIL,
+        originalAuthor: 'emibonnie',
+        sourceUrl: 'https://www.wattpad.com/story/396487502',
+      }),
+    });
+    render(
+      <MemoryRouter initialEntries={['/novels/summer']}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={s} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('emibonnie')).toBeInTheDocument();
+    const original = screen.getByRole('link', { name: 'Truyện gốc' });
+    expect(original).toHaveAttribute('href', 'https://www.wattpad.com/story/396487502');
+    expect(original).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+});
+
 describe('PublicNovelPage reading progress', () => {
   beforeEach(() => {
     localStorage.clear();

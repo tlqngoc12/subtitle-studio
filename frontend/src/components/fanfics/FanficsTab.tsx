@@ -1,6 +1,7 @@
 import { BookHeart, Plus, RefreshCw, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { listNovels } from '../../api/novels';
 import {
   deleteFanfic,
   refreshAllFanfics,
@@ -58,6 +59,11 @@ function matches(f: Fanfic, query: string): boolean {
   return [f.title, f.author ?? '', f.tags.join(' ')].some((text) => normalizeForSearch(text).includes(q));
 }
 
+/** The Wattpad story id in a saved story link (https://www.wattpad.com/story/123). */
+function storyIdOf(url: string): string | null {
+  return /\/story\/(\d+)/.exec(url)?.[1] ?? null;
+}
+
 function FanficSkeletons() {
   const t = useT();
   const show = useDelayedFlag(true);
@@ -89,6 +95,26 @@ export function FanficsTab() {
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  // Wattpad story id -> id of the novel translated from it (admin only; a failure just hides "Open translation").
+  const [translations, setTranslations] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (readOnly) return;
+    let current = true;
+    listNovels()
+      .then((novels) => {
+        if (!current) return;
+        const map: Record<string, number> = {};
+        novels.forEach((n) => {
+          if (n.wattpadStoryId) map[n.wattpadStoryId] = n.id;
+        });
+        setTranslations(map);
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [readOnly]);
 
   useEffect(() => {
     let current = true;
@@ -229,6 +255,8 @@ export function FanficsTab() {
                   readOnly ? undefined : (
                     <FanficMenu
                       title={f.title}
+                      storyUrl={f.url}
+                      translationNovelId={translations[storyIdOf(f.url) ?? ''] ?? null}
                       busy={busyId === f.id}
                       onRefresh={() => void refreshOne(f)}
                       onDelete={() => void remove(f)}

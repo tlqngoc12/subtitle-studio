@@ -55,7 +55,7 @@ public class NovelService {
             int published = (int) cs.stream()
                     .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).count();
             return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(), cs.size(),
-                    published, n.getUpdatedAt());
+                    published, n.getUpdatedAt(), n.getWattpadStoryId());
         }).toList();
     }
 
