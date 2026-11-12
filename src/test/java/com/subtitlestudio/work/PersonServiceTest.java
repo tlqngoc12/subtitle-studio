@@ -124,8 +124,8 @@ class PersonServiceTest {
     @Test
     void deleteUnusedRemovesAvatarIfUnreferenced() {
         Media image = avatar();
-        Path file = DATA_DIR.resolve("media").resolve(image.getStorageKey() + ".webp");
         PersonDto p = service.create(new PersonRequest("Emi", image.getId()));
+        Path file = com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, image.getStorageKey());
         assertThat(file).exists();
         assertThat(p.avatarUrl()).isEqualTo("/api/media/" + image.getId());
 
@@ -143,7 +143,7 @@ class PersonServiceTest {
 
         service.update(p.id(), new PersonRequest("Emi", second.getId()));
 
-        assertThat(DATA_DIR.resolve("media").resolve(first.getStorageKey() + ".webp")).doesNotExist();
-        assertThat(DATA_DIR.resolve("media").resolve(second.getStorageKey() + ".webp")).exists();
+        assertThat(com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, first.getStorageKey())).doesNotExist();
+        assertThat(com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, second.getStorageKey())).exists();
     }
 }

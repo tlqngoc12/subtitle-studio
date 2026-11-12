@@ -406,7 +406,7 @@ class SiteExporterTest {
         bannerService.add("emi", new com.subtitlestudio.profile.BannerImageRequest(first.getId(), "Fan meeting"));
         bannerService.add("emi", new com.subtitlestudio.profile.BannerImageRequest(second.getId(), null));
         bannerService.add("emi", new com.subtitlestudio.profile.BannerImageRequest(gone.getId(), "Lost"));
-        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".png"));
+        Files.delete(com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, gone.getStorageKey()));
 
         exporter.export(out, NOW);
 
@@ -459,7 +459,7 @@ class SiteExporterTest {
         photoService.create(new com.subtitlestudio.photo.PhotoPostRequest("https://www.instagram.com/p/BBB/",
                 gone.getId(), "Gone", java.time.LocalDate.parse("2026-11-08"),
                 com.subtitlestudio.photo.PhotoSource.FAN, null, List.of()));
-        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".webp"));
+        Files.delete(com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, gone.getStorageKey()));
 
         exporter.export(out, NOW);
 
@@ -491,7 +491,7 @@ class SiteExporterTest {
         fanfic("1", "Kept", cover);
         fanfic("2", "No cover", null);
         fanfic("3", "Cover file gone", gone);
-        Files.delete(DATA_DIR.resolve("media").resolve(gone.getStorageKey() + ".webp"));
+        Files.delete(com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, gone.getStorageKey()));
 
         exporter.export(out, NOW);
 
@@ -555,7 +555,7 @@ class SiteExporterTest {
     void skipsMissingImageFileWithWarning(CapturedOutput output) throws IOException {
         Media used = mediaService.store("a.png", PNG);
         profiles.addBlock("emi", new BlockRequest(BlockType.IMAGE, null, null, used.getId(), null, null, null));
-        Files.delete(DATA_DIR.resolve("media").resolve(used.getStorageKey() + ".png"));
+        Files.delete(com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, used.getStorageKey()));
 
         exporter.export(out, NOW);
 
@@ -779,12 +779,15 @@ class SiteExporterTest {
     void warnsAboveFileLimit(CapturedOutput output) {
         novel("summer", null, 1, 1);
         SiteExporter small = new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository,
-                properties, appMapper, novelExporter, photoService, workService, fanficService, 3);
+                mediaStorage, appMapper, novelExporter, photoService, workService, fanficService, 3);
 
         small.export(out, NOW);
 
         assertThat(output).contains("WARN").contains("Cloudflare Pages Free allows 20,000");
     }
+
+    @Autowired
+    private com.subtitlestudio.profile.MediaStorage mediaStorage;
 
     @Autowired
     private com.subtitlestudio.video.SubtitleService subtitlesService;
