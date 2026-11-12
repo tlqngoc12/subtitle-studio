@@ -31,8 +31,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class GeminiCaller {
 
-    /** The answer text and the model that gave it. */
-    public record Answer(String text, String model) {}
+    /**
+     * The answer text and the model that gave it. {@code truncated} is true only when the caller allowed it and Gemini
+     * stopped at its output limit; {@code text} is then what came back so far (possibly empty).
+     */
+    public record Answer(String text, String model, boolean truncated) {
+
+        public Answer(String text, String model) {
+            this(text, model, false);
+        }
+    }
 
     private static final Logger log = LoggerFactory.getLogger(GeminiCaller.class);
     private static final Pattern QUOTA_METRIC = Pattern.compile("Quota exceeded for metric: ([^\\n]+)");
@@ -58,6 +66,15 @@ public class GeminiCaller {
 
     /** {@code onTrying} gets each model's name right before that model is asked (main model, then fallbacks). */
     public Answer generate(List<Part> parts, GenerateContentConfig config, Consumer<String> onTrying) {
+        return generate(parts, config, onTrying, false);
+    }
+
+    /**
+     * Same; with {@code allowTruncated} an answer cut off at the output limit (MAX_TOKENS) is returned with
+     * {@link Answer#truncated()} set instead of being treated as a refusal.
+     */
+    public Answer generate(List<Part> parts, GenerateContentConfig config, Consumer<String> onTrying,
+                           boolean allowTruncated) {
         GenerateContentResponse response = null;
         String answeredBy = null;
         Content content = Content.fromParts(parts.toArray(Part[]::new));
@@ -98,7 +115,11 @@ public class GeminiCaller {
                     ? "Gemini's per-minute limit was reached, try again in a minute."
                     : "Gemini free quota is used up, try again later.");
         }
-        String text = textOrNull(response);
+        if (allowTruncated && isMaxTokens(response)) {
+            String partial = textOrNull(response, true);
+            return new Answer(partial == null ? "" : partial, answeredBy, true);
+        }
+        String text = textOrNull(response, false);
         if (text == null || text.isBlank()) {
             throw new TranslationFailedException("Gemini refused to translate this content.");
         }
@@ -142,9 +163,14 @@ public class GeminiCaller {
     }
 
     /** The answer text, or null when Gemini stopped for another reason than STOP (blocked, truncated...). */
-    private static String textOrNull(GenerateContentResponse response) {
+    private static boolean isMaxTokens(GenerateContentResponse response) {
         FinishReason reason = response.finishReason();
-        if (reason != null && reason.knownEnum() != FinishReason.Known.STOP) {
+        return reason != null && reason.knownEnum() == FinishReason.Known.MAX_TOKENS;
+    }
+
+    private static String textOrNull(GenerateContentResponse response, boolean ignoreFinishReason) {
+        FinishReason reason = response.finishReason();
+        if (!ignoreFinishReason && reason != null && reason.knownEnum() != FinishReason.Known.STOP) {
             return null;
         }
         try {

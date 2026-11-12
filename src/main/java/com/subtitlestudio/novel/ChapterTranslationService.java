@@ -45,6 +45,7 @@ public class ChapterTranslationService {
     private final int pagesPerRequest;
     private final NovelProfileStore profiles;
     private final ChapterTranslator translator;
+    private final TextChapterTranslation textTranslation;
     private final PageImagePreparer preparer;
     private final MediaService media;
     private final ChapterRepository chapters;
@@ -57,7 +58,8 @@ public class ChapterTranslationService {
     private final Clock clock;
 
     public ChapterTranslationService(SubtitleStudioProperties properties, NovelProfileStore profiles,
-                                     ChapterTranslator translator, PageImagePreparer preparer, MediaService media,
+                                     ChapterTranslator translator, TextChapterTranslation textTranslation,
+                                     PageImagePreparer preparer, MediaService media,
                                      ChapterRepository chapters, ChapterPageRepository pages,
                                      NotebookPromptSource notebook, NotebookScheduler scheduler,
                                      ChapterService chapterService, TransactionTemplate tx,
@@ -66,6 +68,7 @@ public class ChapterTranslationService {
         this.pagesPerRequest = properties.novel().pagesPerRequest();
         this.profiles = profiles;
         this.translator = translator;
+        this.textTranslation = textTranslation;
         this.preparer = preparer;
         this.media = media;
         this.chapters = chapters;
@@ -94,7 +97,9 @@ public class ChapterTranslationService {
                 throw new UnknownProfileException("(none)");
             }
             profiles.read(profile);
-            if (pages.countByChapterId(chapterId) == 0) {
+            if (c.hasSourceText()) {
+                // translated from its original text; there are no pages
+            } else if (pages.countByChapterId(chapterId) == 0) {
                 throw new ChapterHasNoPagesException(chapterId);
             }
             if (c.getTranslationStatus() == ChapterTranslationStatus.TRANSLATING) {
@@ -162,6 +167,14 @@ public class ChapterTranslationService {
     }
 
     private void runTranslation(long chapterId, boolean resume) {
+        Boolean fromText = tx.execute(status -> chapters.findById(chapterId).map(Chapter::hasSourceText).orElse(null));
+        if (fromText == null) {
+            return;
+        }
+        if (fromText) {
+            runTextTranslation(chapterId);
+            return;
+        }
         Job job;
         try {
             job = tx.execute(status -> load(chapterId, resume));
@@ -221,6 +234,75 @@ public class ChapterTranslationService {
             log.warn("Translation of chapter {} failed: {}", chapterId, e.getClass().getName());
             saveFailed(chapterId, job, texts, sources, "Could not translate: " + e.getClass().getSimpleName() + ".");
         }
+    }
+
+    /** What a text chapter's run needs, read in one transaction. */
+    private record TextJob(TextChapterPrompt prompt) {}
+
+    /** Translates a Wattpad chapter's original text as a whole; nothing partial is ever saved. */
+    private void runTextTranslation(long chapterId) {
+        TextJob job;
+        try {
+            job = tx.execute(status -> loadText(chapterId));
+        } catch (UnknownProfileException e) {
+            fail(chapterId, "Could not translate: the novel's translation profile can no longer be used.");
+            return;
+        } catch (RuntimeException e) {
+            log.warn("Translation of chapter {} failed: {}", chapterId, e.getClass().getName());
+            fail(chapterId, "Could not translate: " + e.getClass().getSimpleName() + ".");
+            return;
+        }
+        if (job == null) {
+            return;
+        }
+        try {
+            TextChapterTranslation.Result result = textTranslation.translate(job.prompt(),
+                    model -> chapterService.models().set(chapterId, model));
+            saveText(chapterId, job.prompt().sourceText(), result);
+        } catch (TranslationFailedException e) {
+            log.warn("Translation of chapter {} failed: {}", chapterId, e.userMessage());
+            fail(chapterId, e.userMessage());
+        } catch (RuntimeException e) {
+            log.warn("Translation of chapter {} failed: {}", chapterId, e.getClass().getName());
+            fail(chapterId, "Could not translate: " + e.getClass().getSimpleName() + ".");
+        }
+    }
+
+    private TextJob loadText(long chapterId) {
+        Chapter c = chapters.findById(chapterId).orElse(null);
+        if (c == null) {
+            return null;
+        }
+        Novel n = c.getNovel();
+        String profile = profiles.read(n.getPromptProfile() == null ? "" : n.getPromptProfile());
+        return new TextJob(new TextChapterPrompt(n.getTitle(), c.getChapterNo(), c.getLabel(), profile,
+                notebook.textBefore(n.getId(), c.getChapterNo()), previousText(n.getId(), c.getChapterNo()),
+                n.getSourceLanguage(), null, null, c.getSourceText()));
+    }
+
+    private void saveText(long chapterId, String sourceText, TextChapterTranslation.Result result) {
+        tx.executeWithoutResult(status -> {
+            Chapter c = chapters.findById(chapterId).orElse(null);
+            if (c == null) {
+                log.info("Chapter {} was deleted while it was being translated", chapterId);
+                return;
+            }
+            if (!sourceText.equals(c.getSourceText())) {
+                failInTx(c, "The original text changed during translation, translate again.");
+                return;
+            }
+            c.setTextVi(result.text()); // replaces any edited text: Translate again starts over
+            c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
+            c.setTranslationError(null);
+            c.setTranslatedAt(clock.instant());
+            if (!result.model().isEmpty()) {
+                c.setTranslationModel(result.model());
+            }
+            c.setEditedAfterTranslation(false);
+            c.touch(clock.instant());
+            c.getNovel().touch(clock.instant());
+            chapters.flush();
+        });
     }
 
     /** The end of what comes right before {@code firstPage} in this chapter, so the next request reads on. */

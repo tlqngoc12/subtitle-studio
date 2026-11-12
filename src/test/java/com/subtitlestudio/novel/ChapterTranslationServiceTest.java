@@ -37,7 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterTranslationService.class, ChapterService.class, TranslatingModels.class, PageRotator.class, MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class,
+@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, ChapterTranslationService.class, TextChapterTranslation.class, ChapterService.class, TranslatingModels.class, PageRotator.class, MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class,
     PromptProfileStore.class, NovelProfileStore.class, PageImagePreparer.class, ChapterTranslationServiceTest.Config.class})
 class ChapterTranslationServiceTest {
 
@@ -91,6 +91,23 @@ class ChapterTranslationServiceTest {
         }
     }
 
+    /** Replies "VI: <source>" for each text request; can fail, or be cut off, on a given call. */
+    static class FakeTextTranslator implements TextChapterTranslator {
+        final List<TextChapterPrompt> prompts = new ArrayList<>();
+        int failOnCall = -1;
+        String model = "text-model";
+
+        @Override
+        public TextAnswer translate(TextChapterPrompt prompt, java.util.function.Consumer<String> onTrying) {
+            prompts.add(prompt);
+            onTrying.accept(model);
+            if (prompts.size() == failOnCall) {
+                throw new TranslationFailedException("Gemini free quota is used up, try again later.");
+            }
+            return new TextAnswer("VI: " + prompt.sourceText(), model);
+        }
+    }
+
     static class RecordingScheduler implements NotebookScheduler {
         final List<String> calls = new ArrayList<>();
 
@@ -120,6 +137,11 @@ class ChapterTranslationServiceTest {
         @Bean
         FakeTranslator translator() {
             return new FakeTranslator();
+        }
+
+        @Bean
+        FakeTextTranslator textTranslator() {
+            return new FakeTextTranslator();
         }
 
         @Bean
@@ -181,6 +203,12 @@ class ChapterTranslationServiceTest {
     private FakeTranslator translator;
 
     @Autowired
+    private FakeTextTranslator textTranslator;
+
+    @Autowired
+    private TextChapterTranslation textTranslation;
+
+    @Autowired
     private RecordingScheduler scheduler;
 
     @Autowired
@@ -206,6 +234,8 @@ class ChapterTranslationServiceTest {
     @BeforeEach
     void setUp() {
         translator.prompts.clear();
+        textTranslator.prompts.clear();
+        textTranslator.failOnCall = -1;
         translator.length = 3_000;
         translator.failOnCall = -1;
         translator.partlyDone = -1;
@@ -239,7 +269,7 @@ class ChapterTranslationServiceTest {
 
     @Test
     void geminiNotConfiguredComesFirst() {
-        ChapterTranslationService off = new ChapterTranslationService(propertiesWithKey(""), profiles, translator, preparer,
+        ChapterTranslationService off = new ChapterTranslationService(propertiesWithKey(""), profiles, translator, textTranslation, preparer,
                 mediaService, chapters, pages, notebookSource, scheduler, chapterService, tx, Runnable::run,
                 clock);
 
@@ -603,5 +633,104 @@ class ChapterTranslationServiceTest {
         service.start(c.id());
 
         assertThat(pages.findByChapterIdOrderByPosition(c.id()).getFirst().getSourceTh()).isNull();
+    }
+
+    // ---- Wattpad (text) chapters ----
+
+    private long textChapter(int no, String source) {
+        return chapterService.addFromSource(novel.getId(), "Part " + no, source, "part-" + no, NOW);
+    }
+
+    @Test
+    void aTextChapterIsTranslatedWholeInOneRequest() {
+        novel.setSourceLanguage("en");
+        long id = textChapter(1, "First.\n\nSecond.");
+
+        ChapterDetail started = service.start(id);
+
+        assertThat(started.translationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATING);
+        Chapter c = reload(id);
+        assertThat(c.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(c.getTextVi()).isEqualTo("VI: First.\n\nSecond.");
+        assertThat(c.getTranslationModel()).isEqualTo("text-model");
+        assertThat(c.isEditedAfterTranslation()).isFalse();
+        assertThat(c.getTranslationError()).isNull();
+        assertThat(c.getSourceText()).isEqualTo("First.\n\nSecond.");
+        assertThat(textTranslator.prompts).hasSize(1);
+        TextChapterPrompt prompt = textTranslator.prompts.getFirst();
+        assertThat(prompt.sourceLanguage()).isEqualTo("en");
+        assertThat(prompt.novelTitle()).isEqualTo("Tình Yêu");
+        assertThat(prompt.profile()).contains("Ngôn ngữ gốc");
+        assertThat(prompt.notebookText()).contains("Nhân vật");
+        assertThat(translator.prompts).isEmpty();
+    }
+
+    @Test
+    void aTextChapterNeedsNoPages() {
+        long id = textChapter(1, "Text");
+
+        service.start(id);
+
+        assertThat(reload(id).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+    }
+
+    @Test
+    void theNextTextChapterGetsThePreviousTranslationAsContext() {
+        long first = textChapter(1, "One");
+        service.start(first);
+        long second = textChapter(2, "Two");
+
+        service.start(second);
+
+        assertThat(textTranslator.prompts.get(1).previousText()).isEqualTo("VI: One");
+    }
+
+    @Test
+    void aFailedTextTranslationSavesNothingAndKeepsTheMessage() {
+        long id = textChapter(1, "Text");
+        textTranslator.failOnCall = 1;
+
+        service.start(id);
+
+        Chapter c = reload(id);
+        assertThat(c.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(c.getTranslationError()).isEqualTo("Gemini free quota is used up, try again later.");
+        assertThat(c.getTextVi()).isNull();
+    }
+
+    @Test
+    void translateAgainOverwritesAnEditedTextAndStartsOver() {
+        long id = textChapter(1, "Text");
+        service.start(id);
+        chapterService.update(id, new ChapterUpdateRequest(null, null, null, "My own edit"));
+        assertThat(reload(id).isEditedAfterTranslation()).isTrue();
+
+        service.start(id);
+
+        Chapter c = reload(id);
+        assertThat(c.getTextVi()).isEqualTo("VI: Text");
+        assertThat(c.isEditedAfterTranslation()).isFalse();
+        assertThat(textTranslator.prompts).hasSize(2);
+    }
+
+    @Test
+    void aTextChapterCanBePublishedOnceTranslated() {
+        long id = textChapter(1, "Text");
+        service.start(id);
+
+        ChapterDetail published = service.publish(id);
+
+        assertThat(published.publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
+        assertThat(published.text()).isEqualTo("VI: Text");
+        assertThat(scheduler.calls).hasSize(1);
+    }
+
+    @Test
+    void aPublishedTextChapterCannotBeTranslatedAgain() {
+        long id = textChapter(1, "Text");
+        service.start(id);
+        service.publish(id);
+
+        assertThatThrownBy(() -> service.start(id)).isInstanceOf(ChapterPublishedException.class);
     }
 }

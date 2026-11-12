@@ -68,7 +68,7 @@ class ChapterServiceTest {
                     new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3,
                             List.of()),
                     new SubtitleStudioProperties.Publish("", "", "", false, "wrangler", Duration.ofMinutes(5)),
-                    new SubtitleStudioProperties.Novel(20, DataSize.ofKilobytes(200), null, ""));
+                    new SubtitleStudioProperties.Novel(20, DataSize.ofKilobytes(200), null, "", 0));
         }
     }
 

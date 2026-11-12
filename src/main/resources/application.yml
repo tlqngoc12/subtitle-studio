@@ -77,6 +77,9 @@ subtitle-studio:
       font-size: 44
     # Watermark on public chapter images; empty = the public site's host (<project>.pages.dev).
     watermark-text: ${SUBTITLESTUDIO_NOVEL_WATERMARK:}
+    # Wattpad chapters: an original text longer than this (characters) is split at a scene break or paragraph before
+    # it goes to Gemini; a shorter one is translated in a single request.
+    max-source-chars: 60000
 
 # Log to the console (docker compose logs) and to a file that survives container rebuilds:
 # {data-dir}/logs/app.log, i.e. ./data/logs on the host. Rolled daily and at 10 MB (app.log.YYYY-MM-DD.N.gz),
