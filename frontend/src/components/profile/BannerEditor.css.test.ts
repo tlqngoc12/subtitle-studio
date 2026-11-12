@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { css } from '../../test/css';
 
+/** Declarations of the first rule whose selector is exactly `selector`. */
 function rule(selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\]/g, '\$&');
-  return new RegExp(`(?:^|\n|\})\s*${escaped}\s*\{([^}]*)\}`).exec(css)?.[1] ?? '';
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|\\n|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 }
 
 describe('banner editor CSS', () => {
