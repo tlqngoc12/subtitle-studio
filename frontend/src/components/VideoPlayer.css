@@ -5,7 +5,7 @@
   aspect-ratio: 16 / 9;
   container-type: inline-size;
   overflow: hidden;
-  background: #000;
+  background: var(--video-bg);
   border-radius: var(--radius-frame);
 }
 
@@ -31,7 +31,7 @@
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   aspect-ratio: auto;
   border-radius: 0;
-  background: #000;
+  background: var(--video-bg);
 }
 
 /* Absolute children ignore the padding, so they take the safe-area insets themselves. */
@@ -91,8 +91,8 @@ html.player-filled-open body {
   padding: 0;
   border: 0;
   border-radius: 6px;
-  background: rgb(0 0 0 / 0.45);
-  color: #fff;
+  background: var(--scrim);
+  color: var(--on-scrim);
   cursor: pointer;
   opacity: 0.6;
   transition: opacity var(--dur-base);

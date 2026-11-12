@@ -39,6 +39,18 @@
   --frame: #221c26;
   --on-frame: #eee8f3;
   --hover: color-mix(in srgb, var(--brand-2) 14%, transparent);
+  /* Over images and video the colours are the same in both themes: dark scrims with white text. --scrim dims the
+     page behind a dialog and sits under controls on video; --scrim-strong backs chips and bars on images;
+     --scrim-heavy is the foot of a caption gradient. */
+  --scrim: rgb(0 0 0 / 0.45);
+  --scrim-strong: rgb(0 0 0 / 0.65);
+  --scrim-heavy: rgb(0 0 0 / 0.75);
+  --on-scrim: #ffffff;
+  --on-scrim-muted: rgb(255 255 255 / 0.55);
+  --on-scrim-faint: rgb(255 255 255 / 0.15);
+  --video-bg: #000000;
+  --caption-bg: rgb(8 8 8 / 0.75);
+  --text-shadow-on-video: 0 0 2px #000, 0 1px 2px #000;
   /* Only floating layers (tooltip, dialog, menus, popovers) cast a shadow; a dragged item gets the lighter one. */
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.12);
   --shadow-drag: 0 2px 8px rgb(0 0 0 / 0.16);

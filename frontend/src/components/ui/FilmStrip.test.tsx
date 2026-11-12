@@ -95,7 +95,7 @@ describe('FilmStrip', () => {
 
     it('is solid semi-opaque black with --on-frame text, padded by tokens and clamped to 2 lines', () => {
       const bar = rule('.filmstrip__bar');
-      expect(bar).toMatch(/background:\s*rgb\(0 0 0 \/ 0\.65\)/);
+      expect(bar).toMatch(/background:\s*var\(--scrim-strong\)/);
       expect(bar).toMatch(/color:\s*var\(--on-frame\)/);
       expect(bar).toMatch(/padding:\s*var\(--space-\d+\)/);
       expect(bar).toMatch(/-webkit-line-clamp:\s*2/);

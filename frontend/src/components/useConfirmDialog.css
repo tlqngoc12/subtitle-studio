@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
-  background: rgb(0 0 0 / 0.45);
+  background: var(--scrim);
   animation: overlay-fade-in var(--dur-base) var(--ease-out);
 }
 

@@ -58,6 +58,10 @@ describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens)
     // The search box and URL field sit on the always-dark video frame, whose focus ring is --brand-2.
     ['--brand-2', '--frame', 3],
     ['--on-frame', '--frame', 7],
+    // Text on the dark scrims over images and video (the scrims are semi-transparent black, so the worst case is the
+    // frame colour).
+    ['--on-scrim', '--video-bg', 7],
+    ['--on-scrim', '--frame', 7],
   ])('%s on %s is at least %s:1', (fg, bg, min) => {
     expect(ratio(tokens, fg, bg)).toBeGreaterThanOrEqual(min);
   });
@@ -68,7 +72,8 @@ it('no stylesheet hard-codes a focus outline colour', () => {
 });
 
 it('the film strip description bar keeps --on-frame text at 4.5:1 over even a white image', () => {
-  const bar = /\.filmstrip__bar\s*\{[^}]*background:\s*rgb\(0 0 0 \/ ([\d.]+)\)/.exec(css);
+  expect(/\.filmstrip__bar\s*\{[^}]*background:\s*var\(--scrim-strong\)/.test(css)).toBe(true);
+  const bar = /--scrim-strong:\s*rgb\(0 0 0 \/ ([\d.]+)\)/.exec(css);
   expect(bar).not.toBeNull();
   // Worst case: pure white under the bar, so the bar colour is white * (1 - alpha).
   const channel = Math.round(255 * (1 - Number(bar![1])))

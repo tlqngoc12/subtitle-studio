@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-dialog-overlay);
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   animation: overlay-fade-in var(--dur-base) var(--ease-out);
 }
 

@@ -24,20 +24,18 @@
   padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-control);
-  background: rgb(0 0 0 / 0.45);
+  background: var(--scrim);
   color: var(--caption);
   font: inherit;
   font-size: var(--fs-control-l);
   font-weight: 700;
   text-align: left;
   /* Classic subtitle legibility: thin dark outline around the glyphs. */
-  text-shadow:
-    0 0 2px #000,
-    0 1px 2px #000;
+  text-shadow: var(--text-shadow-on-video);
 }
 
 .frame__input::placeholder {
-  color: rgb(255 255 255 / 0.55);
+  color: var(--on-scrim-muted);
   font-weight: 400;
   text-shadow: none;
 }
@@ -54,7 +52,7 @@
   right: 0;
   bottom: 0;
   height: 4px;
-  background: rgb(255 255 255 / 0.15);
+  background: var(--on-scrim-faint);
 }
 
 .frame__scrubber--busy::after {
