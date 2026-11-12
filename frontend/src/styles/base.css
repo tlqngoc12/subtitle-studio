@@ -581,15 +581,15 @@ label.button:has(input:focus-visible) {
   }
 }
 
-/* Cards lift 2 px on hover (mouse only). */
+/* Cards lift 2 px on hover (mouse only). Work cards lift only the rounded cover, so the shadow follows the frame and the text stays put. */
 @media (hover: hover) and (pointer: fine) {
-  :is(.work-card, .photo-tile, .plcard, .novel-card) {
+  :is(.work-card__cover, .photo-tile, .plcard, .novel-card) {
     transition:
       transform var(--dur-base) var(--ease-out),
       box-shadow var(--dur-base) var(--ease-out);
   }
 
-  :is(.work-card, .photo-tile, .plcard, .novel-card):hover {
+  :is(.work-card:hover .work-card__cover, .photo-tile:hover, .plcard:hover, .novel-card:hover) {
     transform: translateY(-2px);
     box-shadow: var(--shadow-drag);
   }
