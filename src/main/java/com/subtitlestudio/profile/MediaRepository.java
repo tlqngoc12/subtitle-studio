@@ -3,6 +3,7 @@ package com.subtitlestudio.profile;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -46,6 +47,13 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     /** True when a fanfic uses this image as its cover. */
     @Query("select (count(f) > 0) from Fanfic f where f.cover.id = :id")
     boolean isUsedByFanficCover(@Param("id") Long mediaId);
+
+    @Query("select m.id from Media m order by m.id")
+    List<Long> findAllIds();
+
+    @Modifying
+    @Query("update Media m set m.storagePath = :path where m.id = :id")
+    int updateStoragePath(@Param("id") Long id, @Param("path") String path);
 
     default boolean isReferenced(Long mediaId) {
         return isUsedByBlock(mediaId) || isUsedByItem(mediaId) || isUsedByNovelCover(mediaId)

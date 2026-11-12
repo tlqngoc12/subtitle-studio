@@ -3,6 +3,7 @@ package com.subtitlestudio.novel;
 import com.subtitlestudio.profile.Media;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -17,6 +18,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** A translated novel: the eight fields guests see, its translation profile and its notebook update state. */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_novel")
 public class Novel {

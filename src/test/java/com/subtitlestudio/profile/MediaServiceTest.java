@@ -38,7 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({MediaService.class, ImageSniffer.class, ImageResizer.class, MediaServiceTest.Config.class})
+@Import({MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, ImageResizer.class, MediaServiceTest.Config.class})
 // Real commits: file deletion waits for the transaction to commit.
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class MediaServiceTest {
@@ -106,16 +106,17 @@ class MediaServiceTest {
         media.deleteAll();
         Path dir = dataDir.resolve("media");
         if (Files.isDirectory(dir)) {
-            try (Stream<Path> files = Files.list(dir)) {
-                for (Path f : files.toList()) {
+            try (Stream<Path> files = Files.walk(dir)) {
+                for (Path f : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
                     Files.delete(f);
                 }
             }
         }
     }
 
+    /** Where the image is now (MediaFiler may have moved it), whatever extension it has. */
     private Path fileOf(Media m, String ext) {
-        return dataDir.resolve("media").resolve(m.getStorageKey() + "." + ext);
+        return com.subtitlestudio.test.MediaTestFiles.fileOf(dataDir, m.getStorageKey());
     }
 
     private Media storeAt(Instant at) {
@@ -138,6 +139,7 @@ class MediaServiceTest {
         Media m = service.store("a b.png", ImageSnifferTest.PNG);
 
         assertThat(Files.readAllBytes(fileOf(m, "png"))).isEqualTo(ImageSnifferTest.PNG);
+        assertThat(fileOf(m, "png")).isEqualTo(dataDir.resolve("media/_inbox/2026-11-03_a-b_" + m.getStorageKey().substring(0, 8) + ".png"));
         Media saved = media.findById(m.getId()).orElseThrow();
         assertThat(saved.getContentType()).isEqualTo("image/png");
         assertThat(saved.getSizeBytes()).isEqualTo(ImageSnifferTest.PNG.length);

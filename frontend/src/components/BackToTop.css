@@ -1,0 +1,34 @@
+/* Floating round button, bottom right. Above the page content and its sticky bars, below dialogs and the video player. */
+.back-to-top {
+  position: fixed;
+  right: calc(var(--space-4) + env(safe-area-inset-right));
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  z-index: var(--z-fixed-bar);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--brand);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--brand-ink);
+  box-shadow: var(--shadow-overlay);
+  cursor: pointer;
+}
+
+.back-to-top:hover {
+  background: var(--hover);
+}
+
+/* The novel page's fixed Read bar is 48px of button plus its padding and border: sit above it on phones. */
+.back-to-top--lifted {
+  bottom: calc(var(--space-4) + 73px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .back-to-top--lifted {
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+}

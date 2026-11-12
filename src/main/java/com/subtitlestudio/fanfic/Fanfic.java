@@ -3,6 +3,7 @@ package com.subtitlestudio.fanfic;
 import com.subtitlestudio.profile.Media;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +16,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** One Wattpad story shown as a card in the Fanfics tab; everything except the id comes from Wattpad. */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_fanfic")
 public class Fanfic {

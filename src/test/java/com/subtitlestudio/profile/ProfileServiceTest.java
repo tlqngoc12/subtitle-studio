@@ -103,7 +103,7 @@ class ProfileServiceTest {
     }
 
     private Path fileOf(long id) {
-        return DATA_DIR.resolve("media").resolve(keys.get(id) + ".png");
+        return com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, keys.get(id));
     }
 
     private static BlockRequest text(String body) {

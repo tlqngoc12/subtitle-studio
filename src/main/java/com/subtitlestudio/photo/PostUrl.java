@@ -16,7 +16,8 @@ public final class PostUrl {
 
     private static final Set<String> INSTAGRAM_HOSTS = Set.of("instagram.com", "www.instagram.com", "m.instagram.com");
     private static final Set<String> X_HOSTS = Set.of("x.com", "www.x.com", "twitter.com", "www.twitter.com",
-            "mobile.twitter.com");
+            "mobile.twitter.com", "mobile.x.com", "fxtwitter.com", "www.fxtwitter.com", "vxtwitter.com",
+            "www.vxtwitter.com", "fixupx.com", "www.fixupx.com");
     private static final Set<String> KINDS = Set.of("p", "reel", "tv");
     private static final Set<String> X_MEDIA = Set.of("photo", "video");
     private static final Pattern CODE = Pattern.compile("[A-Za-z0-9_-]+");

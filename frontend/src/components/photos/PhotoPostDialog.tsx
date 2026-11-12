@@ -1,9 +1,12 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { Download, Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, type FieldError } from '../../api/client';
 import {
   createPhoto,
+  fetchFromX,
+  isXStatusUrl,
   updatePhoto,
   type PhotoPost,
   type PhotoPostInput,
@@ -84,6 +87,10 @@ function PhotoPostForm({
   }, [title]);
   // A new post starts on today's date (local day).
   const [takenOn, setTakenOn] = useState(post?.takenOn ?? toIsoDay(new Date()));
+  // Today is only a default: "Fetch from X" replaces it, but never a date the user chose (or that a saved post has).
+  const [dateChosen, setDateChosen] = useState(!!post);
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [source, setSource] = useState<PhotoSource>(post?.source ?? 'OFFICIAL');
   const [who, setWho] = useState<string[]>(post?.profiles ?? []);
   const [photoCount, setPhotoCount] = useState<number | null>(post?.photoCount ?? null);
@@ -92,6 +99,36 @@ function PhotoPostForm({
   const [formError, setFormError] = useState<ErrorMessage | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   const errorOf = (field: string) => fieldErrors.find((e) => e.field === field)?.message;
+
+  async function fetchX() {
+    setFetching(true);
+    setFetchError(null);
+    setFieldErrors((errs) => errs.filter((e) => e.field !== 'postUrl' && e.field !== 'mediaId'));
+    try {
+      const got = await fetchFromX(postUrl.trim());
+      setImage({ mediaId: got.mediaId, url: got.mediaUrl });
+      const skipped: string[] = [];
+      if (got.title) {
+        if (title.trim() === '') setTitle(got.title);
+        else skipped.push('Title');
+      }
+      if (got.takenOn) {
+        if (dateChosen) skipped.push('Date');
+        else setTakenOn(got.takenOn);
+      }
+      toast.success(
+        skipped.length > 0
+          ? `Fetched from X. Kept your ${skipped.join(' and ').toLowerCase()}`
+          : 'Fetched from X',
+      );
+    } catch (err) {
+      if (err instanceof ApiError && err.fieldErrors.length > 0) setFetchError(err.fieldErrors[0].message);
+      else if (err instanceof ApiError && err.code?.startsWith('X_')) setFetchError(err.detail);
+      else setFetchError(errorMessage(err).title);
+    } finally {
+      setFetching(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -130,16 +167,27 @@ function PhotoPostForm({
     <form className="pdialog__form" onSubmit={submit} noValidate>
       {formError && <Alert title={formError.title} hint={formError.hint} />}
 
-      <Field label="Post link (Instagram or X)" error={errorOf('postUrl')}>
+      <Field label="Post link (Instagram or X)" error={errorOf('postUrl') ?? fetchError}>
         {(f) => (
-          <input
-            id={f.id}
-            type="text"
-            value={postUrl}
-            aria-invalid={f.invalid || undefined}
-            aria-describedby={f.describedBy}
-            onChange={(e) => setPostUrl(e.target.value)}
-          />
+          <div className="pdialog__link">
+            <input
+              id={f.id}
+              type="text"
+              value={postUrl}
+              aria-invalid={f.invalid || undefined}
+              aria-describedby={f.describedBy}
+              onChange={(e) => {
+                setPostUrl(e.target.value);
+                setFetchError(null);
+              }}
+            />
+            {isXStatusUrl(postUrl) && (
+              <button type="button" className="button" disabled={fetching || uploading || saving} onClick={() => void fetchX()}>
+                {fetching ? <Loader2 className="icon icon--spin" aria-hidden="true" /> : <Download className="icon" aria-hidden="true" />}
+                {fetching ? 'Fetching…' : 'Fetch from X'}
+              </button>
+            )}
+          </div>
         )}
       </Field>
 
@@ -180,7 +228,11 @@ function PhotoPostForm({
             <DatePicker
               id={f.id}
               value={takenOn}
-              onChange={(v) => v && setTakenOn(v)}
+              onChange={(v) => {
+                if (!v) return;
+                setTakenOn(v);
+                setDateChosen(true);
+              }}
               aria-invalid={f.invalid || undefined}
               aria-describedby={f.describedBy}
             />

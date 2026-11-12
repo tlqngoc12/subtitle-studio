@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
 import { fakeFetch, problem, type Route } from '../../test/fakeFetch';
 import { photo } from '../../test/photoFixtures';
 import { PhotoPostDialog } from './PhotoPostDialog';
+
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }));
 
 const PEOPLE = [
   { slug: 'emibonnie', name: 'EmiBonnie', avatarUrl: null },
@@ -213,5 +216,87 @@ describe('PhotoPostDialog', () => {
     const body = JSON.parse(String(calls.find((c) => c.path === '/api/photos')?.body));
     expect(body.title).toBe('Line one\nLine two');
     expect(body.postUrl).toBe('https://x.com/emi/status/1');
+  });
+});
+
+describe('PhotoPostDialog: Fetch from X', () => {
+  const LINK = 'Post link (Instagram or X)';
+  const X_URL = 'https://x.com/emi/status/123';
+  const FETCHED = {
+    mediaId: 9,
+    mediaUrl: '/api/media/9',
+    width: 1600,
+    height: 900,
+    takenOn: '2026-11-11',
+    title: 'Fan meeting',
+  };
+  const xRoute = (status: number, body: unknown): Route => ({ method: 'POST', path: '/api/photos/x-fetch', status, body });
+
+  beforeEach(() => vi.mocked(toast.success).mockClear());
+
+  it('shows the button only for an X status link', async () => {
+    fakeFetch([]);
+    setup();
+    expect(screen.queryByRole('button', { name: 'Fetch from X' })).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(LINK), 'https://www.instagram.com/p/AAA/');
+    expect(screen.queryByRole('button', { name: 'Fetch from X' })).not.toBeInTheDocument();
+
+    await userEvent.clear(screen.getByLabelText(LINK));
+    await userEvent.type(screen.getByLabelText(LINK), 'https://mobile.twitter.com/emi/status/123');
+    expect(screen.getByRole('button', { name: 'Fetch from X' })).toBeInTheDocument();
+  });
+
+  it('fills the image, date and title, shows a loading state and toasts', async () => {
+    let finish!: () => void;
+    const delay = new Promise<void>((r) => (finish = r));
+    const calls = fakeFetch([{ ...xRoute(200, FETCHED), delay }]);
+    setup();
+
+    await userEvent.type(screen.getByLabelText(LINK), X_URL);
+    await userEvent.click(screen.getByRole('button', { name: 'Fetch from X' }));
+    expect(screen.getByRole('button', { name: 'Fetching…' })).toBeDisabled();
+    finish();
+
+    expect(await screen.findByRole('img', { name: 'Selected image' })).toHaveAttribute('src', '/api/media/9');
+    expect(screen.getByLabelText('Title')).toHaveValue('Fan meeting');
+    await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('11/11/2026'));
+    expect(JSON.parse(String(calls[0].body))).toEqual({ url: X_URL });
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Fetched from X');
+  });
+
+  it('keeps a title and a date the user already typed and says so', async () => {
+    fakeFetch([xRoute(200, FETCHED)]);
+    setup();
+    await userEvent.type(screen.getByLabelText('Title'), 'My own title');
+    const date = screen.getByLabelText('Date');
+    await userEvent.clear(date);
+    await userEvent.type(date, '05/11/2026');
+    await userEvent.tab();
+
+    await userEvent.type(screen.getByLabelText(LINK), X_URL);
+    await userEvent.click(screen.getByRole('button', { name: 'Fetch from X' }));
+
+    await screen.findByRole('img', { name: 'Selected image' });
+    expect(screen.getByLabelText('Title')).toHaveValue('My own title');
+    expect(screen.getByLabelText('Date')).toHaveValue('05/11/2026');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Fetched from X. Kept your title and date');
+  });
+
+  it.each([
+    [404, 'X_POST_NOT_FOUND', "Couldn't find a public post at this link"],
+    [422, 'X_POST_NO_IMAGE', 'This post has no image'],
+    [502, 'X_UNAVAILABLE', "X didn't answer, try again or upload the image yourself"],
+  ])('shows a %i error under the link field', async (status, code, detail) => {
+    fakeFetch([xRoute(status, problem(status, code, detail))]);
+    setup();
+
+    await userEvent.type(screen.getByLabelText(LINK), X_URL);
+    await userEvent.click(screen.getByRole('button', { name: 'Fetch from X' }));
+
+    expect(await screen.findByText(detail)).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Selected image' })).not.toBeInTheDocument();
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Fetch from X' })).toBeEnabled();
   });
 });

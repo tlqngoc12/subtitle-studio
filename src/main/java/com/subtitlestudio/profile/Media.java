@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * An uploaded image. The file lives at {@code {data-dir}/media/{storageKey}.{ext}}; {@code originalName} is display
+ * An uploaded image. The file lives at {@code {data-dir}/media/{storagePath}} (legacy rows: {@code {storageKey}.{ext}}); {@code originalName} is display
  * only. The key is random so databases sharing the data directory (H2 dev, Oracle) never pick the same file name.
  */
 @Entity
@@ -37,6 +37,10 @@ public class Media {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    /** Path relative to the media directory; null = legacy flat file {storageKey}.{ext}. */
+    @Column(name = "storage_path", length = 400)
+    private String storagePath;
 
     @Column(name = "width")
     private Integer width;
@@ -78,6 +82,14 @@ public class Media {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public String getStoragePath() {
+        return storagePath;
+    }
+
+    public void setStoragePath(String storagePath) {
+        this.storagePath = storagePath;
     }
 
     public Integer getWidth() {

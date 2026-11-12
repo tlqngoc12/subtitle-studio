@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class PhotoController {
 
     private final PhotoService service;
+    private final XFetchService xFetch;
 
-    public PhotoController(PhotoService service) {
+    public PhotoController(PhotoService service, XFetchService xFetch) {
         this.service = service;
+        this.xFetch = xFetch;
     }
 
     @GetMapping("/api/photos")
@@ -29,6 +31,12 @@ public class PhotoController {
     @PostMapping("/api/photos")
     public ResponseEntity<PhotoPostDto> create(@RequestBody PhotoPostRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
+    }
+
+    /** Reads the image, date and caption of an X post; the image is stored as an uploaded image. */
+    @PostMapping("/api/photos/x-fetch")
+    public XFetchResult xFetch(@RequestBody XFetchRequest request) {
+        return xFetch.fetch(request.url());
     }
 
     @PutMapping("/api/photos/{id}")

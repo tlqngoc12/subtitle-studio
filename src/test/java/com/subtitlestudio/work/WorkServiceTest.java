@@ -86,7 +86,7 @@ class WorkServiceTest {
     }
 
     private Path fileOf(long id) {
-        return DATA_DIR.resolve("media").resolve(keys.get(id) + ".webp");
+        return com.subtitlestudio.test.MediaTestFiles.fileOf(DATA_DIR, keys.get(id));
     }
 
     private long person(String name) {

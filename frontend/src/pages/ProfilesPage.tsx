@@ -259,12 +259,12 @@ export default function ProfilesPage() {
 
               <div className="profiles__actions">
                 {!editing && (
-                  <button className="button button--s" type="button" onClick={() => setEditing(true)}>
+                  <button className="button" type="button" onClick={() => setEditing(true)}>
                     <SquarePen className="icon" aria-hidden="true" />
                     Edit before saving
                   </button>
                 )}
-                <button className="button button--s" type="button" onClick={cancel} disabled={saving}>
+                <button className="button" type="button" onClick={cancel} disabled={saving}>
                   <X className="icon" aria-hidden="true" />
                   Cancel
                 </button>

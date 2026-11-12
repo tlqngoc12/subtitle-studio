@@ -1,6 +1,5 @@
 package com.subtitlestudio.profile;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -15,13 +14,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * Uploaded images: one {@code t_media} row plus the file {@code {data-dir}/media/{storageKey}.{ext}}.
+ * Uploaded images: one {@code t_media} row plus its file under {@code {data-dir}/media} (new uploads start in
+ * {@code _inbox/}, {@link MediaFiler} moves them into the folder of the feature that uses them).
  * Files are removed only after the deleting transaction commits, so a rolled-back edit never loses an image.
  */
 @Service
@@ -35,15 +36,15 @@ public class MediaService {
     private final MediaRepository media;
     private final ImageSniffer sniffer;
     private final ImageResizer resizer;
-    private final SubtitleStudioProperties properties;
+    private final MediaStorage storage;
     private final Clock clock;
 
     public MediaService(MediaRepository media, ImageSniffer sniffer, ImageResizer resizer,
-                        SubtitleStudioProperties properties, Clock clock) {
+                        MediaStorage storage, Clock clock) {
         this.media = media;
         this.sniffer = sniffer;
         this.resizer = resizer;
-        this.properties = properties;
+        this.storage = storage;
         this.clock = clock;
     }
 
@@ -82,8 +83,9 @@ public class MediaService {
         if (width != null) {
             created.setSize(width, height);
         }
+        Path file = uniqueInboxFile(created);
+        created.setStoragePath(storage.root().relativize(file).toString().replace(java.io.File.separatorChar, '/'));
         Media saved = media.saveAndFlush(created);
-        Path file = fileOf(saved, type);
         try {
             Files.createDirectories(file.getParent());
             Files.write(file, bytes, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
@@ -93,15 +95,21 @@ public class MediaService {
         return saved;
     }
 
+    private Path uniqueInboxFile(Media created) {
+        Path dir = storage.root().resolve(MediaFiler.INBOX);
+        String name = MediaNames.fileName(created, "upload");
+        Path file = dir.resolve(name);
+        for (int n = 2; Files.exists(file); n++) {
+            file = dir.resolve(MediaNames.withSuffix(name, n));
+        }
+        return file;
+    }
+
     @Transactional(readOnly = true)
     public StoredMedia load(long id) {
         Media m = media.findById(id).orElseThrow(() -> new MediaNotFoundException(id));
-        ImageType type = typeOf(m);
-        Path file = fileOf(m, type);
-        if (!Files.isRegularFile(file)) {
-            throw new MediaNotFoundException(id);
-        }
-        return new StoredMedia(file, type.contentType());
+        Path file = storage.locate(m).orElseThrow(() -> new MediaNotFoundException(id));
+        return new StoredMedia(file, typeOf(m).contentType());
     }
 
     /** Deletes the given images that no block or item shows any more. */
@@ -121,6 +129,7 @@ public class MediaService {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @Order(0)
     @Transactional
     public void cleanUpOnStartup() {
         try {
@@ -134,30 +143,30 @@ public class MediaService {
     }
 
     private void delete(Media m) {
-        Path file = fileOf(m, typeOf(m));
         media.delete(m);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    deleteFile(file);
+                    deleteFile(m);
                 }
             });
         } else {
-            deleteFile(file);
+            deleteFile(m);
         }
     }
 
-    private static void deleteFile(Path file) {
+    /** Removes the file wherever it is now (the other database sharing the directory may have moved it). */
+    private void deleteFile(Media m) {
+        Path file = storage.locate(m).orElse(null);
+        if (file == null) {
+            return;
+        }
         try {
             Files.deleteIfExists(file);
         } catch (IOException e) {
             log.warn("Could not delete {}", file, e);
         }
-    }
-
-    private Path fileOf(Media m, ImageType type) {
-        return properties.mediaDir().resolve(m.getStorageKey() + "." + type.extension());
     }
 
     private static ImageType typeOf(Media m) {

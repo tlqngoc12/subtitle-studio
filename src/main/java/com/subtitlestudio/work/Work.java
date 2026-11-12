@@ -7,6 +7,7 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -31,6 +32,7 @@ import org.hibernate.annotations.ListIndexBase;
 import org.hibernate.type.SqlTypes;
 
 /** One work (film, MV, ad...) with its link buttons and credits; both lists are replaced as a whole on save. */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_work")
 public class Work {

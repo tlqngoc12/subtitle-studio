@@ -4,6 +4,7 @@ import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.Profile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -24,6 +25,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /** One Instagram or X post shown as a tile: the uploaded first image, a title, a date and the people on it. */
+@EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_photo_post")
 public class PhotoPost {

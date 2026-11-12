@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react';
 import { useMemo } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
+import { BackToTop } from './components/BackToTop';
 import { NavBar } from './components/NavBar';
 import { SkipLink } from './components/SkipLink';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -37,6 +38,7 @@ export default function PublicApp() {
           <SkipLink />
           <NavBar />
           <AppToaster />
+          <BackToTop hideOn={[/^\/novels\/[^/]+\/[^/]+$/]} liftOn={[/^\/novels\/(?!all$)[^/]+$/]} />
           <Routes>
             <Route path="/" element={<Navigate to="/vietsub/list" replace />} />
             <Route path="/vietsub/list" element={<VietsubListPage />} />

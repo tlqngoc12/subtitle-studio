@@ -28,6 +28,7 @@ import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Select } from '../components/ui/Select';
 import { useConfirmDialog } from '../components/useConfirmDialog';
+import { peopleForBadge } from '../lib/badgePeople';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import './WorkEditPage.css';
 
@@ -113,6 +114,27 @@ export default function WorkEditPage() {
   );
 
 
+  // Changing the Badge brings its member(s) into People: only adds, never removes, skips anyone already credited.
+  // Loading an existing work sets `profile` directly and never comes through here.
+  const badgeRun = useRef(0);
+  const creditsRef = useRef(credits);
+  creditsRef.current = credits;
+  async function changeBadge(slug: string) {
+    setProfile(slug);
+    const run = ++badgeRun.current;
+    if (slug === '' || !profiles) return;
+    try {
+      const { toAdd } = await peopleForBadge(profiles, slug, creditsRef.current.map((c) => c.person.id));
+      if (run !== badgeRun.current || toAdd.length === 0) return;
+      setCredits((rows) => {
+        const have = new Set(rows.map((r) => r.person.id));
+        return [...rows, ...toAdd.filter((p) => !have.has(p.id)).map((person) => ({ key: newKey(), person, role: '', characterName: '' }))];
+      });
+      toast.success(`Added ${toAdd.map((p) => p.name).join(', ')} to People`);
+    } catch (e) {
+      if (run === badgeRun.current) toast.error(`Could not add the Badge's people: ${errorMessage(e).title}`);
+    }
+  }
   const input = (): WorkInput => ({
     title: title.trim(),
     coverMediaId: cover?.mediaId ?? null,
@@ -247,7 +269,7 @@ export default function WorkEditPage() {
               )}
             </Field>
             <Field label="Badge" error={errorOf('profile')}>
-              {(f) => <Select id={f.id} value={profile} onChange={setProfile} options={profileOptions} aria-describedby={f.describedBy} />}
+              {(f) => <Select id={f.id} value={profile} onChange={(v) => void changeBadge(v)} options={profileOptions} aria-describedby={f.describedBy} />}
             </Field>
           </div>
 
