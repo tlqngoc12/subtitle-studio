@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-11 (Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-12 (lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -821,6 +821,17 @@ Nhánh `fix/works-photos-polish`.
 - **Frontend:** `components/fanfics/` (`FanficCard` thẻ kiểu Wattpad, `format.ts` với `formatCompact` cắt không làm tròn lên và `formatReadingTime`, `FanficsTab` tìm kiếm không dấu theo title/author/tags, lọc All/Completed/Ongoing, sắp xếp Newest update/Most read/Most voted/Recently added, `AddFanficDialog` Fetch → xem trước → Save, `FanficMenu` Refresh/Delete, `NovelsTabs` + `useNovelsTab` giữ tab trong `?tab=`). Trang Novels của admin và public đều có tab Translated | Fanfics; public chỉ đọc qua `ReadSource.listFanfics` (`fanfics.json`). Mã lỗi `INVALID_FANFIC_LINK`, `FANFIC_NOT_FOUND`, `FANFIC_EXISTS`, `WATTPAD_UNAVAILABLE` có chữ riêng trong `lib/errors.ts`.
 - **Lệch so với plan:** `WattpadClient` đọc `subtitlestudio.wattpad.base-url` bằng `@Value` (đúng key của plan, không qua `SubtitleStudioProperties`); không tải được bìa thì vẫn lưu truyện không có bìa (Refresh thử lại); tab Fanfics tải lại danh sách mỗi lần chuyển tab (Radix gỡ tab ẩn).
 - **Kiểm tra:** `mvn test -Dskip.npm` 1128 test, `mvn verify -Poracle -Dskip.npm` (`PersistenceOracleIT` 20 test, gồm mô tả có ký tự astral và emoji), `npm test` 119 file, `npx tsc -b` sạch. Chạy jar thật trên cổng 8098 với H2 và bản sao `data/`, thêm truyện mẫu 396487502: Reads 51K, Votes 2.1K, Parts 28, Time 1h 8m, Complete.
+
+### 2026-11-12: Lô phản hồi UI (hover thẻ Works, nhóm theo năm, ngày dd/MM/yyyy, FilterPills, nhãn Vietsub, Profile cuộn) ✅ (chưa merge, chưa deploy)
+
+Nhánh `fix/ui-feedback-batch`, chỉ frontend.
+
+- **Hover thẻ Works:** chỉ ảnh bìa (`.work-card__cover`) nhấc 2 px + đổ bóng, chữ đứng yên (`styles/base.css`); `.photo-tile`, `.plcard`, `.novel-card` đã có bo `--radius-frame` nên giữ nguyên.
+- **Works theo năm:** `lib/groupByYear.ts` (Coming Soon trước, rồi năm giảm dần, giữ thứ tự trong nhóm); mỗi nhóm là `<section aria-labelledby>` + `<h2 class="works-year__label">` (đường kẻ `--rule` + nhãn bên phải) + `work-grid` riêng.
+- **Ngày:** `lib/dates.ts` là nơi duy nhất: `formatDay` (`dd/MM/yyyy`, tách chuỗi), `formatInstant`, `formatInstantWithTime` (`dd/MM/yyyy HH:mm`, 24 giờ), cả hai theo giờ `Asia/Ho_Chi_Minh`. Bỏ `publicDate` (publicNames), `formatDate` (PlaylistsPage), `toLocaleString` (PublishButton), hàm `display` của `DatePicker`.
+- **Bộ lọc:** `components/ui/FilterPills` (`role="group"`, `aria-pressed`, cuộn ngang trên điện thoại, pill chọn màu tím) dùng cho Works (thay `CategoryPills`) và Fanfics (trạng thái); khoảng cách hàng bộ lọc cùng `--space-4`.
+- **Menu public:** mục `VIETSUB_LIST` hiện nhãn `Vietsub` ở trang public, admin giữ `Vietsub list`.
+- **Profile:** `Reveal` cho banner, cột chân dung và từng khối ở chế độ xem (chế độ sửa không đổi, không đụng `rowMotion`/`expandMotion`).
 
 ## 9. Rủi ro đang theo dõi
 
