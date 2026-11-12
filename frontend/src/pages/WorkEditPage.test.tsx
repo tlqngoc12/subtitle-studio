@@ -1,12 +1,16 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { toast } from 'sonner';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { pickOption } from '../test/select';
 import { answerConfirm } from '../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { page, profile } from '../test/profileFixtures';
 import { person, work, workSummary } from '../test/workFixtures';
 import WorkEditPage from './WorkEditPage';
+
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }));
 
 function Where() {
   return <output aria-label="path">{useLocation().pathname}</output>;
@@ -253,5 +257,134 @@ describe('WorkEditPage', () => {
     renderAt('/works/9/edit');
 
     expect(await screen.findByRole('heading', { name: 'Work not found' })).toBeInTheDocument();
+  });
+});
+
+describe('WorkEditPage: Badge adds People', () => {
+  const MEMBERS = page([
+    profile('emi', 'Emi', [], [], { fullName: 'Nguyễn Emi', portraitMediaId: 31 }),
+    profile('bonnie', 'Bonnie', [], [], { portraitMediaId: 32 }),
+  ]);
+  const base = (people: unknown[]): FakeRoute[] => [
+    { method: 'GET', path: '/api/profiles', status: 200, body: MEMBERS },
+    { method: 'GET', path: '/api/works', status: 200, body: [] },
+    { method: 'GET', path: '/api/people', status: 200, body: people },
+  ];
+  const badge = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Badge' })).toBeEnabled());
+    await pickOption(user, screen.getByRole('combobox', { name: 'Badge' }), name);
+  };
+
+  beforeEach(() => {
+    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.error).mockClear();
+  });
+
+  it('adds the member of a member badge, with an empty role and character', async () => {
+    fakeFetch(base([person(2, 'Emi')]));
+    const user = userEvent.setup();
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+
+    await badge(user, 'Emi');
+
+    expect(await screen.findByLabelText('Role of Emi')).toHaveValue('');
+    expect(screen.getByLabelText('Character of Emi')).toHaveValue('');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added Emi to People');
+  });
+
+  it('adds every member for the group badge', async () => {
+    fakeFetch(base([person(2, 'Emi'), person(3, 'Bonnie')]));
+    const user = userEvent.setup();
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+
+    await badge(user, 'EmiBonnie');
+
+    expect(await screen.findByLabelText('Role of Emi')).toBeInTheDocument();
+    expect(screen.getByLabelText('Role of Bonnie')).toBeInTheDocument();
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added Emi, Bonnie to People');
+  });
+
+  it('matches the full name ignoring case and accents, and skips people already credited', async () => {
+    fakeFetch(base([person(2, 'NGUYEN EMI'), person(3, 'Bonnie')]));
+    const user = userEvent.setup();
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+    await badge(user, 'Emi');
+    await screen.findByLabelText('Role of NGUYEN EMI');
+
+    await badge(user, 'EmiBonnie');
+
+    await screen.findByLabelText('Role of Bonnie');
+    expect(screen.getAllByLabelText('Role of NGUYEN EMI')).toHaveLength(1);
+    expect(vi.mocked(toast.success)).toHaveBeenLastCalledWith('Added Bonnie to People');
+  });
+
+  it('says nothing when everyone is already credited', async () => {
+    fakeFetch(base([person(2, 'Emi')]));
+    const user = userEvent.setup();
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+    await badge(user, 'Emi');
+    await screen.findByLabelText('Role of Emi');
+    vi.mocked(toast.success).mockClear();
+
+    await badge(user, 'None');
+    await badge(user, 'Emi');
+
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Badge' })).toHaveTextContent('Emi'));
+    expect(screen.getAllByLabelText('Role of Emi')).toHaveLength(1);
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it('creates a missing person named after the profile with its portrait as the avatar', async () => {
+    const calls = fakeFetch([
+      ...base([person(3, 'Bonnie')]),
+      { method: 'POST', path: '/api/people', status: 201, body: person(9, 'Emi') },
+    ]);
+    const user = userEvent.setup();
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+
+    await badge(user, 'EmiBonnie');
+
+    expect(await screen.findByLabelText('Role of Emi')).toBeInTheDocument();
+    expect(screen.getByLabelText('Role of Bonnie')).toBeInTheDocument();
+    const create = calls.find((c) => c.method === 'POST' && c.path === '/api/people');
+    expect(JSON.parse(String(create?.body))).toEqual({ name: 'Emi', avatarMediaId: 31 });
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added Emi, Bonnie to People');
+  });
+
+  it('leaves the credits unchanged and toasts an error when the directory call fails', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/profiles', status: 200, body: MEMBERS },
+      { method: 'GET', path: '/api/works', status: 200, body: [] },
+      { method: 'GET', path: '/api/people', status: 500, body: problem(500, 'INTERNAL_ERROR', 'boom') },
+    ]);
+    const user = userEvent.setup();
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+
+    await badge(user, 'Emi');
+
+    await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalled());
+    expect(screen.queryByLabelText('Role of Emi')).not.toBeInTheDocument();
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it('does not add anyone when an existing work loads with a badge', async () => {
+    const calls = fakeFetch([
+      ...base([person(2, 'Emi')]),
+      { method: 'GET', path: '/api/works/5', status: 200, body: work(5, { profile: 'emi', credits: [] }) },
+    ]);
+    renderAt('/works/5/edit');
+
+    await screen.findByDisplayValue('Work 5');
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Badge' })).toHaveTextContent('Emi'));
+
+    expect(screen.queryByLabelText('Role of Emi')).not.toBeInTheDocument();
+    expect(calls.some((c) => c.path === '/api/people')).toBe(false);
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
   });
 });
