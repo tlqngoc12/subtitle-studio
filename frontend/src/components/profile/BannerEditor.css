@@ -67,7 +67,14 @@
   gap: var(--space-1);
 }
 
+.banner-thumb .field {
+  min-width: 0;
+}
+
 .banner-thumb .field input[type='text'] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: var(--surface);
 }
 
