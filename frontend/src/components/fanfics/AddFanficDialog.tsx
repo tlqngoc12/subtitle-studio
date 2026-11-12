@@ -98,7 +98,7 @@ function AddFanficForm({ onSaved, onCancel }: { onSaved: (fanfic: Fanfic) => voi
             />
           )}
         </Field>
-        <button type="submit" className="button button--s" disabled={fetching || saving}>
+        <button type="submit" className="button" disabled={fetching || saving}>
           {fetching ? 'Fetching…' : 'Fetch'}
         </button>
       </div>
