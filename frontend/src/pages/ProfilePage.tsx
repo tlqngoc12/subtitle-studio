@@ -21,6 +21,7 @@ import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PopoverPanel } from '../components/ui/PopoverPanel';
+import { Reveal } from '../components/ui/Reveal';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -161,7 +162,9 @@ export default function ProfilePage() {
 
       {data && (
         <>
-          <ProfileBanner images={banner} />
+          <Reveal>
+            <ProfileBanner images={banner} />
+          </Reveal>
           {editing && admin && (
             <div className="pgroup">
               <BannerEditor slug={data.group.slug} images={banner} onChange={setBanner} />

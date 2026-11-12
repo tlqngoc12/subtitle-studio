@@ -16,6 +16,7 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { expandMotion, rowMotion } from '../../lib/motion';
 import { Alert } from '../ui/Alert';
 import { ImageLightbox } from '../ui/ImageLightbox';
+import { Reveal } from '../ui/Reveal';
 import { useConfirmDialog } from '../useConfirmDialog';
 import { BLOCK_TYPE_LABELS, BlockEditor } from './BlockEditor';
 import { BlockToolbar } from './BlockToolbar';
@@ -110,7 +111,7 @@ export function MemberSection({
   return (
     <section id={profile.slug} className={`member member--${side}`} aria-labelledby={nameId}>
       {confirmDialog}
-      <div className="member__aside">
+      <Reveal className="member__aside">
         {profile.portraitUrl ? (
           <>
             <button type="button" className="member__portrait" aria-label={`View larger: ${profile.displayName}`} onClick={() => setZoom(true)}>
@@ -145,7 +146,7 @@ export function MemberSection({
         </div>
         {profile.tagline && <p className="member__tagline">{profile.tagline}</p>}
         <SocialIcons blocks={profile.blocks} />
-      </div>
+      </Reveal>
 
       <div className="member__details">
         {headerOpen && (
@@ -184,7 +185,14 @@ export function MemberSection({
                       onDelete={() => remove(b.id)}
                     />
                   )}
-                  <BlockView block={b} plain hideTitle={!editing && b === firstFacts} />
+                  {editing ? (
+                    <BlockView block={b} plain />
+                  ) : (
+                    // Read view only: each block fades and lifts in as it scrolls into view.
+                    <Reveal delayIndex={i}>
+                      <BlockView block={b} plain hideTitle={b === firstFacts} />
+                    </Reveal>
+                  )}
                 </>
               )}
             </motion.div>
