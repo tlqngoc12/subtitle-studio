@@ -25,8 +25,8 @@ public class FanficService {
 
     static final int PAUSE_BETWEEN_STORIES_MS = 500;
     static final int WORDS_PER_MINUTE = 230;
-    static final String CHAPTER_LINK = "Use the story link (wattpad.com/story/…), not a chapter link.";
-    static final String NOT_A_STORY_LINK = "Paste a Wattpad story link (wattpad.com/story/…).";
+    public static final String CHAPTER_LINK = "Use the story link (wattpad.com/story/…), not a chapter link.";
+    public static final String NOT_A_STORY_LINK = "Paste a Wattpad story link (wattpad.com/story/…).";
     static final String WATTPAD_DID_NOT_ANSWER = "Wattpad did not answer. Try again later.";
     private static final int COVER_SIDE = 512;
     private static final Logger log = LoggerFactory.getLogger(FanficService.class);

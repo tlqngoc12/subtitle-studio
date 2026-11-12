@@ -70,6 +70,11 @@ public class NovelService {
         if (novels.existsBySlug(r.slug())) {
             throw new DuplicateNovelSlugException(r.slug());
         }
+        if (r.wattpadStoryId() != null) {
+            novels.findByWattpadStoryId(r.wattpadStoryId()).ifPresent(existing -> {
+                throw new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
+            });
+        }
         Novel n = new Novel(r.slug(), r.title(), r.novelStatus(), clock.instant());
         n.setSourceType(r.sourceType());
         n.setWattpadStoryId(r.wattpadStoryId());

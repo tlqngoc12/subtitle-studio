@@ -1,5 +1,8 @@
 package com.subtitlestudio.novel;
 
+import com.subtitlestudio.novel.wattpad.WattpadNovelPreview;
+import com.subtitlestudio.novel.wattpad.WattpadNovelService;
+import com.subtitlestudio.novel.wattpad.WattpadUrlRequest;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,8 +24,11 @@ public class NovelController {
     private final NovelService service;
     private final NotebookService notebook;
     private final ChapterService chapterService;
+    private final WattpadNovelService wattpadNovels;
 
-    public NovelController(NovelService service, NotebookService notebook, ChapterService chapterService) {
+    public NovelController(NovelService service, NotebookService notebook, ChapterService chapterService,
+                           WattpadNovelService wattpadNovels) {
+        this.wattpadNovels = wattpadNovels;
         this.service = service;
         this.notebook = notebook;
         this.chapterService = chapterService;
@@ -45,6 +51,11 @@ public class NovelController {
         notebook.retry(id);
     }
 
+    @PostMapping("/wattpad/preview")
+    public WattpadNovelPreview wattpadPreview(@RequestBody WattpadUrlRequest request) {
+        return wattpadNovels.preview(request.url());
+    }
+
     @GetMapping
     public List<NovelSummary> list() {
         return service.list();
@@ -53,7 +64,8 @@ public class NovelController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public NovelDetail create(@RequestBody NovelRequest request) {
-        return service.create(request);
+        return request.sourceType() == NovelSourceType.WATTPAD ? wattpadNovels.create(request)
+                : service.create(request);
     }
 
     @GetMapping("/{id}")

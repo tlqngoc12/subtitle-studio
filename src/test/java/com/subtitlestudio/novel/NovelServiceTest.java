@@ -420,4 +420,15 @@ class NovelServiceTest {
         assertThat(u.sourceType()).isEqualTo(NovelSourceType.WATTPAD);
         assertThat(u.wattpadStoryId()).isEqualTo("5");
     }
+
+    @Test
+    void aSecondNovelForTheSameWattpadStoryIsRejected() {
+        NovelDetail first = service.create(wattpad("396487502", "en", NovelSourceType.WATTPAD));
+        NovelRequest again = wattpad("396487502", "en", NovelSourceType.WATTPAD);
+        NovelRequest other = new NovelRequest("other-slug", again.title(), null, null, null, List.of(),
+                NovelStatus.ONGOING, null, null, null, null, NovelSourceType.WATTPAD, "en", "396487502", null);
+
+        assertThatThrownBy(() -> service.create(other)).isInstanceOf(DuplicateWattpadNovelException.class)
+                .satisfies(e -> assertThat(((DuplicateWattpadNovelException) e).novelId()).isEqualTo(first.id()));
+    }
 }
