@@ -10,6 +10,7 @@ import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaService;
 import com.subtitlestudio.profile.MediaTooLargeException;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -58,6 +59,52 @@ public class ChapterService {
 
     @Transactional
     public ChapterDetail add(long novelId, ChapterRequest request) {
+        return detail(create(novelId, request));
+    }
+
+    /** Adds a DRAFT chapter at the end holding a Wattpad part's original text; returns its id. */
+    @Transactional
+    public long addFromSource(long novelId, String title, String sourceText, String wattpadPartId, Instant fetchedAt) {
+        String shortTitle = title == null ? null : title.strip();
+        if (shortTitle != null && shortTitle.length() > MAX_TITLE) {
+            shortTitle = shortTitle.substring(0, MAX_TITLE);
+        }
+        Chapter c = create(novelId, new ChapterRequest(null, shortTitle));
+        c.setSourceText(sourceText);
+        c.setWattpadPartId(wattpadPartId);
+        c.setSourceFetchedAt(fetchedAt);
+        chapters.flush();
+        return c.getId();
+    }
+
+    /** The Wattpad part id of a chapter whose original may be reloaded: a Draft that is not being translated. */
+    @Transactional(readOnly = true)
+    public String reloadablePartId(long id) {
+        Chapter c = find(id);
+        if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
+            throw new ChapterPublishedException(id);
+        }
+        if (c.getTranslationStatus() == ChapterTranslationStatus.TRANSLATING) {
+            throw new ChapterTranslationInProgressException(id);
+        }
+        if (c.getWattpadPartId() == null) {
+            throw new InvalidChapterException(List.of(new FieldError("chapter", "This chapter does not come from Wattpad.")));
+        }
+        return c.getWattpadPartId();
+    }
+
+    /** Replaces the original text of a Draft Wattpad chapter; the translation is not touched. */
+    @Transactional
+    public ChapterDetail replaceSourceText(long id, String sourceText, Instant fetchedAt) {
+        reloadablePartId(id);
+        Chapter c = find(id);
+        c.setSourceText(sourceText);
+        c.setSourceFetchedAt(fetchedAt);
+        touch(c);
+        return detail(c);
+    }
+
+    private Chapter create(long novelId, ChapterRequest request) {
         Novel novel = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
         List<Chapter> existing = chapters.findByNovelIdOrderByChapterNo(novelId);
         int no = request.chapterNo() != null ? request.chapterNo()
@@ -70,7 +117,7 @@ public class ChapterService {
         Chapter created = new Chapter(novel, no, title, clock.instant());
         // New chapters go last in the reading order, whatever their number.
         created.setSortOrder(existing.stream().mapToInt(Chapter::getSortOrder).max().orElse(0) + 1);
-        return detail(chapters.save(created));
+        return chapters.save(created);
     }
 
     /** Sets the reading order; the list must name every chapter of the novel exactly once. Any publish status. */
@@ -119,6 +166,9 @@ public class ChapterService {
             c.setLabel(label(request.label()));
         }
         boolean textChanged = false;
+        if (request.pages() != null && !request.pages().isEmpty() && c.hasSourceText()) {
+            throw new ChapterTextSourceException(id);
+        }
         if (request.pages() != null) {
             Map<Long, ChapterPage> byId = new HashMap<>();
             pages.findByChapterIdOrderByPosition(id).forEach(p -> byId.put(p.getId(), p));
@@ -283,6 +333,9 @@ public class ChapterService {
      */
     private Chapter structural(long id) {
         Chapter c = editable(id);
+        if (c.hasSourceText()) {
+            throw new ChapterTextSourceException(id);
+        }
         if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
             throw new ChapterPublishedException(id);
         }
@@ -353,6 +406,7 @@ public class ChapterService {
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
                 c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
-                ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next);
+                ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
+                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage());
     }
 }

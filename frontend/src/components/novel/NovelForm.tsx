@@ -1,6 +1,13 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { ApiError, type FieldError } from '../../api/client';
-import { getNovelProfiles, type NovelDetail, type NovelInput, type NovelStatus } from '../../api/novels';
+import {
+  getNovelProfiles,
+  type NovelDetail,
+  type NovelInput,
+  type NovelStatus,
+  type SourceLanguage,
+  type WattpadNovelPreview,
+} from '../../api/novels';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/ImageDropzone';
 import { Alert } from '../ui/Alert';
@@ -24,37 +31,57 @@ export function trailerLink(videoId: string | null | undefined): string {
   return videoId ? `https://youtu.be/${videoId}` : '';
 }
 
+/** Wattpad tags that fit the form's limits (at most 10 tags of 40 characters, no commas). */
+function prefillTags(tags: string[]): string {
+  return tags
+    .map((t) => t.replace(/,/g, ' ').trim())
+    .filter((t) => t && t.length <= 40)
+    .slice(0, 10)
+    .join(', ');
+}
+
 function blankToNull(value: string): string | null {
   const t = value.trim();
   return t ? t : null;
 }
 
-/** The eight novel fields plus slug and translation profile (create and edit). */
+/**
+ * The eight novel fields plus slug and translation profile (create and edit). `wattpad` prefills a new novel from a
+ * Wattpad story and adds the Source language field; an existing Wattpad novel shows that field too.
+ */
 export function NovelForm({
   initial,
+  wattpad,
   onSubmit,
   submitLabel,
   pendingLabel,
 }: {
   initial?: NovelDetail;
+  wattpad?: WattpadNovelPreview;
   onSubmit: (input: NovelInput) => Promise<void>;
   submitLabel: string;
   pendingLabel: string;
 }) {
   const ids = useId();
-  const [title, setTitle] = useState(initial?.title ?? '');
-  const [slug, setSlug] = useState(initial?.slug ?? '');
+  const [title, setTitle] = useState(initial?.title ?? wattpad?.title ?? '');
+  const [slug, setSlug] = useState(initial?.slug ?? slugify(wattpad?.title ?? ''));
   const [slugEdited, setSlugEdited] = useState(Boolean(initial));
   const [cover, setCover] = useState<PickedImage | null>(
     initial?.coverMediaId && initial.coverUrl ? { mediaId: initial.coverMediaId, mediaUrl: initial.coverUrl } : null,
   );
   const [coverBusy, setCoverBusy] = useState(false);
-  const [author, setAuthor] = useState(initial?.originalAuthor ?? '');
-  const [description, setDescription] = useState(initial?.description ?? '');
-  const [tags, setTags] = useState(initial?.tags.join(', ') ?? '');
-  const [status, setStatus] = useState<NovelStatus>(initial?.novelStatus ?? 'ONGOING');
+  const [author, setAuthor] = useState(initial?.originalAuthor ?? wattpad?.author ?? '');
+  const [description, setDescription] = useState(initial?.description ?? wattpad?.description?.slice(0, 5000) ?? '');
+  const [tags, setTags] = useState(initial ? initial.tags.join(', ') : prefillTags(wattpad?.tags ?? []));
+  const [status, setStatus] = useState<NovelStatus>(
+    initial?.novelStatus ?? (wattpad?.completed ? 'COMPLETED' : 'ONGOING'),
+  );
+  const fromWattpad = Boolean(wattpad) || initial?.sourceType === 'WATTPAD';
+  const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>(
+    initial?.sourceLanguage ?? wattpad?.sourceLanguage ?? 'th',
+  );
   const [credit, setCredit] = useState(initial?.translatorCredit ?? '');
-  const [sourceUrl, setSourceUrl] = useState(initial?.sourceUrl ?? '');
+  const [sourceUrl, setSourceUrl] = useState(initial?.sourceUrl ?? wattpad?.storyUrl ?? '');
   const [trailer, setTrailer] = useState(trailerLink(initial?.trailerVideoId));
   const [profile, setProfile] = useState(initial?.promptProfile ?? '');
   const [profiles, setProfiles] = useState<string[]>([]);
@@ -93,6 +120,15 @@ export function NovelForm({
         sourceUrl: blankToNull(sourceUrl),
         promptProfile: blankToNull(profile),
         trailerUrl: blankToNull(trailer),
+        ...(fromWattpad ? { sourceLanguage } : {}),
+        ...(wattpad
+          ? {
+              sourceType: 'WATTPAD' as const,
+              wattpadStoryId: wattpad.storyId,
+              // The story's own cover is downloaded by the server unless a cover was added here.
+              coverUrl: cover ? null : wattpad.coverUrl,
+            }
+          : {}),
       });
     } catch (err) {
       setError(errorMessage(err));
@@ -189,6 +225,12 @@ export function NovelForm({
           onBusyChange={setCoverBusy}
           invalid={Boolean(fieldError('coverMediaId'))}
         />
+        {wattpad?.coverUrl && !cover && (
+          <div className="novel-form__wattpad-cover">
+            <img src={wattpad.coverUrl} alt="Cover from Wattpad" width={96} />
+            <p className="field__hint">The cover from Wattpad is used unless you add one.</p>
+          </div>
+        )}
         {fieldError('coverMediaId') && <p className="field__error">{fieldError('coverMediaId')}</p>}
       </div>
       {renderField({
@@ -225,6 +267,17 @@ export function NovelForm({
             options={[{ value: 'ONGOING', label: 'Ongoing' }, { value: 'COMPLETED', label: 'Completed' }]} />
         ),
       })}
+      {fromWattpad &&
+        renderField({
+          name: 'sourceLanguage',
+          label: 'Source language',
+          hint: 'The language of the Wattpad text that Gemini translates.',
+          children: (a) => (
+            <Select id={a.id} value={sourceLanguage} aria-invalid={a.invalid} aria-describedby={a.describedBy}
+              onChange={(v) => setSourceLanguage(v as SourceLanguage)}
+              options={[{ value: 'th', label: 'Thai' }, { value: 'en', label: 'English' }]} />
+          ),
+        })}
       {renderField({
         name: 'translatorCredit',
         label: 'Translator credit (optional)',

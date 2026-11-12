@@ -130,4 +130,68 @@ class NovelRepositoryTest {
         assertThat(notebooks.findByNovelIdOrderByAfterChapterNo(n.getId()))
                 .extracting(NovelNotebook::getAfterChapterNo).containsExactly(2, 5, 9);
     }
+
+    @Test
+    void findsANovelByItsWattpadStoryId() {
+        Novel n = novel("wp");
+        n.setSourceType(NovelSourceType.WATTPAD);
+        n.setWattpadStoryId("396487502");
+        novels.flush();
+
+        assertThat(novels.findByWattpadStoryId("396487502")).map(Novel::getId).contains(n.getId());
+        assertThat(novels.findByWattpadStoryId("1")).isEmpty();
+    }
+
+    @Test
+    void aWattpadStoryBelongsToOneNovel() {
+        Novel a = novel("wp-a");
+        a.setWattpadStoryId("5");
+        novels.flush();
+        Novel b = novel("wp-b");
+        b.setWattpadStoryId("5");
+
+        assertThatThrownBy(() -> novels.flush()).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void severalScreenshotNovelsMayHaveNoStoryId() {
+        novel("s1");
+        novel("s2");
+
+        novels.flush();
+    }
+
+    @Test
+    void storesChapterSourceTextAndFindsItByPartId() {
+        Novel n = novel("wp-text");
+        Chapter c = new Chapter(n, 1, "Prologue", T0);
+        c.setSourceText("Line one.\n\nLine two.");
+        c.setWattpadPartId("1552276256");
+        c.setSourceFetchedAt(T0);
+        chapters.save(c);
+        chapters.save(new Chapter(n, 2, "Screenshot chapter", T0));
+        chapters.save(new Chapter(n, 3, "Another screenshot chapter", T0));
+        chapters.flush();
+        em.clear();
+
+        Chapter found = chapters.findByNovelIdAndWattpadPartId(n.getId(), "1552276256").orElseThrow();
+
+        assertThat(found.getSourceText()).isEqualTo("Line one.\n\nLine two.");
+        assertThat(found.getSourceFetchedAt()).isEqualTo(T0);
+        assertThat(found.hasSourceText()).isTrue();
+        assertThat(chapters.findByNovelIdAndWattpadPartId(n.getId(), "2")).isEmpty();
+        assertThat(chapters.findByNovelIdAndWattpadPartIdIsNotNull(n.getId())).hasSize(1);
+    }
+
+    @Test
+    void aPartIsImportedOnce() {
+        Novel n = novel("wp-dup");
+        Chapter a = new Chapter(n, 1, "A", T0);
+        a.setWattpadPartId("77");
+        chapters.save(a);
+        Chapter b = new Chapter(n, 2, "B", T0);
+        b.setWattpadPartId("77");
+
+        assertThatThrownBy(() -> chapters.saveAndFlush(b)).isInstanceOf(DataIntegrityViolationException.class);
+    }
 }

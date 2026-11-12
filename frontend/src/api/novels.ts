@@ -6,6 +6,9 @@ export type NovelStatus = 'ONGOING' | 'COMPLETED';
 export type ChapterTranslationStatus = 'NONE' | 'TRANSLATING' | 'TRANSLATED' | 'FAILED';
 export type ChapterPublishStatus = 'DRAFT' | 'PUBLISHED';
 export type NotebookStatus = 'IDLE' | 'UPDATING' | 'FAILED';
+export type NovelSourceType = 'SCREENSHOTS' | 'WATTPAD';
+/** The language of a novel's original text. */
+export type SourceLanguage = 'th' | 'en';
 
 export interface NovelInput {
   slug: string;
@@ -20,6 +23,12 @@ export interface NovelInput {
   promptProfile: string | null;
   /** A YouTube link of any common form; the server stores only its 11-character video id. Null clears it. */
   trailerUrl: string | null;
+  /** Where chapters come from; only used when creating (default SCREENSHOTS). */
+  sourceType?: NovelSourceType;
+  sourceLanguage?: SourceLanguage;
+  /** Wattpad novels: the story id, and (create only) the story's cover to download. */
+  wattpadStoryId?: string | null;
+  coverUrl?: string | null;
 }
 
 export interface NovelSummary {
@@ -31,6 +40,8 @@ export interface NovelSummary {
   chapterCount: number;
   publishedCount: number;
   updatedAt: string;
+  /** Set for novels translated from Wattpad. */
+  wattpadStoryId?: string | null;
 }
 
 export interface ChapterSummary {
@@ -49,7 +60,10 @@ export interface ChapterSummary {
   suspectPages: number;
 }
 
-export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl'> {
+export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 'sourceType' | 'sourceLanguage' | 'wattpadStoryId' | 'coverUrl'> {
+  sourceType: NovelSourceType;
+  sourceLanguage: SourceLanguage;
+  wattpadStoryId: string | null;
   id: number;
   /** The stored trailer's YouTube video id, or null. */
   trailerVideoId: string | null;
@@ -94,6 +108,12 @@ export interface ChapterDetail {
   text: string;
   prevChapterId: number | null;
   nextChapterId: number | null;
+  /** The original text of a Wattpad chapter (no pages); null for screenshot chapters. */
+  sourceText: string | null;
+  wattpadPartId: string | null;
+  sourceFetchedAt: string | null;
+  /** Language of the original text of the novel (th or en). */
+  sourceLanguage: SourceLanguage;
 }
 
 export interface GlossaryEntry {
@@ -242,4 +262,58 @@ export async function getNotebook(novelId: number, after?: number): Promise<Note
 
 export async function retryNotebook(novelId: number): Promise<void> {
   await send(`/api/novels/${novelId}/notebook/retry`, { method: 'POST' });
+}
+
+/** What the New novel form is prefilled with from a Wattpad story (nothing is saved). */
+export interface WattpadNovelPreview {
+  storyId: string;
+  title: string;
+  author: string | null;
+  description: string | null;
+  tags: string[];
+  completed: boolean;
+  languageName: string | null;
+  /** Guessed from Wattpad's language name: Thai gives th, anything else en. */
+  sourceLanguage: SourceLanguage;
+  partCount: number;
+  coverUrl: string | null;
+  storyUrl: string;
+  /** The id of the novel that already uses this story, if any. */
+  existingNovelId: number | null;
+}
+
+export interface WattpadPart {
+  partId: string;
+  title: string;
+  wordCount: number;
+  createdAt: string | null;
+  modifiedAt: string | null;
+  deleted: boolean;
+  /** The chapter this part was imported as; null until imported. */
+  importedChapterId: number | null;
+}
+
+export interface WattpadImportResult {
+  imported: { partId: string; chapterId: number }[];
+  skipped: string[];
+  failed: { partId: string; title: string; reason: string }[];
+}
+
+export async function previewWattpadNovel(url: string): Promise<WattpadNovelPreview> {
+  return (await send('/api/novels/wattpad/preview', json('POST', { url }))).json();
+}
+
+/** The story's parts in story order (one request to Wattpad). */
+export async function listWattpadParts(novelId: number): Promise<WattpadPart[]> {
+  return (await send(`/api/novels/${novelId}/wattpad/parts`)).json();
+}
+
+/** Imports the chosen parts as Draft chapters; can take a while (about half a second per part). */
+export async function importWattpadParts(novelId: number, partIds: string[]): Promise<WattpadImportResult> {
+  return (await send(`/api/novels/${novelId}/wattpad/import`, json('POST', { partIds }))).json();
+}
+
+/** Fetches the chapter's original text from Wattpad again (Draft chapters only); the translation is untouched. */
+export async function reloadChapterOriginal(chapterId: number): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${chapterId}/reload-original`, { method: 'POST' })).json();
 }

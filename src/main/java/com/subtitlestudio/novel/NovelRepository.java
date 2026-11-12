@@ -8,6 +8,8 @@ public interface NovelRepository extends JpaRepository<Novel, Long> {
 
     Optional<Novel> findBySlug(String slug);
 
+    Optional<Novel> findByWattpadStoryId(String wattpadStoryId);
+
     boolean existsBySlug(String slug);
 
     List<Novel> findAllByOrderByUpdatedAtDesc();

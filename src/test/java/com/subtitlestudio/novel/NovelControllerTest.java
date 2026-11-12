@@ -32,7 +32,7 @@ class NovelControllerTest {
     private static final Instant AT = Instant.parse("2026-11-05T10:00:00Z");
     static final NovelDetail DETAIL = new NovelDetail(3, "summer-love", "Tình Yêu Mùa Hạ", null, null, "ผู้เขียน",
             "Giới thiệu", List.of("romance"), NovelStatus.ONGOING, "Dịch: @byZenQN", null, "SummerLove",
-            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of());
+            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of(), NovelSourceType.SCREENSHOTS, "th", null);
     private static final String BODY = """
             {"slug":"summer-love","title":"Tình Yêu Mùa Hạ","tags":["romance"],"novelStatus":"ONGOING"}""";
 
@@ -48,12 +48,16 @@ class NovelControllerTest {
     @MockitoBean
     private ChapterService chapterService;
 
+    @MockitoBean
+    private com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
+
     @Test
     void reordersChapters() throws Exception {
         ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null, null,
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
-                NovelStatus.ONGOING, null, null, null, null, NotebookStatus.IDLE, null, List.of(row)));
+                NovelStatus.ONGOING, null, null, null, null, NotebookStatus.IDLE, null, List.of(row),
+                NovelSourceType.SCREENSHOTS, "th", null));
 
         mvc.perform(put("/api/novels/3/chapters/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"chapterIds\":[11,10]}")).andExpect(status().isOk())
@@ -144,5 +148,82 @@ class NovelControllerTest {
         mvc.perform(post("/api/novels").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_NOVEL_SLUG"));
+    }
+
+    private static final String WATTPAD_BODY = """
+            {"slug":"warm","title":"Warm","tags":[],"novelStatus":"COMPLETED","sourceType":"WATTPAD",
+            "sourceLanguage":"en","wattpadStoryId":"396487502","coverUrl":"https://img.wattpad.com/cover/1-256-x.jpg"}""";
+
+    @Test
+    void aWattpadNovelIsCreatedThroughTheWattpadService() throws Exception {
+        when(wattpadNovels.create(any())).thenReturn(DETAIL);
+
+        mvc.perform(post("/api/novels").contentType(MediaType.APPLICATION_JSON).content(WATTPAD_BODY))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(3));
+        verify(wattpadNovels).create(any());
+        verify(service, org.mockito.Mockito.never()).create(any());
+    }
+
+    @Test
+    void aDuplicateWattpadStoryIs409WithTheExistingNovel() throws Exception {
+        when(wattpadNovels.create(any())).thenThrow(new DuplicateWattpadNovelException("Warm", 12));
+
+        mvc.perform(post("/api/novels").contentType(MediaType.APPLICATION_JSON).content(WATTPAD_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_WATTPAD_EXISTS"))
+                .andExpect(jsonPath("$.novelId").value(12));
+    }
+
+    @Test
+    void wattpadPreviewReturnsThePrefill() throws Exception {
+        when(wattpadNovels.preview("https://www.wattpad.com/story/396487502")).thenReturn(
+                new com.subtitlestudio.novel.wattpad.WattpadNovelPreview("396487502", "Warm", "emi", "About",
+                        List.of("gl"), true, "English", "en", 28, "https://img.wattpad.com/c.jpg",
+                        "https://www.wattpad.com/story/396487502", null));
+
+        mvc.perform(post("/api/novels/wattpad/preview").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"url\":\"https://www.wattpad.com/story/396487502\"}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Warm")).andExpect(jsonPath("$.sourceLanguage").value("en"))
+                .andExpect(jsonPath("$.partCount").value(28)).andExpect(jsonPath("$.existingNovelId").doesNotExist());
+    }
+
+    @Test
+    void wattpadPreviewErrorsKeepTheirCodes() throws Exception {
+        when(wattpadNovels.preview(any())).thenThrow(
+                new com.subtitlestudio.fanfic.InvalidFanficLinkException("Paste a Wattpad story link"));
+        mvc.perform(post("/api/novels/wattpad/preview").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"url\":\"x\"}")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_FANFIC_LINK"));
+
+        doThrow(new com.subtitlestudio.fanfic.WattpadUnavailableException("down")).when(wattpadNovels)
+                .preview(any());
+        mvc.perform(post("/api/novels/wattpad/preview").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"url\":\"x\"}")).andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("WATTPAD_UNAVAILABLE"));
+    }
+
+    @Test
+    void wattpadPartsAndImport() throws Exception {
+        when(wattpadNovels.parts(3L)).thenReturn(List.of(new com.subtitlestudio.novel.wattpad.WattpadPartRow("1",
+                "Prologue", 190, AT, AT, false, null)));
+        when(wattpadNovels.importParts(eq(3L), any())).thenReturn(new com.subtitlestudio.novel.wattpad.WattpadImportResult(
+                List.of(new com.subtitlestudio.novel.wattpad.WattpadImportResult.Imported("1", 20)), List.of("2"),
+                List.of(new com.subtitlestudio.novel.wattpad.WattpadImportResult.Failure("3", "Three", "No text"))));
+
+        mvc.perform(get("/api/novels/3/wattpad/parts")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].partId").value("1")).andExpect(jsonPath("$[0].wordCount").value(190))
+                .andExpect(jsonPath("$[0].importedChapterId").doesNotExist());
+        mvc.perform(post("/api/novels/3/wattpad/import").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"partIds\":[\"1\",\"2\",\"3\"]}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported[0].chapterId").value(20)).andExpect(jsonPath("$.skipped[0]").value("2"))
+                .andExpect(jsonPath("$.failed[0].reason").value("No text"));
+    }
+
+    @Test
+    void wattpadPartsOfAScreenshotNovelIs409() throws Exception {
+        when(wattpadNovels.parts(3L)).thenThrow(new NovelNotWattpadException(3));
+
+        mvc.perform(get("/api/novels/3/wattpad/parts")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_NOT_WATTPAD"));
     }
 }

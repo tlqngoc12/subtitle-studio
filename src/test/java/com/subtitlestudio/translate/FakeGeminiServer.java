@@ -75,6 +75,11 @@ public final class FakeGeminiServer implements AutoCloseable {
         queued.add(new Reply(200, textBody(text, "STOP")));
     }
 
+    /** Same, with the given finish reason (e.g. MAX_TOKENS). */
+    public void queueText(String text, String finishReason) {
+        queued.add(new Reply(200, textBody(text, finishReason)));
+    }
+
     /** Every request body received, in order. */
     public java.util.List<String> bodies() {
         return java.util.List.copyOf(bodies);

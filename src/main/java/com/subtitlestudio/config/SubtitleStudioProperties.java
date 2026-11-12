@@ -55,19 +55,22 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
 
     /**
      * Novels: how many page screenshots go to Gemini per request, the upload limit, how chapters are drawn for the
-     * public site, and the watermark text (blank = the public site's host).
+     * public site, the watermark text (blank = the public site's host) and the longest original text (characters)
+     * of a Wattpad chapter sent to Gemini in one request before it is split (0 = 60,000).
      */
-    public record Novel(int pagesPerRequest, DataSize maxPageImageSize, @Valid Render render, String watermarkText) {
+    public record Novel(int pagesPerRequest, DataSize maxPageImageSize, @Valid Render render, String watermarkText,
+                        int maxSourceChars) {
 
         public Novel {
             pagesPerRequest = pagesPerRequest <= 0 ? 20 : pagesPerRequest;
             maxPageImageSize = maxPageImageSize == null ? DataSize.ofMegabytes(10) : maxPageImageSize;
             render = render == null ? Render.defaults() : render;
             watermarkText = watermarkText == null ? "" : watermarkText;
+            maxSourceChars = maxSourceChars <= 0 ? 60_000 : maxSourceChars;
         }
 
         public static Novel defaults() {
-            return new Novel(20, DataSize.ofMegabytes(10), Render.defaults(), "");
+            return new Novel(20, DataSize.ofMegabytes(10), Render.defaults(), "", 60_000);
         }
 
         public record Render(int fontSize) {

@@ -68,7 +68,7 @@ class ChapterServiceTest {
                     new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3,
                             List.of()),
                     new SubtitleStudioProperties.Publish("", "", "", false, "wrangler", Duration.ofMinutes(5)),
-                    new SubtitleStudioProperties.Novel(20, DataSize.ofKilobytes(200), null, ""));
+                    new SubtitleStudioProperties.Novel(20, DataSize.ofKilobytes(200), null, "", 0));
         }
     }
 
@@ -550,5 +550,97 @@ class ChapterServiceTest {
 
         assertThat(dtos).extracting(PageDto::suspect).containsExactly(false, false, false, false, false, true);
         assertThat(dtos.get(5).source()).isEqualTo(source);
+    }
+
+    private long wattpadChapter(int no, String partId) {
+        return service.addFromSource(novel.getId(), "Part " + no, "Original text " + no, partId, NOW);
+    }
+
+    @Test
+    void addFromSourceAppendsADraftChapterWithTheOriginalText() {
+        service.add(novel.getId(), new ChapterRequest(null, "Existing"));
+
+        long id = service.addFromSource(novel.getId(), " Chapter 1: Cold Brew ", "Line one.\n\nLine two.", "1552",
+                NOW);
+
+        ChapterDetail d = service.get(id);
+        assertThat(d.chapterNo()).isEqualTo(2);
+        assertThat(d.title()).isEqualTo("Chapter 1: Cold Brew");
+        assertThat(d.sourceText()).isEqualTo("Line one.\n\nLine two.");
+        assertThat(d.wattpadPartId()).isEqualTo("1552");
+        assertThat(d.sourceFetchedAt()).isEqualTo(NOW);
+        assertThat(d.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+        assertThat(d.pages()).isEmpty();
+        assertThat(chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novel.getId()))
+                .extracting(Chapter::getChapterNo).containsExactly(1, 2);
+    }
+
+    @Test
+    void addFromSourceCutsALongTitle() {
+        long id = service.addFromSource(novel.getId(), "x".repeat(300), "Text", "9", NOW);
+
+        assertThat(service.get(id).title()).hasSize(200);
+    }
+
+    @Test
+    void pageEndpointsAreRefusedForATextChapter() {
+        long id = wattpadChapter(1, "11");
+
+        assertThatThrownBy(() -> service.addPages(id, List.of(img("a.png"))))
+                .isInstanceOf(ChapterTextSourceException.class);
+        assertThatThrownBy(() -> service.reorder(id, new PageOrderRequest(List.of())))
+                .isInstanceOf(ChapterTextSourceException.class);
+        assertThatThrownBy(() -> service.deletePage(id, 1L)).isInstanceOf(ChapterTextSourceException.class);
+        assertThatThrownBy(() -> service.rotatePage(id, 1L, RotateDirection.LEFT))
+                .isInstanceOf(ChapterTextSourceException.class);
+        assertThatThrownBy(() -> service.rotatePages(id, RotateDirection.LEFT))
+                .isInstanceOf(ChapterTextSourceException.class);
+        assertThatThrownBy(() -> service.update(id, new ChapterUpdateRequest(null, null,
+                List.of(new PageTextEdit(5L, "x")), null))).isInstanceOf(ChapterTextSourceException.class);
+    }
+
+    @Test
+    void aTextChapterStillTakesTitleAndTextEdits() {
+        long id = wattpadChapter(1, "11");
+
+        ChapterDetail d = service.update(id, new ChapterUpdateRequest(null, "New title", null, "Bản dịch"));
+
+        assertThat(d.title()).isEqualTo("New title");
+        assertThat(d.text()).isEqualTo("Bản dịch");
+        assertThat(d.sourceText()).isEqualTo("Original text 1");
+    }
+
+    @Test
+    void replaceSourceTextKeepsTheTranslation() {
+        long id = wattpadChapter(1, "11");
+        service.update(id, new ChapterUpdateRequest(null, null, null, "Bản dịch"));
+
+        ChapterDetail d = service.replaceSourceText(id, "Fresh original", NOW.plusSeconds(60));
+
+        assertThat(d.sourceText()).isEqualTo("Fresh original");
+        assertThat(d.sourceFetchedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(d.text()).isEqualTo("Bản dịch");
+    }
+
+    @Test
+    void reloadIsRefusedForPublishedTranslatingAndScreenshotChapters() {
+        long published = wattpadChapter(1, "11");
+        setStatus(published, ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
+        long translating = wattpadChapter(2, "12");
+        setStatus(translating, ChapterTranslationStatus.TRANSLATING, ChapterPublishStatus.DRAFT);
+        long screenshots = service.add(novel.getId(), new ChapterRequest(null, null)).id();
+
+        assertThatThrownBy(() -> service.reloadablePartId(published)).isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.replaceSourceText(published, "x", NOW))
+                .isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.reloadablePartId(translating))
+                .isInstanceOf(ChapterTranslationInProgressException.class);
+        assertThatThrownBy(() -> service.reloadablePartId(screenshots)).isInstanceOf(InvalidChapterException.class);
+        assertThat(service.get(published).sourceText()).isEqualTo("Original text 1");
+    }
+
+    @Test
+    void reloadablePartIdIsTheWattpadPart() {
+        assertThat(service.reloadablePartId(wattpadChapter(1, "777"))).isEqualTo("777");
     }
 }

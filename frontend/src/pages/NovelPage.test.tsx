@@ -364,4 +364,74 @@ describe('NovelPage', () => {
       });
     });
   });
+
+  describe('Wattpad novels', () => {
+    const wattpadNovel = novelDetail({ sourceType: 'WATTPAD', sourceLanguage: 'en', wattpadStoryId: '396487502', chapters: [chapterSummary({ pageCount: 0 })] });
+    const getWattpad = { method: 'GET', path: '/api/novels/3', status: 200, body: wattpadNovel };
+    const parts = { method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200, body: [] };
+
+    it('has no Wattpad tab for a screenshot novel', async () => {
+      fakeFetch([getNovel]);
+      renderPage();
+
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      expect(screen.queryByRole('tab', { name: 'Wattpad' })).not.toBeInTheDocument();
+    });
+
+    it('shows the Wattpad tab and says Wattpad text instead of 0 pages', async () => {
+      fakeFetch([getWattpad, parts]);
+      renderPage();
+
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      expect(screen.getByRole('tab', { name: 'Wattpad' })).toBeInTheDocument();
+      expect(screen.getByText('Wattpad text')).toBeInTheDocument();
+      expect(screen.queryByText('0 pages')).not.toBeInTheDocument();
+    });
+
+    it('opens on the Wattpad tab with ?tab=wattpad and loads the parts', async () => {
+      const calls = fakeFetch([getWattpad, parts]);
+      render(
+        <MemoryRouter initialEntries={['/novels/3?tab=wattpad']}>
+          <Routes>
+            <Route path="/novels/:id" element={<NovelPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByRole('region', { name: 'Wattpad chapters' })).toBeInTheDocument();
+      expect(calls.some((c) => c.path === '/api/novels/3/wattpad/parts')).toBe(true);
+    });
+
+    it('lets the admin change the source language in Details', async () => {
+      const calls = fakeFetch([getWattpad, parts, profiles, { method: 'PUT', path: '/api/novels/3', status: 200, body: wattpadNovel }]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('tab', { name: 'Details' }));
+      expect(screen.getByLabelText('Source language')).toHaveTextContent('English');
+      await pickOption(user, screen.getByLabelText('Source language'), 'Thai');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+      expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).sourceLanguage).toBe('th');
+    });
+
+    it('imports parts and refreshes the chapter list', async () => {
+      const calls = fakeFetch([
+        getWattpad,
+        { ...parts, body: [{ partId: '1', title: 'PROLOGUE', wordCount: 190, createdAt: null, modifiedAt: null, deleted: false, importedChapterId: null }] },
+        { method: 'POST', path: '/api/novels/3/wattpad/import', status: 200, body: { imported: [{ partId: '1', chapterId: 9 }], skipped: [], failed: [] } },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('tab', { name: 'Wattpad' }));
+      await user.click(await screen.findByRole('checkbox', { name: 'PROLOGUE' }));
+      await user.click(screen.getByRole('button', { name: 'Import 1' }));
+
+      await waitFor(() => expect(calls.filter((c) => c.path === '/api/novels/3')).toHaveLength(2));
+    });
+  });
 });

@@ -59,6 +59,18 @@ public class Novel {
     @Column(name = "source_url", length = 1000)
     private String sourceUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", length = 20, nullable = false)
+    private NovelSourceType sourceType = NovelSourceType.SCREENSHOTS;
+
+    /** Language of the original text: {@code th} or {@code en}. */
+    @Column(name = "source_language", length = 5, nullable = false)
+    private String sourceLanguage = "th";
+
+    /** Wattpad story id of a WATTPAD novel; unique; null for screenshot novels. */
+    @Column(name = "wattpad_story_id", length = 20)
+    private String wattpadStoryId;
+
     @Column(name = "prompt_profile", length = 40)
     private String promptProfile;
 
@@ -167,6 +179,30 @@ public class Novel {
 
     public void setSourceUrl(String sourceUrl) {
         this.sourceUrl = sourceUrl;
+    }
+
+    public NovelSourceType getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(NovelSourceType sourceType) {
+        this.sourceType = sourceType;
+    }
+
+    public String getSourceLanguage() {
+        return sourceLanguage;
+    }
+
+    public void setSourceLanguage(String sourceLanguage) {
+        this.sourceLanguage = sourceLanguage;
+    }
+
+    public String getWattpadStoryId() {
+        return wattpadStoryId;
+    }
+
+    public void setWattpadStoryId(String wattpadStoryId) {
+        this.wattpadStoryId = wattpadStoryId;
     }
 
     public String getPromptProfile() {

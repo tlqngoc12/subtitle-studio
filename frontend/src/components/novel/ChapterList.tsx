@@ -27,10 +27,13 @@ export function chapterLabel(chapterNo: number, title: string | null, label?: st
 export function ChapterList({
   novelId,
   chapters,
+  fromText = false,
   onReorder,
 }: {
   novelId: number;
   chapters: ChapterSummary[];
+  /** A Wattpad novel: chapters have original text instead of pages. */
+  fromText?: boolean;
   onReorder: (next: ChapterSummary[]) => void;
 }) {
   const sensors = useSensors(
@@ -39,7 +42,13 @@ export function ChapterList({
   );
 
   if (chapters.length === 0) {
-    return <EmptyState icon={FileText}>No chapters yet. Choose Add chapter, then add its page screenshots.</EmptyState>;
+    return (
+      <EmptyState icon={FileText}>
+        {fromText
+          ? 'No chapters yet. Open the Wattpad tab and import the parts you want to translate.'
+          : 'No chapters yet. Choose Add chapter, then add its page screenshots.'}
+      </EmptyState>
+    );
   }
 
   function move(from: number, to: number) {
@@ -60,7 +69,8 @@ export function ChapterList({
       <SortableContext items={chapters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <ul className="chapter-list" aria-label="Chapters">
           {chapters.map((c, i) => (
-            <ChapterRow key={c.id} novelId={novelId} chapter={c} first={i === 0} last={i === chapters.length - 1}
+            <ChapterRow key={c.id} novelId={novelId} chapter={c} fromText={fromText} first={i === 0}
+              last={i === chapters.length - 1}
               onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)} />
           ))}
         </ul>
@@ -72,6 +82,7 @@ export function ChapterList({
 function ChapterRow({
   novelId,
   chapter: c,
+  fromText,
   first,
   last,
   onUp,
@@ -79,6 +90,7 @@ function ChapterRow({
 }: {
   novelId: number;
   chapter: ChapterSummary;
+  fromText: boolean;
   first: boolean;
   last: boolean;
   onUp: () => void;
@@ -104,7 +116,7 @@ function ChapterRow({
           <span className="chapter-list__meta">
             <StatusBadges translation={c.translationStatus} publish={c.publishStatus} model={c.translationModel} />
             <span className="meta">
-              {c.pageCount} {c.pageCount === 1 ? 'page' : 'pages'}
+              {fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`}
             </span>
             {c.suspectPages > 0 && (
               <Tip label={`${c.suspectPages} page(s) may be incomplete`}>

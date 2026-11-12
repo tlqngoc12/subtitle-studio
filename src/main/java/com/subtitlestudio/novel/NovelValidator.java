@@ -20,6 +20,9 @@ public class NovelValidator {
     static final int MAX_CREDIT = 200;
     static final int MAX_URL = 1_000;
 
+    static final java.util.Set<String> LANGUAGES = java.util.Set.of("th", "en");
+
+    private static final Pattern STORY_ID = Pattern.compile("\\d{1,19}");
     private static final Pattern SLUG = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*");
 
     private final NovelProfileStore profiles;
@@ -35,7 +38,10 @@ public class NovelValidator {
     public NovelRequest validate(NovelRequest r) {
         NovelRequest n = new NovelRequest(trim(r.slug()), trim(r.title()), r.coverMediaId(), trim(r.originalAuthor()),
                 trim(r.description()), tags(r.tags()), r.novelStatus(), trim(r.translatorCredit()),
-                trim(r.sourceUrl()), trim(r.promptProfile()), trim(r.trailerUrl()));
+                trim(r.sourceUrl()), trim(r.promptProfile()), trim(r.trailerUrl()),
+                r.sourceType() == null ? NovelSourceType.SCREENSHOTS : r.sourceType(),
+                r.sourceLanguage() == null ? "th" : r.sourceLanguage().strip().toLowerCase(java.util.Locale.ROOT),
+                trim(r.wattpadStoryId()), trim(r.coverUrl()));
         List<FieldError> errors = new ArrayList<>();
         if (n.slug() == null || n.slug().length() > MAX_SLUG || !SLUG.matcher(n.slug()).matches()) {
             errors.add(new FieldError("slug", "Use lowercase letters, numbers and single hyphens."));
@@ -62,6 +68,14 @@ public class NovelValidator {
         if (n.promptProfile() != null && !profiles.list().contains(n.promptProfile())) {
             errors.add(new FieldError("promptProfile", "Unknown translation profile."));
         }
+        if (!LANGUAGES.contains(n.sourceLanguage())) {
+            errors.add(new FieldError("sourceLanguage", "Choose Thai or English."));
+        }
+        if (n.sourceType() == NovelSourceType.WATTPAD) {
+            if (n.wattpadStoryId() == null || !STORY_ID.matcher(n.wattpadStoryId()).matches()) {
+                errors.add(new FieldError("wattpadStoryId", "A Wattpad story id (digits) is required."));
+            }
+        }
         String trailerId = null;
         if (n.trailerUrl() != null) {
             trailerId = trailerId(n.trailerUrl());
@@ -73,7 +87,9 @@ public class NovelValidator {
             throw new InvalidNovelException(errors);
         }
         return new NovelRequest(n.slug(), n.title(), n.coverMediaId(), n.originalAuthor(), n.description(), n.tags(),
-                n.novelStatus(), n.translatorCredit(), n.sourceUrl(), n.promptProfile(), trailerId);
+                n.novelStatus(), n.translatorCredit(), n.sourceUrl(), n.promptProfile(), trailerId, n.sourceType(),
+                n.sourceLanguage(), n.sourceType() == NovelSourceType.WATTPAD ? n.wattpadStoryId() : null,
+                n.sourceType() == NovelSourceType.WATTPAD ? n.coverUrl() : null);
     }
 
     /** The video id of a YouTube link, or null when it is too long or not a YouTube video link. */

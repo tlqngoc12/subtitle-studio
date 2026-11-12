@@ -8,5 +8,6 @@ public record ChapterDetail(long id, long novelId, String novelTitle, int chapte
                             ChapterTranslationStatus translationStatus, String translationError,
                             String translationModel, Instant translatedAt, boolean editedAfterTranslation,
                             ChapterPublishStatus publishStatus, List<PageDto> pages, String text,
-                            Long prevChapterId, Long nextChapterId) {
+                            Long prevChapterId, Long nextChapterId, String sourceText, String wattpadPartId,
+                            Instant sourceFetchedAt, String sourceLanguage) {
 }

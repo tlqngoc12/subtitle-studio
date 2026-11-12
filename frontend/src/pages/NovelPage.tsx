@@ -2,7 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   addChapter,
@@ -17,6 +17,7 @@ import {
 import { ChapterList } from '../components/novel/ChapterList';
 import { NotebookView } from '../components/novel/NotebookView';
 import { NovelForm } from '../components/novel/NovelForm';
+import { WattpadParts } from '../components/novel/WattpadParts';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { STATUS_LABEL } from './NovelsPage';
@@ -33,11 +34,19 @@ export default function NovelPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [novel, setNovel] = useState<NovelDetail | null>(null);
   const [notebook, setNotebook] = useState<NotebookData | null>(null);
-  const [tab, setTab] = useState('chapters');
+  const [search] = useSearchParams();
+  const [tab, setTab] = useState(search.get('tab') === 'wattpad' ? 'wattpad' : 'chapters');
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
+    getNovel(novelId)
+      .then(setNovel)
+      .catch((e) => setError(errorMessage(e)));
+  }, [novelId]);
+
+  /** Reloads the novel (its chapter list) after parts were imported. */
+  const reloadNovel = useCallback(() => {
     getNovel(novelId)
       .then(setNovel)
       .catch((e) => setError(errorMessage(e)));
@@ -116,6 +125,11 @@ export default function NovelPage() {
               <TabTrigger className="tabs__tab" value="chapters">
                 Chapters
               </TabTrigger>
+              {novel.sourceType === 'WATTPAD' && (
+                <TabTrigger className="tabs__tab" value="wattpad">
+                  Wattpad
+                </TabTrigger>
+              )}
               <TabTrigger className="tabs__tab" value="details">
                 Details
               </TabTrigger>
@@ -129,8 +143,15 @@ export default function NovelPage() {
                 <Plus className="icon" aria-hidden="true" />
                 Add chapter
               </button>
-              <ChapterList novelId={novelId} chapters={novel.chapters} onReorder={(next) => void reorder(next)} />
+              <ChapterList novelId={novelId} chapters={novel.chapters} fromText={novel.sourceType === 'WATTPAD'}
+                onReorder={(next) => void reorder(next)} />
             </Tabs.Content>
+
+            {novel.sourceType === 'WATTPAD' && (
+              <Tabs.Content value="wattpad" className="tabs__panel">
+                <WattpadParts novelId={novelId} onImported={reloadNovel} />
+              </Tabs.Content>
+            )}
 
             <Tabs.Content value="details" className="tabs__panel">
               <NovelForm

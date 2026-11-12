@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
 import type { Fanfic } from '../../api/fanfics';
@@ -331,5 +331,71 @@ describe('FanficsTab (admin)', () => {
 
     await waitFor(() => expect(screen.queryByRole('link', { name: /Second Spring/ })).not.toBeInTheDocument());
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
+  });
+
+  describe('Translate this story', () => {
+    function renderWithRoutes() {
+      render(
+        <MemoryRouter initialEntries={['/novels']}>
+          <Routes>
+            <Route path="/novels" element={<FanficsTab />} />
+            <Route path="/novels/new" element={<NewStub />} />
+            <Route path="/novels/:id" element={<p>novel page</p>} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    }
+
+    function NewStub() {
+      const { search } = useLocation();
+      return <p>new novel {decodeURIComponent(search)}</p>;
+    }
+
+    it('opens New novel on From Wattpad with the story link', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/fanfics', status: 200, body: STORIES.slice(0, 1) },
+        { method: 'GET', path: '/api/novels', status: 200, body: [] },
+      ]);
+      renderWithRoutes();
+      await screen.findByRole('link', { name: /Chợ Đêm/ });
+
+      await userEvent.click(screen.getByRole('button', { name: /^Menu for Chợ Đêm/ }));
+      await userEvent.click(await screen.findByRole('link', { name: 'Translate this story' }));
+
+      expect(await screen.findByText('new novel ?wattpad=https://www.wattpad.com/story/396487502')).toBeInTheDocument();
+    });
+
+    it('offers Open translation when a novel already uses the story', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/fanfics', status: 200, body: STORIES.slice(0, 1) },
+        { method: 'GET', path: '/api/novels', status: 200, body: [{ id: 41, wattpadStoryId: '396487502' }] },
+      ]);
+      renderWithRoutes();
+      await screen.findByRole('link', { name: /Chợ Đêm/ });
+
+      await waitFor(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /^Menu for Chợ Đêm/ }));
+        expect(await screen.findByRole('link', { name: 'Open translation' })).toHaveAttribute('href', '/novels/41');
+      });
+      expect(screen.queryByRole('link', { name: 'Translate this story' })).not.toBeInTheDocument();
+    });
+
+    it('still offers Translate this story when the novels cannot be listed', async () => {
+      fakeFetch([{ method: 'GET', path: '/api/fanfics', status: 200, body: STORIES.slice(0, 1) }]);
+      renderWithRoutes();
+      await screen.findByRole('link', { name: /Chợ Đêm/ });
+
+      await userEvent.click(screen.getByRole('button', { name: /^Menu for Chợ Đêm/ }));
+
+      expect(await screen.findByRole('link', { name: 'Translate this story' })).toBeInTheDocument();
+    });
+
+    it('the public site has no menu at all', async () => {
+      renderPublic();
+      await screen.findByRole('link', { name: /Second Spring/ });
+
+      expect(screen.queryByRole('link', { name: 'Translate this story' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Menu for/ })).not.toBeInTheDocument();
+    });
   });
 });

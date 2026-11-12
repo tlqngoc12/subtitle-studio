@@ -50,6 +50,17 @@ public class Chapter {
     @Column(name = "text_vi")
     private String textVi;
 
+    /** The original text fetched from Wattpad (plain text, paragraphs separated by a blank line); null for screenshots. */
+    @Lob
+    @Column(name = "source_text")
+    private String sourceText;
+
+    @Column(name = "wattpad_part_id", length = 20)
+    private String wattpadPartId;
+
+    @Column(name = "source_fetched_at")
+    private Instant sourceFetchedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "translation_status", length = 20, nullable = false)
     private ChapterTranslationStatus translationStatus = ChapterTranslationStatus.NONE;
@@ -140,6 +151,35 @@ public class Chapter {
 
     public void setTextVi(String textVi) {
         this.textVi = textVi;
+    }
+
+    public String getSourceText() {
+        return sourceText;
+    }
+
+    public void setSourceText(String sourceText) {
+        this.sourceText = sourceText;
+    }
+
+    public String getWattpadPartId() {
+        return wattpadPartId;
+    }
+
+    public void setWattpadPartId(String wattpadPartId) {
+        this.wattpadPartId = wattpadPartId;
+    }
+
+    public Instant getSourceFetchedAt() {
+        return sourceFetchedAt;
+    }
+
+    public void setSourceFetchedAt(Instant sourceFetchedAt) {
+        this.sourceFetchedAt = sourceFetchedAt;
+    }
+
+    /** True for a chapter whose original is text (Wattpad) rather than page screenshots. */
+    public boolean hasSourceText() {
+        return sourceText != null;
     }
 
     public ChapterTranslationStatus getTranslationStatus() {

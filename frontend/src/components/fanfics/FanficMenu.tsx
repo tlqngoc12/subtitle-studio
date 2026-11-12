@@ -1,18 +1,28 @@
 import * as Popover from '@radix-ui/react-popover';
-import { Ellipsis, RefreshCw, Trash2 } from 'lucide-react';
+import { Ellipsis, Languages, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { PopoverPanel } from '../ui/PopoverPanel';
 import '../profile/MemberMenu.css';
 import './FanficMenu.css';
 
-/** The admin `⋯` menu in the corner of a card (outside the link): Refresh from Wattpad and Delete. */
+/**
+ * The admin `⋯` menu in the corner of a card (outside the link): Translate this story (or Open translation when a
+ * novel already uses the story), Refresh from Wattpad and Delete.
+ */
 export function FanficMenu({
   title,
+  storyUrl,
+  translationNovelId,
   busy,
   onRefresh,
   onDelete,
 }: {
   title: string;
+  /** The Wattpad story link; Translate this story opens New novel with it. */
+  storyUrl: string;
+  /** The id of the novel translated from this story, if there is one. */
+  translationNovelId?: number | null;
   busy?: boolean;
   onRefresh: () => void;
   onDelete: () => void;
@@ -37,6 +47,18 @@ export function FanficMenu({
         </Popover.Trigger>
         <PopoverPanel className="member-menu">
           <div className="member-menu__list">
+            {translationNovelId != null ? (
+              <Link className="member-menu__item" to={`/novels/${translationNovelId}`} onClick={() => setOpen(false)}>
+                <Languages className="icon" aria-hidden="true" />
+                Open translation
+              </Link>
+            ) : (
+              <Link className="member-menu__item" to={`/novels/new?wattpad=${encodeURIComponent(storyUrl)}`}
+                onClick={() => setOpen(false)}>
+                <Languages className="icon" aria-hidden="true" />
+                Translate this story
+              </Link>
+            )}
             <button type="button" className="member-menu__item" disabled={busy} onClick={run(onRefresh)}>
               <RefreshCw className="icon" aria-hidden="true" />
               Refresh

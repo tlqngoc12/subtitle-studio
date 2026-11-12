@@ -32,7 +32,7 @@ class ChapterControllerTest {
 
     static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu", null,
             ChapterTranslationStatus.NONE, null, null, null, false, ChapterPublishStatus.DRAFT,
-            List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null);
+            List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null, null, null, null, "th");
 
     @Autowired
     private MockMvc mvc;
@@ -42,6 +42,9 @@ class ChapterControllerTest {
 
     @MockitoBean
     private ChapterTranslationService translation;
+
+    @MockitoBean
+    private com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
 
     @Test
     void translatePublishUnpublish() throws Exception {
@@ -159,5 +162,30 @@ class ChapterControllerTest {
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/api/chapters/9/pages/rotate").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reloadOriginalReturnsTheChapter() throws Exception {
+        when(wattpadNovels.reloadOriginal(9L)).thenReturn(DETAIL);
+
+        mvc.perform(post("/api/chapters/9/reload-original")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(9));
+    }
+
+    @Test
+    void reloadOriginalOfAPublishedChapterIs409() throws Exception {
+        when(wattpadNovels.reloadOriginal(9L)).thenThrow(new ChapterPublishedException(9));
+
+        mvc.perform(post("/api/chapters/9/reload-original")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHAPTER_PUBLISHED"));
+    }
+
+    @Test
+    void pageEndpointsOfATextChapterAre409() throws Exception {
+        when(service.reorder(eq(9L), any())).thenThrow(new ChapterTextSourceException(9));
+
+        mvc.perform(put("/api/chapters/9/pages/order").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pageIds\":[]}")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHAPTER_TEXT_SOURCE"));
     }
 }

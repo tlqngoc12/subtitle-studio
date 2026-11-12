@@ -8,9 +8,12 @@ import com.subtitlestudio.novel.ChapterHasNoPagesException;
 import com.subtitlestudio.novel.ChapterNotFoundException;
 import com.subtitlestudio.novel.ChapterNotTranslatedException;
 import com.subtitlestudio.novel.ChapterPublishedException;
+import com.subtitlestudio.novel.ChapterTextSourceException;
+import com.subtitlestudio.novel.NovelNotWattpadException;
 import com.subtitlestudio.novel.ChapterTranslationInProgressException;
 import com.subtitlestudio.novel.DuplicateChapterNumberException;
 import com.subtitlestudio.novel.DuplicateNovelSlugException;
+import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.InvalidChapterException;
 import com.subtitlestudio.novel.InvalidPageOrderException;
 import com.subtitlestudio.novel.PageNotFoundException;
@@ -258,6 +261,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "DUPLICATE_NOVEL_SLUG", e.getMessage());
     }
 
+    @ExceptionHandler(DuplicateWattpadNovelException.class)
+    ProblemDetail duplicateWattpadNovel(DuplicateWattpadNovelException e) {
+        ProblemDetail pd = problem(HttpStatus.CONFLICT, "NOVEL_WATTPAD_EXISTS", e.getMessage());
+        pd.setProperty("novelId", e.novelId());
+        return pd;
+    }
+
     @ExceptionHandler(ChapterNotFoundException.class)
     ProblemDetail chapterNotFound(ChapterNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "CHAPTER_NOT_FOUND", e.getMessage());
@@ -295,6 +305,16 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ChapterPublishedException.class)
     ProblemDetail chapterPublished(ChapterPublishedException e) {
         return problem(HttpStatus.CONFLICT, "CHAPTER_PUBLISHED", e.getMessage());
+    }
+
+    @ExceptionHandler(ChapterTextSourceException.class)
+    ProblemDetail chapterTextSource(ChapterTextSourceException e) {
+        return problem(HttpStatus.CONFLICT, "CHAPTER_TEXT_SOURCE", e.getMessage());
+    }
+
+    @ExceptionHandler(NovelNotWattpadException.class)
+    ProblemDetail novelNotWattpad(NovelNotWattpadException e) {
+        return problem(HttpStatus.CONFLICT, "NOVEL_NOT_WATTPAD", e.getMessage());
     }
 
     @ExceptionHandler(ChapterHasNoPagesException.class)
