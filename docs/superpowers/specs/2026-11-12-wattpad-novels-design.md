@@ -29,9 +29,13 @@ Publish that renders chapters as watermarked WebP images, same public novel/read
   English.)
 - `GET https://www.wattpad.com/apiv2/storytext?id={partId}` → 200 `text/html` fragment: one
   `<p data-p-id="…">…<br>…</p>` per paragraph, HTML entities, curly quotes. 190-word part = 1.4 KB.
-- To verify during implementation: long parts may be paged (`&page=2…`). Fetch the longest part of a real story
-  and, if the response is shorter than expected (`wordCount`), loop `page=2,3…` until an empty answer; record the
-  finding in this spec. Paid/locked parts and deleted parts return no usable text → reported per part, never fatal.
+- **Paging (verified 2026-11-13, story 396487502):** the longest part (951 words by `wordCount`, 7.9 KB, 59 paragraphs)
+  came back whole in one answer; `&page=2` and `&page=3` answered 200 with an empty body, so this endpoint does not
+  page for a part of that size (the plain-text word count is about 86% of Wattpad's `wordCount`, which counts
+  differently). `WattpadClient.partText` still follows `&page=2,3…` until an empty answer (at most 30 pages) so a
+  very long part would not be cut silently. The text arrives as UTF-8 with `Content-Type: text/plain`. Locked and
+  deleted parts: an empty answer or a 4xx gives no text → reported per part (`Wattpad has no text for this part`),
+  never fatal; a part flagged `deleted` in the story JSON is reported without calling the text endpoint.
 - The app already calls the v3 story API (`fanfic/WattpadClient`, cover download, UA, timeouts); reuse it.
 
 ## Data (Flyway V20)
@@ -123,6 +127,34 @@ table) — check it anyway.
 ### Fanfics
 - Fanfic card menu (admin) gets **Translate this story** → `/novels/new?wattpad=<story url>`; if a novel with this
   Wattpad id exists, the item reads **Open translation** and links to that novel.
+
+## Implementation notes and deviations (2026-11-13)
+
+- **`wattpad_part_id` is unique on its own**, not per novel. Oracle treats a composite key `(novel_id, NULL)` as a value,
+  so `unique (novel_id, wattpad_part_id)` would reject a second screenshot chapter in the same novel. Wattpad part ids
+  are global and one story maps to one novel (`t_novel.wattpad_story_id` is unique), so the single-column constraint
+  gives the same guarantee. Chapter ids of imported parts are read with a `{partId, chapterId}` query that does not load
+  the chapter text.
+- **Cover:** `NovelRequest.coverUrl` is read only when `sourceType = WATTPAD` and no cover was uploaded; the server accepts
+  only `https` URLs on `wattpad.com` and its subdomains, downloads through `WattpadClient.downloadCover`, and stores the
+  image with `MediaService.storeResized(…, 512)` (as Fanfics do). A cover that cannot be fetched never blocks the novel.
+  After creation only `sourceLanguage` can change; `sourceType` and `wattpadStoryId` are fixed.
+- **Duplicates:** a second novel for the same story is 409 `NOVEL_WATTPAD_EXISTS` (with `novelId`), checked before the cover
+  is downloaded and again inside `NovelService.create`.
+- **API:** `POST /api/novels/wattpad/preview`, `GET /api/novels/{id}/wattpad/parts`, `POST /api/novels/{id}/wattpad/import`,
+  `POST /api/chapters/{id}/reload-original`. New error codes: `NOVEL_WATTPAD_EXISTS`, `NOVEL_NOT_WATTPAD`,
+  `CHAPTER_TEXT_SOURCE`. `NovelSummary` gained `wattpadStoryId` (the Fanfic menu uses it) and `ChapterDetail` gained
+  `sourceText`, `wattpadPartId`, `sourceFetchedAt` and `sourceLanguage`.
+- **Admin UI:** a Wattpad novel gets a **Wattpad** tab on the novel page (parts, import, check for new chapters); creating
+  a novel from Wattpad opens `/novels/{id}?tab=wattpad`. Chapters without pages show "Wattpad text" instead of "0 pages".
+  The Fanfic menu reads the novels list once to decide between "Translate this story" and "Open translation".
+- **Translation:** `GeminiCaller.generate(…, allowTruncated)` is an opt-in overload so `MAX_TOKENS` can be reported to the
+  text translator; every other caller still treats it as a refusal. `TextChapterTranslation` owns the split logic (pre-split
+  above `subtitle-studio.novel.max-source-chars`, default 60,000; split on incomplete answers; depth 3). The run fails fast:
+  when a piece at depth 3 is still cut off the chapter fails, so a hopeless chapter costs at most 4 requests (not 15).
+  A first half that would be only scene breaks is never a split point.
+- **Not done:** the optional Thai-retry and paging paths were verified only against local stubs and fixtures (the real
+  endpoint never paged, and no Thai story was fetched).
 
 ## Out of scope
 - Images inside chapters, paid/locked parts, automatic periodic sync, editing `source_text` by hand, languages other
