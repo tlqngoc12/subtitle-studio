@@ -68,7 +68,8 @@ describe('Cue preview on phones (E4)', () => {
 
 describe('Placeholder in the dark URL frame (E5)', () => {
   it('is at least 55% white', () => {
-    expect(rule('.frame__input::placeholder')).toMatch(/rgb\(255 255 255 \/ 0\.55\)/);
+    expect(rule('.frame__input::placeholder')).toMatch(/color:\s*var\(--on-scrim-muted\)/);
+    expect(css).toMatch(/--on-scrim-muted:\s*rgb\(255 255 255 \/ 0\.55\)/);
   });
 });
 

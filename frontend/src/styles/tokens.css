@@ -84,6 +84,12 @@
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 320ms;
+  /* Long decorative loops (skeleton pulse, spinner, scrubber, row flash). Each also has an explicit
+     animation: none under prefers-reduced-motion, so it stays a static state. */
+  --dur-pulse: 1200ms;
+  --dur-scrub: 1400ms;
+  --dur-spin: 1000ms;
+  --dur-flash: 1600ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -170,5 +176,9 @@
     --dur-fast: 0ms;
     --dur-base: 0ms;
     --dur-slow: 0ms;
+    --dur-pulse: 0ms;
+    --dur-scrub: 0ms;
+    --dur-spin: 0ms;
+    --dur-flash: 0ms;
   }
 }
