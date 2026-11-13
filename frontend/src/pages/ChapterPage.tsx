@@ -187,6 +187,8 @@ export default function ChapterPage() {
   const published = chapter.publishStatus === 'PUBLISHED';
   // A Wattpad chapter: the original is text on the left, there are no page screenshots.
   const fromText = chapter.sourceText !== null;
+  // The Original column is a draft tool: once published, a text chapter looks and behaves like a screenshot chapter.
+  const showOriginal = fromText && !published;
   const suspectNumbers = chapter.pages.flatMap((p, i) => (p.suspect ? [i + 1] : []));
 
   async function translate() {
@@ -307,7 +309,7 @@ export default function ChapterPage() {
   }
 
   return (
-    <Page width={fromText ? 'default' : 'narrow'} className="chapter-page">
+    <Page width={showOriginal ? 'default' : 'narrow'} className="chapter-page">
       {confirmDialog}
       <PageHeader
         breadcrumbs={[
@@ -417,17 +419,12 @@ export default function ChapterPage() {
         </div>
       </div>
 
-      {fromText ? (
-        published && (
-          <p className="chapter-note">
-            This chapter is published: only the text can be edited. Unpublish to translate again or reload the original.
-          </p>
-        )
-      ) : published ? (
+      {published ? (
         <p className="chapter-note">
           This chapter is published: only the text can be edited. Unpublish to change pages or translate again.
         </p>
       ) : (
+        !fromText && (
         <section className="chapter-pages" aria-labelledby={`${ids}-pages`}>
           <h2 id={`${ids}-pages`} className="history__heading">Pages</h2>
           <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
@@ -461,6 +458,7 @@ export default function ChapterPage() {
             </SortableContext>
           </DndContext>
         </section>
+        )
       )}
 
       {suspectNumbers.length > 0 && (
@@ -480,19 +478,17 @@ export default function ChapterPage() {
         </p>
       )}
 
-      <div className={fromText ? 'chapter-columns' : undefined}>
-        {fromText && (
+      <div className={showOriginal ? 'chapter-columns' : undefined}>
+        {showOriginal && (
           <section className="chapter-original" aria-labelledby={`${ids}-original`}>
             <div className="chapter-original__head">
               <h2 id={`${ids}-original`} className="history__heading">
                 Original ({chapter.sourceLanguage === 'en' ? 'English' : 'Thai'})
               </h2>
-              {!published && (
-                <button className="button button--s" type="button" disabled={locked} onClick={() => void reloadOriginal()}>
-                  <RefreshCw className="icon" aria-hidden="true" />
-                  Reload original
-                </button>
-              )}
+              <button className="button button--s" type="button" disabled={locked} onClick={() => void reloadOriginal()}>
+                <RefreshCw className="icon" aria-hidden="true" />
+                Reload original
+              </button>
             </div>
             <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0}
               lang={chapter.sourceLanguage}>
