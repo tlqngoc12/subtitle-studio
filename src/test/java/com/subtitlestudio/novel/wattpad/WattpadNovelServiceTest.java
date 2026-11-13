@@ -53,6 +53,7 @@ class WattpadNovelServiceTest {
     private com.subtitlestudio.novel.ChapterService chapterService;
     private com.subtitlestudio.novel.ChapterTranslationService translation;
     private com.subtitlestudio.fanfic.Sleeper sleeper;
+    private com.subtitlestudio.novel.NovelProfileStore profiles;
     private static final Instant NOW = Instant.parse("2026-11-13T01:00:00Z");
 
     @BeforeEach
@@ -64,9 +65,10 @@ class WattpadNovelServiceTest {
         chapters = mock(com.subtitlestudio.novel.ChapterRepository.class);
         chapterService = mock(com.subtitlestudio.novel.ChapterService.class);
         sleeper = mock(com.subtitlestudio.fanfic.Sleeper.class);
+        profiles = mock(com.subtitlestudio.novel.NovelProfileStore.class);
         translation = mock(com.subtitlestudio.novel.ChapterTranslationService.class);
         service = new WattpadNovelService(wattpad, novels, novelService, mediaService, chapters, chapterService,
-                translation, sleeper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+                translation, profiles, sleeper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
     private static WattpadStoryParts story(String language) {
@@ -535,5 +537,64 @@ class WattpadNovelServiceTest {
         assertThatThrownBy(() -> service.fetchAndTranslate(3, "2")).isInstanceOf(IllegalStateException.class);
 
         verify(chapterService, org.mockito.Mockito.times(1)).addFromSource(3L, "One", "Hello", "2", NOW);
+    }
+
+    // ---- automatic translation profile ----
+
+    private static NovelRequest profileRequest(String title, String profile, String language) {
+        return new NovelRequest("my-grumpy-vampire", title, null, "emibonnie", "A blurb", List.of("gl"),
+                NovelStatus.COMPLETED, null, LINK, profile, null, NovelSourceType.WATTPAD, language, "396487502",
+                null);
+    }
+
+    @Test
+    void aBlankProfileCreatesOneFromTheTemplateAndUsesIt() {
+        service.create(profileRequest("My Grumpy Vampire | EmiBonnie", null, "th"));
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(profiles, org.mockito.Mockito.times(1)).create(eq("MyGrumpyVampire"), text.capture());
+        assertThat(text.getValue()).contains("My Grumpy Vampire | EmiBonnie", "emibonnie", "gl", "A blurb",
+                "tiếng Thái");
+        ArgumentCaptor<NovelRequest> sent = ArgumentCaptor.forClass(NovelRequest.class);
+        verify(novelService).create(sent.capture());
+        assertThat(sent.getValue().promptProfile()).isEqualTo("MyGrumpyVampire");
+    }
+
+    @Test
+    void aChosenProfileWritesNothing() {
+        service.create(profileRequest("My Grumpy Vampire", "BeMySugar", "th"));
+
+        verify(profiles, never()).create(anyString(), anyString());
+        ArgumentCaptor<NovelRequest> sent = ArgumentCaptor.forClass(NovelRequest.class);
+        verify(novelService).create(sent.capture());
+        assertThat(sent.getValue().promptProfile()).isEqualTo("BeMySugar");
+    }
+
+    @Test
+    void theProfileFileIsDeletedAgainWhenTheNovelCannotBeCreated() {
+        DuplicateNovelSlugException failure = new DuplicateNovelSlugException("my-grumpy-vampire");
+        when(novelService.create(any())).thenThrow(failure);
+
+        assertThatThrownBy(() -> service.create(profileRequest("My Grumpy Vampire", " ", "en"))).isSameAs(failure);
+
+        verify(profiles).delete("MyGrumpyVampire");
+    }
+
+    @Test
+    void anExistingProfileFileIsNotReusedOrOverwritten() {
+        when(profiles.exists("MyGrumpyVampire")).thenReturn(true);
+
+        service.create(profileRequest("My Grumpy Vampire", null, "en"));
+
+        verify(profiles).create(eq("MyGrumpyVampire-2"), anyString());
+        verify(profiles, never()).create(eq("MyGrumpyVampire"), anyString());
+    }
+
+    @Test
+    void thePreviewSuggestsTheProfileName() {
+        when(wattpad.storyWithParts("396487502")).thenReturn(story("English"));
+        when(profiles.exists("TheWayShe WarmedMe".replace(" ", ""))).thenReturn(true);
+
+        assertThat(service.preview(LINK).suggestedProfile()).isEqualTo("TheWaySheWarmedMe-2");
     }
 }
