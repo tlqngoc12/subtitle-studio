@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
+import { Page } from "../../components/ui/Page";
 import type { NovelSource } from "../../data/novelSource";
 import type {
   PublicChapterFile,
@@ -201,9 +202,9 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   ];
 
   return (
-    <main
+    <Page
       ref={area}
-      className="page reader-page"
+      className="reader-page"
       data-reader-theme={theme}
       style={{ "--reader-width": `${READER_COLUMNS[size]}px` } as CSSProperties}
     >
@@ -331,6 +332,6 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
           </section>
         </>
       )}
-    </main>
+    </Page>
   );
 }

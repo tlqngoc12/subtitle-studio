@@ -1,6 +1,5 @@
 import { BookOpen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { EmptyState } from '../../components/EmptyState';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
@@ -10,6 +9,7 @@ import { NovelTile } from './NovelTile';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
 import { LoadingText } from '../../components/ui/LoadingText';
+import { Page } from '../../components/ui/Page';
 import { PageHeader } from '../../components/ui/PageHeader';
 
 /** `/novels/all`: every public novel as large-cover tiles, newest update first. */
@@ -32,9 +32,8 @@ export default function PublicAllNovelsPage({ source }: { source: NovelSource })
   const sorted = useMemo(() => (novels === null ? null : byLatestUpdate(novels)), [novels]);
 
   return (
-    <main className="page">
-      <Breadcrumbs items={[{ label: 'Novels', to: '/novels' }, { label: 'Tất cả truyện' }]} />
-      <PageHeader title="Tất cả truyện" />
+    <Page>
+      <PageHeader breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: 'Tất cả truyện' }]} title="Tất cả truyện" />
       {error && (
         <Alert title={error.title} hint={error.hint} />
       )}
@@ -49,6 +48,6 @@ export default function PublicAllNovelsPage({ source }: { source: NovelSource })
           ))}
         </ul>
       )}
-    </main>
+    </Page>
   );
 }

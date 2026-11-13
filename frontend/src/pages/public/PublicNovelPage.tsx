@@ -4,14 +4,15 @@ import { BookmarkCheck, BookmarkPlus, Check, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link, useParams, useSearchParams } from "react-router";
-import { Breadcrumbs } from "../../components/Breadcrumbs";
 import type { NovelSource } from "../../data/novelSource";
 import type { PublicNovelDetail } from "../../data/novelTypes";
 import { useReadCounts } from "../../data/novelReads";
 import { ReadsMeta } from "./ReadsMeta";
 import { readProgress, readReadChapters, readShelf, toggleShelf } from "./readerPrefs";
 import { Alert } from '../../components/ui/Alert';
-import { LoadingText } from '../../components/ui/LoadingText';
+import { Page } from "../../components/ui/Page";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { PageSkeleton } from "../../components/ui/Skeleton";
 import {
   PUBLIC_ERROR_TITLE,
   PUBLIC_STATUS_LABEL,
@@ -55,18 +56,18 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
 
   if (failed) {
     return (
-      <main className="page">
+      <Page>
         <Alert title={PUBLIC_ERROR_TITLE}>
           <Link to="/novels">Về danh sách truyện</Link>
         </Alert>
-      </main>
+      </Page>
     );
   }
   if (!novel) {
     return (
-      <main className="page">
-        <LoadingText>Đang tải truyện…</LoadingText>
-      </main>
+      <Page>
+        <PageSkeleton rows={4} />
+      </Page>
     );
   }
 
@@ -132,99 +133,100 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
     </ol>
   );
   return (
-    <main className="page novel-page">
-      <Breadcrumbs
-        items={[{ label: "Novels", to: "/novels" }, { label: novel.title }]}
-      />
-      <header className="novel-hero">
-        <Cover src={novel.coverUrl} className="novel-hero__cover" />
-        <div className="novel-hero__text">
-          <h1 className="masthead__name">{novel.title}</h1>
-          <dl className="novel-facts">
-            {novel.originalAuthor && (
-              <div>
-                <dt>Tác giả</dt>
-                <dd>{novel.originalAuthor}</dd>
-              </div>
-            )}
-            <div>
-              <dt>Trạng thái</dt>
-              <dd>{PUBLIC_STATUS_LABEL[novel.novelStatus]}</dd>
-            </div>
-            {novel.translatorCredit && (
-              <div>
-                <dt>Bản dịch</dt>
-                <dd>{novel.translatorCredit}</dd>
-              </div>
-            )}
-          </dl>
-          <ReadsMeta reads={reads?.[novel.slug]} />
-          {novel.tags.length > 0 && (
-            <ul className="tag-list" aria-label="Thể loại">
-              {novel.tags.map((t) => (
-                <li key={t} className="badge badge--info">
-                  {t}
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="novel-hero__actions">
-            {/* In the hero on desktop; under 768px the stylesheet pins it to the bottom of the screen as a full-width bar. */}
-            <div className="novel-cta">
-              {resume ? (
-                <Link
-                  className="button button--primary button--l novel-cta__read"
-                  to={`/novels/${novel.slug}/${resume.chapterNo}`}
-                >
-                  Đọc tiếp:{" "}
-                  {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
-                </Link>
-              ) : (
-                first && (
+    <Page className="novel-page">
+      <PageHeader
+        variant="hero"
+        breadcrumbs={[{ label: "Novels", to: "/novels" }, { label: novel.title }]}
+        title={novel.title}
+        media={<Cover src={novel.coverUrl} className="novel-hero__cover" />}
+        meta={
+          <div className="novel-hero__rest">
+              <dl className="novel-facts">
+                {novel.originalAuthor && (
+                  <div>
+                    <dt>Tác giả</dt>
+                    <dd>{novel.originalAuthor}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Trạng thái</dt>
+                  <dd>{PUBLIC_STATUS_LABEL[novel.novelStatus]}</dd>
+                </div>
+                {novel.translatorCredit && (
+                  <div>
+                    <dt>Bản dịch</dt>
+                    <dd>{novel.translatorCredit}</dd>
+                  </div>
+                )}
+              </dl>
+              <ReadsMeta reads={reads?.[novel.slug]} />
+              {novel.tags.length > 0 && (
+                <ul className="tag-list" aria-label="Thể loại">
+                  {novel.tags.map((t) => (
+                    <li key={t} className="badge badge--info">
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="novel-hero__actions">
+                {/* In the hero on desktop; under 768px the stylesheet pins it to the bottom of the screen as a full-width bar. */}
+                <div className="novel-cta">
+                  {resume ? (
+                    <Link
+                      className="button button--primary button--l novel-cta__read"
+                      to={`/novels/${novel.slug}/${resume.chapterNo}`}
+                    >
+                      Đọc tiếp:{" "}
+                      {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                    </Link>
+                  ) : (
+                    first && (
+                      <Link
+                        className="button button--primary button--l novel-cta__read"
+                        to={`/novels/${novel.slug}/${first.chapterNo}`}
+                      >
+                        Bắt đầu đọc
+                      </Link>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    className="button button--icon button--l novel-cta__shelf"
+                    aria-pressed={onShelf}
+                    aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
+                    onClick={flipShelf}
+                  >
+                    {onShelf ? (
+                      <BookmarkCheck className="icon" aria-hidden="true" />
+                    ) : (
+                      <BookmarkPlus className="icon" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
+                {resume && (
                   <Link
-                    className="button button--primary button--l novel-cta__read"
+                    className="button button--s"
                     to={`/novels/${novel.slug}/${first.chapterNo}`}
                   >
-                    Bắt đầu đọc
+                    Đọc từ đầu
                   </Link>
-                )
-              )}
-              <button
-                type="button"
-                className="button button--icon button--l novel-cta__shelf"
-                aria-pressed={onShelf}
-                aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
-                onClick={flipShelf}
-              >
-                {onShelf ? (
-                  <BookmarkCheck className="icon" aria-hidden="true" />
-                ) : (
-                  <BookmarkPlus className="icon" aria-hidden="true" />
                 )}
-              </button>
-            </div>
-            {resume && (
-              <Link
-                className="button button--s"
-                to={`/novels/${novel.slug}/${first.chapterNo}`}
-              >
-                Đọc từ đầu
-              </Link>
-            )}
-            {novel.sourceUrl && (
-              <a
-                className="button button--s"
-                href={novel.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink className="icon" aria-hidden="true" />
-                Truyện gốc
-              </a>
-            )}
+                {novel.sourceUrl && (
+                  <a
+                    className="button button--s"
+                    href={novel.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="icon" aria-hidden="true" />
+                    Truyện gốc
+                  </a>
+                )}
+              </div>
           </div>
-        </div>
-      </header>
+        }
+      />
       {hasIntro || trailerId ? (
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
           <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
@@ -271,6 +273,6 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
           {chapterList}
         </>
       )}
-    </main>
+    </Page>
   );
 }

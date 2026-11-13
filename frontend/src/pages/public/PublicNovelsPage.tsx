@@ -12,7 +12,9 @@ import { NovelRow } from './NovelRow';
 import { readProgress, readShelf } from './readerPrefs';
 import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { LoadingText } from '../../components/ui/LoadingText';
+import { Page } from '../../components/ui/Page';
 import './PublicNovelsPage.css';
 
 const FEATURED = 5;
@@ -49,8 +51,8 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   }, [novels]);
 
   return (
-    <main className="page">
-      <h1 className="visually-hidden">Truyện</h1>
+    <Page>
+      <PageHeader title="Truyện" />
       <NovelsTabs
         tab={tab}
         onTabChange={setTab}
@@ -97,6 +99,6 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
           </>
         }
       />
-    </main>
+    </Page>
   );
 }

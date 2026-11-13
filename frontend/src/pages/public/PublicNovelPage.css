@@ -1,12 +1,4 @@
 /* ---------- Novels (public) ---------- */
-.novel-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: start;
-  margin-block: var(--space-2) var(--space-5);
-}
-
 .novel-hero__cover {
   display: grid;
   place-items: center;
@@ -16,8 +8,10 @@
   object-fit: cover;
 }
 
-.novel-hero__text {
+/* Everything under the title in the hero header: facts, reads, tags and the Read bar. */
+.novel-hero__rest {
   display: grid;
+  flex: 1 1 100%;
   gap: var(--space-3);
   justify-items: start;
   min-width: 0;
@@ -61,13 +55,6 @@
 .novel-description {
   max-width: 70ch;
   white-space: pre-line;
-}
-
-@media (min-width: 761px) {
-  .novel-hero {
-    grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
-    gap: var(--space-5);
-  }
 }
 
 /* The trailer tab: a responsive 16:9 YouTube player, flat (no shadow). */

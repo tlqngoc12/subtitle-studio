@@ -141,7 +141,11 @@ describe('PublicNovelsPage (home)', () => {
   it('keeps the empty state and the Truyện heading and tab title', async () => {
     renderHome([]);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Truyện' })).toBeInTheDocument();
+    const h1 = screen.getByRole('heading', { level: 1, name: 'Truyện' });
+    expect(h1).toBeVisible();
+    expect(h1).not.toHaveClass('visually-hidden');
+    // The header sits above the tabs.
+    expect(h1.compareDocumentPosition(screen.getByRole('tablist')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(await screen.findByText('Chưa có truyện nào. Quay lại sau nhé.')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Truyện nổi bật' })).not.toBeInTheDocument();
     expect(document.title).toBe('Truyện');
