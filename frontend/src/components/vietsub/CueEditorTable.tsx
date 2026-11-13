@@ -97,8 +97,8 @@ interface Props {
   errors: Readonly<Record<number, string>>;
   onChange: (index: number, text: string) => void;
   onSeek: (ms: number) => void;
-  /** A textarea of another line than the last focused one got focus: seek the video to that line and play it. */
-  onSeekPlay: (ms: number) => void;
+  /** A textarea of another line than the last focused one got focus: seek the video to that line and pause it. */
+  onSeekPause: (ms: number) => void;
 }
 
 /**
@@ -106,9 +106,9 @@ interface Props {
  * The table highlights the line at the player time (or the one before it in a gap, else the first) and keeps it in
  * view, except while a textarea has focus and for 3 s after it loses it. A seek of the player ends that wait, is followed
  * at once; focus is never moved. Focusing the text of a different line than the last focused one seeks the video to
- * that line and plays it (clicking or moving inside the same line does not), without ending the wait above.
+ * that line and pauses it (clicking or moving inside the same line does not), without ending the wait above.
  */
-function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, errors, onChange, onSeek, onSeekPlay }: Props) {
+function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, errors, onChange, onSeek, onSeekPause }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
@@ -147,9 +147,9 @@ function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, errors,
       if (readOnly || focusedRow.current === index) return;
       focusedRow.current = index;
       focusSeekMs.current = ms;
-      onSeekPlay(ms);
+      onSeekPause(ms);
     },
-    [readOnly, onSeekPlay],
+    [readOnly, onSeekPause],
   );
 
   const lastMs = useRef(currentMs);

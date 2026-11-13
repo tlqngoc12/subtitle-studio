@@ -406,7 +406,7 @@ export default function ChapterPage() {
               </Tip>
             </div>
             <input id={`${ids}-label`} type="text" maxLength={100} value={label} disabled={locked}
-              placeholder={`Chapter ${number || chapter.chapterNo}`}
+              placeholder="e.g. Ngoại truyện 1"
               onChange={(e) => setLabel(e.target.value)} />
           </div>
           <div className="field chapter-meta__title">

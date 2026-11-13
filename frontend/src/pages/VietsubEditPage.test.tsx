@@ -18,7 +18,7 @@ const player = vi.hoisted(() => ({
   state: 'ready' as 'loading' | 'ready' | 'playing' | 'paused' | 'ended',
   error: null as 'EMBED_BLOCKED' | 'LOAD_FAILED' | null,
   seekTo: vi.fn(),
-  play: vi.fn(),
+  pause: vi.fn(),
 }));
 
 vi.mock('../player/useYouTubePlayer', () => ({
@@ -168,7 +168,7 @@ describe('VietsubEditPage', () => {
     player.state = 'ready';
     player.error = null;
     player.seekTo = vi.fn();
-    player.play = vi.fn();
+    player.pause = vi.fn();
     polling.ids = [];
     polling.onUpdate = null;
     vi.mocked(toast.success).mockClear();
@@ -810,15 +810,15 @@ describe('VietsubEditPage', () => {
     });
   });
 
-  describe('seek and play on focus', () => {
-    it('focusing another line seeks the video to its start and plays; the same line again does not', async () => {
+  describe('seek and pause on focus', () => {
+    it('focusing another line seeks the video to its start and pauses it; the same line again does not', async () => {
       await renderEditor();
       const user = userEvent.setup();
 
       await user.click(area(3));
       expect(player.seekTo).toHaveBeenCalledTimes(1);
       expect(player.seekTo).toHaveBeenLastCalledWith(3_000);
-      expect(player.play).toHaveBeenCalledTimes(1);
+      expect(player.pause).toHaveBeenCalledTimes(1);
 
       await user.click(area(3)); // click inside the same line
       await user.keyboard('{ArrowLeft}x');
@@ -831,25 +831,25 @@ describe('VietsubEditPage', () => {
       await user.click(area(1));
       expect(player.seekTo).toHaveBeenCalledTimes(2);
       expect(player.seekTo).toHaveBeenLastCalledWith(0);
-      expect(player.play).toHaveBeenCalledTimes(2);
+      expect(player.pause).toHaveBeenCalledTimes(2);
     });
 
-    it('the number button still only seeks (no play, no focus change)', async () => {
+    it('the number button still only seeks (no pause, no focus change)', async () => {
       await renderEditor();
 
       await userEvent.setup().click(screen.getByRole('button', { name: 'Go to line 3' }));
 
       expect(player.seekTo).toHaveBeenCalledWith(3_000);
-      expect(player.play).not.toHaveBeenCalled();
+      expect(player.pause).not.toHaveBeenCalled();
     });
 
-    it('does not seek or play while Gemini translates', async () => {
+    it('does not seek or pause while Gemini translates', async () => {
       await renderEditor({ ...video, translationStatus: 'TRANSLATING' });
 
       await userEvent.setup().click(area(2));
 
       expect(player.seekTo).not.toHaveBeenCalled();
-      expect(player.play).not.toHaveBeenCalled();
+      expect(player.pause).not.toHaveBeenCalled();
     });
 
     it('keeps the table still after the focus seek (the seek does not end the scroll wait)', async () => {

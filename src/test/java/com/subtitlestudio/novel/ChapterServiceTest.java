@@ -411,6 +411,31 @@ class ChapterServiceTest {
     }
 
     @Test
+    void labelThatIsTheDefaultNameIsStoredAsNull() {
+        ChapterDetail c = chapterWithPages(16, "a.png");
+
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Chapter 16")).label()).isNull();
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label(" chương  16 ")).label()).isNull();
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("CHAPTER 016")).label()).isNull();
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Chapter 3")).label()).isEqualTo("Chapter 3");
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Chapter 16.5")).label())
+                .isEqualTo("Chapter 16.5");
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Ngoại truyện 1")).label())
+                .isEqualTo("Ngoại truyện 1");
+        assertThat(service.update(c.id(), ChapterUpdateRequest.label("  ")).label()).isNull();
+    }
+
+    @Test
+    void defaultNameIsComparedWithTheNewChapterNumber() {
+        ChapterDetail c = chapterWithPages(16, "a.png");
+
+        ChapterDetail moved = service.update(c.id(), new ChapterUpdateRequest(40, null, null, null, "Chapter 40"));
+        assertThat(moved.label()).isNull();
+        assertThat(service.update(c.id(), new ChapterUpdateRequest(41, null, null, null, "Chapter 40")).label())
+                .isEqualTo("Chapter 40");
+    }
+
+    @Test
     void publishedChapterAcceptsALabel() {
         ChapterDetail c = chapterWithPages(5, "a.png");
         setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);

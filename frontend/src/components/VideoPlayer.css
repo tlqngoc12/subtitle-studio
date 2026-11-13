@@ -17,9 +17,11 @@
 }
 
 /* iPhone Safari has no Fullscreen API for this frame: it fills the viewport instead (above the top bar),
-   so the Vietsub overlay stays on the video. The iframe covers the whole screen, so YouTube measures it at its
-   real size and centres the video; the 16:9 picture is pillarboxed on a tall phone in landscape, which keeps it
-   clear of the notch. Only our own buttons and captions take the safe-area insets. */
+   so the Vietsub overlay stays on the video. YouTube's in-iframe player offsets its video by the safe-area
+   inset, which app CSS cannot change, so the video would sit off-centre. Filled mode therefore drops
+   `viewport-fit=cover` (useFilledViewport) and Safari letterboxes the page into the safe area (insets 0
+   left/right). The safe-area offsets below for our own buttons and captions are harmless; the bottom inset
+   still applies. */
 .player--filled {
   --safe-top: env(safe-area-inset-top);
   --safe-right: env(safe-area-inset-right);
@@ -41,6 +43,8 @@
 html.player-filled-open,
 html.player-filled-open body {
   overflow: hidden;
+  /* Without viewport-fit=cover Safari shows the page background in the letterboxed safe area. */
+  background: var(--video-bg);
 }
 
 .player__video,
