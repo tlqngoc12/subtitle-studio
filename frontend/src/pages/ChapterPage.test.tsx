@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -761,13 +761,52 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     expect(calls.some((c) => c.path === '/api/chapters/9/reload-original')).toBe(false);
   });
 
-  it('a published chapter cannot reload the original', async () => {
+  it('a published chapter looks like a published screenshot chapter: no Original column, only the text', async () => {
     renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'Bản dịch' })]);
     await loaded();
 
     expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
-    expect(screen.getByText(/only the text can be edited/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Original/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
+    expect(textBox()).toHaveValue('Bản dịch');
+    expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
+  });
+
+  it('words the published note for each kind of chapter', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
+    cleanup();
+
+    renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'x' })]);
+    await loaded();
+    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to translate again.')).toBeInTheDocument();
+    expect(screen.queryByText(/change pages/)).not.toBeInTheDocument();
+  });
+
+  it('a published Wattpad page has the same width as a published screenshot page', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+    const screenshotClass = screen.getByRole('main').className;
+    cleanup();
+
+    renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'x' })]);
+    await loaded();
+    expect(screen.getByRole('main').className).toBe(screenshotClass);
+    expect(screenshotClass).toContain('page--narrow');
+  });
+
+  it('a draft keeps the Original column with Reload original', async () => {
+    renderPage([wattpad()]);
+    await loaded();
+
     expect(screen.getByRole('region', { name: 'Original text' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reload original' })).toBeInTheDocument();
+    expect(screen.getByRole('main').className).not.toContain('page--narrow');
   });
 
   it('shows the reload error', async () => {

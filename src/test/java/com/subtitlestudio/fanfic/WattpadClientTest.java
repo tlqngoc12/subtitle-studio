@@ -52,9 +52,19 @@ class WattpadClientTest {
         server.createContext("/apiv2/storytext", ex -> {
             String query = ex.getRequestURI().getRawQuery();
             textRequests.add(query);
-            String page = query.contains("&page=") ? query.substring(query.indexOf("&page=") + 6) : "1";
+            // Like real Wattpad: no page parameter = the whole part; page=N = that page; past the end = empty body.
             String id = query.substring(3).replaceAll("&.*", "");
-            byte[] bytes = textPages.getOrDefault(id + ":" + page, "").getBytes(StandardCharsets.UTF_8);
+            String body;
+            if (query.contains("&page=")) {
+                body = textPages.getOrDefault(id + ":" + query.substring(query.indexOf("&page=") + 6), "");
+            } else {
+                StringBuilder whole = new StringBuilder();
+                for (int n = 1; textPages.containsKey(id + ":" + n); n++) {
+                    whole.append(textPages.get(id + ":" + n));
+                }
+                body = whole.toString();
+            }
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             respond(ex, textStatus, "text/plain", bytes);
         });
         server.createContext("/cover/", ex -> {
@@ -251,7 +261,7 @@ class WattpadClientTest {
         textPages.put("77:1", "<p>Hello</p>");
 
         assertThat(client.partText("77")).isEqualTo("<p>Hello</p>");
-        assertThat(textRequests).containsExactly("id=77", "id=77&page=2");
+        assertThat(textRequests).containsExactly("id=77&page=1", "id=77&page=2");
     }
 
     @Test
@@ -260,7 +270,16 @@ class WattpadClientTest {
         textPages.put("77:2", "<p>Two</p>");
 
         assertThat(client.partText("77")).isEqualTo("<p>One</p><p>Two</p>");
-        assertThat(textRequests).containsExactly("id=77", "id=77&page=2", "id=77&page=3");
+        assertThat(textRequests).containsExactly("id=77&page=1", "id=77&page=2", "id=77&page=3");
+    }
+
+    @Test
+    void partTextReturnsEachParagraphOnceWhenWattpadPagesThePart() {
+        textPages.put("77:1", "<p>A</p><p>B</p>");
+        textPages.put("77:2", "<p>C</p>");
+        textPages.put("77:3", "<p>D</p><p>E</p>");
+
+        assertThat(client.partText("77")).isEqualTo("<p>A</p><p>B</p><p>C</p><p>D</p><p>E</p>");
     }
 
     @Test
