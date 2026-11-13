@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import type { ViCue } from '../api/client';
 import type { PlayerError } from '../player/useYouTubePlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
+import { LayoutDebug } from './LayoutDebug'; // TEMP(debug-ios-fullscreen)
 import './VideoPlayer.css';
 
 const ERROR_TEXT: Record<PlayerError, [en: string, vi: string]> = {
@@ -115,6 +116,7 @@ export function VideoPlayer({
   return (
     <div className={filled ? 'player player--filled' : 'player'} ref={frameRef}>
       {error ? <p className="player__error">{t(...ERROR_TEXT[error])}</p> : <div className="player__video" ref={containerRef} />}
+      <LayoutDebug filled={filled} /> {/* TEMP(debug-ios-fullscreen) */}
       <SubtitleOverlay cue={captionsOn ? cue : null} size={captionSize} />
       {/* title, not <Tip>: the tooltip portal renders outside the fullscreen frame, so it would never show there. */}
       <div className="player__tools">
