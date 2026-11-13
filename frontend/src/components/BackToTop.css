@@ -1,4 +1,4 @@
-/* Floating round button, bottom right. Above the page content and its sticky bars, below dialogs and the video player. */
+/* Floating button, bottom right. Above the page content and its sticky bars, below dialogs and the video player. */
 .back-to-top {
   position: fixed;
   right: calc(var(--space-4) + env(safe-area-inset-right));
@@ -11,7 +11,7 @@
   height: 44px;
   padding: 0;
   border: 1px solid var(--brand);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--brand-ink);
   box-shadow: var(--shadow-overlay);
