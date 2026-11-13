@@ -179,7 +179,7 @@ describe('ReaderPage', () => {
     await screen.findAllByRole('img', { name: /^Special, trang/ });
 
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    const links = within(crumbs).getAllByRole('link', { name: (n) => !n.startsWith('Quay lại') });
+    const links = within(crumbs.querySelector<HTMLElement>('.breadcrumbs__list')!).getAllByRole('link');
     expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Tình Yêu Mùa Hạ']);
     expect(links[0]).toHaveAttribute('href', '/novels');
     expect(links[1]).toHaveAttribute('href', '/novels/summer');

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { deleteVietsub, replaceVietsub, listVideos, type VideoDto } from '../api/client';
 import { Pagination } from '../components/Pagination';
-import { SourceFilter } from '../components/SourceFilter';
 import { VietsubList } from '../components/VietsubList';
 import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -12,8 +11,11 @@ import { matchesSearch } from '../lib/search';
 import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
 import { Alert } from '../components/ui/Alert';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { FilterPills } from '../components/ui/FilterPills';
 import { SearchBar } from '../components/ui/SearchBar';
+import { Toolbar } from '../components/ui/Toolbar';
 import './VietsubPage.css';
 
 export default function VietsubPage() {
@@ -98,7 +100,7 @@ export default function VietsubPage() {
   }
 
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
       <PageHeader title="Vietsub" lede="Replace, download or delete the Vietsub of your videos." />
       <VietsubTabs>
@@ -113,21 +115,34 @@ export default function VietsubPage() {
           listKey={pager.page}
           filtered={query.trim() !== '' || source !== null}
           toolbar={
-            <div className="toolbar">
-              <SearchBar
-                value={query}
-                onChange={(v) => setFilter('q', v)}
-                label="Search videos"
-                onClear={() => setFilter('q', null)}
-              />
-              <SourceFilter value={source} onChange={(v) => setFilter('source', v)} />
-            </div>
+            <Toolbar
+              search={
+                <SearchBar
+                  value={query}
+                  onChange={(v) => setFilter('q', v)}
+                  label="Search videos"
+                  onClear={() => setFilter('q', null)}
+                />
+              }
+              filters={
+                <FilterPills<'ai' | 'manual' | null>
+                  label="Filter by source"
+                  value={source}
+                  onChange={(v) => setFilter('source', v)}
+                  options={[
+                    { value: null, label: 'All' },
+                    { value: 'ai', label: 'AI' },
+                    { value: 'manual', label: 'Manual' },
+                  ]}
+                />
+              }
+            />
           }
           onReplace={handleReplace}
           onDelete={handleDelete}
           footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
         />
       </VietsubTabs>
-    </main>
+    </Page>
   );
 }

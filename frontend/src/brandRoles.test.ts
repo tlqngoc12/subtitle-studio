@@ -26,7 +26,6 @@ describe('colour roles in CSS', () => {
   it('hover borders are orchid', () => {
     expect(rule('.button:hover:not(:disabled)')).toContain('var(--brand-2)');
     expect(rule('.pager__link:hover')).toContain('var(--brand-2)');
-    expect(rule('.filter-button:hover,\n.filter-button--active')).toContain('var(--brand-2)');
   });
 
   it('disabled secondary buttons keep the neutral rule border', () => {

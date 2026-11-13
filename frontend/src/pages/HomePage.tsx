@@ -21,6 +21,7 @@ import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { usePagination } from '../lib/usePagination';
 import { useTranslationPolling } from '../lib/useTranslationPolling';
 import { Alert } from '../components/ui/Alert';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 
 interface Current {
@@ -187,10 +188,10 @@ export default function HomePage() {
   }
 
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
       <PageHeader
-        title="Subtitle Studio"
+        title="Get Engsub"
         lede="Paste a YouTube link to get cleaned-up English subtitles, then download the .srt file to translate."
       />
 
@@ -232,6 +233,6 @@ export default function HomePage() {
         }}
         onDelete={handleDelete}
       />
-    </main>
+    </Page>
   );
 }

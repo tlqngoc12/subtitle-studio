@@ -4,25 +4,25 @@
   gap: var(--space-5);
 }
 
+/* The standard toolbar: profile select and its stats, Analyze pushed right. */
 .profiles__bar {
-  display: flex;
-  flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--space-4);
+}
+
+.profiles__bar .toolbar__filters {
+  align-items: flex-end;
+  flex: 1 1 260px;
 }
 
 .profiles__select {
   min-width: 220px;
-  width: 100%;
+  flex: 1 1 220px;
+  max-width: 360px;
 }
 
 .profiles__stats {
   align-self: center;
   margin: 0;
-}
-
-.profiles__analyze {
-  width: 100%;
 }
 
 /* Tooltip-carrying button that is unavailable: it stays focusable so the reason can be read. */
