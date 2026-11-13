@@ -13,6 +13,7 @@ export interface YTPlayer {
   mute(): void;
   unMute(): void;
   isMuted(): boolean;
+  setSize(width: number, height: number): object;
   /** Undocumented but long-standing: unloadModule('captions') hides YouTube's own subtitles. */
   unloadModule?(name: string): void;
 }

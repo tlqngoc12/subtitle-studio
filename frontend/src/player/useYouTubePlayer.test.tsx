@@ -20,6 +20,10 @@ const target = {
   getPlayerState: () => fake.playerState,
   getDuration: () => fake.duration,
   mute: () => {},
+  setSize: (w: number, h: number) => {
+    fake.calls.push(`size ${w}x${h}`);
+    return {};
+  },
   unMute: () => {},
   isMuted: () => fake.muted,
   cueVideoById: (id: string) => {
@@ -83,6 +87,10 @@ describe('useYouTubePlayer', () => {
         }
         getDuration() {
           return fake.duration;
+        }
+        setSize(w: number, h: number) {
+          fake.calls.push(`size ${w}x${h}`);
+          return {};
         }
         mute() {
           fake.calls.push('mute');
@@ -319,6 +327,34 @@ describe('useYouTubePlayer', () => {
     act(() => fake.options!.events!.onReady!(event(-1)));
 
     expect(fake.calls).toEqual(['load bbbbbbbbbbb']);
+  });
+
+  describe('refreshSize', () => {
+    function sized(width: number, height: number) {
+      const el = document.createElement('div');
+      Object.defineProperty(el, 'clientWidth', { value: width });
+      Object.defineProperty(el, 'clientHeight', { value: height });
+      document.body.appendChild(el);
+      return { current: el };
+    }
+
+    it('passes the container size to the player once it is ready', async () => {
+      const ref = sized(814, 375);
+      const { result } = renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
+      act(() => result.current.refreshSize());
+      expect(fake.calls).not.toContain('size 814x375');
+      await ready();
+      act(() => result.current.refreshSize());
+      expect(fake.calls).toContain('size 814x375');
+    });
+
+    it('does nothing while the container has no size', async () => {
+      const ref = sized(0, 0);
+      const { result } = renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
+      await ready();
+      act(() => result.current.refreshSize());
+      expect(fake.calls.some((c) => c.startsWith('size'))).toBe(false);
+    });
   });
 
   it('destroys the player on unmount', async () => {

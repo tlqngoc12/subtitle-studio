@@ -179,5 +179,17 @@ export function useYouTubePlayer(
     else player.mute();
   }, []);
 
-  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play, togglePlay, seekBy, toggleMute };
+  /**
+   * Tells YouTube to re-measure itself at the container's current size. iPhone Safari can lay the iframe out
+   * before the safe-area insets apply, and YouTube then keeps its video off-centre (no-op until ready).
+   */
+  const refreshSize = useCallback(() => {
+    const host = container.current;
+    const player = playerRef.current;
+    if (!host || !player || !readyRef.current) return;
+    const { clientWidth, clientHeight } = host;
+    if (clientWidth > 0 && clientHeight > 0) player.setSize(clientWidth, clientHeight);
+  }, [container]);
+
+  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play, togglePlay, seekBy, toggleMute, refreshSize };
 }
