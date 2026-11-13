@@ -1,12 +1,39 @@
-/* Breadcrumbs: Novels > title > current page. Long labels are cut with an ellipsis. */
-.breadcrumbs__list {
+/* Breadcrumbs: Novels > title > current page. Long labels are cut with an ellipsis.
+   Mobile first: phones show only the "< parent" back link; from 521px the whole trail. */
+.breadcrumbs {
+  /* Inside a page grid (24 px gap) this leaves 16 px between the trail and the header. */
+  margin: 0 0 calc(-1 * var(--space-2));
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.breadcrumbs__back {
   display: flex;
   align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  max-width: 100%;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.breadcrumbs__back:hover,
+.breadcrumbs__back:focus-visible {
+  color: var(--brand-2-ink);
+}
+
+.breadcrumbs__back .icon {
+  flex: none;
+}
+
+.breadcrumbs__list {
+  display: none;
+  align-items: center;
   gap: var(--space-2);
-  margin: var(--space-1) 0 var(--space-4);
+  margin: 0;
   padding: 0;
   list-style: none;
-  color: var(--muted);
   font-size: var(--step--1);
 }
 
@@ -46,6 +73,16 @@ a.breadcrumbs__label:hover {
   flex: none;
   color: var(--muted);
   opacity: 0.6;
+}
+
+@media (min-width: 521px) {
+  .breadcrumbs__back {
+    display: none;
+  }
+
+  .breadcrumbs__list {
+    display: flex;
+  }
 }
 
 @media print {

@@ -179,14 +179,14 @@ describe('ReaderPage', () => {
     await screen.findAllByRole('img', { name: /^Special, trang/ });
 
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    const links = within(crumbs).getAllByRole('link');
+    const links = within(crumbs).getAllByRole('link', { name: (n) => !n.startsWith('Quay lại') });
     expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Tình Yêu Mùa Hạ']);
     expect(links[0]).toHaveAttribute('href', '/novels');
     expect(links[1]).toHaveAttribute('href', '/novels/summer');
     const last = within(crumbs).getByText('Special');
     expect(last).toHaveAttribute('aria-current', 'page');
     expect(last.closest('a')).toBeNull();
-    expect(crumbs.querySelectorAll('svg')).toHaveLength(2); // ChevronRight separators
+    expect(crumbs.querySelectorAll('.breadcrumbs__sep svg')).toHaveLength(2); // ChevronRight separators
     expect(screen.queryByRole('link', { name: /^←/ })).not.toBeInTheDocument();
   });
 

@@ -1,0 +1,35 @@
+/* Search, filters and tab actions on one wrapping row. 16 px to the content below (the page grid adds 24). */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: calc(-1 * var(--space-2));
+}
+
+/* Phones: the search takes the whole row; from 521px it is capped at 360 px. */
+.toolbar__search {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+@media (min-width: 521px) {
+  .toolbar__search {
+    flex: 0 1 360px;
+  }
+}

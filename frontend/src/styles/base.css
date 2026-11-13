@@ -56,14 +56,7 @@ a:not([class]):hover {
 }
 
 /* ---------- Page ---------- */
-.page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: var(--gutter) var(--gutter) var(--space-16);
-  display: grid;
-  gap: var(--space-8);
-}
-
+/* The page column, toolbar and form bar live in components/ui/Page.css and Toolbar.css. */
 .masthead__name {
   margin: 0;
   font-size: var(--step-3);
@@ -227,45 +220,6 @@ a:not([class]):hover {
   background: var(--danger);
   border-color: var(--danger);
   filter: brightness(1.1);
-}
-
-/* Form action bar: right-aligned, Delete apart on the left; stacked full width on phones with Save on top. */
-.form-actions {
-  display: flex;
-  flex-direction: column-reverse;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  margin-top: var(--space-8);
-}
-
-.form-actions--tight {
-  margin-top: var(--space-4);
-}
-
-.form-actions > .form-actions__start {
-  margin-right: 0;
-}
-
-/* Phones: stacked full-width buttons (Cancel above Save reads bottom-up); from 521px a row. */
-.form-actions .button:not(.button--icon) {
-  width: 100%;
-}
-
-@media (min-width: 521px) {
-  .form-actions {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .form-actions > .form-actions__start {
-    margin-right: auto;
-  }
-
-  .form-actions .button:not(.button--icon) {
-    width: auto;
-  }
 }
 
 /* ---------- Fields ---------- */
