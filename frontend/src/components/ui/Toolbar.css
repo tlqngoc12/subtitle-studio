@@ -1,5 +1,5 @@
-/* Search, filters and tab actions on one wrapping row. Toolbar to content is 16 px: the page grid adds 24 and the
-   tab body 32, so a toolbar that is a direct child of either pulls itself closer. */
+/* Search, filters and tab actions on one wrapping row. Toolbar to content is 16 px: the page grid adds 24, so a
+   toolbar that is a direct child of it pulls itself closer. */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -11,8 +11,9 @@
   margin-bottom: calc(-1 * var(--space-2));
 }
 
-.tabs__body > .toolbar {
-  margin-bottom: calc(-1 * var(--space-4));
+/* Under tabs (the tab grid has a 12 px gap): 16 px from the tabs and 16 px to the content. */
+.tabs > .toolbar {
+  margin-block: var(--space-1);
 }
 
 /* Phones: the search takes the whole row; from 521px it is capped at 360 px. */

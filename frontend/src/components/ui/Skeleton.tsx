@@ -22,6 +22,18 @@ export function SkeletonGrid({ count, aspect }: { count: number; aspect: string 
   );
 }
 
+/** A whole page waiting for its data: a title bar, then list rows. Replaces `LoadingText` on detail pages. */
+export function PageSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="page-skeleton">
+      <span className="page-skeleton__title">
+        <Skeleton width="min(360px, 70%)" height="40px" />
+      </span>
+      <SkeletonList rows={rows} />
+    </div>
+  );
+}
+
 /** Placeholder rows for a list; mount it only while loading, it appears after 150 ms. */
 export function SkeletonList({ rows }: { rows: number }) {
   const t = useT();

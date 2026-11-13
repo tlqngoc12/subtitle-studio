@@ -1,7 +1,7 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { SkeletonList } from '../components/ui/Skeleton';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { ArrowLeft, CircleCheck, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
+import { CircleCheck, Clock, ListVideo, SearchX, Tv } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { EmptyState } from '../components/EmptyState';
@@ -18,8 +18,10 @@ import { usePagination } from '../lib/usePagination';
 import { withVietsub } from '../lib/vietsub';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SearchBar } from '../components/ui/SearchBar';
+import { Toolbar } from '../components/ui/Toolbar';
 import './VietsubListPage.css';
 
 /** A row of a video list; `position` is the video's number in the open playlist (null in All videos). */
@@ -123,21 +125,21 @@ export default function VietsubListPage() {
     ? t('Search playlists and videos', 'Tìm danh sách phát và video')
     : t('Search videos', 'Tìm video');
 
+  const pageName = readOnly ? 'Vietsub' : 'Vietsub list';
+  const tabsShown = !waitingForPlaylist && !active;
+  const search = (
+    <Toolbar search={<SearchBar value={query} onChange={setQuery} label={searchLabel} onClear={() => setQuery('')} />} />
+  );
+
   return (
-    <main className="page">
+    <Page>
       <PageHeader
-        title={readOnly ? 'Vietsub' : 'Vietsub list'}
+        breadcrumbs={active ? [{ label: pageName, to: backToPlaylists }, { label: active.name }] : undefined}
+        title={pageName}
         lede={t('Choose a video to watch with Vietsub.', 'Chọn một video để xem cùng Vietsub.')}
       />
 
-      {active && (
-        <Link className="back-link" to={backToPlaylists}>
-          <ArrowLeft className="icon icon--sm" aria-hidden="true" />
-          {t('Back to Playlists', 'Quay lại danh sách phát')}
-        </Link>
-      )}
-
-      <SearchBar value={query} onChange={setQuery} label={searchLabel} onClear={() => setQuery('')} />
+      {!tabsShown && search}
 
       {waitingForPlaylist ? (
         <LoadingText>{t('Loading playlist…', 'Đang tải danh sách phát…')}</LoadingText>
@@ -166,6 +168,7 @@ export default function VietsubListPage() {
               {t('All videos', 'Tất cả video')}
             </TabTrigger>
           </Tabs.List>
+          {search}
           <Tabs.Content value="playlists">
             <PlaylistsTab query={query} playlists={playlists} />
           </Tabs.Content>
@@ -174,7 +177,7 @@ export default function VietsubListPage() {
           </Tabs.Content>
         </Tabs.Root>
       )}
-    </main>
+    </Page>
   );
 }
 

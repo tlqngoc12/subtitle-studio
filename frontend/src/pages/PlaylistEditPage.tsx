@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowDown, ArrowLeft, ArrowUp, GripVertical, ListPlus, Pencil, Play, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, GripVertical, ListPlus, Pencil, Play, Trash2, X } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -32,10 +32,11 @@ import {
 import { EmptyState } from '../components/EmptyState';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
-import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
-import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import './PlaylistEditPage.css';
 
 /** Vietsub › Playlists › one playlist: rename, reorder (drag and drop or ↑ ↓), remove videos, delete. */
@@ -134,96 +135,108 @@ export default function PlaylistEditPage() {
     void saveOrder(arrayMove(playlist.videos, from, to));
   }
 
+  const crumbs = [
+    { label: 'Vietsub', to: '/vietsub' },
+    { label: 'Playlists', to: '/vietsub/playlists' },
+  ];
+
+  if (!playlist) {
+    return (
+      <Page>
+        {confirmDialog}
+        {notFound || error ? (
+          <>
+            <PageHeader
+              breadcrumbs={[...crumbs, { label: notFound ? 'Not found' : 'Playlist' }]}
+              title={notFound ? 'Playlist not found' : 'Playlist'}
+            />
+            {error && <Alert title={error.title} hint={notFound ? undefined : error.hint} />}
+          </>
+        ) : (
+          <PageSkeleton rows={4} />
+        )}
+      </Page>
+    );
+  }
+
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
-      <VietsubTabs>
-        <Link className="back-link" to="/vietsub/playlists">
-          <ArrowLeft className="icon icon--sm" aria-hidden="true" />
-          Back to Playlists
-        </Link>
+      <PageHeader
+        breadcrumbs={[...crumbs, { label: playlist.name }]}
+        title={playlist.name}
+        lede={playlist.description}
+        meta={<span className="muted">{videoCountLabel(playlist.videos.length)}</span>}
+        actions={
+          editing ? undefined : (
+            <>
+              <button className="button" type="button" onClick={() => setEditing(true)}>
+                <Pencil className="icon" aria-hidden="true" />
+                Edit details
+              </button>
+              {playlist.videos.length > 0 && (
+                <Link
+                  className="button button--primary"
+                  to={`/vietsub/${playlist.videos[0].id}?playlist=${playlist.id}`}
+                  state={{ autoplay: true }}
+                >
+                  <Play className="icon" aria-hidden="true" />
+                  Play all
+                </Link>
+              )}
+            </>
+          )
+        }
+      />
 
-        {error && (
-          <Alert title={error.title} hint={notFound ? undefined : error.hint} />
-        )}
+      {error && <Alert title={error.title} hint={error.hint} />}
 
-        {playlist && (
-          <header className="masthead plhead">
-            {editing ? (
-              <DetailsForm
-                playlist={playlist}
-                onCancel={() => setEditing(false)}
-                onSaved={(p) => {
-                  setPlaylist(p);
-                  setEditing(false);
-                }}
-              />
-            ) : (
-              <>
-                <h1 className="masthead__name">{playlist.name}</h1>
-                {playlist.description && <p className="masthead__lede">{playlist.description}</p>}
-                <p className="muted">{videoCountLabel(playlist.videos.length)}</p>
-                <div className="plhead__actions">
-                  {playlist.videos.length > 0 && (
-                    <Link
-                      className="button button--primary"
-                      to={`/vietsub/${playlist.videos[0].id}?playlist=${playlist.id}`}
-                      state={{ autoplay: true }}
-                    >
-                      <Play className="icon" aria-hidden="true" />
-                      Play all
-                    </Link>
-                  )}
-                  <button className="button" type="button" onClick={() => setEditing(true)}>
-                    <Pencil className="icon" aria-hidden="true" />
-                    Edit details
-                  </button>
-                </div>
-              </>
-            )}
-          </header>
-        )}
+      {editing && (
+        <DetailsForm
+          playlist={playlist}
+          onCancel={() => setEditing(false)}
+          onSaved={(p) => {
+            setPlaylist(p);
+            setEditing(false);
+          }}
+        />
+      )}
 
-        {!notFound && (
-          <section className="history" aria-label="Videos in this playlist" aria-busy={saving}>
-            <h2 className="history__heading">Videos</h2>
-            {playlist === null ? (
-              <LoadingText>Loading…</LoadingText>
-            ) : playlist.videos.length === 0 ? (
-              <EmptyState icon={ListPlus}>Use Save to playlist in the Videos tab to add videos.</EmptyState>
-            ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                <SortableContext items={playlist.videos.map((v) => v.id)} strategy={verticalListSortingStrategy}>
-                  <ol className="history__list plitems">
-                    {playlist.videos.map((v, i) => (
-                      <SortableRow
-                        key={v.id}
-                        video={v}
-                        index={i}
-                        count={playlist.videos.length}
-                        disabled={saving}
-                        onMove={(by) => move(i, by)}
-                        onRemove={() => remove(v)}
-                      />
-                    ))}
-                  </ol>
-                </SortableContext>
-              </DndContext>
-            )}
-          </section>
+      <section className="history" aria-label="Videos in this playlist" aria-busy={saving}>
+        <h2 className="history__heading">Videos</h2>
+        {playlist.videos.length === 0 ? (
+          <EmptyState icon={ListPlus}>Use Save to playlist in the Videos tab to add videos.</EmptyState>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={playlist.videos.map((v) => v.id)} strategy={verticalListSortingStrategy}>
+              <ol className="history__list plitems">
+                {playlist.videos.map((v, i) => (
+                  <SortableRow
+                    key={v.id}
+                    video={v}
+                    index={i}
+                    count={playlist.videos.length}
+                    disabled={saving}
+                    onMove={(by) => move(i, by)}
+                    onRemove={() => remove(v)}
+                  />
+                ))}
+              </ol>
+            </SortableContext>
+          </DndContext>
         )}
+      </section>
 
-        {/* Destructive, so kept away from Play all / Edit details. */}
-        {playlist && !editing && (
-          <div className="danger-zone">
-            <button className="button button--danger" type="button" onClick={handleDelete}>
-              <Trash2 className="icon" aria-hidden="true" />
-              Delete playlist
-            </button>
-          </div>
-        )}
-      </VietsubTabs>
-    </main>
+      {/* Destructive, so kept away from Play all / Edit details. */}
+      {!editing && (
+        <div className="danger-zone">
+          <button className="button button--danger" type="button" onClick={handleDelete}>
+            <Trash2 className="icon" aria-hidden="true" />
+            Delete playlist
+          </button>
+        </div>
+      )}
+    </Page>
   );
 }
 

@@ -1,6 +1,6 @@
-import { ArrowLeft } from 'lucide-react';
+
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 import type { ViCue } from '../api/client';
 import { useSite } from '../data/SiteContext';
 import { countsAsWatched, markWatched } from '../data/watched';
@@ -17,7 +17,9 @@ import { usePlayerShortcuts } from '../lib/usePlayerShortcuts';
 import { usePlaylistMode } from '../lib/usePlaylistMode';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
 import { Alert } from '../components/ui/Alert';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import './WatchPage.css';
 import { useT } from '../lib/i18n';
 
@@ -96,11 +98,15 @@ export default function WatchPage() {
   const cue = findActiveCue(cues, player.currentMs);
 
   return (
-    <main className="page">
-      <Link className="back-link" to={mode ? `/vietsub/list?playlist=${mode.playlist.id}` : '/vietsub/list'}>
-        <ArrowLeft className="icon icon--sm" aria-hidden="true" />
-        {t('Back to Vietsub list', 'Quay lại danh sách Vietsub')}
-      </Link>
+    <Page>
+      <Breadcrumbs
+        items={[
+          // The top menu item is "Vietsub" on the public site; the admin page is the Vietsub list.
+          { label: readOnly ? 'Vietsub' : 'Vietsub list', to: '/vietsub/list' },
+          ...(mode ? [{ label: mode.playlist.name, to: `/vietsub/list?playlist=${mode.playlist.id}` }] : []),
+          { label: video?.title ?? '…' },
+        ]}
+      />
 
       {error && (
         <Alert title={error.title} hint={error.hint} />
@@ -124,7 +130,7 @@ export default function WatchPage() {
 
           {video && (
             <PageHeader
-              className="masthead--watch"
+              variant="media"
               title={video.title}
               lede={video.channel}
               actions={<ShortcutsHelp open={helpOpen} onOpenChange={setHelpOpen} playlist={mode !== null} />}
@@ -149,6 +155,6 @@ export default function WatchPage() {
           />
         )}
       </div>
-    </main>
+    </Page>
   );
 }

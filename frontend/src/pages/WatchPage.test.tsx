@@ -94,11 +94,14 @@ describe('WatchPage', () => {
     delete (document as { fullscreenElement?: unknown }).fullscreenElement;
   });
 
-  it('shows the video title and a link back to the Vietsub list', async () => {
+  it('shows the video title below Vietsub list > title breadcrumbs instead of a back link', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(nav).getByText('Học Spring Boot')).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelector('.back-link')).toBeNull();
   });
 
   it('shows the subtitle for the current time', async () => {
@@ -535,6 +538,18 @@ describe('WatchPage', () => {
     const location = () => screen.getByLabelText('location').textContent;
     const panel = () => screen.findByRole('complementary', { name: 'Playlist VLOG OF US' });
 
+    it('shows Vietsub list > playlist > title as breadcrumbs with ?playlist, and the H1 below the player', async () => {
+      renderAt(`/vietsub/${B.id}?playlist=4`);
+
+      const h1 = await screen.findByRole('heading', { level: 1, name: 'Bravo' });
+      const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+      expect(within(nav).getByRole('link', { name: 'VLOG OF US' })).toHaveAttribute('href', '/vietsub/list?playlist=4');
+      expect(within(nav).getByText('Bravo')).toHaveAttribute('aria-current', 'page');
+      expect(document.querySelector('.back-link')).toBeNull();
+      expect(nav.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('has no playlist panel without ?playlist', async () => {
       renderAt(`/vietsub/${A.id}`);
 
@@ -715,6 +730,15 @@ describe('WatchPage on the public site', () => {
     expect(screen.getByRole('button', { name: 'Thoát chế độ rạp' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.setup().click(screen.getByRole('button', { name: 'Phím tắt' }));
     expect(await screen.findByRole('radiogroup', { name: 'Cỡ chữ phụ đề' })).toBeInTheDocument();
+  });
+
+  it('starts the breadcrumbs with the menu label Vietsub and links back in Vietnamese', async () => {
+    renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
+
+    await screen.findByRole('heading', { name: video.title });
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(nav).getByRole('link', { name: 'Quay lại Vietsub' })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('readOnlyEmptyStateHasNoAddLink', async () => {

@@ -61,7 +61,7 @@ describe('Breadcrumbs', () => {
   });
 
   it('calls onNavigate with the event and target when a crumb link is clicked', async () => {
-    const onNavigate = vi.fn((e: { preventDefault(): void }) => e.preventDefault());
+    const onNavigate = vi.fn((e: { preventDefault(): void }, _to: string) => e.preventDefault());
     render(
       <MemoryRouter>
         <Breadcrumbs onNavigate={onNavigate} items={[{ label: 'Novels', to: '/novels' }, { label: 'Chương 5' }]} />

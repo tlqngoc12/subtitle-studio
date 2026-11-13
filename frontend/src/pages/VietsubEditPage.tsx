@@ -14,7 +14,6 @@ import {
   type ViCue,
   type VideoDto,
 } from '../api/client';
-import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VideoPlayer } from '../components/VideoPlayer';
@@ -22,6 +21,7 @@ import { CueEditorTable } from '../components/vietsub/CueEditorTable';
 import { Alert } from '../components/ui/Alert';
 import { IconButton } from '../components/ui/IconButton';
 import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { findActiveIndex } from '../lib/findActiveCue';
@@ -91,35 +91,32 @@ export default function VietsubEditPage() {
 
   if (notFound) {
     return (
-      <main className="page vedit">
+      <Page width="wide" className="vedit">
         <Alert title="This video is no longer in the list.">
           <Link to="/vietsub">Back to Manage Vietsub</Link>
         </Alert>
-      </main>
+      </Page>
     );
   }
   if (error) {
     return (
-      <main className="page vedit">
+      <Page width="wide" className="vedit">
         <Alert title={error.title} hint={error.hint} />
-      </main>
+      </Page>
     );
   }
   if (!loaded || !video) {
     return (
-      <main className="page vedit">
+      <Page width="wide" className="vedit">
         <LoadingText>Loading Vietsub…</LoadingText>
-      </main>
+      </Page>
     );
   }
 
   if (cues.length === 0) {
     return (
-      <main className="page vedit">
-        <div>
-          <Breadcrumbs items={crumbs(video)} />
-          <PageHeader title={video.title} />
-        </div>
+      <Page width="wide" className="vedit">
+        <PageHeader breadcrumbs={crumbs(video)} title={video.title} />
         {translating ? (
           <p className="muted" role="status">
             Gemini is translating this video. Editing is available when it finishes.
@@ -127,7 +124,7 @@ export default function VietsubEditPage() {
         ) : (
           <Alert title="This video has no Vietsub yet." />
         )}
-      </main>
+      </Page>
     );
   }
 
@@ -349,22 +346,28 @@ function Editor({
   );
 
   return (
-    <main className="page vedit">
+    <Page width="wide" className="vedit">
       <div>
-        <Breadcrumbs items={crumbs(video)} />
         <PageHeader
+          breadcrumbs={crumbs(video)}
           title={video.title}
           actions={
             <div className="vedit__actions">
               <SourceBadge source={video.viSource} />
               {dirty && <span className="muted">Unsaved changes</span>}
-              <IconButton
-                className="vedit__save"
-                icon={Save}
-                label="Save (Ctrl+S)"
-                disabled={!canSave}
-                onClick={() => void save()}
-              />
+              <Tip label="Ctrl+S">
+                <span className="tip-target">
+                  <button
+                    className="button button--primary vedit__save"
+                    type="button"
+                    disabled={!canSave}
+                    onClick={() => void save()}
+                  >
+                    <Save className="icon" aria-hidden="true" />
+                    Save
+                  </button>
+                </span>
+              </Tip>
               {video.editStatus === 'DONE' ? (
                 <IconButton
                   icon={RotateCcw}
@@ -427,6 +430,6 @@ function Editor({
         />
       </div>
       {dialog}
-    </main>
+    </Page>
   );
 }

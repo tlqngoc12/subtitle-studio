@@ -1,6 +1,5 @@
 /* Vietsub editor: the player stays in view while the lines scroll beside or below it. */
 .vedit {
-  max-width: 1440px;
   /* A long title must not widen the page: the breadcrumb ellipsis and the title wrap inside the screen. */
   grid-template-columns: minmax(0, 1fr);
 }
@@ -47,17 +46,3 @@
   margin: var(--space-2) 0 0;
 }
 
-/* Save is the primary action: an icon button filled orange (the plain icon button is outlined). */
-.button--icon.vedit__save {
-  background: var(--brand);
-  color: var(--on-brand);
-}
-
-.button--icon.vedit__save:hover:not(:disabled) {
-  background: var(--brand-hover);
-}
-
-.button--icon.vedit__save:disabled {
-  background: transparent;
-  color: var(--ink);
-}

@@ -69,7 +69,25 @@ describe('PlaylistsPage', () => {
     expect(within(await loadedRegion('Playlists')).getByText('1 video')).toBeInTheDocument();
   });
 
-  it('creates a playlist from the form and puts it first', async () => {
+  async function openDialog(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'Create playlist' }));
+    return screen.findByRole('dialog', { name: 'Create playlist' });
+  }
+
+  it('has no form on the page until Create playlist in the header opens a dialog', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/playlists', status: 200, body: [vlog] }]);
+    renderPage();
+    await loadedRegion('Playlists');
+
+    expect(screen.queryByRole('textbox', { name: 'Name' })).not.toBeInTheDocument();
+    const header = screen.getByRole('heading', { level: 1, name: 'Vietsub' }).closest('header')!;
+    expect(within(header).getByRole('button', { name: 'Create playlist' })).toHaveClass('button--primary');
+
+    const dialog = await openDialog(userEvent.setup());
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
+  });
+
+  it('creates a playlist from the dialog, puts it first and closes the dialog', async () => {
     const calls = fakeFetch([
       { method: 'GET', path: '/api/playlists', status: 200, body: [vlog] },
       { method: 'POST', path: '/api/playlists', status: 201, body: detail(5, 'VLOG', [], 'Short clips') },
@@ -78,10 +96,12 @@ describe('PlaylistsPage', () => {
     await loadedRegion('Playlists');
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText('Name'), 'VLOG');
-    await user.type(screen.getByLabelText('Description (optional)'), 'Short clips');
-    await user.click(screen.getByRole('button', { name: 'Create playlist' }));
+    const dialog = await openDialog(user);
+    await user.type(within(dialog).getByLabelText('Name'), 'VLOG');
+    await user.type(within(dialog).getByLabelText('Description (optional)'), 'Short clips');
+    await user.click(within(dialog).getByRole('button', { name: 'Create playlist' }));
 
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     const post = calls.find((c) => c.method === 'POST');
     expect(JSON.parse(String(post?.body))).toEqual({ name: 'VLOG', description: 'Short clips' });
     const region = await loadedRegion('Playlists');
@@ -91,7 +111,35 @@ describe('PlaylistsPage', () => {
         expect.stringContaining('VLOG OF US'),
       ]),
     );
-    expect(screen.getByLabelText('Name')).toHaveValue('');
+  });
+
+  it('submits only the dialog when Enter is pressed in the name, once', async () => {
+    const calls = fakeFetch([
+      { method: 'GET', path: '/api/playlists', status: 200, body: [] },
+      { method: 'POST', path: '/api/playlists', status: 201, body: detail(6, 'Enter', []) },
+    ]);
+    renderPage();
+    await loadedRegion('Playlists');
+    const user = userEvent.setup();
+
+    const dialog = await openDialog(user);
+    await user.type(within(dialog).getByLabelText('Name'), 'Enter{Enter}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+  });
+
+  it('closes the dialog with Cancel without creating anything', async () => {
+    const calls = fakeFetch([{ method: 'GET', path: '/api/playlists', status: 200, body: [] }]);
+    renderPage();
+    await loadedRegion('Playlists');
+    const user = userEvent.setup();
+
+    const dialog = await openDialog(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
   });
 
   it('shows the server field error next to the name', async () => {
@@ -108,20 +156,23 @@ describe('PlaylistsPage', () => {
     await loadedRegion('Playlists');
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText('Name'), 'x');
-    await user.click(screen.getByRole('button', { name: 'Create playlist' }));
+    const dialog = await openDialog(user);
+    await user.type(within(dialog).getByLabelText('Name'), 'x');
+    await user.click(within(dialog).getByRole('button', { name: 'Create playlist' }));
 
-    expect(await screen.findByText('Name must be at most 100 characters')).toBeInTheDocument();
-    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('alert')).toHaveTextContent('Check the playlist name and description.');
+    expect(await within(dialog).findByText('Name must be at most 100 characters')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Name')).toHaveAttribute('aria-invalid', 'true');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Check the playlist name and description.');
   });
 
   it('requires a name before sending', async () => {
     const calls = fakeFetch([{ method: 'GET', path: '/api/playlists', status: 200, body: [] }]);
     renderPage();
     await loadedRegion('Playlists');
+    const user = userEvent.setup();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Create playlist' }));
+    const dialog = await openDialog(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Create playlist' }));
 
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
   });
@@ -157,6 +208,8 @@ describe('PlaylistsPage', () => {
     fakeFetch([{ method: 'GET', path: '/api/playlists', status: 200, body: [] }]);
     renderPage();
 
-    expect(within(await loadedRegion('Playlists')).getByText(/No playlists yet/)).toBeInTheDocument();
+    expect(
+      within(await loadedRegion('Playlists')).getByText('No playlists yet. Choose Create playlist to add one.'),
+    ).toBeInTheDocument();
   });
 });

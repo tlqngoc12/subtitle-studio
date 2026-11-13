@@ -10,6 +10,7 @@ import VietsubListPage from './VietsubListPage';
 import { SiteProvider } from '../data/SiteContext';
 import { resetWatched } from '../data/watched';
 import { fakeSource, publicSite } from '../test/fakeSource';
+import { css } from '../test/css';
 
 const ID = 'dQw4w9WgXcQ';
 
@@ -82,6 +83,19 @@ describe('VietsubListPage', () => {
     expect(within(items[0]).getByRole('link', { name: /Học Spring Boot/ })).toHaveAttribute('href', `/vietsub/${ID}`);
     expect(within(list).queryByText(/lines/)).not.toBeInTheDocument();
     expect(within(items[1]).getByRole('link', { name: /Video cũ hơn/ })).toHaveAttribute('href', '/vietsub/OLDER000001');
+  });
+
+  it('puts the search in a toolbar under the tabs', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
+    renderPage();
+    await loadedRegion('Vietsub list');
+
+    const tablist = screen.getByRole('tablist');
+    const search = screen.getByRole('searchbox');
+    expect(search.closest('.toolbar')).not.toBeNull();
+    expect(tablist.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The toolbar caps the search at 360 px from 521 px (Toolbar.css); the page no longer styles it itself.
+    expect(css).not.toMatch(/\.page > \.searchbar/);
   });
 
   it('has no replace or delete actions', async () => {
@@ -342,7 +356,10 @@ describe('VietsubListPage', () => {
       const items = within(region).getAllByRole('listitem');
       expect(items.map((li) => li.querySelector('.vlist__index')?.textContent)).toEqual(['1', '2', '3']);
       expect(within(items[1]).getByRole('link')).toHaveAttribute('href', '/vietsub/CHO00000001?playlist=1');
-      expect(screen.getByRole('link', { name: 'Back to Playlists' })).toHaveAttribute('href', '/vietsub/list');
+      const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(crumbs).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+      expect(within(crumbs).getByText('VLOG')).toHaveAttribute('aria-current', 'page');
+      expect(document.querySelector('.back-link')).toBeNull();
       expect(screen.queryByRole('tab')).not.toBeInTheDocument();
       expect(search()).toBe('?playlist=1');
     });
@@ -446,7 +463,7 @@ describe('VietsubListPage', () => {
 
       await waitFor(() => expect(rowTitles(region)).toEqual(['Ăn sáng Bangkok']));
       expect(within(region).getByRole('listitem').querySelector('.vlist__index')?.textContent).toBe('3');
-      expect(screen.getByRole('link', { name: 'Back to Playlists' })).toHaveAttribute('href', '/vietsub/list?q=bangkok');
+      expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list?q=bangkok');
     });
 
     it('has no Play all for an empty playlist', async () => {

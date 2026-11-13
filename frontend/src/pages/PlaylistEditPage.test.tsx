@@ -57,6 +57,28 @@ describe('PlaylistEditPage', () => {
     expect(screen.getByText('3 videos')).toBeInTheDocument();
   });
 
+  it('shows Vietsub > Playlists > name as breadcrumbs instead of a back link', async () => {
+    renderPage([get()]);
+    await rows();
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(nav).getByRole('link', { name: 'Playlists' })).toHaveAttribute('href', '/vietsub/playlists');
+    expect(within(nav).getByText('VLOG OF US')).toHaveAttribute('aria-current', 'page');
+    // The only "Back to" link is the phone form of the breadcrumbs.
+    expect(screen.getAllByRole('link', { name: /^Back to/ }).every((a) => nav.contains(a))).toBe(true);
+    expect(document.querySelector('.back-link')).toBeNull();
+  });
+
+  it('keeps the header actions at the standard 40 px size', async () => {
+    renderPage([get()]);
+    await rows();
+
+    const header = screen.getByRole('heading', { level: 1, name: 'VLOG OF US' }).closest('header')!;
+    expect(within(header).getByRole('link', { name: 'Play all' })).not.toHaveClass('button--s');
+    expect(within(header).getByRole('button', { name: 'Edit details' })).not.toHaveClass('button--s');
+  });
+
   it('renames the playlist in place', async () => {
     const calls = renderPage([
       get(),

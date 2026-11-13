@@ -419,15 +419,7 @@ label.button:has(input:focus-visible) {
   width: 100%;
 }
 
-/* Phones: a compact watch-page title so the player starts near the top, and 44px touch targets. */
-.masthead--watch .masthead__name {
-  font-size: var(--step-1);
-}
-
-.masthead--watch .masthead__lede {
-  font-size: var(--step--1);
-}
-
+/* Phones: 44px touch targets. */
 .back-link,
 .tabs__tab {
   min-height: 44px;
@@ -436,14 +428,6 @@ label.button:has(input:focus-visible) {
 }
 
 @media (min-width: 761px) {
-  .masthead--watch .masthead__name {
-    font-size: var(--step-3);
-  }
-
-  .masthead--watch .masthead__lede {
-    font-size: inherit;
-  }
-
   .tabs__tab {
     min-height: 0;
     display: revert;
