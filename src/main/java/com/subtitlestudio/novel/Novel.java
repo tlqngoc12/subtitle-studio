@@ -87,6 +87,10 @@ public class Novel {
     @Column(name = "notebook_pending_chapter_no")
     private Integer notebookPendingChapterNo;
 
+    /** Picked for the public Novels page banner (at most 5 novels; the service enforces it). */
+    @Column(name = "featured", nullable = false)
+    private boolean featured;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -243,6 +247,14 @@ public class Novel {
 
     public void setNotebookPendingChapterNo(Integer notebookPendingChapterNo) {
         this.notebookPendingChapterNo = notebookPendingChapterNo;
+    }
+
+    public boolean isFeatured() {
+        return featured;
+    }
+
+    public void setFeatured(boolean featured) {
+        this.featured = featured;
     }
 
     public Instant getCreatedAt() {
