@@ -280,6 +280,16 @@ export interface WattpadNovelPreview {
   storyUrl: string;
   /** The id of the novel that already uses this story, if any. */
   existingNovelId: number | null;
+  /** The story's parts in story order (read-only here). */
+  parts: WattpadPreviewPart[];
+}
+
+export interface WattpadPreviewPart {
+  partId: string;
+  title: string;
+  wordCount: number;
+  modifiedAt: string | null;
+  deleted: boolean;
 }
 
 export interface WattpadPart {
@@ -311,6 +321,15 @@ export async function listWattpadParts(novelId: number): Promise<WattpadPart[]> 
 /** Imports the chosen parts as Draft chapters; can take a while (about half a second per part). */
 export async function importWattpadParts(novelId: number, partIds: string[]): Promise<WattpadImportResult> {
   return (await send(`/api/novels/${novelId}/wattpad/import`, json('POST', { partIds }))).json();
+}
+
+/** Fetches one part (unless already a chapter) and starts its translation; one chapter at a time per novel. */
+export async function fetchAndTranslateWattpadPart(novelId: number, partId: string): Promise<ChapterDetail> {
+  return (
+    await send(`/api/novels/${novelId}/wattpad/parts/${encodeURIComponent(partId)}/fetch-translate`, {
+      method: 'POST',
+    })
+  ).json();
 }
 
 /** Fetches the chapter's original text from Wattpad again (Draft chapters only); the translation is untouched. */
