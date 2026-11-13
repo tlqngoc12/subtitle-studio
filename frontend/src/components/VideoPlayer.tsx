@@ -33,8 +33,6 @@ interface Props {
   /** When given, a button in the frame turns theater mode on and off. */
   theater?: boolean;
   onToggleTheater?: () => void;
-  /** Asks the YouTube player to re-measure itself; called while the frame is filled (iPhone Safari). */
-  onRefreshSize?: () => void;
 }
 
 /**
@@ -55,7 +53,6 @@ export function VideoPlayer({
   captionSize,
   theater = false,
   onToggleTheater,
-  onRefreshSize,
 }: Props) {
   const t = useT();
   const frameRef = useRef<HTMLDivElement>(null);
@@ -79,38 +76,6 @@ export function VideoPlayer({
     if (!filled) return;
     document.documentElement.classList.add('player-filled-open');
     return () => document.documentElement.classList.remove('player-filled-open');
-  }, [filled]);
-
-  // iPhone Safari applies the safe-area insets (and finishes a rotation) after YouTube measured its iframe, and
-  // YouTube does not re-layout when the iframe shrinks: its video then sits off-centre. Once layout has settled,
-  // tell it the real size, on entering filled mode and after every resize / rotation.
-  const refreshRef = useRef(onRefreshSize);
-  refreshRef.current = onRefreshSize;
-  useEffect(() => {
-    if (!filled) return;
-    let frame = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const refresh = () => refreshRef.current?.();
-    const schedule = () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(timer);
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(refresh);
-      });
-      timer = setTimeout(refresh, 300); // the rotation animation is still running at the first call
-    };
-    schedule();
-    window.addEventListener('resize', schedule);
-    window.addEventListener('orientationchange', schedule);
-    const viewport = window.visualViewport;
-    viewport?.addEventListener('resize', schedule);
-    return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(timer);
-      window.removeEventListener('resize', schedule);
-      window.removeEventListener('orientationchange', schedule);
-      viewport?.removeEventListener('resize', schedule);
-    };
   }, [filled]);
 
   const toggle = useCallback(() => {

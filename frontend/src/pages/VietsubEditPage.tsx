@@ -415,7 +415,7 @@ function Editor({
 
       <div className="vedit__body">
         <div className="vedit__player">
-          <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} onRefreshSize={player.refreshSize} />
+          <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} />
         </div>
         <CueEditorTable
           cues={baseline}
