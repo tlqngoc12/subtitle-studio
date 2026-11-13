@@ -879,6 +879,13 @@ Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11
 - Sửa kèm: route `*` + `SpaForwardController` chuyển tiếp theo mẫu (admin gõ URL lạ ra "Page not found" thay vì JSON); navbar điện thoại cuộn theo từng mục (scroll-snap), hết mảnh chữ bị cắt; `BackToTop barOn` nâng nút lên trên thanh form dính đáy.
 - Test `styles/layoutRules.test.ts` quét `src/`: không `<main>`/`<h1>` viết tay, không `back-link`, không `.form-actions` viết tay, không `SourceFilter`.
 
+### 2026-11-13: Sửa video lệch phải ở toàn màn hình iPhone ✅ (chưa merge, chưa deploy)
+
+Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
+
+- **Nguyên nhân:** trình phát YouTube bên trong iframe tự dời video theo `safe-area-inset-left` (59px trên iPhone ngang). CSS của app không can thiệp được.
+- **Cách sửa:** khi ở chế độ "filled" (chỉ iPhone), hook `useFilledViewport` bỏ `viewport-fit=cover` khỏi thẻ meta viewport để Safari tự thu trang vào vùng an toàn (inset trái/phải = 0), nền trang đen; thoát chế độ hoặc unmount thì khôi phục đúng nội dung cũ. Đã xoá toàn bộ công cụ chẩn đoán tạm `LayoutDebug`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
