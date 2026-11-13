@@ -35,6 +35,20 @@ public class NovelProfileStore {
         return store.read(name);
     }
 
+    /** Writes a new profile; throws {@code ProfileExistsException} instead of overwriting. */
+    public void create(String name, String text) {
+        store.create(name, text);
+    }
+
+    public boolean exists(String name) {
+        return store.exists(name);
+    }
+
+    /** Removes a profile file (used to undo a create); a missing file is ignored. */
+    public void delete(String name) {
+        store.delete(name);
+    }
+
     /**
      * Installs the novel example when its folder is missing. The Vietsub example goes first: it is installed only when
      * {@code prompts/} does not exist yet, and creating {@code prompts/novels/} would create it.

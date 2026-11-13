@@ -310,7 +310,9 @@ export function NovelForm({
       {renderField({
         name: 'promptProfile',
         label: 'Translation profile',
-        hint: 'A .md file in ./data/prompts/novels: source language, names, how characters address each other.',
+        hint: wattpad && !initial && !profile
+          ? `Leave empty to create ${wattpad.suggestedProfile}.md from the Wattpad details.`
+          : 'A .md file in ./data/prompts/novels: source language, names, how characters address each other.',
         children: (a) => (
           <Select id={a.id} value={profile} aria-invalid={a.invalid} aria-describedby={a.describedBy}
             onChange={setProfile}

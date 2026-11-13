@@ -181,13 +181,14 @@ class NovelControllerTest {
                         List.of("gl"), true, "English", "en", 28, "https://img.wattpad.com/c.jpg",
                         "https://www.wattpad.com/story/396487502", null,
                         List.of(new com.subtitlestudio.novel.wattpad.WattpadPreviewPart("1", "Prologue", 190, AT,
-                                false))));
+                                false)), "Warm"));
 
         mvc.perform(post("/api/novels/wattpad/preview").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"url\":\"https://www.wattpad.com/story/396487502\"}")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Warm")).andExpect(jsonPath("$.sourceLanguage").value("en"))
                 .andExpect(jsonPath("$.partCount").value(28)).andExpect(jsonPath("$.existingNovelId").doesNotExist())
-                .andExpect(jsonPath("$.parts[0].partId").value("1"));
+                .andExpect(jsonPath("$.parts[0].partId").value("1"))
+                .andExpect(jsonPath("$.suggestedProfile").value("Warm"));
     }
 
     @Test

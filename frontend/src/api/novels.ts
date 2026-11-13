@@ -282,6 +282,8 @@ export interface WattpadNovelPreview {
   existingNovelId: number | null;
   /** The story's parts in story order (read-only here). */
   parts: WattpadPreviewPart[];
+  /** The profile file name (without .md) created when the Translation profile is left empty on Create. */
+  suggestedProfile: string;
 }
 
 export interface WattpadPreviewPart {

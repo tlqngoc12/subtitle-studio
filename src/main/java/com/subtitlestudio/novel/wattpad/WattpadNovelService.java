@@ -21,6 +21,9 @@ import com.subtitlestudio.novel.NovelTranslationBusyException;
 import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.novel.NovelNotWattpadException;
+import com.subtitlestudio.novel.NovelProfileNames;
+import com.subtitlestudio.novel.NovelProfileStore;
+import com.subtitlestudio.novel.NovelProfileTemplate;
 import com.subtitlestudio.novel.NovelSourceType;
 import com.subtitlestudio.novel.InvalidNovelException;
 import com.subtitlestudio.novel.Novel;
@@ -65,12 +68,15 @@ public class WattpadNovelService {
     private final ChapterRepository chapters;
     private final ChapterService chapterService;
     private final ChapterTranslationService translation;
+    private final NovelProfileStore profiles;
     private final Sleeper sleeper;
     private final Clock clock;
 
     public WattpadNovelService(WattpadClient wattpad, NovelRepository novels, NovelService novelService,
                                MediaService mediaService, ChapterRepository chapters, ChapterService chapterService,
-                               ChapterTranslationService translation, Sleeper sleeper, Clock clock) {
+                               ChapterTranslationService translation, NovelProfileStore profiles,
+                               Sleeper sleeper, Clock clock) {
+        this.profiles = profiles;
         this.translation = translation;
         this.chapters = chapters;
         this.chapterService = chapterService;
@@ -92,7 +98,8 @@ public class WattpadNovelService {
                 parts.languageName(), guessLanguage(parts.languageName()), s.partCount(), s.coverUrl(),
                 WattpadLink.canonicalUrl(storyId), existing,
                 parts.parts().stream().map(p -> new WattpadPreviewPart(p.id(), p.title(), p.wordCount(),
-                        p.modifiedAt(), p.deleted())).toList());
+                        p.modifiedAt(), p.deleted())).toList(),
+                NovelProfileNames.fromTitle(s.title(), storyId, profiles::exists));
     }
 
     /** Creates the novel; the story cover is downloaded first (a cover that fails never blocks the novel). */
@@ -113,9 +120,20 @@ public class WattpadNovelService {
                 toCreate = withCover(request, cover.getId());
             }
         }
+        String createdProfile = null;
         try {
+            if (storyId != null && (request.promptProfile() == null || request.promptProfile().isBlank())) {
+                String name = NovelProfileNames.fromTitle(request.title(), storyId, profiles::exists);
+                profiles.create(name, NovelProfileTemplate.render(request.sourceLanguage(), request.title(),
+                        request.originalAuthor(), request.tags(), request.description()));
+                createdProfile = name;
+                toCreate = withProfile(toCreate, name);
+            }
             return novelService.create(toCreate);
         } catch (RuntimeException e) {
+            if (createdProfile != null) {
+                profiles.delete(createdProfile);
+            }
             if (cover != null) {
                 mediaService.deleteIfUnreferenced(List.of(cover.getId()));
             }
@@ -291,6 +309,12 @@ public class WattpadNovelService {
         return new NovelRequest(r.slug(), r.title(), mediaId, r.originalAuthor(), r.description(), r.tags(),
                 r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), r.trailerUrl(),
                 r.sourceType(), r.sourceLanguage(), r.wattpadStoryId(), null);
+    }
+
+    private static NovelRequest withProfile(NovelRequest r, String profile) {
+        return new NovelRequest(r.slug(), r.title(), r.coverMediaId(), r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), r.translatorCredit(), r.sourceUrl(), profile, r.trailerUrl(),
+                r.sourceType(), r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl());
     }
 
     private static String storyId(String link) {

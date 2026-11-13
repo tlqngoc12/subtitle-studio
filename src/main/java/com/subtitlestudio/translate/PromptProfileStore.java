@@ -10,6 +10,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -138,6 +139,61 @@ public class PromptProfileStore {
             throw new UncheckedIOException(e);
         }
         return sha256(text);
+    }
+
+    /**
+     * Writes a new profile; never overwrites. The text goes to a temporary file in the same folder, which is then
+     * moved to {@code <name>.md} without replacing, so a concurrent writer cannot be overwritten either.
+     *
+     * @throws ProfileExistsException when the file already exists
+     */
+    public synchronized void create(String name, String text) {
+        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_")) {
+            throw new InvalidProfileTextException("Invalid profile name");
+        }
+        if (text == null || text.isBlank()) {
+            throw new InvalidProfileTextException("The profile text is empty");
+        }
+        byte[] bytes = encode(text);
+        if (bytes.length > MAX_BYTES) {
+            throw new InvalidProfileTextException("The profile text is larger than " + MAX_BYTES / 1024 + " KB");
+        }
+        Path file = dir.resolve(name + ".md");
+        if (Files.exists(file)) {
+            throw new ProfileExistsException(name);
+        }
+        try {
+            Files.createDirectories(dir);
+            Path temp = Files.createTempFile(dir, "." + name + "-", ".tmp");
+            try {
+                Files.write(temp, bytes);
+                Files.move(temp, file);
+            } catch (FileAlreadyExistsException e) {
+                throw new ProfileExistsException(name);
+            } finally {
+                Files.deleteIfExists(temp);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** True when a usable-named profile file is present. */
+    public boolean exists(String name) {
+        return name != null && NAME.matcher(name).matches() && !name.startsWith("_")
+                && Files.isRegularFile(dir.resolve(name + ".md"));
+    }
+
+    /** Deletes the profile file if it is there; ignores invalid names. */
+    public synchronized void delete(String name) {
+        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_")) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(dir.resolve(name + ".md"));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static byte[] encode(String text) {
