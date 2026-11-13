@@ -1,11 +1,12 @@
-import { Download, ListChecks, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { ListChecks, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import {
-  importWattpadParts,
+  fetchAndTranslateWattpadPart,
   listWattpadParts,
-  type WattpadImportResult,
+  type ChapterTranslationStatus,
+  type NovelDetail,
   type WattpadPart,
 } from '../../api/novels';
 import { formatInstant } from '../../lib/dates';
@@ -13,29 +14,36 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { EmptyState } from '../EmptyState';
 import { Alert } from '../ui/Alert';
 import { LoadingText } from '../ui/LoadingText';
+import { useConfirmDialog } from '../useConfirmDialog';
 import './WattpadParts.css';
 
+type RowState = 'NEW' | ChapterTranslationStatus;
+
+/** True while a chapter of the novel translates or its notebook updates: one translation at a time. */
+export function novelIsBusy(novel: NovelDetail): boolean {
+  return novel.chapters.some((c) => c.translationStatus === 'TRANSLATING') || novel.notebookStatus === 'UPDATING';
+}
+
 /**
- * The "Wattpad" tab of a Wattpad novel: the story's parts with checkboxes. Import turns the ticked parts into Draft
- * chapters (their original text, ready to translate); parts already imported link to their chapter. "Check for new
- * chapters" asks Wattpad again, so parts published since show up as not imported.
+ * The "Wattpad" tab of a Wattpad novel: the story's parts, one button per part. "Fetch & translate" fetches the
+ * original and starts the translation; the next untranslated part is marked "Next". Row states come from the novel
+ * (polled by the page), so the parts list is loaded from Wattpad only when the tab opens or on "Check for new
+ * chapters".
  */
-export function WattpadParts({ novelId, onImported }: { novelId: number; onImported: () => void }) {
+export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChanged: () => void | Promise<void> }) {
+  const novelId = novel.id;
   const [parts, setParts] = useState<WattpadPart[] | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [checking, setChecking] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [failures, setFailures] = useState<WattpadImportResult['failed']>([]);
+  const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setChecking(true);
     setError(null);
     try {
-      const list = await listWattpadParts(novelId);
-      setParts(list);
-      // Keep ticks only for parts that can still be imported.
-      setSelected((prev) => new Set(list.filter((p) => prev.has(p.partId) && importable(p)).map((p) => p.partId)));
+      setParts(await listWattpadParts(novelId));
     } catch (e) {
       setError(errorMessage(e));
       setParts((p) => p ?? []);
@@ -48,100 +56,97 @@ export function WattpadParts({ novelId, onImported }: { novelId: number; onImpor
     void load();
   }, [load]);
 
-  const toggle = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const busy = novelIsBusy(novel);
+  const locked = busy || pending;
 
-  async function runImport() {
-    setImporting(true);
-    setError(null);
-    setFailures([]);
+  const stateOf = (p: WattpadPart): RowState => {
+    if (p.importedChapterId === null) return 'NEW';
+    return novel.chapters.find((c) => c.id === p.importedChapterId)?.translationStatus ?? 'NONE';
+  };
+  const list = parts ?? [];
+  const nextIndex = list.findIndex((p) => !p.deleted && stateOf(p) !== 'TRANSLATED');
+
+  async function run(p: WattpadPart, index: number) {
+    if (inFlight.current || busy) return;
+    inFlight.current = true;
     try {
-      const result = await importWattpadParts(novelId, [...selected]);
-      const text = `Imported ${result.imported.length} · Skipped ${result.skipped.length} · Failed ${result.failed.length}`;
-      if (result.failed.length === 0) toast.success(text);
-      else toast.message(text);
-      setFailures(result.failed);
-      setSelected(new Set());
-      onImported();
+      if (nextIndex !== -1 && nextIndex < index) {
+        const next = list[nextIndex];
+        const ok = await confirm({
+          title: `${next.title} is not translated yet.`,
+          description: `The notebook will not know about it. Translate ${p.title} anyway?`,
+          confirmLabel: 'Translate anyway',
+        });
+        if (!ok) return;
+      }
+      setPending(true);
+      try {
+        await fetchAndTranslateWattpadPart(novelId, p.partId);
+        toast.success(`Translating ${p.title}…`);
+      } catch (e) {
+        toast.error(errorMessage(e).title);
+      }
+      await onChanged();
       await load();
-    } catch (e) {
-      setError(errorMessage(e));
     } finally {
-      setImporting(false);
+      setPending(false);
+      inFlight.current = false;
     }
   }
-
-  const fresh = (parts ?? []).filter(importable);
 
   return (
     <section className="wattpad-parts" aria-label="Wattpad chapters">
       <div className="wattpad-parts__toolbar">
-        <button type="button" className="button button--s" disabled={fresh.length === 0 || importing}
-          onClick={() => setSelected(new Set(fresh.map((p) => p.partId)))}>
-          <ListChecks className="icon" aria-hidden="true" />
-          Select all new
-        </button>
-        <button type="button" className="button button--s" disabled={checking || importing} onClick={() => void load()}>
+        <button type="button" className="button button--s" disabled={checking || pending}
+          onClick={() => void load()}>
           <RefreshCw className="icon" aria-hidden="true" />
           {checking ? 'Checking…' : 'Check for new chapters'}
-        </button>
-        <button type="button" className="button button--primary wattpad-parts__import"
-          disabled={selected.size === 0 || importing} aria-busy={importing || undefined} onClick={() => void runImport()}>
-          <Download className="icon" aria-hidden="true" />
-          {importing ? 'Importing…' : selected.size > 0 ? `Import ${selected.size}` : 'Import'}
         </button>
       </div>
 
       {error && <Alert title={error.title} hint={error.hint} />}
-      {failures.length > 0 && (
-        <Alert title={`Could not import ${failures.length} ${failures.length === 1 ? 'part' : 'parts'}`}>
-          <ul className="wattpad-parts__failures">
-            {failures.map((f) => (
-              <li key={f.partId}>
-                <strong>{f.title}</strong>: {f.reason}
-              </li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-
       {parts === null && !error && <LoadingText>Loading parts from Wattpad…</LoadingText>}
       {parts !== null && parts.length === 0 && !error && (
         <EmptyState icon={ListChecks}>Wattpad lists no parts for this story.</EmptyState>
       )}
       {parts !== null && parts.length > 0 && (
         <ul className="wattpad-parts__list" aria-label="Parts">
-          {parts.map((p) => (
-            <li key={p.partId} className="wattpad-parts__row">
-              <label className="wattpad-parts__pick">
-                <input type="checkbox" checked={selected.has(p.partId)} disabled={!importable(p) || importing}
-                  onChange={() => toggle(p.partId)} />
+          {parts.map((p, index) => {
+            const state = stateOf(p);
+            const isNext = index === nextIndex;
+            return (
+              <li key={p.partId} className="wattpad-parts__row">
                 <span className="wattpad-parts__title">{p.title}</span>
-              </label>
-              <span className="wattpad-parts__meta">
-                <span className="meta">{p.wordCount.toLocaleString('en-US')} words</span>
-                {p.modifiedAt && <span className="meta">{formatInstant(p.modifiedAt)}</span>}
-                {p.deleted && <span className="badge badge--progress">Deleted</span>}
-                {p.importedChapterId !== null && (
-                  <Link className="badge badge--info" to={`/novels/${novelId}/chapters/${p.importedChapterId}`}
-                    aria-label={`Imported: open ${p.title}`}>
-                    Imported
-                  </Link>
-                )}
-              </span>
-            </li>
-          ))}
+                <span className="wattpad-parts__meta">
+                  <span className="meta">{p.wordCount.toLocaleString('en-US')} words</span>
+                  {p.modifiedAt && <span className="meta">{formatInstant(p.modifiedAt)}</span>}
+                  {p.deleted && <span className="badge badge--progress">Deleted</span>}
+                  {isNext && <span className="badge badge--info">Next</span>}
+                  {state === 'FAILED' && <span className="badge badge--failed">Failed</span>}
+                </span>
+                <span className="wattpad-parts__action">
+                  {state === 'TRANSLATING' && <span className="meta">Translating…</span>}
+                  {state === 'TRANSLATED' && (
+                    <Link className="badge badge--info" to={`/novels/${novelId}/chapters/${p.importedChapterId}`}
+                      aria-label={`Translated: open ${p.title}`}>
+                      Translated
+                    </Link>
+                  )}
+                  {(state === 'NEW' || state === 'NONE' || state === 'FAILED') && !p.deleted && (
+                    <button type="button" disabled={locked}
+                      className={`button button--s${isNext ? ' button--primary' : ''}`}
+                      aria-label={`${state === 'NEW' ? 'Fetch & translate' : 'Translate'} ${p.title}`}
+                      onClick={() => void run(p, index)}>
+                      {state === 'NEW' ? 'Fetch & translate' : 'Translate'}
+                    </button>
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
+      {dialog}
     </section>
   );
-}
-
-function importable(p: WattpadPart): boolean {
-  return p.importedChapterId === null && !p.deleted;
 }

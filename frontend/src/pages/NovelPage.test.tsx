@@ -449,21 +449,44 @@ describe('NovelPage', () => {
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).sourceLanguage).toBe('th');
     });
 
-    it('imports parts and refreshes the chapter list', async () => {
+    it('fetches and translates a part and refreshes the chapter list', async () => {
       const calls = fakeFetch([
         getWattpad,
         { ...parts, body: [{ partId: '1', title: 'PROLOGUE', wordCount: 190, createdAt: null, modifiedAt: null, deleted: false, importedChapterId: null }] },
-        { method: 'POST', path: '/api/novels/3/wattpad/import', status: 200, body: { imported: [{ partId: '1', chapterId: 9 }], skipped: [], failed: [] } },
+        { method: 'POST', path: '/api/novels/3/wattpad/parts/1/fetch-translate', status: 202, body: {} },
       ]);
       renderPage();
       const user = userEvent.setup();
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
 
       await user.click(screen.getByRole('tab', { name: 'Wattpad' }));
-      await user.click(await screen.findByRole('checkbox', { name: 'PROLOGUE' }));
-      await user.click(screen.getByRole('button', { name: 'Import 1' }));
+      await user.click(await screen.findByRole('button', { name: /Fetch & translate PROLOGUE/ }));
 
       await waitFor(() => expect(calls.filter((c) => c.path === '/api/novels/3')).toHaveLength(2));
+    });
+
+    it('polls the novel, never the Wattpad parts, while a chapter translates', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const busy = novelDetail({
+          sourceType: 'WATTPAD',
+          sourceLanguage: 'en',
+          wattpadStoryId: '396487502',
+          chapters: [chapterSummary({ pageCount: 0, translationStatus: 'TRANSLATING' })],
+        });
+        const calls = fakeFetch([{ ...getWattpad, body: busy }, parts]);
+        renderPage();
+        await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+        const novelCalls = () => calls.filter((c) => c.path === '/api/novels/3').length;
+        const before = novelCalls();
+
+        await vi.advanceTimersByTimeAsync(6500);
+
+        expect(novelCalls()).toBeGreaterThanOrEqual(before + 2);
+        expect(calls.filter((c) => c.path.endsWith('/wattpad/parts'))).toHaveLength(0);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });
