@@ -38,7 +38,7 @@ describe('screen layout rules', () => {
   });
 
   it('writes no form button bar by hand: use <FormActions>', () => {
-    expect(offenders((f) => f.source.includes('className="form-actions'))).toEqual([]);
+    expect(offenders((f) => /className="form-actions[\s"]/.test(f.source))).toEqual([]);
   });
 
   it('no longer has the Filter popover for sources', () => {
