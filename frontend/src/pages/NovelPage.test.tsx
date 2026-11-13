@@ -7,6 +7,7 @@ import { answerConfirm } from '../test/confirm';
 import { pickOption } from '../test/select';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../test/novelFixtures';
+import { css } from '../test/css';
 import NovelPage from './NovelPage';
 
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
@@ -44,6 +45,37 @@ describe('NovelPage', () => {
     expect(within(rows[0]).getByText('3 pages')).toBeInTheDocument();
     expect(within(rows[1]).getByText('Translating…')).toBeInTheDocument();
     expect(within(rows[1]).getByText('Draft')).toBeInTheDocument();
+  });
+
+  it('is a hero header: cover before the title, Novels > title breadcrumbs, no back link', async () => {
+    fakeFetch([getNovel]);
+    renderPage();
+
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Tình Yêu Mùa Hạ' });
+    const header = h1.closest('header')!;
+    expect(header).toHaveClass('masthead--hero');
+    const cover = header.querySelector('.masthead__media')!;
+    expect(cover.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByText('Tình Yêu Mùa Hạ')).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelector('.back-link')).toBeNull();
+  });
+
+  it('puts Add chapter in the Chapters toolbar, at the standard size and not full width', async () => {
+    fakeFetch([getNovel]);
+    renderPage();
+
+    const add = await screen.findByRole('button', { name: 'Add chapter' });
+    expect(add).toHaveClass('button--primary');
+    expect(add.closest('.toolbar')).not.toBeNull();
+    expect(add).not.toHaveClass('button--l', 'button--block');
+  });
+
+  it('draws chapter rows as divider rows, not a bordered box each', () => {
+    const item = /\.chapter-list__item\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(item).not.toMatch(/(^|[;\s])border:/);
+    expect(item).toMatch(/border-bottom:\s*1px solid var\(--rule\)/);
   });
 
   it('loads the novel once while switching tabs', async () => {

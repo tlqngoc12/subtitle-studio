@@ -54,6 +54,16 @@ describe('NovelsPage', () => {
     expect(screen.getByRole('link', { name: 'New novel' })).toHaveAttribute('href', '/novels/new');
   });
 
+  it('puts New novel in the Translated toolbar, not in the header', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/novels', status: 200, body: [novelSummary()] }]);
+    renderPage();
+
+    const newNovel = screen.getByRole('link', { name: 'New novel' });
+    expect(newNovel).toHaveClass('button--primary');
+    expect(newNovel.closest('.toolbar')).not.toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Novels' }).closest('header')).not.toContainElement(newNovel);
+  });
+
   it('shows an empty state with the next step', async () => {
     fakeFetch([{ method: 'GET', path: '/api/novels', status: 200, body: [] }]);
     renderPage();

@@ -1,8 +1,91 @@
-/* ---------- Novels (admin) ---------- */
+/* Header with actions: text left, actions right (wrapping under the text on phones). */
 .masthead--row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-4);
+}
+
+.masthead--row > .masthead__text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.masthead__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.masthead__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* Hero: cover | text. Stacked on phones, side by side from 521px. */
+.masthead--hero {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.masthead__media {
+  max-width: 160px;
+}
+
+/* A novel cover or a work cover fills the media column. */
+.masthead__media > img,
+.masthead__media > .novel-card__cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+
+.masthead__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.masthead--hero .masthead__text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+@media (min-width: 521px) {
+  .masthead--hero {
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .masthead__media {
+    max-width: none;
+  }
+}
+
+/* Media pages (Watch): the title sits under the player, so on phones it is compact to keep the player high. */
+.masthead--media .masthead__name {
+  font-size: var(--step-1);
+}
+
+.masthead--media .masthead__lede {
+  font-size: var(--step--1);
+}
+
+@media (min-width: 761px) {
+  .masthead--media .masthead__name {
+    font-size: var(--step-3);
+  }
+
+  .masthead--media .masthead__lede {
+    font-size: inherit;
+  }
 }

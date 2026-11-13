@@ -1,25 +1,26 @@
 .chapter-list {
   display: grid;
-  gap: var(--space-2);
+  gap: 0;
+  border-top: 1px solid var(--rule);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Divider rows: a line under each row, no box. */
 .chapter-list__item {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-control);
+  border-bottom: 1px solid var(--rule);
   background: var(--surface);
 }
 
 .chapter-list__item:hover {
-  border-color: var(--brand-2);
+  background: var(--hover);
 }
 
 .chapter-list__item--dragging {
   position: relative;
   z-index: var(--z-raised);
-  border-color: var(--brand-2);
+  background: var(--surface);
   box-shadow: var(--shadow-drag);
 }
 

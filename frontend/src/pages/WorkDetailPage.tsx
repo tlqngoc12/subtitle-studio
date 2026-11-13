@@ -1,6 +1,6 @@
-import { ArrowLeft, Clapperboard, Pencil } from 'lucide-react';
+import { Clapperboard, Pencil } from 'lucide-react';
 import { Reveal } from '../components/ui/Reveal';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api/client';
 import type { Work } from '../api/works';
@@ -9,8 +9,9 @@ import { LinkButtons } from '../components/works/LinkButtons';
 import { PeopleCards } from '../components/works/PeopleCards';
 import { Alert } from '../components/ui/Alert';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
-import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import { useSite } from '../data/SiteContext';
 import { formatDay } from '../lib/dates';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -51,89 +52,92 @@ export default function WorkDetailPage() {
 
   // Back keeps the filters when the visitor came from the grid; a shared link goes to the grid.
   const cameFromGrid = (location.state as { fromWorks?: boolean } | null)?.fromWorks === true;
-  const back = (
-    <Link
-      className="back-link"
-      to="/works"
-      onClick={(e) => {
-        if (cameFromGrid) {
-          e.preventDefault();
-          navigate(-1);
-        }
-      }}
-    >
-      <ArrowLeft className="icon" aria-hidden="true" />
-      {t('Back to Works', 'Quay lại Tác phẩm')}
-    </Link>
-  );
+  const onNavigate = (e: MouseEvent<HTMLAnchorElement>, to: string) => {
+    if (cameFromGrid && to === '/works') {
+      e.preventDefault();
+      navigate(-1);
+    }
+  };
 
   if (notFound) {
     return (
-      <main className="page">
-        <PageHeader title={t('Work not found', 'Không tìm thấy tác phẩm')} lede={back} />
-      </main>
+      <Page>
+        <PageHeader
+          breadcrumbs={[{ label: 'Works', to: '/works' }, { label: t('Not found', 'Không tìm thấy') }]}
+          onNavigate={onNavigate}
+          title={t('Work not found', 'Không tìm thấy tác phẩm')}
+        />
+      </Page>
     );
   }
 
   return (
-    <main className="page">
-      {back}
+    <Page>
       {error && <Alert title={error.title} hint={error.hint} />}
-      {work === null && !error && <LoadingText>{t('Loading work…', 'Đang tải tác phẩm…')}</LoadingText>}
+      {work === null && !error && <PageSkeleton rows={3} />}
 
       {work && (
-        <article className="work">
-          <div className="work__cover-col">
-            {work.coverUrl ? (
+        <>
+          <PageHeader
+            variant="hero"
+            breadcrumbs={[{ label: 'Works', to: '/works' }, { label: work.title }]}
+            onNavigate={onNavigate}
+            title={work.title}
+            media={
+              work.coverUrl ? (
+                <>
+                  <button type="button" className="work__cover" aria-label={t(`View larger: ${work.title}`, `Xem ảnh lớn: ${work.title}`)} onClick={() => setZoom(true)}>
+                    <img src={work.coverUrl} alt={work.title} />
+                  </button>
+                  <ImageLightbox
+                    images={[{ src: work.coverUrl, alt: work.title }]}
+                    index={zoom ? 0 : null}
+                    onIndexChange={() => undefined}
+                    onClose={() => setZoom(false)}
+                  />
+                </>
+              ) : (
+                <div className="work__cover work__cover--empty" aria-hidden="true">
+                  <Clapperboard className="icon" />
+                </div>
+              )
+            }
+            meta={
               <>
-                <button type="button" className="work__cover" aria-label={t(`View larger: ${work.title}`, `Xem ảnh lớn: ${work.title}`)} onClick={() => setZoom(true)}>
-                  <img src={work.coverUrl} alt={work.title} />
-                </button>
-                <ImageLightbox
-                  images={[{ src: work.coverUrl, alt: work.title }]}
-                  index={zoom ? 0 : null}
-                  onIndexChange={() => undefined}
-                  onClose={() => setZoom(false)}
-                />
+                {work.categories.map((c) => (
+                  <span key={c} className="work__chip work__chip--category">
+                    {categoryLabel(c)}
+                  </span>
+                ))}
+                {work.subcategory && <span className="work__chip">{work.subcategory}</span>}
+                <span className="work__date">{work.releaseDate ? formatDay(work.releaseDate) : t('Coming Soon', 'Sắp ra mắt')}</span>
               </>
-            ) : (
-              <div className="work__cover work__cover--empty" aria-hidden="true">
-                <Clapperboard className="icon" />
-              </div>
-            )}
-          </div>
-
-          <div className="work__body">
-            <div className="work__chips">
-              {work.categories.map((c) => (
-                <span key={c} className="work__chip work__chip--category">
-                  {categoryLabel(c)}
-                </span>
-              ))}
-              {work.subcategory && <span className="work__chip">{work.subcategory}</span>}
-            </div>
-            <h1 className="work__title">{work.title}</h1>
-            <p className="work__date">{work.releaseDate ? formatDay(work.releaseDate) : t('Coming Soon', 'Sắp ra mắt')}</p>
-            {!readOnly && (
-              <div>
-                <Link className="button button--s" to={`/works/${work.id}/edit`}>
+            }
+            actions={
+              !readOnly && (
+                <Link className="button" to={`/works/${work.id}/edit`}>
                   <Pencil className="icon" aria-hidden="true" />
                   Edit
                 </Link>
-              </div>
-            )}
-            <LinkButtons links={work.links} />
-            {work.description && <p className="work__description">{work.description}</p>}
-          </div>
+              )
+            }
+          />
 
-          {work.credits.length > 0 && (
-            <Reveal as="section" className="work__people" aria-labelledby="work-people">
-              <h2 id="work-people">{readOnly ? PEOPLE_HEADING_VI[peopleHeading(work.categories)] : peopleHeading(work.categories)}</h2>
-              <PeopleCards credits={work.credits} />
-            </Reveal>
-          )}
-        </article>
+          <article className="work">
+            <div className="work__body">
+              <LinkButtons links={work.links} />
+              {work.description && <p className="work__description">{work.description}</p>}
+            </div>
+
+            {work.credits.length > 0 && (
+              <Reveal as="section" className="work__people" aria-labelledby="work-people">
+                <h2 id="work-people">{readOnly ? PEOPLE_HEADING_VI[peopleHeading(work.categories)] : peopleHeading(work.categories)}</h2>
+                <PeopleCards credits={work.credits} />
+              </Reveal>
+            )}
+          </article>
+        </>
       )}
-    </main>
+    </Page>
   );
 }

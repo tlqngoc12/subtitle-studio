@@ -114,6 +114,21 @@ describe('PublicNovelPage', () => {
     chapters: Array.from({ length: 13 }, (_, i) => ({ chapterNo: i + 1, title: `C${i + 1}` })),
   };
 
+  it('is a hero header from PageHeader: Novels > title breadcrumbs, cover before the title, facts and Read bar inside', async () => {
+    renderPage();
+
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Tình Yêu Mùa Hạ' });
+    const header = h1.closest('header')!;
+    expect(header).toHaveClass('masthead--hero');
+    const cover = header.querySelector('.masthead__media')!;
+    expect(cover.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(header).getByText('Hoàn thành')).toBeInTheDocument();
+    expect(within(header).getByRole('link', { name: 'Bắt đầu đọc' })).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(nav.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('shows the novel details and its published chapters', async () => {
     renderPage();
 
@@ -245,10 +260,10 @@ describe('PublicNovelPage', () => {
     expect(last.closest('a')).toBeNull();
   });
 
-  it('says it is loading', () => {
+  it('shows a skeleton announced as loading while the novel loads', async () => {
     renderPage(source({ getNovel: () => new Promise(() => {}) }));
 
-    expect(screen.getByText('Đang tải truyện…')).toBeInTheDocument();
+    expect(await screen.findByRole('status', { name: /Loading|Đang tải/ })).toBeInTheDocument();
   });
 
   it('says when the novel does not exist', async () => {

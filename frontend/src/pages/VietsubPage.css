@@ -1,7 +1,4 @@
-/* Manage Vietsub: search box and the Filter button on one row. */
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+/* Manage Vietsub: the toolbar sits at the top of the list, 16 px above the first row. */
+.history > .toolbar {
   margin-bottom: var(--space-4);
 }

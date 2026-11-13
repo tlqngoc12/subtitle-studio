@@ -88,6 +88,17 @@ describe('ProfilesPage', () => {
     await waitFor(() => expect(screen.queryByText('34 videos · 612 corrected lines')).not.toBeInTheDocument());
   });
 
+  it('puts the profile select before Analyze corrections in the toolbar', async () => {
+    fakeFetch([list(), get()]);
+    renderPage();
+
+    const select = await screen.findByRole('combobox', { name: 'Profile' });
+    const analyze = screen.getByRole('button', { name: 'Analyze corrections' });
+    expect(select.compareDocumentPosition(analyze) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(select.closest('.toolbar')).not.toBeNull();
+    expect(analyze.closest('.toolbar')).toBe(select.closest('.toolbar'));
+  });
+
   it('disables Analyze with a reason when no profile is chosen', async () => {
     fakeFetch([list()]);
     renderPage('/vietsub/profiles');

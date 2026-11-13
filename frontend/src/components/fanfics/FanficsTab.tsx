@@ -21,6 +21,7 @@ import { SearchBar } from '../ui/SearchBar';
 import { FilterPills } from '../ui/FilterPills';
 import { Select } from '../ui/Select';
 import { Skeleton } from '../ui/Skeleton';
+import { Toolbar } from '../ui/Toolbar';
 import { useDelayedFlag } from '../../lib/useDelayedFlag';
 import { AddFanficDialog } from './AddFanficDialog';
 import { FanficCard } from './FanficCard';
@@ -193,30 +194,34 @@ export function FanficsTab() {
   return (
     <section className="fanfics" aria-label="Fanfics">
       {confirmDialog}
-      <div className="fanfics__toolbar">
-        <div className="fanfics__search">
-          <SearchBar value={query} onChange={setQuery} label={t('Search fanfics', 'Tìm fanfic')} onClear={() => setQuery('')} />
-        </div>
-        <FilterPills label={t('Status', 'Trạng thái')} options={statuses(t)} value={status} onChange={setStatus} />
-        <div className="fanfics__sort">
-          <label className="visually-hidden" htmlFor="fanfics-sort">
-            {t('Sort by', 'Sắp xếp theo')}
-          </label>
-          <Select id="fanfics-sort" value={sort} onChange={(v) => setSort(v as Sort)} options={sorts(t)} />
-        </div>
-        {!readOnly && (
-          <div className="fanfics__actions">
-            <button type="button" className="button" disabled={refreshingAll} onClick={() => void refreshAll()}>
-              <RefreshCw className="icon" aria-hidden="true" />
-              {refreshingAll ? 'Refreshing…' : 'Refresh all'}
-            </button>
-            <button type="button" className="button button--primary" onClick={() => setAdding(true)}>
-              <Plus className="icon" aria-hidden="true" />
-              Add fanfic
-            </button>
-          </div>
-        )}
-      </div>
+      <Toolbar
+        search={<SearchBar value={query} onChange={setQuery} label={t('Search fanfics', 'Tìm fanfic')} onClear={() => setQuery('')} />}
+        filters={
+          <>
+            <FilterPills label={t('Status', 'Trạng thái')} options={statuses(t)} value={status} onChange={setStatus} />
+            <div className="fanfics__sort">
+              <label className="visually-hidden" htmlFor="fanfics-sort">
+                {t('Sort by', 'Sắp xếp theo')}
+              </label>
+              <Select id="fanfics-sort" value={sort} onChange={(v) => setSort(v as Sort)} options={sorts(t)} />
+            </div>
+          </>
+        }
+        actions={
+          !readOnly && (
+            <>
+              <button type="button" className="button" disabled={refreshingAll} onClick={() => void refreshAll()}>
+                <RefreshCw className="icon" aria-hidden="true" />
+                {refreshingAll ? 'Refreshing…' : 'Refresh all'}
+              </button>
+              <button type="button" className="button button--primary" onClick={() => setAdding(true)}>
+                <Plus className="icon" aria-hidden="true" />
+                Add fanfic
+              </button>
+            </>
+          )
+        }
+      />
 
       {error && <Alert title={error.title} hint={error.hint} />}
       {actionError && <Alert title={actionError.title} hint={actionError.hint} />}

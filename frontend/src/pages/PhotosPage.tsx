@@ -10,6 +10,7 @@ import { PhotoPostDialog } from '../components/photos/PhotoPostDialog';
 import { PhotoTile } from '../components/photos/PhotoTile';
 import { PhotoTileMenu } from '../components/photos/PhotoTileMenu';
 import { Alert } from '../components/ui/Alert';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter, type Person } from '../components/ui/PeopleFilter';
 import { useConfirmDialog } from '../components/useConfirmDialog';
@@ -97,7 +98,7 @@ export default function PhotosPage() {
   };
 
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
       <PageHeader
         title={t('Photos', 'Hình ảnh')}
@@ -156,6 +157,6 @@ export default function PhotosPage() {
           onOpenChange={(open) => !open && setDialog(null)}
         />
       )}
-    </main>
+    </Page>
   );
 }

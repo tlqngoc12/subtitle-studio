@@ -6,6 +6,7 @@ import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/Imag
 import { ItemListEditor } from './ItemListEditor';
 import { Alert } from '../ui/Alert';
 import './BlockEditor.css';
+import { FormActions } from '../ui/FormActions';
 
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   TEXT: 'Text',
@@ -261,14 +262,14 @@ export function BlockEditor({
 
       {errorOf('items') && <p className="field__error">{errorOf('items')}</p>}
 
-      <div className="form-actions form-actions--tight">
+      <FormActions tight>
         <button type="button" className="button" onClick={onCancel}>
           Cancel
         </button>
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
         </button>
-      </div>
+      </FormActions>
     </form>
   );
 }

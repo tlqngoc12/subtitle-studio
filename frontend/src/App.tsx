@@ -10,6 +10,7 @@ import ChapterPage from './pages/ChapterPage';
 import HomePage from './pages/HomePage';
 import NovelNewPage from './pages/NovelNewPage';
 import NovelPage from './pages/NovelPage';
+import NotFoundPage from './pages/NotFoundPage';
 import NovelsPage from './pages/NovelsPage';
 import PlaylistEditPage from './pages/PlaylistEditPage';
 import PlaylistsPage from './pages/PlaylistsPage';
@@ -33,7 +34,11 @@ export default function App() {
         <SkipLink />
         <NavBar />
         <AppToaster />
-        <BackToTop hideOn={[/^\/novels\/[^/]+\/chapters\/[^/]+$/]} />
+        <BackToTop
+          hideOn={[/^\/novels\/[^/]+\/chapters\/[^/]+$/]}
+          // Form pages with a sticky FormActions bar (the chapter page hides the button instead).
+          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/]}
+        />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/vietsub" element={<VietsubPage />} />
@@ -54,6 +59,7 @@ export default function App() {
           <Route path="/novels/new" element={<NovelNewPage />} />
           <Route path="/novels/:id" element={<NovelPage />} />
           <Route path="/novels/:id/chapters/:chapterId" element={<ChapterPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </TopbarSlotProvider>
     </MotionConfig>

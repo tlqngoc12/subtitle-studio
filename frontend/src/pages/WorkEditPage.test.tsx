@@ -252,6 +252,45 @@ describe('WorkEditPage', () => {
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
   });
 
+  it('shows Works > Add work as breadcrumbs instead of a back link', async () => {
+    fakeFetch(SUPPORT);
+    renderAt('/works/new');
+    await screen.findByLabelText('Title');
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Works' })).toHaveAttribute('href', '/works');
+    expect(within(nav).getByText('Add work')).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelector('.back-link')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Add work' })).toBeInTheDocument();
+  });
+
+  it('shows Works > title > Edit as breadcrumbs for an existing work', async () => {
+    fakeFetch([...SUPPORT, { method: 'GET', path: '/api/works/5', status: 200, body: work(5, { title: 'Love Story' }) }]);
+    renderAt('/works/5/edit');
+    await screen.findByLabelText('Title');
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Works' })).toHaveAttribute('href', '/works');
+    expect(within(nav).getByRole('link', { name: 'Love Story' })).toHaveAttribute('href', '/works/5');
+    expect(within(nav).getByText('Edit')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('keeps Delete, Cancel and Save in one sticky bar, Delete first', async () => {
+    fakeFetch([...SUPPORT, { method: 'GET', path: '/api/works/5', status: 200, body: work(5, { title: 'Love Story' }) }]);
+    renderAt('/works/5/edit');
+    await screen.findByLabelText('Title');
+
+    const del = screen.getByRole('button', { name: 'Delete work' });
+    const cancel = screen.getByRole('link', { name: 'Cancel' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    const bar = save.parentElement!;
+    expect(bar).toHaveClass('form-actions--sticky');
+    expect(bar).toContainElement(cancel);
+    expect(bar).toContainElement(del);
+    expect(del.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cancel.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('shows Work not found for an unknown work', async () => {
     fakeFetch([...SUPPORT, { method: 'GET', path: '/api/works/9', status: 404, body: problem(404, 'WORK_NOT_FOUND', 'x') }]);
     renderAt('/works/9/edit');

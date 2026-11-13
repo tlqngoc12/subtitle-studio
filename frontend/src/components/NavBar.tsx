@@ -60,10 +60,31 @@ export function NavBar() {
   const scroll = useScrollDirection({ locked: focusIn });
   const slideAway = hidden || (!active && scroll.hidden);
 
-  // On a phone only part of the row fits: bring the current section into view.
+  // On a phone only part of the row fits: centre the current section, and fade only the edges that hide more items.
   useEffect(() => {
-    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
-  }, [pathname]);
+    const nav = navRef.current;
+    if (!nav) return;
+    const updateFades = () => {
+      nav.dataset.fadeStart = String(nav.scrollLeft > 1);
+      nav.dataset.fadeEnd = String(nav.scrollLeft < nav.scrollWidth - nav.clientWidth - 1);
+    };
+    const centre = () => {
+      nav.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+      updateFades();
+    };
+    centre();
+    // The web font changes the item widths once it loads: centre again so the current item is not off by that much.
+    let live = true;
+    void document.fonts?.ready.then(() => live && centre());
+    nav.addEventListener('scroll', updateFades, { passive: true });
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateFades);
+    resize?.observe(nav);
+    return () => {
+      live = false;
+      nav.removeEventListener('scroll', updateFades);
+      resize?.disconnect();
+    };
+  }, [pathname, readOnly]);
   return (
     <header
       className={['topbar', slideAway && 'topbar--hidden', scroll.scrolled && 'topbar--scrolled'].filter(Boolean).join(' ')}
@@ -80,7 +101,7 @@ export function NavBar() {
           <>
             <Link className="topbar__brand" to={homePath}>
               <img className="topbar__logo" src="/logo.webp" alt="" />
-              Subtitle Studio
+              <span className="topbar__name">Subtitle Studio</span>
             </Link>
             <nav className="nav" aria-label="Main" ref={navRef}>
               {sections.map((s) => {

@@ -1,17 +1,16 @@
 import { ListMusic, ListVideo, Pencil, Plus, Trash2 } from 'lucide-react';
 import { SkeletonList } from '../components/ui/Skeleton';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ApiError, type FieldError } from '../api/client';
 import {
-  createPlaylist,
   deletePlaylist,
   listPlaylists,
   videoCountLabel,
   type PlaylistDetail,
   type PlaylistSummary,
 } from '../api/playlists';
+import { CreatePlaylistDialog } from '../components/CreatePlaylistDialog';
 import { EmptyState } from '../components/EmptyState';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
@@ -20,6 +19,7 @@ import { formatInstant } from '../lib/dates';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { rowMotion } from '../lib/motion';
 import { Alert } from '../components/ui/Alert';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import './PlaylistsPage.css';
 
@@ -41,6 +41,7 @@ export default function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     listPlaylists()
@@ -72,12 +73,27 @@ export default function PlaylistsPage() {
   }
 
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
-      <PageHeader title="Vietsub" lede="Group videos with Vietsub into playlists and choose their order." />
+      <PageHeader
+        title="Vietsub"
+        lede="Group videos with Vietsub into playlists and choose their order."
+        actions={
+          <button className="button button--primary" type="button" onClick={() => setCreating(true)}>
+            <Plus className="icon" aria-hidden="true" />
+            Create playlist
+          </button>
+        }
+      />
+      <CreatePlaylistDialog
+        open={creating}
+        onOpenChange={setCreating}
+        onCreated={(d) => {
+          setPlaylists((list) => [toSummary(d), ...(list ?? [])]);
+          setCreating(false);
+        }}
+      />
       <VietsubTabs>
-        <NewPlaylistForm onCreated={(d) => setPlaylists((list) => [toSummary(d), ...(list ?? [])])} />
-
         {error && (
           <Alert title={error.title} hint={error.hint} />
         )}
@@ -88,7 +104,7 @@ export default function PlaylistsPage() {
             <SkeletonList rows={4} />
           ) : playlists.length === 0 ? (
             <EmptyState icon={ListMusic}>
-              No playlists yet. Create one above, then use Save to playlist in the Videos tab.
+              No playlists yet. Choose Create playlist to add one.
             </EmptyState>
           ) : (
             <ul className="history__list">
@@ -140,91 +156,6 @@ export default function PlaylistsPage() {
           )}
         </section>
       </VietsubTabs>
-    </main>
-  );
-}
-
-/** Name + optional description; server field errors are shown under their input. */
-function NewPlaylistForm({ onCreated }: { onCreated: (d: PlaylistDetail) => void }) {
-  const ids = useId();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<ErrorMessage | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
-  const fieldError = (field: string) => fieldErrors.find((f) => f.field === field)?.message;
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setPending(true);
-    setError(null);
-    setFieldErrors([]);
-    try {
-      const created = await createPlaylist(name.trim(), description.trim() || undefined);
-      onCreated(created);
-      setName('');
-      setDescription('');
-    } catch (err) {
-      setError(errorMessage(err));
-      if (err instanceof ApiError) setFieldErrors(err.fieldErrors);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  const nameError = fieldError('name');
-  const descriptionError = fieldError('description');
-  return (
-    <form className="vsform vsform--playlist" onSubmit={submit} aria-label="New playlist" aria-busy={pending}>
-      <div className="vsform__field field">
-        <label htmlFor={`${ids}-name`}>
-          Name
-        </label>
-        <input
-          id={`${ids}-name`}
-          type="text"
-          autoComplete="off"
-          value={name}
-          maxLength={100}
-          required
-          onChange={(e) => setName(e.target.value)}
-          aria-invalid={nameError ? true : undefined}
-          aria-describedby={nameError ? `${ids}-name-error` : undefined}
-        />
-        {nameError && (
-          <p className="field__error" id={`${ids}-name-error`}>
-            {nameError}
-          </p>
-        )}
-      </div>
-      <div className="vsform__field field">
-        <label htmlFor={`${ids}-description`}>
-          Description (optional)
-        </label>
-        <input
-          id={`${ids}-description`}
-          type="text"
-          autoComplete="off"
-          value={description}
-          maxLength={1000}
-          onChange={(e) => setDescription(e.target.value)}
-          aria-invalid={descriptionError ? true : undefined}
-          aria-describedby={descriptionError ? `${ids}-description-error` : undefined}
-        />
-        {descriptionError && (
-          <p className="field__error" id={`${ids}-description-error`}>
-            {descriptionError}
-          </p>
-        )}
-      </div>
-      <button className="button button--primary" type="submit" disabled={pending}>
-        <Plus className="icon" aria-hidden="true" />
-        {pending ? 'Creating…' : 'Create playlist'}
-      </button>
-      {error && (
-        <Alert title={error.title} />
-      )}
-    </form>
+    </Page>
   );
 }

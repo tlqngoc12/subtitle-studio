@@ -34,12 +34,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* The shortcuts button stays at the right of the title instead of wrapping under it. */
-.watch__main > .masthead--watch > div {
-  flex: 1;
-  min-width: 0;
-}
-
 @media (min-width: 761px) {
   .watch--playlist {
     grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);

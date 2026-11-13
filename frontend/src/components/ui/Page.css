@@ -1,0 +1,117 @@
+/* ---------- Page column ---------- */
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--gutter) var(--gutter) var(--space-16);
+  display: grid;
+  /* Header, tabs, toolbar and content sit 24 px apart; the breadcrumbs pull themselves up to 16 px. */
+  gap: var(--space-6);
+}
+
+.page--wide {
+  max-width: 1440px;
+}
+
+.page--narrow {
+  max-width: calc(760px + 2 * var(--gutter));
+}
+
+/* A sticky form bar sits over the bottom of the page: leave its height free so the last field is never covered. */
+.page:has(.form-actions--sticky) {
+  padding-bottom: var(--space-8);
+}
+
+/* Content sections: 24 px section gap + 24 px margin = 48 px. */
+.page-section + .page-section {
+  margin-top: var(--space-6);
+}
+
+/* ---------- Form action bar ---------- */
+/* Right-aligned, Delete apart on the left; stacked full width on phones with Save on top. */
+.form-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.form-actions--tight {
+  margin-top: var(--space-4);
+}
+
+.form-actions > .form-actions__start {
+  margin-right: 0;
+}
+
+/* Phones: stacked full-width buttons (Cancel above Save reads bottom-up); from 521px a row. */
+.form-actions .button:not(.button--icon) {
+  width: 100%;
+}
+
+/* The bar stays on screen while the form scrolls and ends where the form ends. */
+.form-actions--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  margin-top: var(--space-4);
+  /* Bleed to the page edges so scrolling content does not show beside the bar. */
+  margin-inline: calc(-1 * var(--gutter));
+  padding: var(--space-3) var(--gutter) calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  /* One row at every width (about 65px on a phone): Delete (icon only on phones), Cancel, then Save filling the rest. */
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.form-actions--sticky .button:not(.button--icon) {
+  width: auto;
+}
+
+.form-actions--sticky > :last-child {
+  flex: 1;
+}
+
+/* Phones: the start button (Delete) shows its icon only; the text stays for screen readers. */
+.form-actions--sticky .form-actions__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 521px) {
+  .form-actions--sticky > :last-child {
+    flex: none;
+  }
+
+  .form-actions--sticky .form-actions__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .form-actions > .form-actions__start {
+    margin-right: auto;
+  }
+
+  .form-actions .button:not(.button--icon) {
+    width: auto;
+  }
+}

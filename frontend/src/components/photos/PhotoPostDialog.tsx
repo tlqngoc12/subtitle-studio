@@ -21,6 +21,7 @@ import { ImageDropzone } from '../ui/ImageDropzone';
 import { IconButton } from '../ui/IconButton';
 import type { Person } from '../ui/PeopleFilter';
 import './PhotoPostDialog.css';
+import { FormActions } from '../ui/FormActions';
 
 const SOURCES: { value: PhotoSource; label: string }[] = [
   { value: 'OFFICIAL', label: 'Official' },
@@ -296,14 +297,14 @@ function PhotoPostForm({
         </div>
       )}
 
-      <div className="form-actions">
+      <FormActions>
         <button type="button" className="button" onClick={onCancel}>
           Cancel
         </button>
         <button type="submit" className="button button--primary" disabled={saving || uploading}>
           Save
         </button>
-      </div>
+      </FormActions>
     </form>
   );
 }

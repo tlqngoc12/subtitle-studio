@@ -1,5 +1,5 @@
 import * as Popover from '@radix-ui/react-popover';
-import { ListPlus, Plus } from 'lucide-react';
+import { ListMusic, ListPlus, Plus } from 'lucide-react';
 import { useId, useState, type KeyboardEvent } from 'react';
 import { toast } from 'sonner';
 import type { VideoDto } from '../api/client';
@@ -11,6 +11,7 @@ import {
   type PlaylistSummary,
 } from '../api/playlists';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { EmptyState } from './EmptyState';
 import { Tip } from './Tip';
 import { Alert } from './ui/Alert';
 import { LoadingText } from './ui/LoadingText';
@@ -121,7 +122,9 @@ export function SaveToPlaylist({ video }: { video: VideoDto }) {
         {playlists === null ? (
           <LoadingText>Loading playlists…</LoadingText>
         ) : playlists.length === 0 ? (
-          <p className="muted">No playlists yet.</p>
+          <EmptyState icon={ListMusic} compact>
+            No playlists yet. Create one in Vietsub &gt; Playlists.
+          </EmptyState>
         ) : (
           <ul className="saveto__list">
             {playlists.map((p) => (

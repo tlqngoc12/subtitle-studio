@@ -8,7 +8,9 @@ import { EmptyState } from '../components/EmptyState';
 import { NovelsTabs, useNovelsTab } from '../components/fanfics/NovelsTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Toolbar } from '../components/ui/Toolbar';
 import { Cover } from '../components/ui/Cover';
 import './public/NovelCard.css';
 import './public/ReadsMeta.css';
@@ -40,18 +42,10 @@ export default function NovelsPage() {
   }, []);
 
   return (
-    <main className="page">
+    <Page>
       <PageHeader
         title="Novels"
         lede="Translate novels from page screenshots and publish them chapter by chapter."
-        actions={
-          tab === 'translated' && (
-            <Link className="button button--primary" to="/novels/new">
-              <Plus className="icon" aria-hidden="true" />
-              New novel
-            </Link>
-          )
-        }
       />
 
       <NovelsTabs
@@ -59,6 +53,15 @@ export default function NovelsPage() {
         onTabChange={setTab}
         translated={
           <>
+            <Toolbar
+              className="toolbar--above-list"
+              actions={
+                <Link className="button button--primary" to="/novels/new">
+                  <Plus className="icon" aria-hidden="true" />
+                  New novel
+                </Link>
+              }
+            />
             {error && (
               <Alert title={error.title} hint={error.hint} />
             )}
@@ -94,6 +97,6 @@ export default function NovelsPage() {
           </>
         }
       />
-    </main>
+    </Page>
   );
 }

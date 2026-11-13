@@ -1,18 +1,9 @@
-/* Playlist editor: header actions and sortable rows. */
-.plhead {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.plhead__actions,
+/* Playlist editor: details form and sortable rows. */
 .plhead__form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
-}
-
-.plhead__form-actions {
   align-self: end;
 }
 

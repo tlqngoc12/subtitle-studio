@@ -143,6 +143,7 @@ describe('SaveToPlaylist', () => {
 
     const { dialog } = await openPopover();
 
-    expect(within(dialog).getByText('No playlists yet.')).toBeInTheDocument();
+    const text = within(dialog).getByText('No playlists yet. Create one in Vietsub > Playlists.');
+    expect(text.closest('.empty')).not.toBeNull(); // an EmptyState, not plain text
   });
 });

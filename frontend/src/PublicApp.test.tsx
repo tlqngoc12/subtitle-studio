@@ -99,7 +99,7 @@ describe('PublicApp', () => {
     renderAt('/vietsub');
 
     expect(await screen.findByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Quay lại danh sách Vietsub' })).toHaveAttribute('href', '/vietsub/list');
+    expect(screen.getByRole('link', { name: 'Về trang Vietsub' })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('profileIsReadOnly', async () => {

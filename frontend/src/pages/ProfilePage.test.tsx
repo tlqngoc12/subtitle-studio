@@ -114,6 +114,15 @@ describe('ProfilePage', () => {
     expect(await screen.findByRole('region', { name: 'Ảnh banner' })).toBeInTheDocument();
   });
 
+  it('keeps Add member and Edit at the standard header size', async () => {
+    fakeFetch([GET_PAGE]);
+    renderAt('/profiles');
+
+    await screen.findByText('Trang của Emi');
+    expect(screen.getByRole('button', { name: 'Add member' })).not.toHaveClass('button--s');
+    expect(screen.getByRole('button', { name: 'Edit' })).not.toHaveClass('button--s');
+  });
+
   it('reports a network error', async () => {
     fakeFetch([]);
     renderAt('/profiles');

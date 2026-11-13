@@ -78,8 +78,8 @@ describe('Placeholder in the dark URL frame (E5)', () => {
 });
 
 describe('Vietsub list (L1, P3)', () => {
-  it('limits the search box to 560px', () => {
-    expect(rule('.page > .searchbar')).toMatch(/max-width:\s*560px/);
+  it('limits the search box to 360px through the toolbar', () => {
+    expect(css).toMatch(/@media \(min-width: 521px\)\s*\{\s*\.toolbar__search\s*\{[^}]*flex:\s*0 1 360px/);
   });
 
   it('lines the playlist preview up with the playlist name', () => {

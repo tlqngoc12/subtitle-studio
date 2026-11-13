@@ -13,8 +13,10 @@ import {
 import { Tip } from '../components/Tip';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Select } from '../components/ui/Select';
+import { Toolbar } from '../components/ui/Toolbar';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VietsubTabs } from '../components/VietsubTabs';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -158,55 +160,64 @@ export default function ProfilesPage() {
   const locked = analyzing || analysis !== null || saving;
   const reasonId = `${ids}-reason`;
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
       <PageHeader title="Vietsub" lede="Improve a translation profile from the lines you corrected." />
       <VietsubTabs>
         <section className="profiles" aria-label="Translation profiles">
-          <div className="profiles__bar">
-            <div className="field profiles__select">
-              <label htmlFor={`${ids}-profile`}>Profile</label>
-              <Select
-                id={`${ids}-profile`}
-                value={selected}
-                disabled={locked || profiles === null}
-                onChange={(name) => {
-                  setError(null);
-                  setParams(name ? { profile: name } : {}, { replace: true });
-                }}
-                options={[
-                  { value: '', label: 'Choose a profile…' },
-                  ...(profiles?.profiles ?? []).map((name) => ({ value: name, label: name })),
-                ]}
-              />
-            </div>
-            {details && (
-              <p className="profiles__stats meta">
-                {plural(details.stats.videos, 'video')} · {plural(details.stats.correctedLines, 'corrected line')}
-              </p>
-            )}
-            <Tip label={reason ?? ''} disabled={!reason}>
-              <button
-                className="button button--primary profiles__analyze"
-                type="button"
-                aria-disabled={reason || analysis || analyzing ? true : undefined}
-                aria-describedby={reason ? reasonId : undefined}
-                onClick={analyze}
-              >
-                {analyzing ? (
-                  <Loader2 className="icon icon--spin" aria-hidden="true" />
-                ) : (
-                  <Sparkles className="icon" aria-hidden="true" />
+          <Toolbar
+            className="profiles__bar"
+            filters={
+              <>
+                <div className="field profiles__select">
+                  <label htmlFor={`${ids}-profile`}>Profile</label>
+                  <Select
+                    id={`${ids}-profile`}
+                    value={selected}
+                    disabled={locked || profiles === null}
+                    onChange={(name) => {
+                      setError(null);
+                      setParams(name ? { profile: name } : {}, { replace: true });
+                    }}
+                    options={[
+                      { value: '', label: 'Choose a profile…' },
+                      ...(profiles?.profiles ?? []).map((name) => ({ value: name, label: name })),
+                    ]}
+                  />
+                </div>
+                {details && (
+                  <p className="profiles__stats meta">
+                    {plural(details.stats.videos, 'video')} · {plural(details.stats.correctedLines, 'corrected line')}
+                  </p>
                 )}
-                {analyzing ? 'Analyzing…' : 'Analyze corrections'}
-              </button>
-            </Tip>
-            {reason && (
-              <span id={reasonId} className="visually-hidden">
-                {reason}
-              </span>
-            )}
-          </div>
+              </>
+            }
+            actions={
+              <>
+                <Tip label={reason ?? ''} disabled={!reason}>
+                  <button
+                    className="button button--primary profiles__analyze"
+                    type="button"
+                    aria-disabled={reason || analysis || analyzing ? true : undefined}
+                    aria-describedby={reason ? reasonId : undefined}
+                    onClick={analyze}
+                  >
+                    {analyzing ? (
+                      <Loader2 className="icon icon--spin" aria-hidden="true" />
+                    ) : (
+                      <Sparkles className="icon" aria-hidden="true" />
+                    )}
+                    {analyzing ? 'Analyzing…' : 'Analyze corrections'}
+                  </button>
+                </Tip>
+                {reason && (
+                  <span id={reasonId} className="visually-hidden">
+                    {reason}
+                  </span>
+                )}
+              </>
+            }
+          />
 
           {analyzing && (
             <p className="profiles__wait muted" role="status">
@@ -282,7 +293,7 @@ export default function ProfilesPage() {
           )}
         </section>
       </VietsubTabs>
-    </main>
+    </Page>
   );
 }
 

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource, publicSite } from '../test/fakeSource';
 import { NavBar } from './NavBar';
+import { css } from '../test/css';
 
 function currentAt(path: string) {
   render(
@@ -31,6 +32,40 @@ describe('NavBar', () => {
 
     expect(scroll).toHaveBeenCalledWith({ inline: 'center', block: 'nearest' });
     expect(scroll.mock.contexts[0]).toBe(screen.getByRole('link', { name: 'Profile' }));
+  });
+
+  it('centres the current section instead of snapping, so no hard-cut fragment is left', () => {
+    expect(/\.nav \{[^}]*scroll-snap/.test(css)).toBe(false);
+    expect(/\.nav__link \{[^}]*scroll-snap/.test(css)).toBe(false);
+  });
+
+  it('fades only the edges that have more items behind them', () => {
+    // A left fade only once scrolled, a right fade only while more is to the right; nothing from 761px.
+    expect(css).toMatch(/\.nav\[data-fade-start='true'\]/);
+    expect(css).toMatch(/\.nav\[data-fade-end='true'\]/);
+    expect(css).toMatch(/\.nav\[data-fade-start='true'\]\[data-fade-end='true'\]/);
+  });
+
+  it('marks the row as fading at the right edge on mount (nothing is scrolled yet)', () => {
+    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole('navigation');
+    expect(nav).toHaveAttribute('data-fade-start');
+    expect(nav).toHaveAttribute('data-fade-end');
+  });
+
+  it('keeps the app name reachable when only the logo shows on phones', () => {
+    render(
+      <MemoryRouter>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toBeInTheDocument();
+    expect(css).toMatch(/\.topbar__name\s*\{[^}]*clip/);
   });
 
   it('links to the four sections', () => {

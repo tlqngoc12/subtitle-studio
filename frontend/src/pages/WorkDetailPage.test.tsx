@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../api/client';
@@ -120,7 +120,7 @@ describe('WorkDetailPage', () => {
     renderPublic(FILM, path);
 
     expect(await screen.findByRole('heading', { name: 'Không tìm thấy tác phẩm' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Quay lại Tác phẩm' })).toHaveAttribute('href', '/works');
+    expect(screen.getByRole('link', { name: 'Quay lại Works' })).toHaveAttribute('href', '/works');
   });
 
   it('shows Edit only to the admin', async () => {
@@ -139,6 +139,24 @@ describe('WorkDetailPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/works/5/edit');
+    const edit = await screen.findByRole('link', { name: 'Edit' });
+    expect(edit).toHaveAttribute('href', '/works/5/edit');
+    // A header action at the standard size, next to the H1.
+    expect(edit).not.toHaveClass('button--s');
+    expect(screen.getByRole('heading', { level: 1, name: 'Love Story' }).closest('header')).toContainElement(edit);
+  });
+
+  it('is a hero header: breadcrumbs "Works" > title above the cover and H1 from PageHeader', async () => {
+    renderPublic(FILM);
+
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Love Story' });
+    expect(h1).toHaveClass('masthead__name');
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Works' })).toHaveAttribute('href', '/works');
+    expect(within(nav).getByText('Love Story')).toHaveAttribute('aria-current', 'page');
+    const header = h1.closest('header')!;
+    expect(header).toHaveClass('masthead--hero');
+    expect(within(header).getByRole('img', { name: 'Love Story' })).toBeInTheDocument();
+    expect(document.querySelector('.back-link')).toBeNull();
   });
 });

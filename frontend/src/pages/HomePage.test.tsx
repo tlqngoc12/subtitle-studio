@@ -199,6 +199,15 @@ describe('HomePage', () => {
     });
   });
 
+  it('names the page Get Engsub in its H1, like the menu', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Get Engsub' })).toBeVisible();
+    expect(await screen.findByText(/No videos yet/)).toBeInTheDocument();
+  });
+
   it('invites the user to paste a link when nothing was fetched yet', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [] }]);
 

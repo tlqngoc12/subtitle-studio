@@ -179,11 +179,14 @@ describe('VietsubEditPage', () => {
     cleanup();
   });
 
-  it('shows a loading line, then the video title, breadcrumb and source badge', async () => {
-    fakeFetch(routes());
+  it('shows a loading skeleton, then the video title, breadcrumb and source badge', async () => {
+    let release!: () => void;
+    const delay = new Promise<void>((r) => (release = r));
+    fakeFetch(routes().map((r, i) => (i === 0 ? { ...r, delay } : r)));
     render(tree());
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading Vietsub…');
+    expect(await screen.findByRole('status', { name: 'Loading' })).toBeInTheDocument(); // a skeleton, not a line of text
+    release();
     expect(await screen.findByRole('heading', { level: 1, name: 'Học Spring Boot' })).toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(crumbs).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub/list');
@@ -569,14 +572,15 @@ describe('VietsubEditPage', () => {
   describe('saving', () => {
     const PUT = { method: 'PUT', path: `/api/videos/${ID}/vietsub/text` };
     const saved: VideoDto = { ...video, viSource: 'MANUAL', viUpdatedAt: '2026-11-09T12:00:00Z' };
-    const saveButton = () => screen.getByRole('button', { name: 'Save (Ctrl+S)' });
+    const saveButton = () => screen.getByRole('button', { name: 'Save' });
 
-    it('has an icon Save button with a tooltip', async () => {
+    it('has a text Save button (not icon-only) with the shortcut in its tooltip', async () => {
       await renderEditor();
 
-      expect(saveButton().querySelector('svg')).not.toBeNull();
-      expect(saveButton()).toHaveClass('button--icon');
-      await expectTooltip(saveButton(), 'Save (Ctrl+S)');
+      expect(saveButton()).toHaveTextContent('Save');
+      expect(saveButton()).not.toHaveClass('button--icon');
+      expect(saveButton()).toHaveClass('button--primary');
+      await expectTooltip(saveButton(), 'Ctrl+S');
     });
 
     it('keeps Save disabled until something changes, and disables it again for an empty or over-long line', async () => {
@@ -784,7 +788,7 @@ describe('VietsubEditPage', () => {
       ]);
       const user = userEvent.setup();
       await user.type(area(1), '!');
-      await user.click(screen.getByRole('button', { name: 'Save (Ctrl+S)' }));
+      await user.click(screen.getByRole('button', { name: 'Save' }));
 
       await waitFor(() => expect(markDone()).toBeEnabled());
     });
@@ -900,12 +904,24 @@ describe('VietsubEditPage', () => {
       expect(await screen.findByText('away page')).toBeInTheDocument();
     });
 
+    it('asks before a breadcrumb link leaves with unsaved edits: Cancel stays', async () => {
+      await renderEditor();
+      const user = userEvent.setup();
+      await user.type(area(1), '!');
+
+      const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      await user.click(within(crumbs).getByRole('link', { name: 'Manage Vietsub' }));
+      await answerConfirm('Cancel', 'Discard unsaved changes?');
+
+      expect(area(1)).toHaveValue('Xin chào!');
+    });
+
     it('does not ask after the edits were saved', async () => {
       await renderEditor();
       fakeFetch([...routes(), { method: 'PUT', path: `/api/videos/${ID}/vietsub/text`, status: 200, body: { ...video, viSource: 'MANUAL' } }]);
       const user = userEvent.setup();
       await user.type(area(1), '!');
-      await user.click(screen.getByRole('button', { name: 'Save (Ctrl+S)' }));
+      await user.click(screen.getByRole('button', { name: 'Save' }));
       await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
       await user.click(screen.getByRole('link', { name: 'Away' }));

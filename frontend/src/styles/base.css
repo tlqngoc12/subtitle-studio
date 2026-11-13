@@ -56,20 +56,21 @@ a:not([class]):hover {
 }
 
 /* ---------- Page ---------- */
-.page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: var(--gutter) var(--gutter) var(--space-16);
-  display: grid;
-  gap: var(--space-8);
-}
-
+/* The page column, toolbar and form bar live in components/ui/Page.css and Toolbar.css. */
 .masthead__name {
   margin: 0;
   font-size: var(--step-3);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.1;
+}
+
+/* The third heading role: a small group label (year dividers on Works). Page title h1, section title h2 20px. */
+.group-label {
+  color: var(--muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .masthead__lede {
@@ -229,45 +230,6 @@ a:not([class]):hover {
   filter: brightness(1.1);
 }
 
-/* Form action bar: right-aligned, Delete apart on the left; stacked full width on phones with Save on top. */
-.form-actions {
-  display: flex;
-  flex-direction: column-reverse;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  margin-top: var(--space-8);
-}
-
-.form-actions--tight {
-  margin-top: var(--space-4);
-}
-
-.form-actions > .form-actions__start {
-  margin-right: 0;
-}
-
-/* Phones: stacked full-width buttons (Cancel above Save reads bottom-up); from 521px a row. */
-.form-actions .button:not(.button--icon) {
-  width: 100%;
-}
-
-@media (min-width: 521px) {
-  .form-actions {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .form-actions > .form-actions__start {
-    margin-right: auto;
-  }
-
-  .form-actions .button:not(.button--icon) {
-    width: auto;
-  }
-}
-
 /* ---------- Fields ---------- */
 /* Every text-like control shares one look; .field-control is for custom triggers (Radix Select, DatePicker). */
 :where(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select, textarea, .field-control) {
@@ -330,21 +292,6 @@ input.field-control--l {
   margin: var(--space-1) 0 0;
   max-width: 75ch;
   overflow-wrap: anywhere;
-}
-
-/* ---------- Watch page (Phase 2) ---------- */
-.back-link {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--muted);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  color: var(--ink);
 }
 
 .field {
@@ -465,16 +412,7 @@ label.button:has(input:focus-visible) {
   width: 100%;
 }
 
-/* Phones: a compact watch-page title so the player starts near the top, and 44px touch targets. */
-.masthead--watch .masthead__name {
-  font-size: var(--step-1);
-}
-
-.masthead--watch .masthead__lede {
-  font-size: var(--step--1);
-}
-
-.back-link,
+/* Phones: 44px touch targets. */
 .tabs__tab {
   min-height: 44px;
   display: inline-flex;
@@ -482,14 +420,6 @@ label.button:has(input:focus-visible) {
 }
 
 @media (min-width: 761px) {
-  .masthead--watch .masthead__name {
-    font-size: var(--step-3);
-  }
-
-  .masthead--watch .masthead__lede {
-    font-size: inherit;
-  }
-
   .tabs__tab {
     min-height: 0;
     display: revert;

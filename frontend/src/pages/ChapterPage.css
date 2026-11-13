@@ -1,39 +1,23 @@
 /* ---------- Novels: chapter page ---------- */
-.chapter-head {
-  display: grid;
-  gap: var(--space-3);
-  margin-block: var(--space-2) var(--space-4);
-}
-
-.chapter-head__title {
-  display: grid;
-  gap: var(--space-2);
-  justify-items: start;
-}
-
-.chapter-head__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-
 .chapter-head__nav {
   display: inline-flex;
   gap: var(--space-2);
 }
 
-@media (min-width: 761px) {
-  .chapter-head__nav {
-    margin-left: auto;
-  }
+.chapter-status {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.chapter-status p {
+  margin: 0;
 }
 
 .chapter-meta {
   margin-bottom: var(--space-4);
 }
 
-/* Number, label and title on one row; the title takes the rest and wraps to its own line on narrow screens. */
+/* Number, label and title on one row; label and title stack on phones, and sit side by side from 521px. */
 .chapter-meta__row {
   display: flex;
   flex-wrap: wrap;
@@ -46,18 +30,22 @@
 }
 
 .chapter-meta__label {
-  flex: 1 1 0;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
 .chapter-meta__title {
-  flex: 1 1 260px;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
 @media (min-width: 521px) {
   .chapter-meta__label {
     flex: 0 0 220px;
+  }
+
+  .chapter-meta__title {
+    flex: 1 1 260px;
   }
 }
 
@@ -108,17 +96,6 @@
 
 .chapter-text textarea:focus {
   border-color: var(--brand-2);
-}
-
-.chapter-save {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  margin-top: var(--space-4);
-  padding: var(--space-3) 0;
-  background: var(--paper);
 }
 
 /* Published chapter: what can still be changed (information = purple). */

@@ -53,6 +53,60 @@ describe('ChapterPage', () => {
   beforeEach(() => vi.mocked(toast.success).mockClear());
   afterEach(() => vi.useRealTimers());
 
+  it('shows Novels > novel > chapter as breadcrumbs instead of a back link', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByRole('link', { name: 'Tình Yêu Mùa Hạ' })).toHaveAttribute('href', '/novels/3');
+    expect(within(nav).getByText('Chapter 1: Mở đầu')).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelector('.back-link')).toBeNull();
+  });
+
+  it('asks before a breadcrumb leaves with unsaved edits: Cancel stays, Leave goes', async () => {
+    renderPage([get()]);
+    await loaded();
+    const nav = () => screen.getByRole('navigation', { name: 'Breadcrumb' });
+
+    await user().type(textBox(), '!');
+    await user().click(within(nav()).getByRole('link', { name: 'Tình Yêu Mùa Hạ' }));
+    await answerConfirm('Cancel', 'Leave without saving?');
+    expect(screen.queryByText('novel page')).not.toBeInTheDocument();
+    expect(textBox()).toHaveValue('Trang một\n\nTrang hai!');
+
+    await user().click(within(nav()).getByRole('link', { name: 'Tình Yêu Mùa Hạ' }));
+    await answerConfirm('Leave', 'Leave without saving?');
+    expect(await screen.findByText('novel page')).toBeInTheDocument();
+  });
+
+  it('puts Translate, Publish and Unpublish in the header at the standard size, one primary', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    const header = screen.getByRole('heading', { level: 1 }).closest('header')!;
+    const translate = within(header).getByRole('button', { name: 'Translate again' });
+    const publish = within(header).getByRole('button', { name: 'Publish' });
+    expect(translate).not.toHaveClass('button--s', 'button--primary');
+    expect(publish).toHaveClass('button--primary');
+    expect(header.querySelectorAll('.button--primary')).toHaveLength(1);
+    expect(within(header).getByText('Translated')).toBeInTheDocument();
+  });
+
+  it('keeps Unpublish at the standard size', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: 'Unpublish' })).not.toHaveClass('button--s');
+  });
+
+  it('keeps Save in the sticky form bar', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: 'Save' }).parentElement).toHaveClass('form-actions--sticky');
+  });
+
   it('has a text-only Save button', async () => {
     renderPage([get()]);
     await loaded();
@@ -251,7 +305,7 @@ describe('ChapterPage', () => {
     await user().click(screen.getByRole('button', { name: 'Publish' }));
 
     expect(await screen.findByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Chapter' })).getByText('Published')).toBeInTheDocument();
+    expect(within(screen.getByRole('heading', { level: 1 }).closest('header')!).getByText('Published')).toBeInTheDocument();
   });
 
   it('does not let Unpublish drop unsaved edits', async () => {
@@ -580,10 +634,12 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     const rule = (name: string) => new RegExp(`\\.chapter-meta__${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
     expect(/\.chapter-meta__row\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/.test(css)).toBe(true);
     expect(rule('number')).toMatch(/flex:\s*0 0 1\d\dpx/);
-    // Mobile-first: the label shares the row on a phone and is a fixed column from 521px.
-    expect(rule('label')).toMatch(/flex:\s*1 1 0/);
+    // Mobile-first: label and title each take a whole line on a phone (they overlapped when squeezed side by side);
+    // from 521px the label is a fixed column and the title takes the rest.
+    expect(rule('label')).toMatch(/flex:\s*1 1 100%/);
+    expect(rule('title')).toMatch(/flex:\s*1 1 100%/);
     expect(/@media \(min-width: 521px\)\s*\{\s*\.chapter-meta__label\s*\{[^}]*flex:\s*0 0 2[0-4]\dpx/.test(css)).toBe(true);
-    expect(rule('title')).toMatch(/flex:\s*1 1 /);
+    expect(/@media \(min-width: 521px\)\s*\{[^@]*\.chapter-meta__title\s*\{[^}]*flex:\s*1 1 2\d\dpx/.test(css)).toBe(true);
   });
 
   it('explains Number and Chapter label with info tooltips instead of hint lines', async () => {

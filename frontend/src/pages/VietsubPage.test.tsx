@@ -259,41 +259,31 @@ describe('VietsubPage', () => {
       expect(await screen.findByText('No videos match your search.')).toBeInTheDocument();
     });
 
-    const filterButton = (name: string | RegExp) => screen.getByRole('button', { name });
+    const pill = (name: string) => within(screen.getByRole('group', { name: 'Filter by source' })).getByRole('button', { name });
 
-    it('filters by source from one Filter button', async () => {
+    it('filters by source with inline pills, not a Filter popover', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld, aiNew] }]);
       renderPage();
       const list = await loadedRegion('Manage Vietsub');
       const user = userEvent.setup();
 
-      // No All / AI / Manual tab buttons any more, just one button next to the search box.
-      expect(filterButton('Filter')).toHaveTextContent('Filter');
-      expect(screen.queryByRole('group', { name: 'Filter by source' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'AI' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Filter/ })).not.toBeInTheDocument();
+      const group = screen.getByRole('group', { name: 'Filter by source' });
+      expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['All', 'AI', 'Manual']);
+      expect(pill('All')).toHaveAttribute('aria-pressed', 'true');
 
-      await user.click(filterButton('Filter'));
-      const menu = await screen.findByRole('radiogroup', { name: 'Filter by source' });
-      expect(within(menu).getAllByRole('radio').map((r) => r.textContent)).toEqual(['All', 'AI', 'Manual']);
-      expect(within(menu).getByRole('radio', { name: 'All' })).toBeChecked();
-
-      await user.click(within(menu).getByRole('radio', { name: 'AI' }));
+      await user.click(pill('AI'));
       await waitFor(() => expect(names(list)).toEqual(['AI mới', 'AI cũ']));
       expect(screen.getByLabelText('search')).toHaveTextContent('?source=ai');
-      expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument(); // picking closes it
-      expect(filterButton('Filter: AI')).toHaveClass('filter-button--active');
+      expect(pill('AI')).toHaveAttribute('aria-pressed', 'true');
+      expect(pill('All')).toHaveAttribute('aria-pressed', 'false');
 
-      await user.click(filterButton('Filter: AI'));
-      expect(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'AI' })).toBeChecked();
-      await user.click(within(screen.getByRole('radiogroup')).getByRole('radio', { name: 'Manual' }));
+      await user.click(pill('Manual'));
       await waitFor(() => expect(names(list)).toEqual(['Café sáng']));
-      expect(filterButton('Filter: Manual')).toBeInTheDocument();
 
-      await user.click(filterButton('Filter: Manual'));
-      await user.click(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'All' }));
+      await user.click(pill('All'));
       await waitFor(() => expect(names(list)).toHaveLength(3));
       expect(screen.getByLabelText('search')).toHaveTextContent('');
-      expect(filterButton('Filter')).not.toHaveClass('filter-button--active');
     });
 
     it('restores the search and the filter from the URL', async () => {
@@ -302,9 +292,7 @@ describe('VietsubPage', () => {
 
       expect(await screen.findByText('No videos match your search.')).toBeInTheDocument();
       expect(screen.getByRole('searchbox', { name: 'Search videos' })).toHaveValue('x');
-      expect(filterButton('Filter: Manual')).toHaveClass('filter-button--active');
-      await userEvent.setup().click(filterButton('Filter: Manual'));
-      expect(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'Manual' })).toBeChecked();
+      expect(pill('Manual')).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('paginates after filtering', async () => {
@@ -450,8 +438,8 @@ describe('VietsubPage', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(1);
   });
 
-  it('leaves space between the search/Filter toolbar and the top border of the video list', () => {
-    const toolbar = /\.toolbar\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  it('leaves space between the search/filter toolbar and the top border of the video list', () => {
+    const toolbar = /\.history > \.toolbar\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
 
     expect(toolbar).toMatch(/margin-bottom:\s*var\(--space-(3|4)\)/);
   });

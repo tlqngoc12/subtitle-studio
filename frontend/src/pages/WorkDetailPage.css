@@ -1,18 +1,14 @@
+/* The cover, title, chips and date are the hero header (PageHeader); this is the body under it. */
 .work {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 
-.work__cover-col {
-  display: grid;
-  justify-items: center;
-}
-
 .work__cover {
   display: block;
   width: 100%;
-  max-width: 360px;
+  max-width: 160px;
   aspect-ratio: 4 / 5;
   padding: 0;
   overflow: hidden;
@@ -49,12 +45,6 @@
   min-width: 0;
 }
 
-.work__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
 .work__chip {
   padding: 2px var(--space-3);
   border: 1px solid var(--rule);
@@ -67,14 +57,8 @@
   background: color-mix(in srgb, var(--brand-2) 22%, transparent);
 }
 
-.work__title {
-  margin: 0;
-  font-size: var(--step-3);
-  overflow-wrap: anywhere;
-}
-
 .work__date {
-  margin: 0;
+  align-self: center;
   color: var(--muted);
 }
 
@@ -93,15 +77,4 @@
 .work__people h2 {
   margin: 0;
   font-size: var(--step-1);
-}
-
-@media (min-width: 760px) {
-  .work {
-    grid-template-columns: 320px minmax(0, 1fr);
-    gap: var(--space-8);
-  }
-
-  .work__cover-col {
-    justify-items: start;
-  }
 }

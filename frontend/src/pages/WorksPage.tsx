@@ -11,6 +11,7 @@ import { WorkCard } from '../components/works/WorkCard';
 import { Alert } from '../components/ui/Alert';
 import { FilterPills } from '../components/ui/FilterPills';
 import { IconLink } from '../components/ui/IconButton';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
@@ -82,14 +83,14 @@ export default function WorksPage() {
   };
 
   return (
-    <main className="page">
+    <Page>
       <PageHeader
         title={t('Works', 'Tác phẩm')}
         lede={t('Series, music, shows and more.', 'Phim, nhạc, chương trình và hơn thế nữa.')}
         actions={
           !readOnly && (
             <div className="works-actions">
-              <button type="button" className="button button--s" onClick={() => setPeopleOpen(true)}>
+              <button type="button" className="button" onClick={() => setPeopleOpen(true)}>
                 <Users className="icon" aria-hidden="true" />
                 People
               </button>
@@ -117,7 +118,7 @@ export default function WorksPage() {
         const headingId = `works-year-${group.year ?? 'soon'}`;
         return (
           <section key={headingId} className="works-year" aria-labelledby={headingId}>
-            <h2 id={headingId} className="works-year__label">
+            <h2 id={headingId} className="group-label works-year__label">
               {group.year === null ? t('Coming Soon', 'Sắp ra mắt') : group.label}
             </h2>
             <ul className="work-grid">
@@ -135,6 +136,6 @@ export default function WorksPage() {
         );
       })}
       {!readOnly && <PeopleDialog open={peopleOpen} onOpenChange={setPeopleOpen} />}
-    </main>
+    </Page>
   );
 }

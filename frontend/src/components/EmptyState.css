@@ -17,3 +17,7 @@
   margin: 0;
   max-width: 46ch;
 }
+
+.empty--compact {
+  padding: var(--space-4);
+}

@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-12 (lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-13 (UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -857,6 +857,12 @@ Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11
 - Kiểm tra thực tế (một lần, đúng quy định): phần dài nhất của truyện 396487502 (951 từ) trả đủ trong một lần, `page=2` rỗng, nên endpoint không phân trang ở cỡ này.
 - Kiểm tra: `mvn test` 1293 test xanh; `mvn verify -Poracle -Dskip.npm` thêm 20 test `PersistenceOracleIT` xanh (Testcontainers); `npx vitest run` 127 file / 1368 test xanh; `npx tsc -b --noEmit` sạch. `ReaderPage.test` (`tap in the middle toggles the bars`) thỉnh thoảng rớt khi máy tải nặng, không liên quan nhánh này.
 - Deploy: sao lưu DB trước (có V20); chỉ Publish sau khi truyện Wattpad đã có chương.
+
+### 2026-11-13: UI consistency (Master Layout) ✅ (chưa merge, chưa deploy; bản public cần Publish để thấy)
+- Mọi màn hình admin và public theo một khung: breadcrumbs (cấp ≥ 2, điện thoại chỉ "← cha"), H1 luôn hiện, hành động trang ở góc phải header (tối đa 1 primary, cỡ 40 px), `Toolbar` (tìm → pills → sort → hành động của tab), `FormActions` dính đáy ở trang form, `EmptyState`/skeleton cho trạng thái trống/đang tải. Spec [docs/superpowers/specs/2026-11-13-ui-consistency-design.md](docs/superpowers/specs/2026-11-13-ui-consistency-design.md), plan [docs/superpowers/plans/2026-11-13-ui-consistency.md](docs/superpowers/plans/2026-11-13-ui-consistency.md), luật [docs/ui/screen-layout.md](docs/ui/screen-layout.md).
+- Component mới: `Page`, `Toolbar`, `FormActions`, `PageSkeleton`; `PageHeader` thêm `breadcrumbs`/`variant` (default, hero, media)/`media`/`meta`/`onNavigate`; `Breadcrumbs` thêm link "← cha" cho điện thoại; `CreatePlaylistDialog`. Xoá `SourceFilter` (bộ lọc nguồn Vietsub thành `FilterPills`), `.back-link` và mọi "Back to…".
+- Sửa kèm: route `*` + `SpaForwardController` chuyển tiếp theo mẫu (admin gõ URL lạ ra "Page not found" thay vì JSON); navbar điện thoại cuộn theo từng mục (scroll-snap), hết mảnh chữ bị cắt; `BackToTop barOn` nâng nút lên trên thanh form dính đáy.
+- Test `styles/layoutRules.test.ts` quét `src/`: không `<main>`/`<h1>` viết tay, không `back-link`, không `.form-actions` viết tay, không `SourceFilter`.
 
 ## 9. Rủi ro đang theo dõi
 

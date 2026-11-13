@@ -21,6 +21,12 @@
   text-decoration: none;
 }
 
+@media (min-width: 521px) {
+  .novel-card {
+    padding: var(--space-4);
+  }
+}
+
 .novel-card:hover {
   border-color: var(--brand-2);
 }
