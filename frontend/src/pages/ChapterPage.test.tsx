@@ -776,6 +776,18 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
   });
 
+  it('words the published note for each kind of chapter', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
+    cleanup();
+
+    renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'x' })]);
+    await loaded();
+    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to translate again.')).toBeInTheDocument();
+    expect(screen.queryByText(/change pages/)).not.toBeInTheDocument();
+  });
+
   it('a published Wattpad page has the same width as a published screenshot page', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();

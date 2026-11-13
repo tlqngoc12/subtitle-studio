@@ -421,7 +421,8 @@ export default function ChapterPage() {
 
       {published ? (
         <p className="chapter-note">
-          This chapter is published: only the text can be edited. Unpublish to change pages or translate again.
+          This chapter is published: only the text can be edited.{' '}
+          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
         </p>
       ) : (
         !fromText && (

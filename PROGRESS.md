@@ -529,7 +529,7 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - **Lỗi:** `WattpadClient.partText` gọi trang 1 không có tham số `page`, mà Wattpad trả **cả phần** khi thiếu `page`; sau đó `&page=2`, `&page=3`… lại trả các trang đó lần nữa, nên các đoạn từ cuối trang 1 trở đi bị lặp (phần 1606709228: 170 đoạn thay vì 95) và Gemini dịch cả bản lặp.
 - **Sửa:** luôn gửi `&page=N` từ N = 1 đến khi gặp trang rỗng. Stub test giờ giống Wattpad thật (không `page` = cả phần; `page=N` = trang N; quá trang cuối = 200 rỗng) và test khẳng định mỗi đoạn xuất hiện đúng một lần.
 - **Lưu ý:** các chương đã nhập trước bản sửa này có thể có đoạn bị lặp; sửa bằng **Reload original** (chỉ chương Draft).
-- **Giao diện:** chương Wattpad đã Published giờ giống hệt chương ảnh đã Published (trang `ChapterPage`): không còn cột Original / nút Reload original, chỉ còn ô Chapter text, cùng độ rộng trang (`narrow`) và cùng dòng ghi chú "This chapter is published…". Chương Draft giữ hai cột; Unpublish đưa chương về Draft nên cột Original hiện lại. Chỉ sửa frontend.
+- **Giao diện:** chương Wattpad đã Published giờ giống hệt chương ảnh đã Published (trang `ChapterPage`): không còn cột Original / nút Reload original, chỉ còn ô Chapter text, cùng độ rộng trang (`narrow`) và dòng ghi chú "This chapter is published…" (chương Wattpad kết thúc bằng "Unpublish to translate again.", chương ảnh bằng "Unpublish to change pages or translate again."). Chương Draft giữ hai cột; Unpublish đưa chương về Draft nên cột Original hiện lại. Chỉ sửa frontend.
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
