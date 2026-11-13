@@ -203,6 +203,10 @@ describe('NovelNewPage', () => {
       coverUrl: 'https://img.wattpad.com/cover/396487502-256-k1.jpg',
       storyUrl: 'https://www.wattpad.com/story/396487502',
       existingNovelId: null,
+      parts: [
+        { partId: '1', title: 'PROLOGUE', wordCount: 190, modifiedAt: '2025-06-21T09:32:42Z', deleted: false },
+        { partId: '2', title: 'Chapter 1: Cold Brew', wordCount: 1951, modifiedAt: null, deleted: false },
+      ],
     };
     const previewRoute = { method: 'POST', path: '/api/novels/wattpad/preview', status: 200, body: preview };
 
@@ -239,6 +243,20 @@ describe('NovelNewPage', () => {
       expect(screen.getByLabelText('Original book link (optional)')).toHaveValue('https://www.wattpad.com/story/396487502');
       expect(screen.getByLabelText('Source language')).toHaveTextContent('English');
       expect(screen.getByRole('img', { name: 'Cover from Wattpad' })).toHaveAttribute('src', preview.coverUrl);
+    });
+
+    it('lists the chapters under the form, read-only', async () => {
+      fakeFetch([profiles, previewRoute]);
+      renderPage();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), STORY);
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+
+      expect(await screen.findByRole('heading', { name: 'Chapters on Wattpad (2)' })).toBeInTheDocument();
+      expect(screen.getByText('PROLOGUE')).toBeInTheDocument();
+      expect(screen.getByText('1,951 words')).toBeInTheDocument();
     });
 
     it('creates a WATTPAD novel with the story id, language and cover, then opens its Wattpad tab', async () => {
