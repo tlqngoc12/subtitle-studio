@@ -204,27 +204,29 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                     )}
                   </button>
                 </div>
-                <div className="novel-cta__more">
-                  {resume && (
-                    <Link
-                      className="button button--s"
-                      to={`/novels/${novel.slug}/${first.chapterNo}`}
-                    >
-                      Đọc từ đầu
-                    </Link>
-                  )}
-                  {novel.sourceUrl && (
-                    <a
-                      className="button button--s"
-                      href={novel.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="icon" aria-hidden="true" />
-                      Truyện gốc
-                    </a>
-                  )}
-                </div>
+                {(resume || novel.sourceUrl) && (
+                  <div className="novel-cta__more">
+                    {resume && (
+                      <Link
+                        className="button button--s"
+                        to={`/novels/${novel.slug}/${first.chapterNo}`}
+                      >
+                        Đọc từ đầu
+                      </Link>
+                    )}
+                    {novel.sourceUrl && (
+                      <a
+                        className="button button--s"
+                        href={novel.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="icon" aria-hidden="true" />
+                        Truyện gốc
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
           </div>
         }

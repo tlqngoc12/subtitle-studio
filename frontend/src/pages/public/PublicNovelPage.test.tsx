@@ -350,6 +350,14 @@ describe('PublicNovelPage reading progress', () => {
     expect(within(moreRow).queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('renders no secondary row without progress or a source link', async () => {
+    renderPage(source({ getNovel: async () => ({ ...DETAIL, sourceUrl: null }) }));
+
+    const start = await screen.findByRole('link', { name: 'Bắt đầu đọc' });
+    expect(document.querySelector('.novel-cta__more')).toBeNull();
+    expect(start).toBeInTheDocument();
+  });
+
   it('says Bắt đầu đọc without stored progress', async () => {
     renderPage();
 
