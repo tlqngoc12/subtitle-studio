@@ -179,17 +179,36 @@ export function useYouTubePlayer(
     else player.mute();
   }, []);
 
+  // The pending animation frame of a refreshSize nudge, and the iframe it narrowed.
+  const nudgeRef = useRef<{ frame: number; iframe: HTMLIFrameElement } | null>(null);
+  const endNudge = useCallback(() => {
+    const nudge = nudgeRef.current;
+    if (!nudge) return;
+    cancelAnimationFrame(nudge.frame);
+    nudge.iframe.style.removeProperty('width');
+    nudgeRef.current = null;
+  }, []);
+  useEffect(() => endNudge, [endNudge]);
+
   /**
-   * Tells YouTube to re-measure itself at the container's current size. iPhone Safari can lay the iframe out
-   * before the safe-area insets apply, and YouTube then keeps its video off-centre (no-op until ready).
+   * Makes YouTube re-measure itself (no-op until ready). iPhone Safari can lay the iframe out before the safe-area
+   * insets apply, and YouTube then keeps its video off-centre. A 1 px width nudge gives YouTube's document a real
+   * resize event; setSize would not, because CSS sizes the iframe (width/height 100 %).
    */
   const refreshSize = useCallback(() => {
     const host = container.current;
-    const player = playerRef.current;
-    if (!host || !player || !readyRef.current) return;
-    const { clientWidth, clientHeight } = host;
-    if (clientWidth > 0 && clientHeight > 0) player.setSize(clientWidth, clientHeight);
-  }, [container]);
+    const iframe = host?.querySelector('iframe');
+    if (!host || !iframe || !readyRef.current || host.clientWidth <= 0) return;
+    endNudge();
+    iframe.style.width = `${host.clientWidth - 1}px`;
+    nudgeRef.current = {
+      iframe,
+      frame: requestAnimationFrame(() => {
+        iframe.style.removeProperty('width');
+        nudgeRef.current = null;
+      }),
+    };
+  }, [container, endNudge]);
 
   return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play, togglePlay, seekBy, toggleMute, refreshSize };
 }

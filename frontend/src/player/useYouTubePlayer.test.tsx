@@ -20,10 +20,6 @@ const target = {
   getPlayerState: () => fake.playerState,
   getDuration: () => fake.duration,
   mute: () => {},
-  setSize: (w: number, h: number) => {
-    fake.calls.push(`size ${w}x${h}`);
-    return {};
-  },
   unMute: () => {},
   isMuted: () => fake.muted,
   cueVideoById: (id: string) => {
@@ -87,10 +83,6 @@ describe('useYouTubePlayer', () => {
         }
         getDuration() {
           return fake.duration;
-        }
-        setSize(w: number, h: number) {
-          fake.calls.push(`size ${w}x${h}`);
-          return {};
         }
         mute() {
           fake.calls.push('mute');
@@ -334,26 +326,56 @@ describe('useYouTubePlayer', () => {
       const el = document.createElement('div');
       Object.defineProperty(el, 'clientWidth', { value: width });
       Object.defineProperty(el, 'clientHeight', { value: height });
+      const iframe = document.createElement('iframe');
+      el.appendChild(iframe);
       document.body.appendChild(el);
-      return { current: el };
+      return { ref: { current: el }, iframe };
     }
+    let frames: FrameRequestCallback[];
+    beforeEach(() => {
+      frames = [];
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+      vi.stubGlobal('cancelAnimationFrame', () => {});
+    });
+    afterEach(() => vi.unstubAllGlobals());
 
-    it('passes the container size to the player once it is ready', async () => {
-      const ref = sized(814, 375);
+    it('narrows the iframe by 1 px, then restores it on the next animation frame', async () => {
+      const { ref, iframe } = sized(814, 375);
+      const { result } = renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
+      await ready();
+      // The real player replaces the container's children with its iframe; keep ours for the test.
+      ref.current.appendChild(iframe);
+
+      act(() => result.current.refreshSize());
+      expect(iframe.style.width).toBe('813px');
+      act(() => frames.forEach((cb) => cb(0)));
+      expect(iframe.style.width).toBe('');
+    });
+
+    it('does nothing before the player is ready', () => {
+      const { ref, iframe } = sized(814, 375);
       const { result } = renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
       act(() => result.current.refreshSize());
-      expect(fake.calls).not.toContain('size 814x375');
-      await ready();
-      act(() => result.current.refreshSize());
-      expect(fake.calls).toContain('size 814x375');
+      expect(iframe.style.width).toBe('');
     });
 
     it('does nothing while the container has no size', async () => {
-      const ref = sized(0, 0);
+      const { ref, iframe } = sized(0, 0);
       const { result } = renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
       await ready();
+      ref.current.appendChild(iframe);
       act(() => result.current.refreshSize());
-      expect(fake.calls.some((c) => c.startsWith('size'))).toBe(false);
+      expect(iframe.style.width).toBe('');
+    });
+
+    it('restores the iframe on unmount', async () => {
+      const { ref, iframe } = sized(814, 375);
+      const { result, unmount } = renderHook(() => useYouTubePlayer(ref, 'dQw4w9WgXcQ'));
+      await ready();
+      ref.current.appendChild(iframe);
+      act(() => result.current.refreshSize());
+      unmount();
+      expect(iframe.style.width).toBe('');
     });
   });
 
