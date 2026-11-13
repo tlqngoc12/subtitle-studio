@@ -1,5 +1,8 @@
 /* One row, never wrapping, never scrolling sideways: ShelfRow renders only the items that fit. */
 .shelf-row__list {
+  /* Zero intrinsic width: the 200 px items must not widen the page grid around it. */
+  width: 0;
+  min-width: 100%;
   display: flex;
   flex-wrap: nowrap;
   gap: 12px;
@@ -11,7 +14,7 @@
 
 .shelf-row__item {
   flex: none;
-  width: 200px;
+  width: 220px;
   min-width: 0;
 }
 
@@ -66,4 +69,9 @@
 /* Heading row of a section with a link on the right. */
 .shelf-row .section-head {
   margin-bottom: var(--space-3);
+}
+
+/* Air between the row and the toolbar below it. */
+.shelf-row {
+  margin-bottom: var(--space-8);
 }

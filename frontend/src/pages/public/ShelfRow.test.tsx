@@ -80,7 +80,7 @@ describe('ShelfRow', () => {
     renderRow();
     resize(400);
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
-    resize(640);
+    resize(700);
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     resize(3000);
     expect(screen.getAllByRole('listitem')).toHaveLength(8);

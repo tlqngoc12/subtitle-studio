@@ -6,7 +6,7 @@ import { readProgress } from './readerPrefs';
 import './ShelfRow.css';
 
 /** Width of one item and the gap between items, in px; the CSS uses the same numbers. */
-export const SHELF_ITEM_WIDTH = 200;
+export const SHELF_ITEM_WIDTH = 220;
 export const SHELF_GAP = 12;
 
 /** How many items of `SHELF_ITEM_WIDTH` fit in `width` with `SHELF_GAP` between them (at least one). */
