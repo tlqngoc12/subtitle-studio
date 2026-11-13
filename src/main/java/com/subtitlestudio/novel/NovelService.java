@@ -7,17 +7,22 @@ import com.subtitlestudio.profile.MediaFiler;
 import com.subtitlestudio.profile.MediaRepository;
 import com.subtitlestudio.profile.MediaService;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Create, edit, list and delete novels (spec section 6). */
 @Service
 public class NovelService {
+
+    static final int MAX_BANNER = 5;
 
     private final NovelRepository novels;
     private final ChapterRepository chapters;
@@ -50,13 +55,29 @@ public class NovelService {
 
     @Transactional(readOnly = true)
     public List<NovelSummary> list() {
-        return novels.findAllByOrderByUpdatedAtDesc().stream().map(n -> {
-            List<Chapter> cs = chapters.findByNovelIdOrderByChapterNo(n.getId());
-            int published = (int) cs.stream()
-                    .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).count();
-            return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(), cs.size(),
-                    published, n.getUpdatedAt(), n.getWattpadStoryId());
-        }).toList();
+        return novels.findAllByOrderByUpdatedAtDesc().stream()
+                .map(n -> summary(n, chapters.findByNovelIdOrderByChapterNo(n.getId()))).toList();
+    }
+
+    private NovelSummary summary(Novel n, List<Chapter> cs) {
+        List<Chapter> published = cs.stream()
+                .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).toList();
+        Instant lastPublishedAt = published.stream().map(Chapter::getPublishedAt).filter(Objects::nonNull)
+                .max(Comparator.naturalOrder()).orElse(null);
+        return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(), cs.size(),
+                published.size(), n.getUpdatedAt(), n.getWattpadStoryId(), n.isFeatured(), n.getCreatedAt(),
+                lastPublishedAt, n.getOriginalAuthor(), n.getDescription());
+    }
+
+    /** Picks or unpicks a novel for the public banner (at most 5). Does not touch updatedAt. */
+    @Transactional
+    public NovelSummary setFeatured(long id, boolean featured) {
+        Novel n = find(id);
+        if (featured && !n.isFeatured() && novels.countByFeaturedTrue() >= MAX_BANNER) {
+            throw new BannerFullException();
+        }
+        n.setFeatured(featured);
+        return summary(novels.save(n), chapters.findByNovelIdOrderByChapterNo(id));
     }
 
     @Transactional(readOnly = true)

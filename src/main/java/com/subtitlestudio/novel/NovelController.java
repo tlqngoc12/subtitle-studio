@@ -97,6 +97,11 @@ public class NovelController {
         return service.update(id, request);
     }
 
+    @PutMapping("/{id}/featured")
+    public NovelSummary setFeatured(@PathVariable long id, @RequestBody FeaturedRequest request) {
+        return service.setFeatured(id, request.featured());
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable long id) {
