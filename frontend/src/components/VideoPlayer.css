@@ -17,8 +17,9 @@
 }
 
 /* iPhone Safari has no Fullscreen API for this frame: it fills the viewport instead (above the top bar),
-   so the Vietsub overlay stays on the video. Sized by inset only (100vw is the full screen, wider than the safe
-   area when a phone is in landscape); the safe-area padding keeps the video clear of the notch and home bar. */
+   so the Vietsub overlay stays on the video. The iframe covers the whole screen, so YouTube measures it at its
+   real size and centres the video; the 16:9 picture is pillarboxed on a tall phone in landscape, which keeps it
+   clear of the notch. Only our own buttons and captions take the safe-area insets. */
 .player--filled {
   --safe-top: env(safe-area-inset-top);
   --safe-right: env(safe-area-inset-right);
@@ -27,18 +28,9 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-fullscreen);
-  box-sizing: border-box;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   aspect-ratio: auto;
   border-radius: 0;
   background: var(--video-bg);
-}
-
-/* Absolute children ignore the padding, so they take the safe-area insets themselves. */
-.player--filled .player__video {
-  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-  width: auto;
-  height: auto;
 }
 
 .player--filled .player__tools {

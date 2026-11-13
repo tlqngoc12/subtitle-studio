@@ -62,7 +62,10 @@ a:not([class]):hover {
   font-size: var(--step-3);
   font-weight: 700;
   letter-spacing: -0.01em;
-  line-height: 1.1;
+  /* 1.25, not 1.1: Noto Sans Thai (the fallback for Thai titles) stacks tone marks and upper vowels well above
+     the Latin ascent, so at 1.1 they rise out of the line box and touch the previous line of a multi-line title.
+     1.25 is the smallest step that clears them; Latin-only titles grow by about 5 px per line at 31 px. */
+  line-height: 1.25;
 }
 
 /* The third heading role: a small group label (year dividers on Works). Page title h1, section title h2 20px. */

@@ -17,12 +17,21 @@ describe('iPhone safe area', () => {
     expect(rule('body')).toMatch(/env\(safe-area-inset-left\)/);
   });
 
-  it('sizes the filled player by inset and pads it by the safe area, never by 100vw', () => {
+  it('fills the whole viewport by inset (never 100vw) and only offsets our own buttons by the safe area', () => {
     const r = rule('.player--filled');
     expect(r).not.toMatch(/100vw/);
     expect(r).not.toMatch(/100d?vh/);
     expect(r).toMatch(/inset:\s*0/);
-    expect(r).toMatch(/env\(safe-area-inset-left\)/);
-    expect(rule('.player--filled .player__video')).toMatch(/var\(--safe-left\)/);
+    expect(r).not.toMatch(/padding/);
+    // The YouTube iframe covers the whole screen, so YouTube measures it at its real size.
+    expect(rule('.player--filled .player__video')).toBe('');
+    expect(rule('.player--filled .player__tools')).toMatch(/var\(--safe-right\)/);
+  });
+});
+
+describe('Page title', () => {
+  it('has a line-height tall enough for stacked Thai marks (not the old 1.1)', () => {
+    const m = rule('.masthead__name').match(/line-height:\s*([\d.]+)/);
+    expect(Number(m?.[1])).toBeGreaterThanOrEqual(1.25);
   });
 });

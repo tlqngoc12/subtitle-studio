@@ -506,6 +506,16 @@ Thay thế phần mô tả banner Profile và bảng dòng của hai mục ngay 
 - **Trình sửa Vietsub** (`/vietsub/:id/edit`): bảng chỉ còn hai cột `#` + Text. Dòng được tô là dòng đang chiếu tại thời điểm hiện tại, hoặc dòng gần nhất ngay trước đó (kể cả khi đang ở khoảng trống giữa hai dòng). Khi **tua** (lùi, hoặc nhảy hơn 1,5 giây) hoặc bấm nút `#`, bảng cuộn tới dòng đó và đặt con trỏ ở cuối text; phát bình thường chỉ tô dòng. Giới hạn đã biết: nút Back của trình duyệt không bị chặn khi còn sửa chưa lưu (`BrowserRouter`).
 - **Trạng thái deploy:** nhánh `feature/novel-page-checks` đã merge vào `main` và deploy local (migration V10 chạy khi app khởi động). Image cũ để quay lại: `subtitle-studio:pre-filmstrip-slides`. **Public site cần Publish again** mới có banner, trailer và các thay đổi giao diện công khai.
 
+### 2026-11-13: Sửa 4 lỗi giao diện (Safari, nút, phân trang) ✅ (chưa merge, chưa deploy)
+
+Nhánh `fix/ui-safari`. Chỉ đổi frontend.
+
+- **Nút lên đầu trang:** góc bo `--radius-control` như các nút khác (bỏ hình tròn).
+- **Phân trang (`.pager__link`):** đồng bộ với `.button`: chữ `600`, trạng thái disabled mờ `0.7` (viền `--rule`), có `transition` giống `.button` và hiệu ứng nhấn `scale(0.97)` (không áp cho mục disabled). Vẫn cao 32px, bo 8px.
+- **Thẻ playlist tràn trên Safari điện thoại:** `.plcard__body` là `display: grid` không có `grid-template-columns` nên cột `auto` ngầm định nở theo độ rộng min-content của dòng "Tiếp theo" (`white-space: nowrap`) và đẩy nút Play all / Continue ra ngoài thẻ. Thêm `grid-template-columns: minmax(0, 1fr)` và `min-width: 0` cho `.plcard__body`, `.plcard__foot`, `.plcard__next` (dòng vẫn cắt bằng dấu ba chấm). **Cần kiểm tra trên iPhone Safari thật.**
+- **Player toàn khung trên iPhone (xoay ngang bị lệch phải):** YouTube đặt `<video>` một lần theo bề rộng toàn màn hình và không bố trí lại khi iframe co vào vùng an toàn. Cách cũ (nudge 1px, `refreshSize`) không hiệu quả trên máy thật nên **bỏ hẳn** (`refreshSize`, `onRefreshSize`, effect resize/orientationchange và các test của chúng). Cách mới: `.player--filled` không còn padding, iframe phủ **toàn bộ** viewport để YouTube đo đúng; video 16:9 trên màn hình ~19,5:9 bị YouTube chừa lề đen ~84pt mỗi bên, lớn hơn phần tai thỏ (~59pt) nên hình không bị che. Chỉ nút của app (Vietsub/toàn màn hình) và phụ đề vẫn cách mép theo `env(safe-area-inset-*)`. Test `safeArea.test.ts` cập nhật theo. **Cần kiểm tra trên iPhone Safari thật (dọc và ngang).**
+- **Tiêu đề trang sửa Vietsub đè lên breadcrumbs:** `VietsubEditPage` bọc `PageHeader` và dòng gợi ý trong một `<div>` thường, nên breadcrumbs không còn là con trực tiếp của lưới `.page` (gap 24px); `margin-bottom` âm của breadcrumbs (giả định gap 24px) kéo H1 lên 8px, đè vào dòng breadcrumbs. Thêm class `vedit__top` (`display: grid; gap: var(--space-6)`) cho wrapper và bù margin của `vedit__hint`. Ngoài ra `.masthead__name` đổi `line-height` từ `1.1` sang `1.25` để dấu thanh và nguyên âm trên của Noto Sans Thai không chạm dòng trước trong tiêu đề nhiều dòng. Thêm test CSS trong `safeArea.test.ts`.
+
 ### 2026-11-10: Trình sửa Vietsub hiện dòng Engsub phía trên mỗi dòng ✅ (chưa merge, chưa deploy)
 
 Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay schema.

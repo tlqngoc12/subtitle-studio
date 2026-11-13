@@ -42,7 +42,15 @@
   }
 }
 
+/* Header + hint share a wrapper, so it must be a grid with the page's gap: the breadcrumbs' negative margin
+   (see Breadcrumbs.css) assumes that gap, otherwise it pulls the title up onto the breadcrumb line. */
+.vedit__top {
+  display: grid;
+  gap: var(--space-6);
+}
+
 .vedit__hint {
-  margin: var(--space-2) 0 0;
+  /* Net space-2 under the header despite the grid gap above. */
+  margin: calc(var(--space-2) - var(--space-6)) 0 0;
 }
 
