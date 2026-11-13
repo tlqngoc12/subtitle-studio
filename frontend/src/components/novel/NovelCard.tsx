@@ -2,7 +2,6 @@ import { BookOpen, CalendarClock, Eye, Library, type LucideIcon } from 'lucide-r
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { formatInstant } from '../../lib/dates';
-import { useT } from '../../lib/i18n';
 import type { NovelListItem } from '../../lib/novelList';
 import { Cover } from '../ui/Cover';
 import { Stat } from '../fanfics/FanficCard';
@@ -42,7 +41,6 @@ export function NovelCard({
   menu?: ReactNode;
   admin?: boolean;
 }) {
-  const t = useT();
   const completed = novel.novelStatus === 'COMPLETED';
   const updated = formatInstant(novel.lastPublishedAt ?? novel.updatedAt);
   const readsText = reads === undefined ? '–' : formatCompact(reads);
@@ -71,7 +69,7 @@ export function NovelCard({
           <span className="fanfic-card__title">{novel.title}</span>
           <span className="novel-card2__badges">
             <span className={completed ? 'fanfic-card__badge fanfic-card__badge--complete' : 'fanfic-card__badge'}>
-              {completed ? t('Completed', 'Hoàn thành') : t('Ongoing', 'Đang ra')}
+              {admin ? (completed ? 'Completed' : 'Ongoing') : completed ? 'Hoàn thành' : 'Đang ra'}
             </span>
             {admin && novel.featured && <span className="novel-card2__banner">On banner</span>}
           </span>

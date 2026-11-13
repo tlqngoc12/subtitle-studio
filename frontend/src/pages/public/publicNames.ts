@@ -60,3 +60,18 @@ export function useDocumentTitle(title: string | null) {
     };
   }, [title]);
 }
+
+/** At most this many novels are on the public banner. */
+export const BANNER_LIMIT = 5;
+
+/**
+ * The novels the banner shows: the ones picked by hand (`featured`), newest update first, at most five. When none is
+ * picked (or the published file predates the flag, or the picked ones have no published chapter), the five most
+ * recently updated novels, so the banner is never empty.
+ */
+export function bannerNovels<T extends { featured?: boolean; lastPublishedAt?: string | null; updatedAt: string }>(
+  novels: T[],
+): T[] {
+  const picked = novels.filter((n) => n.featured);
+  return byLatestUpdate(picked.length > 0 ? picked : novels).slice(0, BANNER_LIMIT);
+}

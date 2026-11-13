@@ -109,10 +109,18 @@ describe('PublicApp', () => {
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 
-  it('novelsAllIsItsOwnPageNotANovel', async () => {
+  it('novelsAllRedirectsToTheNovelsPage', async () => {
     renderAt('/novels/all');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Tất cả truyện' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Truyện' })).toBeInTheDocument();
+    expect(screen.getByLabelText('path')).toHaveTextContent(/^\/novels$/);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('novelsShelfIsItsOwnPageNotANovel', async () => {
+    renderAt('/novels/shelf');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tủ sách' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 

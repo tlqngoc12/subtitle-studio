@@ -77,17 +77,17 @@ describe('PublicNovelsPage', () => {
     expect((await screen.findAllByText('Đang ra')).length).toBeGreaterThan(0);
   });
 
-  it('shows a small card per novel with x/y chương', async () => {
+  it('shows a card per novel with x/y chapters', async () => {
     render(
       <MemoryRouter>
         <PublicNovelsPage source={source()} />
       </MemoryRouter>,
     );
 
-    const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
+    const section = await screen.findByRole('list', { name: 'Danh sách truyện' });
     const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText(/^2\/5 chương · /)).toBeInTheDocument();
+    expect(within(card).getByText('2/5')).toBeInTheDocument();
   });
 });
 

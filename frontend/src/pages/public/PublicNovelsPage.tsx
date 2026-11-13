@@ -1,34 +1,50 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
 import { EmptyState } from '../../components/EmptyState';
 import { NovelsTabs, useNovelsTab } from '../../components/fanfics/NovelsTabs';
+import { NovelCard } from '../../components/novel/NovelCard';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
+import { filterNovels, sortNovels, type NovelSort, type NovelStatusFilter } from '../../lib/novelList';
 import FeaturedNovels from './FeaturedNovels';
 import { useReadCounts } from '../../data/novelReads';
-import { NovelRow } from './NovelRow';
-import { readProgress, readShelf } from './readerPrefs';
-import { PUBLIC_ERROR_TITLE, byLatestUpdate, useDocumentTitle } from './publicNames';
+import { ShelfRow } from './ShelfRow';
+import { readShelf } from './readerPrefs';
+import { PUBLIC_ERROR_TITLE, bannerNovels, useDocumentTitle } from './publicNames';
 import { Alert } from '../../components/ui/Alert';
+import { ListToolbar } from '../../components/ui/ListToolbar';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { LoadingText } from '../../components/ui/LoadingText';
 import { Page } from '../../components/ui/Page';
+import '../../components/fanfics/FanficsTab.css';
 import './PublicNovelsPage.css';
 
-const FEATURED = 5;
-const LATEST = 6;
+const STATUSES: { value: NovelStatusFilter; label: string }[] = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'completed', label: 'Hoàn thành' },
+  { value: 'ongoing', label: 'Đang ra' },
+];
+
+const SORTS: { value: NovelSort; label: string }[] = [
+  { value: 'updated', label: 'Mới cập nhật' },
+  { value: 'read', label: 'Đọc nhiều nhất' },
+  { value: 'added', label: 'Mới thêm' },
+  { value: 'title', label: 'Tên A–Z' },
+];
 
 /**
- * Public Novels home: a featured banner, then the latest updates as list rows (and a link to all of them).
- * Both are ordered by the latest published chapter, newest first. Copy is Vietnamese.
+ * Public Novels home: the banner (novels picked by hand), the reader's Tủ sách in one row, then every novel as
+ * Fanfics-style cards with search, a status filter and a sort. Copy is Vietnamese.
  */
 export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
   const [tab, setTab] = useNovelsTab();
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<NovelStatusFilter>('all');
+  const [sort, setSort] = useState<NovelSort>('updated');
   useDocumentTitle('Truyện');
 
   useEffect(() => {
@@ -41,8 +57,11 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
       });
   }, [source]);
 
-  const sorted = useMemo(() => (novels === null ? null : byLatestUpdate(novels)), [novels]);
-  const featured = useMemo(() => sorted?.slice(0, FEATURED) ?? [], [sorted]);
+  const featured = useMemo(() => (novels === null ? [] : bannerNovels(novels)), [novels]);
+  const visible = useMemo(
+    () => sortNovels(filterNovels(novels ?? [], query, status), sort, reads),
+    [novels, query, status, sort, reads],
+  );
 
   const shelved = useMemo(() => {
     if (novels === null) return [];
@@ -59,40 +78,42 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
         labels={{ translated: 'Truyện dịch', fanfics: 'Fanfic' }}
         translated={
           <>
-            {error && (
-              <Alert title={error.title} hint={error.hint} />
-            )}
-            {sorted === null ? (
+            {error && <Alert title={error.title} hint={error.hint} />}
+            {novels === null ? (
               <LoadingText>Đang tải…</LoadingText>
-            ) : sorted.length === 0 ? (
+            ) : novels.length === 0 ? (
               <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
             ) : (
               <>
                 <FeaturedNovels novels={featured} source={source} />
-                {shelved.length > 0 && (
-                  <section className="history" aria-labelledby="shelf-heading">
-                    <h2 className="history__heading" id="shelf-heading">
-                      Tủ sách
-                    </h2>
-                    <ul className="novel-rows">
-                      {shelved.map((n) => (
-                        <NovelRow key={n.slug} novel={n} continueNo={readProgress(n.slug)} reads={reads?.[n.slug]} />
+                <ShelfRow novels={shelved} />
+                <section className="fanfics" aria-label="Truyện dịch">
+                  <ListToolbar
+                    searchLabel="Tìm truyện"
+                    searchPlaceholder="Tìm theo tên, tác giả, thẻ…"
+                    query={query}
+                    onQueryChange={setQuery}
+                    statusLabel="Trạng thái"
+                    statuses={STATUSES}
+                    status={status}
+                    onStatusChange={setStatus}
+                    sortId="novels-sort"
+                    sortLabel="Sắp xếp theo"
+                    sorts={SORTS}
+                    sort={sort}
+                    onSortChange={setSort}
+                  />
+                  {visible.length === 0 ? (
+                    <EmptyState icon={SearchX}>Không tìm thấy truyện nào.</EmptyState>
+                  ) : (
+                    <ul className="fanfic-list" aria-label="Danh sách truyện">
+                      {visible.map((n) => (
+                        <li key={n.slug}>
+                          <NovelCard novel={n} href={`/novels/${n.slug}`} reads={reads?.[n.slug]} />
+                        </li>
                       ))}
                     </ul>
-                  </section>
-                )}
-                <section className="history" aria-labelledby="latest-heading">
-                  <div className="section-head">
-                    <h2 className="history__heading" id="latest-heading">
-                      Mới cập nhật
-                    </h2>
-                    <Link to="/novels/all">Xem tất cả</Link>
-                  </div>
-                  <ul className="novel-rows">
-                    {sorted.slice(0, LATEST).map((n) => (
-                      <NovelRow key={n.slug} novel={n} reads={reads?.[n.slug]} />
-                    ))}
-                  </ul>
+                  )}
                 </section>
               </>
             )}
