@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-13 (UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-14 (hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -878,6 +878,12 @@ Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11
 - Component mới: `Page`, `Toolbar`, `FormActions`, `PageSkeleton`; `PageHeader` thêm `breadcrumbs`/`variant` (default, hero, media)/`media`/`meta`/`onNavigate`; `Breadcrumbs` thêm link "← cha" cho điện thoại; `CreatePlaylistDialog`. Xoá `SourceFilter` (bộ lọc nguồn Vietsub thành `FilterPills`), `.back-link` và mọi "Back to…".
 - Sửa kèm: route `*` + `SpaForwardController` chuyển tiếp theo mẫu (admin gõ URL lạ ra "Page not found" thay vì JSON); navbar điện thoại cuộn theo từng mục (scroll-snap), hết mảnh chữ bị cắt; `BackToTop barOn` nâng nút lên trên thanh form dính đáy.
 - Test `styles/layoutRules.test.ts` quét `src/`: không `<main>`/`<h1>` viết tay, không `back-link`, không `.form-actions` viết tay, không `SourceFilter`.
+
+### 2026-11-14: Hồ sơ dịch tự tạo cho truyện Wattpad ✅ (chưa merge, chưa deploy; không có migration)
+- Tạo truyện từ Wattpad mà để trống Translation profile thì app tự tạo `data/prompts/novels/<Tên>.md` từ mẫu (Thái hoặc Anh theo Source language, lấy tiêu đề, tác giả, thẻ, mô tả từ Wattpad; không gọi Gemini) và gán làm hồ sơ của truyện, nên Fetch & translate chạy được ngay. Nhân vật để trống, sổ tay truyện tự cập nhật sau mỗi chương. Spec [docs/superpowers/specs/2026-11-14-wattpad-auto-profile-design.md](docs/superpowers/specs/2026-11-14-wattpad-auto-profile-design.md), plan [docs/superpowers/plans/2026-11-14-wattpad-auto-profile.md](docs/superpowers/plans/2026-11-14-wattpad-auto-profile.md), nhánh `feat/wattpad-auto-profile`.
+- Backend: `NovelProfileNames` (tên file từ tiêu đề), `NovelProfileTemplate` + hai mẫu `_novel_template_{th,en}.md`, `PromptProfileStore.create/exists/delete` (không ghi đè, `ProfileExistsException`), `WattpadNovelService.create` (xoá file nếu tạo truyện lỗi), preview trả `suggestedProfile`.
+- Giao diện: dòng gợi ý "Leave empty to create <Tên>.md from the Wattpad details." dưới ô Translation profile khi ô đang trống (chỉ New novel › From Wattpad).
+- Lưu ý: file mới nằm trong `data/prompts/novels/` (được git theo dõi), người dùng tự commit cùng các thay đổi data khác.
 
 ## 9. Rủi ro đang theo dõi
 
