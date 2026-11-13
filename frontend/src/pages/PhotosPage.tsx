@@ -101,7 +101,7 @@ export default function PhotosPage() {
       {confirmDialog}
       <PageHeader
         title={t('Photos', 'Hình ảnh')}
-        lede={t('Official, media and fan photos', 'Ảnh chính thức, báo chí và fan')}
+        lede={t('Official, media and fan photos', 'Ảnh Official, Media và Fan')}
         actions={
           !readOnly && (
             <button type="button" className="button button--primary" onClick={() => setDialog({})}>

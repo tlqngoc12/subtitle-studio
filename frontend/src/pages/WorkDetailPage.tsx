@@ -107,7 +107,7 @@ export default function WorkDetailPage() {
             <div className="work__chips">
               {work.categories.map((c) => (
                 <span key={c} className="work__chip work__chip--category">
-                  {categoryLabel(c, readOnly)}
+                  {categoryLabel(c)}
                 </span>
               ))}
               {work.subcategory && <span className="work__chip">{work.subcategory}</span>}

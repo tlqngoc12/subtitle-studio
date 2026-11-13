@@ -50,7 +50,7 @@ describe('WorkDetailPage', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Love Story' })).toBeInTheDocument();
     expect(screen.getByText('24/04/2026')).toBeInTheDocument();
-    expect(screen.getByText('Phim & TV')).toBeInTheDocument();
+    expect(screen.getByText('Film & TV')).toBeInTheDocument();
     expect(screen.getByText('Drama')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Diễn viên' })).toBeInTheDocument();
     expect(screen.getByText('vai Key')).toBeInTheDocument();
@@ -83,8 +83,8 @@ describe('WorkDetailPage', () => {
     const credits = [{ person: person(1, 'Emi'), role: null, characterName: 'Key' }];
     const { unmount } = renderPublic(work(5, { categories: ['MUSIC', 'FILM_TV'], credits }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Diễn viên' })).toBeInTheDocument();
-    expect(screen.getByText('Phim & TV')).toBeInTheDocument();
-    expect(screen.getByText('Âm nhạc')).toBeInTheDocument();
+    expect(screen.getByText('Film & TV')).toBeInTheDocument();
+    expect(screen.getByText('Music')).toBeInTheDocument();
     unmount();
 
     renderPublic(work(5, { categories: ['MUSIC', 'VARIETY'], credits }));

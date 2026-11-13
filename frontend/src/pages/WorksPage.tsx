@@ -25,7 +25,7 @@ import { useT } from '../lib/i18n';
 function categoryOptions(vi: boolean) {
   return [
     { value: null, label: vi ? 'Tất cả' : 'All' },
-    ...CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c, vi) })),
+    ...CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c) })),
   ] as { value: WorkCategory | null; label: string }[];
 }
 
