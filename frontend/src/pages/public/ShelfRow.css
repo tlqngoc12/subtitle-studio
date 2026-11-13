@@ -1,21 +1,22 @@
 /* One row, never wrapping, never scrolling sideways: ShelfRow renders only the items that fit. */
 .shelf-row__list {
-  /* Zero intrinsic width: the 200 px items must not widen the page grid around it. */
+  /* Zero intrinsic width: the shelf items must not widen the page grid around it. */
   width: 0;
   min-width: 100%;
   display: flex;
   flex-wrap: nowrap;
-  gap: 12px;
+  gap: var(--space-3); /* = SHELF_GAP in ShelfRow.tsx */
   margin: 0;
   padding: 0;
   overflow: hidden;
   list-style: none;
 }
 
+/* The items that fit (min 220 px each, see fitCount) share the row; a short shelf does not stretch past 360 px. */
 .shelf-row__item {
-  flex: none;
-  width: 220px;
+  flex: 1 1 0;
   min-width: 0;
+  max-width: 360px;
 }
 
 .shelf-row__link {
