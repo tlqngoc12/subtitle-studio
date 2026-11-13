@@ -48,7 +48,7 @@ class SpaForwardControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/logo.webp", "/assets/missing.js", "/assets/app-123.css", "/favicon.ico", "/index.html.bak"})
+    @ValueSource(strings = {"/no-such-image.webp", "/assets/missing.js", "/assets/app-123.css", "/no-such.ico", "/index.html.bak"})
     void doesNotForwardPathsWithAFileExtension(String path) throws Exception {
         mvc.perform(get(path)).andExpect(status().isNotFound());
     }
