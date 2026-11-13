@@ -76,7 +76,7 @@ public class WattpadClient {
 
     /**
      * The raw HTML of one part from {@code apiv2/storytext}, empty when Wattpad has no text for it (locked or deleted
-     * part). If a long part is paged, later pages are appended until Wattpad answers with an empty page.
+     * part). Wattpad pages a part (about 20-30 paragraphs per page), so pages 1, 2, ... are appended until an empty page.
      */
     public String partText(String partId) {
         if (partId == null || !partId.matches("\\d{1,19}")) {
@@ -84,8 +84,9 @@ public class WattpadClient {
         }
         StringBuilder all = new StringBuilder();
         for (int page = 1; page <= MAX_TEXT_PAGES; page++) {
-            String suffix = page == 1 ? "" : "&page=" + page;
-            HttpResponse<byte[]> response = get(URI.create(baseUrl + "/apiv2/storytext?id=" + partId + suffix));
+            // Page 1 must be explicit: a request without "page" returns the WHOLE part, so pages 2+ would repeat it.
+            HttpResponse<byte[]> response = get(
+                    URI.create(baseUrl + "/apiv2/storytext?id=" + partId + "&page=" + page));
             int code = response.statusCode();
             if (code == 404 || code == 400 || code == 401 || code == 403) {
                 if (page == 1) {
