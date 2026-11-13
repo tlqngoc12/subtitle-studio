@@ -177,6 +177,30 @@ describe('useYouTubePlayer', () => {
     expect(fake.calls).toContain('play');
   });
 
+  it('pause pauses only a playing or buffering video, and does nothing before ready', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    fake.playerState = 1;
+    act(() => result.current.pause());
+    expect(fake.calls).not.toContain('pause');
+
+    await ready();
+    fake.playerState = 1; // playing
+    act(() => result.current.pause());
+    expect(fake.calls.filter((c) => c === 'pause')).toHaveLength(1);
+
+    fake.playerState = 3; // buffering
+    act(() => result.current.pause());
+    expect(fake.calls.filter((c) => c === 'pause')).toHaveLength(2);
+
+    fake.playerState = 2; // paused: stays paused, no call, never plays
+    act(() => result.current.pause());
+    expect(fake.calls.filter((c) => c === 'pause')).toHaveLength(2);
+    expect(fake.calls).not.toContain('play');
+  });
+
   it('seekBy moves relative to the current time, never below 0 or past the end', async () => {
     const { result } = setup();
     await ready();

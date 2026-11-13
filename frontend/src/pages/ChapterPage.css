@@ -29,6 +29,11 @@
   min-width: 0;
 }
 
+.chapter-meta__row .field > input {
+  width: 100%;
+  min-width: 0; /* a grid item otherwise keeps the input's own ~20ch width and spills over the next field */
+}
+
 .chapter-meta__label {
   flex: 1 1 100%;
   min-width: 0;

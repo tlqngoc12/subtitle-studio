@@ -4,9 +4,9 @@ import { isTyping } from '../lib/keyboard';
 import type { CaptionSize } from '../lib/viewerPrefs';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { ViCue } from '../api/client';
+import { useFilledViewport } from '../player/useFilledViewport';
 import type { PlayerError } from '../player/useYouTubePlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
-import { LayoutDebug } from './LayoutDebug'; // TEMP(debug-ios-fullscreen)
 import './VideoPlayer.css';
 
 const ERROR_TEXT: Record<PlayerError, [en: string, vi: string]> = {
@@ -43,7 +43,7 @@ interface Props {
  *
  * iPhone Safari has no Fullscreen API for anything but <video> (and YouTube's native fullscreen would hide
  * the Vietsub overlay), so there the frame instead fills the viewport ("filled" mode); Escape or the button
- * leaves it.
+ * leaves it. While filled, `viewport-fit=cover` is dropped (see useFilledViewport).
  */
 export function VideoPlayer({
   containerRef,
@@ -78,6 +78,8 @@ export function VideoPlayer({
     document.documentElement.classList.add('player-filled-open');
     return () => document.documentElement.classList.remove('player-filled-open');
   }, [filled]);
+
+  useFilledViewport(filled);
 
   const toggle = useCallback(() => {
     if (filled) {
@@ -116,7 +118,6 @@ export function VideoPlayer({
   return (
     <div className={filled ? 'player player--filled' : 'player'} ref={frameRef}>
       {error ? <p className="player__error">{t(...ERROR_TEXT[error])}</p> : <div className="player__video" ref={containerRef} />}
-      <LayoutDebug filled={filled} /> {/* TEMP(debug-ios-fullscreen) */}
       <SubtitleOverlay cue={captionsOn ? cue : null} size={captionSize} />
       {/* title, not <Tip>: the tooltip portal renders outside the fullscreen frame, so it would never show there. */}
       <div className="player__tools">

@@ -879,6 +879,15 @@ Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11
 - Sửa kèm: route `*` + `SpaForwardController` chuyển tiếp theo mẫu (admin gõ URL lạ ra "Page not found" thay vì JSON); navbar điện thoại cuộn theo từng mục (scroll-snap), hết mảnh chữ bị cắt; `BackToTop barOn` nâng nút lên trên thanh form dính đáy.
 - Test `styles/layoutRules.test.ts` quét `src/`: không `<main>`/`<h1>` viết tay, không `back-link`, không `.form-actions` viết tay, không `SourceFilter`.
 
+### 2026-11-13: Sửa video lệch phải ở toàn màn hình iPhone ✅ (chưa merge, chưa deploy)
+
+Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
+
+- **Nguyên nhân:** trình phát YouTube bên trong iframe tự dời video theo `safe-area-inset-left` (59px trên iPhone ngang). CSS của app không can thiệp được.
+- **Cách sửa:** khi ở chế độ "filled" (chỉ iPhone), hook `useFilledViewport` bỏ `viewport-fit=cover` khỏi thẻ meta viewport để Safari tự thu trang vào vùng an toàn (inset trái/phải = 0), nền trang đen; thoát chế độ hoặc unmount thì khôi phục đúng nội dung cũ. Đã xoá toàn bộ công cụ chẩn đoán tạm `LayoutDebug`.
+- **Sửa thêm (cùng nhánh):** nhãn chương chỉ lặp lại tên mặc định ("Chapter 16" hoặc "Chương 16" trên chương 16, không phân biệt hoa thường) giờ được lưu là NULL (`ChapterService.label`), để trang public hiện đúng "Chương N"; migration `V21__clear_default_chapter_labels.sql` dọn dữ liệu cũ (truyện 1 có chương 16-19 bị nhãn "Chapter N"). Ô nhãn ở trang chương đổi placeholder thành "e.g. Ngoại truyện 1". Cần deploy (có V21) và **Publish lại** để các chương đó vẽ lại ảnh. Ô Number ở trang chương không còn tràn đè lên ô nhãn (`min-width: 0` cho input trong `.chapter-meta__row .field`); các `.field` khác không bị lỗi này.
+- **Sửa thêm 2 (cùng nhánh):** ở trình sửa Vietsub, focus vào text của một dòng khác (bấm hoặc Tab) giờ tua video tới đầu dòng đó và **tạm dừng** thay vì phát (`seekAndPause`, hook `useYouTubePlayer` có thêm `pause()`: chỉ dừng khi đang phát hoặc đang đệm). Video đang dừng thì vẫn dừng; nút `#`, phím tắt phát/dừng và việc tô dòng khi đang phát không đổi.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
