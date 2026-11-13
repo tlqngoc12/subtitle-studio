@@ -58,18 +58,19 @@ export function PlaylistHeader({ playlist, href, count }: Props) {
                 <Play className="icon" aria-hidden="true" />
                 {t('Play all', 'Phát tất cả')}
               </Link>
-              {resumeVideo && resume !== null && (
+              {resumeVideo && (
                 <Link
                   className="button plcard__play"
                   to={`/vietsub/${resumeVideo.id}?playlist=${playlist.id}`}
                   state={{ autoplay: true }}
                 >
                   <StepForward className="icon" aria-hidden="true" />
-                  {t(`Continue: EP ${resume + 1}`, `Xem tiếp: tập ${resume + 1}`)}
+                  {t('Continue', 'Xem tiếp')}
                 </Link>
               )}
             </div>
           )}
+          {resumeVideo && <p className="muted plcard__next">{t(`Up next: ${resumeVideo.title}`, `Tiếp theo: ${resumeVideo.title}`)}</p>}
         </div>
       </div>
     </section>
