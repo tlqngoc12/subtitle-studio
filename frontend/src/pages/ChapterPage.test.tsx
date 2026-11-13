@@ -634,10 +634,12 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     const rule = (name: string) => new RegExp(`\\.chapter-meta__${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
     expect(/\.chapter-meta__row\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/.test(css)).toBe(true);
     expect(rule('number')).toMatch(/flex:\s*0 0 1\d\dpx/);
-    // Mobile-first: the label shares the row on a phone and is a fixed column from 521px.
-    expect(rule('label')).toMatch(/flex:\s*1 1 0/);
+    // Mobile-first: label and title each take a whole line on a phone (they overlapped when squeezed side by side);
+    // from 521px the label is a fixed column and the title takes the rest.
+    expect(rule('label')).toMatch(/flex:\s*1 1 100%/);
+    expect(rule('title')).toMatch(/flex:\s*1 1 100%/);
     expect(/@media \(min-width: 521px\)\s*\{\s*\.chapter-meta__label\s*\{[^}]*flex:\s*0 0 2[0-4]\dpx/.test(css)).toBe(true);
-    expect(rule('title')).toMatch(/flex:\s*1 1 /);
+    expect(/@media \(min-width: 521px\)\s*\{[^@]*\.chapter-meta__title\s*\{[^}]*flex:\s*1 1 2\d\dpx/.test(css)).toBe(true);
   });
 
   it('explains Number and Chapter label with info tooltips instead of hint lines', async () => {

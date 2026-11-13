@@ -30,15 +30,42 @@ describe('NavBar', () => {
       </MemoryRouter>,
     );
 
-    expect(scroll).toHaveBeenCalledWith({ inline: 'start', block: 'nearest' });
+    expect(scroll).toHaveBeenCalledWith({ inline: 'center', block: 'nearest' });
     expect(scroll.mock.contexts[0]).toBe(screen.getByRole('link', { name: 'Profile' }));
   });
 
-  it('snaps the scrolling row to whole items so no clipped fragment is left at the edge', () => {
-    expect(/\.nav \{[^}]*scroll-snap-type:\s*x\b/.test(css)).toBe(true);
-    expect(/\.nav__link \{[^}]*scroll-snap-align:\s*start/.test(css)).toBe(true);
-    // The padding of the row is the snap offset, so the first visible item starts flush with the edge.
-    expect(/\.nav \{[^}]*scroll-padding-inline:/.test(css)).toBe(true);
+  it('centres the current section instead of snapping, so no hard-cut fragment is left', () => {
+    expect(/\.nav \{[^}]*scroll-snap/.test(css)).toBe(false);
+    expect(/\.nav__link \{[^}]*scroll-snap/.test(css)).toBe(false);
+  });
+
+  it('fades only the edges that have more items behind them', () => {
+    // A left fade only once scrolled, a right fade only while more is to the right; nothing from 761px.
+    expect(css).toMatch(/\.nav\[data-fade-start='true'\]/);
+    expect(css).toMatch(/\.nav\[data-fade-end='true'\]/);
+    expect(css).toMatch(/\.nav\[data-fade-start='true'\]\[data-fade-end='true'\]/);
+  });
+
+  it('marks the row as fading at the right edge on mount (nothing is scrolled yet)', () => {
+    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole('navigation');
+    expect(nav).toHaveAttribute('data-fade-start');
+    expect(nav).toHaveAttribute('data-fade-end');
+  });
+
+  it('keeps the app name reachable when only the logo shows on phones', () => {
+    render(
+      <MemoryRouter>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Subtitle Studio' })).toBeInTheDocument();
+    expect(css).toMatch(/\.topbar__name\s*\{[^}]*clip/);
   });
 
   it('links to the four sections', () => {

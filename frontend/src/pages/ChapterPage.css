@@ -17,7 +17,7 @@
   margin-bottom: var(--space-4);
 }
 
-/* Number, label and title on one row; the title takes the rest and wraps to its own line on narrow screens. */
+/* Number, label and title on one row; label and title stack on phones, and sit side by side from 521px. */
 .chapter-meta__row {
   display: flex;
   flex-wrap: wrap;
@@ -30,18 +30,22 @@
 }
 
 .chapter-meta__label {
-  flex: 1 1 0;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
 .chapter-meta__title {
-  flex: 1 1 260px;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
 @media (min-width: 521px) {
   .chapter-meta__label {
     flex: 0 0 220px;
+  }
+
+  .chapter-meta__title {
+    flex: 1 1 260px;
   }
 }
 

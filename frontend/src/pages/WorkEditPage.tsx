@@ -29,6 +29,7 @@ import { FormActions } from '../components/ui/FormActions';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Select } from '../components/ui/Select';
+import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { peopleForBadge } from '../lib/badgePeople';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -320,10 +321,12 @@ export default function WorkEditPage() {
             sticky
             start={
               id !== null && (
-                <button type="button" className="button button--danger" onClick={() => void remove()}>
-                  <Trash2 className="icon" aria-hidden="true" />
-                  Delete work
-                </button>
+                <Tip label="Delete work">
+                    <button type="button" className="button button--danger" onClick={() => void remove()}>
+                      <Trash2 className="icon" aria-hidden="true" />
+                      <span className="form-actions__label">Delete work</span>
+                    </button>
+                  </Tip>
               )
             }
           >

@@ -60,6 +60,28 @@
 }
 
 /* The site logo (transparent webp, 522x478) before the name; decorative, the name follows. */
+/* Phones: the logo alone, so the menu gets the room; the name stays for screen readers. */
+.topbar__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 521px) {
+  .topbar__name {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+  }
+}
+
 .topbar__logo {
   display: block;
   height: 24px;
@@ -81,33 +103,27 @@
   padding: var(--space-1);
   overflow-x: auto;
   scrollbar-width: none;
-  /* Whole items only: the row always rests with an item flush at the left edge, never a clipped fragment of one. */
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--space-1);
 }
 
-/* Only part of the row fits on a phone: fade the right edge so it reads as scrollable. */
-.nav {
-  mask-image: linear-gradient(to right, #000 82%, transparent);
+/* Only part of the row fits on a phone: fade an edge only while more items are hidden behind it (NavBar sets the
+   data attributes on scroll and resize). The fade is 14px, so the centred current item is never under it. */
+.nav[data-fade-end='true'] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+}
+
+.nav[data-fade-start='true'] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 14px), transparent);
+}
+
+.nav[data-fade-start='true'][data-fade-end='true'] {
+  mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
 }
 
 @media (min-width: 761px) {
-  .nav {
+  .nav,
+  .nav[data-fade-start],
+  .nav[data-fade-end] {
     mask-image: none;
-  }
-}
-
-/* Room after the last item so it can also rest at the left edge: a scroller cannot scroll past its end, which would
-   leave a clipped piece of the previous item there. Not needed once everything fits (761px). */
-.nav::after {
-  content: "";
-  flex: none;
-  width: 100vw;
-}
-
-@media (min-width: 761px) {
-  .nav::after {
-    display: none;
   }
 }
 
@@ -117,7 +133,6 @@
 
 .nav__link {
   flex: none;
-  scroll-snap-align: start;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;

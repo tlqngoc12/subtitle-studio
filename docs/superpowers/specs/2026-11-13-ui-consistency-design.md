@@ -148,7 +148,7 @@ tabs → toolbar 16 px; toolbar → content 16 px; between content sections 48 p
 - `Toolbar`: flex row, wraps; search slot `flex: 0 1 360px` (100 % on phones); actions pushed right
   (`margin-inline-start: auto`).
 - `FormActions`: wraps the current `.form-actions` styles; `sticky` adds `position: sticky; bottom: 0`, `--paper`
-  background, top `--rule` border, `--z-sticky`, safe-area padding. Pages using it register with `BackToTop liftOn`.
+  background, top `--rule` border, `--z-sticky`, safe-area padding; in sticky mode it is **one row at every width** (about 65 px on a phone): the start button (Delete) shows only its icon under 521 px (text in `.form-actions__label`, visually hidden), Cancel, and Save last with `flex: 1`. Non-sticky bars (dialogs) keep the stacked phone layout. Pages using it register with `BackToTop liftOn`.
 - `EmptyState` (existing) everywhere a list can be empty.
 - Remove the `.back-link` class and `SourceFilter` (+ its CSS) after migration.
 

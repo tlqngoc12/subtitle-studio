@@ -74,8 +74,7 @@ Vietsub editor) · `narrow` 760 px (form một cột). Reader giữ khổ đọc
 ## 4. Form
 
 - Trang form dùng `<Page width="narrow">` và `<FormActions sticky>` dính đáy màn hình:
-  `[Delete] ······· [Cancel] [Save]`. Delete (đỏ) dùng slot `start`, Save (primary) ngoài cùng bên phải. Trên điện
-  thoại các nút xếp chồng full-width.
+  `[Delete] ······· [Cancel] [Save]`. Delete (đỏ) dùng slot `start`, Save (primary) ngoài cùng bên phải. Thanh dính đáy luôn **một hàng ở mọi cỡ màn hình** (cao khoảng 65 px trên điện thoại): Delete (slot `start`, bọc chữ trong `<span className="form-actions__label">`, dưới 521 px chỉ còn icon, tên cho trình đọc màn hình giữ nguyên, nút icon có `Tip`), Cancel, và Save ở cuối chiếm phần còn lại. Dialog dùng `FormActions` không sticky vẫn xếp chồng full-width trên điện thoại.
 - Dialog có form: `<FormActions>` (không sticky) ở cuối dialog.
 - Label bằng `Field`; form trong portal phải `e.stopPropagation()` khi submit (xem CLAUDE.md).
 - Trang có `FormActions sticky` phải khai báo trong `BackToTop liftOn`.

@@ -510,7 +510,7 @@ export default function ChapterPage() {
         </div>
       </div>
 
-      <FormActions sticky start={dirty && <span className="muted">Unsaved changes</span>}>
+      <FormActions sticky start={dirty && <span className="muted form-actions__label">Unsaved changes</span>}>
         <button className="button button--primary" type="button" onClick={() => void save()} disabled={locked || !dirty || !number}>
           Save
         </button>
