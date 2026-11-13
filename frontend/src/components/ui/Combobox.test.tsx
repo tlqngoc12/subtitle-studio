@@ -122,15 +122,32 @@ describe('Combobox', () => {
     expect(box).toHaveFocus();
   });
 
-  it('Enter without a highlighted option submits the form with the typed text', async () => {
+  it('Enter on free text that matches no suggestion keeps it and does not submit the form', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(<Harness onSubmit={onSubmit} />);
     const box = screen.getByRole('combobox', { name: 'Role' });
 
-    await user.type(box, 'Sing{Enter}');
-    expect(onSubmit).toHaveBeenCalledTimes(1);
+    await user.type(box, 'Director{Enter}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(box).toHaveValue('Director');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('Enter with the list open but nothing highlighted keeps the text, closes the list and does not submit', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<Harness onSubmit={onSubmit} />);
+    const box = screen.getByRole('combobox', { name: 'Role' });
+
+    await user.type(box, 'Sing');
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    await user.keyboard('{Enter}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
     expect(box).toHaveValue('Sing');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('Enter on a highlighted option does not submit the form', async () => {

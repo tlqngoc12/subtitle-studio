@@ -7,7 +7,6 @@ import { Reveal } from '../ui/Reveal';
 import { categoryLabel } from './categories';
 import './WorkCard.css';
 import { useT } from '../../lib/i18n';
-import { useSite } from '../../data/SiteContext';
 
 /**
  * One poster card; the whole card links to the work's page. `badge` is the profile's display name. `children` (the
@@ -26,7 +25,6 @@ export function WorkCard({
   children?: ReactNode;
 }) {
   const t = useT();
-  const { readOnly } = useSite();
   return (
     <li className="work-card">
       <Reveal delayIndex={index} layout>
@@ -46,7 +44,7 @@ export function WorkCard({
           <span className="work-card__chips">
             {work.categories.map((c) => (
               <span key={c} className="work-card__chip work-card__chip--category">
-                {categoryLabel(c, readOnly)}
+                {categoryLabel(c)}
               </span>
             ))}
             {work.subcategory && <span className="work-card__chip">{work.subcategory}</span>}

@@ -44,7 +44,7 @@ describe('WorksPage', () => {
     expect(within(first).getByText('Bonnie')).toBeInTheDocument();
     const second = screen.getByRole('link', { name: 'Old song' });
     expect(within(second).getByText('05/01/2026')).toBeInTheDocument();
-    expect(within(second).getByText('Âm nhạc')).toBeInTheDocument();
+    expect(within(second).getByText('Music')).toBeInTheDocument();
     expect(within(second).getByText('OST')).toBeInTheDocument();
     expect(screen.getByText('Phim, nhạc, chương trình và hơn thế nữa.')).toBeInTheDocument();
   });
@@ -69,7 +69,7 @@ describe('WorksPage', () => {
     await screen.findByRole('link', { name: 'Old song' });
     expect(titles()).toEqual(['Old song']);
     expect(screen.queryByText('1 work')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Âm nhạc' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Music' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Bonnie' })).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -77,7 +77,7 @@ describe('WorksPage', () => {
     renderPublic();
     await screen.findByRole('link', { name: 'Coming film' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Âm nhạc' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Music' }));
     expect(titles()).toEqual(['Old song', 'New song']);
     await userEvent.click(screen.getByRole('button', { name: 'Emi' }));
     expect(titles()).toEqual(['New song']);
@@ -92,8 +92,8 @@ describe('WorksPage', () => {
     await screen.findByRole('link', { name: 'New song film' });
     expect(titles()).toEqual(['Old song', 'New song', 'New song film']);
     const card = screen.getByRole('link', { name: 'New song film' });
-    expect(within(card).getByText('Phim & TV')).toBeInTheDocument();
-    expect(within(card).getByText('Âm nhạc')).toBeInTheDocument();
+    expect(within(card).getByText('Film & TV')).toBeInTheDocument();
+    expect(within(card).getByText('Music')).toBeInTheDocument();
   });
 
   it('links each card to its page and has no admin controls on the public site', async () => {

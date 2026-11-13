@@ -7,10 +7,11 @@ import { tileShape } from './tileShape';
 import './PhotoTile.css';
 import { useT } from '../../lib/i18n';
 
-const SOURCE_LABEL: Record<PhotoSource, [en: string, vi: string]> = {
-  OFFICIAL: ['Official', 'Chính thức'],
-  MEDIA: ['Media', 'Báo chí'],
-  FAN: ['Fan', 'Fan'],
+/** Source names stay in English on both sites. */
+const SOURCE_LABEL: Record<PhotoSource, string> = {
+  OFFICIAL: 'Official',
+  MEDIA: 'Media',
+  FAN: 'Fan',
 };
 
 /**
@@ -33,7 +34,7 @@ export function PhotoTile({ post, index, children }: { post: PhotoPost; index?: 
         <span className="photo-tile__chips">
           <span className="photo-tile__chip">
             <LinkIcon iconKey={iconFor(post.postUrl, null)} className="icon photo-tile__platform" />
-            {t(...SOURCE_LABEL[post.source])}
+            {SOURCE_LABEL[post.source]}
           </span>
           {post.photoCount != null && (
             <span className="photo-tile__chip">{post.photoCount === 1 ? t('1 photo', '1 ảnh') : t(`${post.photoCount} photos`, `${post.photoCount} ảnh`)}</span>
