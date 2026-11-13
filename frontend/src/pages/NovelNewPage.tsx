@@ -1,4 +1,3 @@
-import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { createNovel, type WattpadNovelPreview } from '../api/novels';
@@ -6,6 +5,7 @@ import { NovelForm } from '../components/novel/NovelForm';
 import { WattpadFetch } from '../components/novel/WattpadFetch';
 import { Alert } from '../components/ui/Alert';
 import { FilterPills } from '../components/ui/FilterPills';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 
 type Source = 'screenshots' | 'wattpad';
@@ -22,12 +22,8 @@ export default function NovelNewPage() {
   const [preview, setPreview] = useState<WattpadNovelPreview | null>(null);
 
   return (
-    <main className="page">
-      <Link className="back-link" to="/novels">
-        <ArrowLeft className="icon" aria-hidden="true" />
-        Novels
-      </Link>
-      <PageHeader title="New novel" />
+    <Page width="narrow">
+      <PageHeader breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: 'New novel' }]} title="New novel" />
       <FilterPills
         label="Source"
         options={[
@@ -39,6 +35,7 @@ export default function NovelNewPage() {
       />
       {source === 'screenshots' ? (
         <NovelForm
+          stickyActions
           submitLabel="Create novel"
           pendingLabel="Creating…"
           onSubmit={async (input) => {
@@ -60,7 +57,8 @@ export default function NovelNewPage() {
             <NovelForm
               key={preview.storyId}
               wattpad={preview}
-              submitLabel="Create novel"
+              stickyActions
+          submitLabel="Create novel"
               pendingLabel="Creating…"
               onSubmit={async (input) => {
                 const created = await createNovel(input);
@@ -70,6 +68,6 @@ export default function NovelNewPage() {
           )}
         </>
       )}
-    </main>
+    </Page>
   );
 }

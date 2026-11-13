@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -33,6 +33,18 @@ function renderPage(path = '/novels/new') {
 const profiles = { method: 'GET', path: '/api/novel-profiles', status: 200, body: { configured: true, profiles: ['SummerLove'] } };
 
 describe('NovelNewPage', () => {
+  it('shows Novels > New novel as breadcrumbs and keeps Create novel in a sticky form bar', async () => {
+    fakeFetch([profiles]);
+    renderPage();
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByText('New novel')).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelector('.back-link')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Create novel' }).parentElement).toHaveClass('form-actions--sticky');
+    expect(screen.getByRole('main')).toHaveClass('page--narrow');
+  });
+
   it('turns a Vietnamese title into a slug', () => {
     expect(slugify('Tình Yêu Mùa Hạ')).toBe('tinh-yeu-mua-ha');
     expect(slugify('  Đường về -- nhà!! ')).toBe('duong-ve-nha');

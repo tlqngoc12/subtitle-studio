@@ -42,3 +42,8 @@
     flex: 0 1 360px;
   }
 }
+
+/* A toolbar inside a tab panel (not a direct child of a grid): 16 px above the list below. */
+.toolbar--above-list {
+  margin-bottom: var(--space-4);
+}

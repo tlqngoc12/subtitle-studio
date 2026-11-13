@@ -13,6 +13,7 @@ import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/Imag
 import { Alert } from '../ui/Alert';
 import { Select } from '../ui/Select';
 import './NovelForm.css';
+import { FormActions } from '../ui/FormActions';
 
 /** "Tình Yêu Mùa Hạ" → "tinh-yeu-mua-ha": no accents, lowercase, single hyphens. */
 export function slugify(text: string): string {
@@ -55,12 +56,15 @@ export function NovelForm({
   onSubmit,
   submitLabel,
   pendingLabel,
+  stickyActions = false,
 }: {
   initial?: NovelDetail;
   wattpad?: WattpadNovelPreview;
   onSubmit: (input: NovelInput) => Promise<void>;
   submitLabel: string;
   pendingLabel: string;
+  /** The Save bar stays at the bottom of the screen (the New novel page); in a tab it follows the form. */
+  stickyActions?: boolean;
 }) {
   const ids = useId();
   const [title, setTitle] = useState(initial?.title ?? wattpad?.title ?? '');
@@ -320,11 +324,11 @@ export function NovelForm({
       {error && (
         <Alert title={error.title} hint={error.hint} />
       )}
-      <div className="form-actions">
+      <FormActions sticky={stickyActions}>
         <button className="button button--primary" type="submit" disabled={pending || coverBusy || !title.trim()}>
           {pending ? pendingLabel : submitLabel}
         </button>
-      </div>
+      </FormActions>
     </form>
   );
 }

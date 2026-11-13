@@ -1,7 +1,6 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import {
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -15,7 +14,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
@@ -47,7 +46,10 @@ import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
-import { LoadingText } from '../components/ui/LoadingText';
+import { FormActions } from '../components/ui/FormActions';
+import { Page } from '../components/ui/Page';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import { IconLink } from '../components/ui/IconButton';
 import './ChapterPage.css';
 
@@ -172,13 +174,9 @@ export default function ChapterPage() {
 
   if (!chapter) {
     return (
-      <main className="page">
-        {error ? (
-          <Alert title={error.title} hint={error.hint} />
-        ) : (
-          <LoadingText>Loading chapter…</LoadingText>
-        )}
-      </main>
+      <Page width="narrow">
+        {error ? <Alert title={error.title} hint={error.hint} /> : <PageSkeleton rows={3} />}
+      </Page>
     );
   }
 
@@ -309,67 +307,74 @@ export default function ChapterPage() {
   }
 
   return (
-    <main className="page chapter-page">
+    <Page width={fromText ? 'default' : 'narrow'} className="chapter-page">
       {confirmDialog}
-      <Link className="back-link" to={novelPath} onClick={(e) => void leave(e, novelPath)}>
-        <ArrowLeft className="icon" aria-hidden="true" />
-        {chapter.novelTitle}
-      </Link>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Novels', to: '/novels' },
+          { label: chapter.novelTitle, to: novelPath },
+          { label: chapterLabel(chapter.chapterNo, chapter.title, chapter.label) },
+        ]}
+        onNavigate={(e, to) => void leave(e, to)}
+        title={chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}
+        meta={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
+        actions={
+          <>
+            <span className="chapter-head__nav">
+              {chapter.prevChapterId !== null && (
+                <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
+                  onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
+              )}
+              {chapter.nextChapterId !== null && (
+                <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
+                  onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
+              )}
+            </span>
+            {!published && (
+              <button className="button" type="button" onClick={() => void translate()}
+                disabled={locked || (!fromText && chapter.pages.length === 0)}>
+                <Languages className="icon" aria-hidden="true" />
+                {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
+              </button>
+            )}
+            {published ? (
+              // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
+              <button className="button" type="button" disabled={locked || dirty}
+                onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
+                <Undo2 className="icon" aria-hidden="true" />
+                Unpublish
+              </button>
+            ) : (
+              <button className="button button--primary" type="button" disabled={locked || dirty}
+                onClick={() => void run(async () => load(await publishChapter(chapterId)))}>
+                <Send className="icon" aria-hidden="true" />
+                Publish
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <section className="chapter-head" aria-label="Chapter">
-        <div className="chapter-head__title">
-          <h1 className="masthead__name">{chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}</h1>
-          <StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />
-        </div>
-        <div className="chapter-head__actions">
-          {!published && (
-            <button className="button button--primary" type="button" onClick={() => void translate()}
-              disabled={locked || (!fromText && chapter.pages.length === 0)}>
-              <Languages className="icon" aria-hidden="true" />
-              {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
-            </button>
+      {(translating || (chapter.translationStatus === 'TRANSLATED' && chapter.translationModel) ||
+        (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
+        <div className="chapter-status">
+          {translating && (
+            <p className="muted" aria-live="polite">
+              {chapter.translationModel
+                ? `Translating with ${chapter.translationModel}…`
+                : fromText
+                  ? 'Gemini is translating the chapter…'
+                  : 'Gemini is reading and translating the pages…'}
+            </p>
           )}
-          {published ? (
-            // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
-            <button className="button button--s" type="button" disabled={locked || dirty}
-              onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
-              <Undo2 className="icon" aria-hidden="true" />
-              Unpublish
-            </button>
-          ) : (
-            <button className="button button--primary" type="button" disabled={locked || dirty}
-              onClick={() => void run(async () => load(await publishChapter(chapterId)))}>
-              <Send className="icon" aria-hidden="true" />
-              Publish
-            </button>
+          {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+            <p className="muted">Translated by {chapter.translationModel}</p>
           )}
-          <span className="chapter-head__nav">
-            {chapter.prevChapterId !== null && (
-              <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
-                onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
-            )}
-            {chapter.nextChapterId !== null && (
-              <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
-                onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
-            )}
-          </span>
+          {chapter.translationStatus === 'FAILED' && chapter.translationError && (
+            <p className="field__error">{chapter.translationError}</p>
+          )}
         </div>
-        {translating && (
-          <p className="muted" aria-live="polite">
-            {chapter.translationModel
-              ? `Translating with ${chapter.translationModel}…`
-              : fromText
-                ? 'Gemini is translating the chapter…'
-                : 'Gemini is reading and translating the pages…'}
-          </p>
-        )}
-        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
-          <p className="muted">Translated by {chapter.translationModel}</p>
-        )}
-        {chapter.translationStatus === 'FAILED' && chapter.translationError && (
-          <p className="field__error">{chapter.translationError}</p>
-        )}
-      </section>
+      )}
 
       {error && (
         <Alert title={error.title} hint={error.hint} />
@@ -505,12 +510,11 @@ export default function ChapterPage() {
         </div>
       </div>
 
-      <div className="chapter-save">
+      <FormActions sticky start={dirty && <span className="muted">Unsaved changes</span>}>
         <button className="button button--primary" type="button" onClick={() => void save()} disabled={locked || !dirty || !number}>
           Save
         </button>
-        {dirty && <span className="muted">Unsaved changes</span>}
-      </div>
+      </FormActions>
 
       <Lightbox
         open={enlarged !== null}
@@ -527,7 +531,7 @@ export default function ChapterPage() {
 ${p.source}` : undefined,
         }))}
       />
-    </main>
+    </Page>
   );
 }
 

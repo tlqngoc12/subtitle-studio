@@ -1,8 +1,8 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   addChapter,
@@ -22,9 +22,11 @@ import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { STATUS_LABEL } from './NovelsPage';
 import { Alert } from '../components/ui/Alert';
-import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Toolbar } from '../components/ui/Toolbar';
 import { Cover } from '../components/ui/Cover';
-import './NovelPage.css';
 
 /** Novels › one novel: Chapters | Details | Notebook. The novel is loaded once for every tab. */
 export default function NovelPage() {
@@ -99,26 +101,23 @@ export default function NovelPage() {
   }
 
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
-      <Link className="back-link" to="/novels">
-        <ArrowLeft className="icon" aria-hidden="true" />
-        Novels
-      </Link>
-      {error && (
-        <Alert title={error.title} hint={error.hint} />
+      {error && !novel && (
+        <PageHeader breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: 'Novel' }]} title="Novel" />
       )}
+      {error && <Alert title={error.title} hint={error.hint} />}
       {!novel ? (
-        !error && <LoadingText>Loading novel…</LoadingText>
+        !error && <PageSkeleton rows={4} />
       ) : (
         <>
-          <header className="novel-head">
-            <Cover src={novel.coverUrl} />
-            <div className="novel-head__text">
-              <h1 className="masthead__name">{novel.title}</h1>
-              <span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>
-            </div>
-          </header>
+          <PageHeader
+            variant="hero"
+            breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]}
+            title={novel.title}
+            media={<Cover src={novel.coverUrl} />}
+            meta={<span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>}
+          />
 
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
             <Tabs.List className="tabs__list" aria-label="Novel sections">
@@ -139,10 +138,15 @@ export default function NovelPage() {
             </Tabs.List>
 
             <Tabs.Content value="chapters" className="tabs__panel">
-              <button className="button button--primary" type="button" onClick={add} disabled={adding}>
-                <Plus className="icon" aria-hidden="true" />
-                Add chapter
-              </button>
+              <Toolbar
+                className="toolbar--above-list"
+                actions={
+                  <button className="button button--primary" type="button" onClick={add} disabled={adding}>
+                    <Plus className="icon" aria-hidden="true" />
+                    Add chapter
+                  </button>
+                }
+              />
               <ChapterList novelId={novelId} chapters={novel.chapters} fromText={novel.sourceType === 'WATTPAD'}
                 onReorder={(next) => void reorder(next)} />
             </Tabs.Content>
@@ -179,6 +183,6 @@ export default function NovelPage() {
           </Tabs.Root>
         </>
       )}
-    </main>
+    </Page>
   );
 }

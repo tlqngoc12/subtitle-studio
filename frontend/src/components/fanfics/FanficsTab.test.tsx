@@ -202,6 +202,25 @@ describe('FanficsTab (admin)', () => {
     expect(screen.getAllByRole('button', { name: /^Menu for/ })).toHaveLength(3);
   });
 
+  it('orders the toolbar search, status pills, sort, Refresh all, Add fanfic', async () => {
+    fakeFetch([GET]);
+    renderAdmin();
+
+    await screen.findByRole('link', { name: /Second Spring/ });
+    const items = [
+      screen.getByRole('searchbox'),
+      screen.getByRole('group', { name: 'Status' }),
+      screen.getByRole('combobox'),
+      screen.getByRole('button', { name: 'Refresh all' }),
+      screen.getByRole('button', { name: 'Add fanfic' }),
+    ];
+    for (let i = 0; i < items.length - 1; i++) {
+      expect(items[i].compareDocumentPosition(items[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(items[0].closest('.toolbar')).not.toBeNull();
+    expect(items[4].closest('.toolbar')).toBe(items[0].closest('.toolbar'));
+  });
+
   it('adds a story: Fetch shows the preview, Save puts the card in the list', async () => {
     const preview = { ...fanfic({ id: 7, title: 'Warm Story' }), id: null, createdAt: null };
     const saved = fanfic({ id: 7, title: 'Warm Story', storyUpdatedAt: '2026-11-20T06:00:00Z' });
