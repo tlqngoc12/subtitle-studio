@@ -141,7 +141,8 @@ tabs → toolbar 16 px; toolbar → content 16 px; between content sections 48 p
 ```
 
 - `Breadcrumbs` (existing) gains the phone collapse ("← parent", a normal link with `aria-label="Back to {parent}"`)
-  and is rendered only by `PageHeader`.
+  and is rendered by `PageHeader`; only `media` pages (Watch, Reader), whose H1 sits below the player, render
+  `<Breadcrumbs>` directly at the top of the page.
 - `PageHeader` renders breadcrumbs + header; replaces the raw `<h1 className="masthead__name">` in ChapterPage,
   NovelPage, PlaylistEditPage, PublicNovelPage and `work__title` in WorkDetailPage.
 - `Toolbar`: flex row, wraps; search slot `flex: 0 1 360px` (100 % on phones); actions pushed right
