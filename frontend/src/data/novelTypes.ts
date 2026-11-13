@@ -15,6 +15,11 @@ export interface PublicNovelSummary {
   /** When the latest published chapter went out; null or missing without one. Falls back to `updatedAt`. */
   lastPublishedAt?: string | null;
   updatedAt: string;
+  /** Picked by hand for the banner. Missing in files published earlier (treated as false). */
+  featured?: boolean;
+  /** When the novel was added; missing in files published earlier. */
+  createdAt?: string;
+  description?: string | null;
 }
 
 export interface PublicChapterRef {
