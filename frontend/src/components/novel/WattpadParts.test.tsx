@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WattpadPart } from '../../api/novels';
+import type { ChapterTranslationStatus, NovelDetail, WattpadPart } from '../../api/novels';
 import { fakeFetch, problem } from '../../test/fakeFetch';
 import { WattpadParts } from './WattpadParts';
 
@@ -26,113 +26,166 @@ const PARTS = [
   part({ partId: '3', title: 'Chapter 2: Three Seconds' }),
   part({ partId: '4', title: 'Removed one', deleted: true }),
 ];
-const getParts = { method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200, body: PARTS };
+const getParts = (body: WattpadPart[] = PARTS) => ({ method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200, body });
+const fetchTranslate = (partId: string, status = 202, body: unknown = {}) => ({
+  method: 'POST',
+  path: `/api/novels/3/wattpad/parts/${partId}/fetch-translate`,
+  status,
+  body,
+});
 
-function renderParts(onImported = vi.fn()) {
-  render(
+function novelWith(
+  chapterStatus: ChapterTranslationStatus | null,
+  notebookStatus: 'IDLE' | 'UPDATING' | 'FAILED' = 'IDLE',
+): NovelDetail {
+  return {
+    id: 3,
+    notebookStatus,
+    chapters: chapterStatus ? [{ id: 77, chapterNo: 1, title: 'Chapter 1: Cold Brew', translationStatus: chapterStatus }] : [],
+  } as unknown as NovelDetail;
+}
+
+function renderParts(novel: NovelDetail, onChanged = vi.fn()) {
+  const view = render(
     <MemoryRouter>
-      <WattpadParts novelId={3} onImported={onImported} />
+      <WattpadParts novel={novel} onChanged={onChanged} />
     </MemoryRouter>,
   );
-  return onImported;
+  return { onChanged, view };
 }
 
 const row = (title: string) => screen.getByText(title).closest('li') as HTMLElement;
+const action = (title: string) => within(row(title)).getByRole('button');
 
 describe('WattpadParts', () => {
   beforeEach(() => {
     vi.mocked(toast.success).mockClear();
-    vi.mocked(toast.message).mockClear();
+    vi.mocked(toast.error).mockClear();
   });
 
-  it('lists the parts in story order with words, date and imported badge', async () => {
-    fakeFetch([getParts]);
-    renderParts();
-
+  it('shows Fetch & translate for new parts and no checkboxes', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('NONE'));
     await screen.findByText('PROLOGUE');
-    const titles = within(screen.getByRole('list', { name: 'Parts' })).getAllByRole('listitem').map((li) => li.textContent);
-    expect(titles[0]).toContain('PROLOGUE');
-    expect(titles[3]).toContain('Removed one');
+
+    expect(within(row('PROLOGUE')).getByRole('button', { name: /Fetch & translate/ })).toBeEnabled();
+    expect(within(row('Chapter 2: Three Seconds')).getByRole('button', { name: /Fetch & translate/ })).toBeEnabled();
+    expect(within(row('Removed one')).queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Import/ })).not.toBeInTheDocument();
     expect(within(row('PROLOGUE')).getByText('190 words')).toBeInTheDocument();
-    expect(within(row('PROLOGUE')).getByText('21/06/2025')).toBeInTheDocument();
-    expect(within(row('Chapter 1: Cold Brew')).getByText('1,951 words')).toBeInTheDocument();
-    expect(within(row('Chapter 1: Cold Brew')).getByRole('link', { name: /Imported/ })).toHaveAttribute(
-      'href',
-      '/novels/3/chapters/77',
-    );
     expect(within(row('Removed one')).getByText('Deleted')).toBeInTheDocument();
   });
 
-  it('cannot tick an imported or deleted part', async () => {
-    fakeFetch([getParts]);
-    renderParts();
+  it('marks the first untranslated part as Next', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('TRANSLATED'));
     await screen.findByText('PROLOGUE');
 
-    expect(within(row('PROLOGUE')).getByRole('checkbox')).toBeEnabled();
-    expect(within(row('Chapter 1: Cold Brew')).getByRole('checkbox')).toBeDisabled();
-    expect(within(row('Removed one')).getByRole('checkbox')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
+    expect(within(row('PROLOGUE')).getByText('Next')).toBeInTheDocument();
+    expect(screen.getAllByText('Next')).toHaveLength(1);
+    expect(action('PROLOGUE')).toHaveClass('button--primary');
+    expect(action('Chapter 2: Three Seconds')).not.toHaveClass('button--primary');
   });
 
-  it('Select all new ticks only what can be imported', async () => {
-    fakeFetch([getParts]);
-    renderParts();
+  it('fetches and translates, refreshes, and ignores a double click', async () => {
+    let release: () => void = () => {};
+    const delay = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const calls = fakeFetch([getParts(), { ...fetchTranslate('1'), delay }]);
+    const { onChanged } = renderParts(novelWith('TRANSLATED'));
     await screen.findByText('PROLOGUE');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Select all new' }));
+    await userEvent.dblClick(action('PROLOGUE'));
+    expect(action('PROLOGUE')).toBeDisabled();
+    release();
 
-    expect(within(row('PROLOGUE')).getByRole('checkbox')).toBeChecked();
-    expect(within(row('Chapter 2: Three Seconds')).getByRole('checkbox')).toBeChecked();
-    expect(within(row('Chapter 1: Cold Brew')).getByRole('checkbox')).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'Import 2' })).toBeEnabled();
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Translating PROLOGUE…');
+    await waitFor(() => expect(calls.filter((c) => c.method === 'GET')).toHaveLength(2));
   });
 
-  it('imports the ticked parts, reports the result and reloads', async () => {
-    const calls = fakeFetch([
-      getParts,
-      {
-        method: 'POST',
-        path: '/api/novels/3/wattpad/import',
-        status: 200,
-        body: {
-          imported: [{ partId: '1', chapterId: 88 }],
-          skipped: [],
-          failed: [{ partId: '3', title: 'Chapter 2: Three Seconds', reason: 'Wattpad has no text for this part (locked, empty or removed).' }],
-        },
-      },
-    ]);
-    const onImported = renderParts();
+  it('disables every button while a chapter translates', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('TRANSLATING'));
     await screen.findByText('PROLOGUE');
-    await userEvent.click(screen.getByRole('button', { name: 'Select all new' }));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Import 2' }));
-
-    await waitFor(() => expect(vi.mocked(toast.message)).toHaveBeenCalledWith('Imported 1 · Skipped 0 · Failed 1'));
-    const body = JSON.parse(calls.find((c) => c.method === 'POST')!.body as string);
-    expect(body.partIds.sort()).toEqual(['1', '3']);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Chapter 2: Three Seconds');
-    expect(screen.getByRole('alert')).toHaveTextContent('Wattpad has no text');
-    expect(onImported).toHaveBeenCalled();
-    expect(calls.filter((c) => c.method === 'GET' && c.path.endsWith('/parts'))).toHaveLength(2);
+    expect(action('PROLOGUE')).toBeDisabled();
+    expect(action('Chapter 2: Three Seconds')).toBeDisabled();
+    expect(within(row('Chapter 1: Cold Brew')).getByText('Translating…')).toBeInTheDocument();
   });
 
-  it('shows a plain success toast when nothing failed', async () => {
-    fakeFetch([
-      getParts,
-      { method: 'POST', path: '/api/novels/3/wattpad/import', status: 200, body: { imported: [{ partId: '1', chapterId: 88 }], skipped: [], failed: [] } },
-    ]);
-    renderParts();
+  it('disables every button while the notebook updates', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('TRANSLATED', 'UPDATING'));
     await screen.findByText('PROLOGUE');
-    await userEvent.click(within(row('PROLOGUE')).getByRole('checkbox'));
-    await userEvent.click(screen.getByRole('button', { name: 'Import 1' }));
 
-    await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Imported 1 · Skipped 0 · Failed 0'));
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(action('PROLOGUE')).toBeDisabled();
+    expect(action('Chapter 2: Three Seconds')).toBeDisabled();
+  });
+
+  it('does not treat a failed notebook as busy', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('TRANSLATED', 'FAILED'));
+    await screen.findByText('PROLOGUE');
+
+    expect(action('PROLOGUE')).toBeEnabled();
+  });
+
+  it('asks before translating out of order', async () => {
+    const calls = fakeFetch([getParts(), fetchTranslate('3')]);
+    renderParts(novelWith('NONE'));
+    await screen.findByText('PROLOGUE');
+
+    await userEvent.click(action('Chapter 2: Three Seconds'));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent('PROLOGUE is not translated yet.');
+    expect(dialog).toHaveTextContent('Translate Chapter 2: Three Seconds anyway?');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+
+    await userEvent.click(action('Chapter 2: Three Seconds'));
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Translate anyway' }));
+    await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1));
+  });
+
+  it('shows Translate for an imported chapter that is not translated', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('NONE'));
+    await screen.findByText('PROLOGUE');
+
+    expect(within(row('Chapter 1: Cold Brew')).getByRole('button', { name: 'Translate Chapter 1: Cold Brew' })).toBeEnabled();
+  });
+
+  it('shows a Translated badge linking to the chapter', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('TRANSLATED'));
+    await screen.findByText('PROLOGUE');
+
+    expect(within(row('Chapter 1: Cold Brew')).getByRole('link', { name: /Translated/ })).toHaveAttribute(
+      'href',
+      '/novels/3/chapters/77',
+    );
+  });
+
+  it('shows an error toast and reloads when the request is refused', async () => {
+    fakeFetch([getParts(), fetchTranslate('1', 409, problem(409, 'NOVEL_TRANSLATION_BUSY', 'busy'))]);
+    const { onChanged } = renderParts(novelWith('NONE'));
+    await screen.findByText('PROLOGUE');
+
+    await userEvent.click(action('PROLOGUE'));
+
+    await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Another chapter is still translating'));
+    expect(onChanged).toHaveBeenCalled();
+    await waitFor(() => expect(action('PROLOGUE')).toBeEnabled());
+    expect(within(row('Chapter 1: Cold Brew')).getByRole('button', { name: /^Translate / })).toBeEnabled();
   });
 
   it('Check for new chapters asks Wattpad again', async () => {
-    const calls = fakeFetch([getParts]);
-    renderParts();
+    const calls = fakeFetch([getParts()]);
+    renderParts(novelWith('NONE'));
     await screen.findByText('PROLOGUE');
 
     await userEvent.click(screen.getByRole('button', { name: 'Check for new chapters' }));
@@ -141,15 +194,15 @@ describe('WattpadParts', () => {
   });
 
   it('shows the error when Wattpad does not answer', async () => {
-    fakeFetch([{ ...getParts, status: 502, body: problem(502, 'WATTPAD_UNAVAILABLE', 'x') }]);
-    renderParts();
+    fakeFetch([{ ...getParts(), status: 502, body: problem(502, 'WATTPAD_UNAVAILABLE', 'x') }]);
+    renderParts(novelWith('NONE'));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Wattpad did not answer. Try again later.');
   });
 
   it('shows an empty state when the story has no parts', async () => {
-    fakeFetch([{ ...getParts, body: [] }]);
-    renderParts();
+    fakeFetch([getParts([])]);
+    renderParts(novelWith('NONE'));
 
     expect(await screen.findByText('Wattpad lists no parts for this story.')).toBeInTheDocument();
   });

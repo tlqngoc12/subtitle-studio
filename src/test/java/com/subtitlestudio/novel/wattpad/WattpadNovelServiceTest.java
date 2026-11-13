@@ -51,6 +51,7 @@ class WattpadNovelServiceTest {
     private WattpadNovelService service;
     private com.subtitlestudio.novel.ChapterRepository chapters;
     private com.subtitlestudio.novel.ChapterService chapterService;
+    private com.subtitlestudio.novel.ChapterTranslationService translation;
     private com.subtitlestudio.fanfic.Sleeper sleeper;
     private static final Instant NOW = Instant.parse("2026-11-13T01:00:00Z");
 
@@ -63,8 +64,9 @@ class WattpadNovelServiceTest {
         chapters = mock(com.subtitlestudio.novel.ChapterRepository.class);
         chapterService = mock(com.subtitlestudio.novel.ChapterService.class);
         sleeper = mock(com.subtitlestudio.fanfic.Sleeper.class);
+        translation = mock(com.subtitlestudio.novel.ChapterTranslationService.class);
         service = new WattpadNovelService(wattpad, novels, novelService, mediaService, chapters, chapterService,
-                sleeper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+                translation, sleeper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
     private static WattpadStoryParts story(String language) {
@@ -103,6 +105,25 @@ class WattpadNovelServiceTest {
         assertThat(p.coverUrl()).isEqualTo(COVER);
         assertThat(p.storyUrl()).isEqualTo("https://www.wattpad.com/story/396487502");
         assertThat(p.existingNovelId()).isNull();
+    }
+
+    @Test
+    void previewListsThePartsInStoryOrder() {
+        WattpadStoryParts base = story("English");
+        when(wattpad.storyWithParts("396487502")).thenReturn(new WattpadStoryParts(base.story(), "English", List.of(
+                new com.subtitlestudio.fanfic.WattpadPart("1", "Prologue", 190, NOW, NOW, false),
+                new com.subtitlestudio.fanfic.WattpadPart("2", "One", 1200, NOW, NOW.plusSeconds(60), false),
+                new com.subtitlestudio.fanfic.WattpadPart("3", "Gone", 0, NOW, null, true))));
+
+        List<WattpadPreviewPart> parts = service.preview(LINK).parts();
+
+        assertThat(parts).extracting(WattpadPreviewPart::partId).containsExactly("1", "2", "3");
+        assertThat(parts).extracting(WattpadPreviewPart::title).containsExactly("Prologue", "One", "Gone");
+        assertThat(parts).extracting(WattpadPreviewPart::wordCount).containsExactly(190, 1200, 0);
+        assertThat(parts.get(1).modifiedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(parts).extracting(WattpadPreviewPart::deleted).containsExactly(false, false, true);
+        verify(wattpad, org.mockito.Mockito.times(1)).storyWithParts(anyString());
+        verify(wattpad, never()).partText(anyString());
     }
 
     @Test
@@ -379,5 +400,140 @@ class WattpadNovelServiceTest {
         assertThatThrownBy(() -> service.reloadOriginal(5L))
                 .isInstanceOf(com.subtitlestudio.novel.ChapterPublishedException.class);
         verify(wattpad, never()).partText(anyString());
+    }
+
+    // ---- fetch & translate one part ----
+
+    private com.subtitlestudio.novel.ChapterDetail started = mock(com.subtitlestudio.novel.ChapterDetail.class);
+
+    private com.subtitlestudio.novel.Chapter importedChapter(Novel n, long id,
+            com.subtitlestudio.novel.ChapterTranslationStatus status) {
+        com.subtitlestudio.novel.Chapter c = new com.subtitlestudio.novel.Chapter(n, 1, "One", NOW);
+        ReflectionTestUtils.setField(c, "id", id);
+        c.setTranslationStatus(status);
+        when(chapters.findByNovelIdAndWattpadPartId(3L, "2")).thenReturn(Optional.of(c));
+        return c;
+    }
+
+    private void verifyNothingFetchedOrStarted() {
+        verify(wattpad, never()).partText(anyString());
+        verify(chapterService, never()).addFromSource(anyLong(), anyString(), anyString(), anyString(), any());
+        verify(translation, never()).start(anyLong());
+    }
+
+    @Test
+    void fetchAndTranslateImportsThenStarts() {
+        wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "One", false));
+        when(wattpad.partText("2")).thenReturn("<p>Hello</p>");
+        when(chapterService.addFromSource(3L, "One", "Hello", "2", NOW)).thenReturn(77L);
+        when(translation.start(77L)).thenReturn(started);
+
+        assertThat(service.fetchAndTranslate(3, "2")).isSameAs(started);
+
+        verify(wattpad, org.mockito.Mockito.times(1)).partText("2");
+        verify(translation).requireReady(any());
+    }
+
+    @Test
+    void fetchAndTranslateRefusesWhileAChapterIsTranslating() {
+        wattpadNovel(3);
+        when(chapters.existsByNovelIdAndTranslationStatus(3L,
+                com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
+                .isInstanceOf(com.subtitlestudio.novel.NovelTranslationBusyException.class);
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void fetchAndTranslateRefusesWhileNotebookUpdates() {
+        Novel n = wattpadNovel(3);
+        n.setNotebookStatus(com.subtitlestudio.novel.NotebookStatus.UPDATING);
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
+                .isInstanceOf(com.subtitlestudio.novel.NovelTranslationBusyException.class);
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void aFailedNotebookIsNotBusy() {
+        Novel n = wattpadNovel(3);
+        n.setNotebookStatus(com.subtitlestudio.novel.NotebookStatus.FAILED);
+        storyParts(part("2", "One", false));
+        when(wattpad.partText("2")).thenReturn("<p>Hello</p>");
+        when(chapterService.addFromSource(3L, "One", "Hello", "2", NOW)).thenReturn(77L);
+        when(translation.start(77L)).thenReturn(started);
+
+        assertThat(service.fetchAndTranslate(3, "2")).isSameAs(started);
+    }
+
+    @Test
+    void fetchAndTranslateChecksReadinessBeforeFetching() {
+        wattpadNovel(3);
+        org.mockito.Mockito.doThrow(new com.subtitlestudio.translate.GeminiNotConfiguredException("x"))
+                .when(translation).requireReady(any());
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
+                .isInstanceOf(com.subtitlestudio.translate.GeminiNotConfiguredException.class);
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void fetchAndTranslateOnImportedChapterOnlyTranslates() {
+        Novel n = wattpadNovel(3);
+        for (var status : List.of(com.subtitlestudio.novel.ChapterTranslationStatus.NONE,
+                com.subtitlestudio.novel.ChapterTranslationStatus.FAILED)) {
+            importedChapter(n, 55, status);
+            when(translation.start(55L)).thenReturn(started);
+
+            assertThat(service.fetchAndTranslate(3, "2")).isSameAs(started);
+        }
+
+        verify(wattpad, never()).partText(anyString());
+        verify(wattpad, never()).storyWithParts(anyString());
+        verify(chapterService, never()).addFromSource(anyLong(), anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void fetchAndTranslateRefusesATranslatedChapter() {
+        Novel n = wattpadNovel(3);
+        importedChapter(n, 55, com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATED);
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
+                .isInstanceOf(com.subtitlestudio.novel.ChapterAlreadyTranslatedException.class);
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void fetchAndTranslateDeletedOrEmptyOrMissingPart() {
+        wattpadNovel(3);
+        storyParts(part("2", "One", true), part("3", "Two", false));
+        when(wattpad.partText("3")).thenReturn("<p></p>");
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
+                .isInstanceOf(WattpadPartProblemException.class)
+                .extracting(e -> ((WattpadPartProblemException) e).code()).isEqualTo("WATTPAD_PART_DELETED");
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "3"))
+                .isInstanceOf(WattpadPartProblemException.class)
+                .extracting(e -> ((WattpadPartProblemException) e).code()).isEqualTo("WATTPAD_PART_EMPTY");
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "9"))
+                .isInstanceOf(WattpadPartProblemException.class)
+                .extracting(e -> ((WattpadPartProblemException) e).code()).isEqualTo("WATTPAD_PART_NOT_FOUND");
+        verify(chapterService, never()).addFromSource(anyLong(), anyString(), anyString(), anyString(), any());
+        verify(translation, never()).start(anyLong());
+    }
+
+    @Test
+    void fetchAndTranslateKeepsTheChapterWhenStartFails() {
+        wattpadNovel(3);
+        storyParts(part("2", "One", false));
+        when(wattpad.partText("2")).thenReturn("<p>Hello</p>");
+        when(chapterService.addFromSource(3L, "One", "Hello", "2", NOW)).thenReturn(77L);
+        when(translation.start(77L)).thenThrow(new IllegalStateException("boom"));
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2")).isInstanceOf(IllegalStateException.class);
+
+        verify(chapterService, org.mockito.Mockito.times(1)).addFromSource(3L, "One", "Hello", "2", NOW);
     }
 }

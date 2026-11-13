@@ -115,6 +115,19 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       };
     case 'CHAPTER_TEXT_SOURCE':
       return { title: 'This chapter comes from Wattpad text, so it has no pages.' };
+    case 'NOVEL_TRANSLATION_BUSY':
+      return {
+        title: 'Another chapter is still translating',
+        hint: 'Wait for it (and the notebook update) to finish.',
+      };
+    case 'CHAPTER_ALREADY_TRANSLATED':
+      return { title: 'This chapter is already translated.', hint: 'Use Translate again on the chapter page.' };
+    case 'WATTPAD_PART_DELETED':
+      return { title: 'This part was deleted on Wattpad.' };
+    case 'WATTPAD_PART_EMPTY':
+      return { title: 'Wattpad has no text for this part (locked, empty or removed).' };
+    case 'WATTPAD_PART_NOT_FOUND':
+      return { title: 'This part is not in the story.' };
     case 'NOVEL_NOT_WATTPAD':
       return { title: 'This novel does not come from Wattpad.' };
     case 'NOVEL_WATTPAD_EXISTS':

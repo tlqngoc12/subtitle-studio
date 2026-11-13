@@ -69,6 +69,12 @@ public class NovelController {
         return wattpadNovels.importParts(id, request.partIds());
     }
 
+    @PostMapping("/{id}/wattpad/parts/{partId}/fetch-translate")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ChapterDetail wattpadFetchTranslate(@PathVariable long id, @PathVariable String partId) {
+        return wattpadNovels.fetchAndTranslate(id, partId);
+    }
+
     @GetMapping
     public List<NovelSummary> list() {
         return service.list();

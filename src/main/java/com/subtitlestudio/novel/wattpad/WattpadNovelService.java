@@ -11,7 +11,13 @@ import com.subtitlestudio.fanfic.WattpadPart;
 import com.subtitlestudio.fanfic.WattpadUnavailableException;
 import com.subtitlestudio.novel.ChapterDetail;
 import com.subtitlestudio.novel.ChapterRepository;
+import com.subtitlestudio.novel.Chapter;
+import com.subtitlestudio.novel.ChapterAlreadyTranslatedException;
 import com.subtitlestudio.novel.ChapterService;
+import com.subtitlestudio.novel.ChapterTranslationService;
+import com.subtitlestudio.novel.ChapterTranslationStatus;
+import com.subtitlestudio.novel.NotebookStatus;
+import com.subtitlestudio.novel.NovelTranslationBusyException;
 import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.novel.NovelNotWattpadException;
@@ -58,12 +64,14 @@ public class WattpadNovelService {
     private final MediaService mediaService;
     private final ChapterRepository chapters;
     private final ChapterService chapterService;
+    private final ChapterTranslationService translation;
     private final Sleeper sleeper;
     private final Clock clock;
 
     public WattpadNovelService(WattpadClient wattpad, NovelRepository novels, NovelService novelService,
                                MediaService mediaService, ChapterRepository chapters, ChapterService chapterService,
-                               Sleeper sleeper, Clock clock) {
+                               ChapterTranslationService translation, Sleeper sleeper, Clock clock) {
+        this.translation = translation;
         this.chapters = chapters;
         this.chapterService = chapterService;
         this.sleeper = sleeper;
@@ -82,7 +90,9 @@ public class WattpadNovelService {
         Long existing = novels.findByWattpadStoryId(storyId).map(Novel::getId).orElse(null);
         return new WattpadNovelPreview(storyId, s.title(), s.author(), s.description(), s.tags(), s.completed(),
                 parts.languageName(), guessLanguage(parts.languageName()), s.partCount(), s.coverUrl(),
-                WattpadLink.canonicalUrl(storyId), existing);
+                WattpadLink.canonicalUrl(storyId), existing,
+                parts.parts().stream().map(p -> new WattpadPreviewPart(p.id(), p.title(), p.wordCount(),
+                        p.modifiedAt(), p.deleted())).toList());
     }
 
     /** Creates the novel; the story cover is downloaded first (a cover that fails never blocks the novel). */
@@ -192,12 +202,50 @@ public class WattpadNovelService {
         return chapterService.replaceSourceText(chapterId, text, clock.instant());
     }
 
+    /**
+     * Fetches one part (unless it is already a chapter) and starts translating it, one chapter at a time per novel.
+     * Not transactional: Wattpad is called outside any transaction. When starting the translation fails the saved
+     * chapter is kept (status NONE) so a retry only translates.
+     */
+    public ChapterDetail fetchAndTranslate(long novelId, String partId) {
+        Novel novel = wattpadNovel(novelId);
+        if (chapters.existsByNovelIdAndTranslationStatus(novelId, ChapterTranslationStatus.TRANSLATING)
+                || novel.getNotebookStatus() == NotebookStatus.UPDATING) {
+            throw new NovelTranslationBusyException(novelId);
+        }
+        translation.requireReady(novel);
+        Chapter existing = chapters.findByNovelIdAndWattpadPartId(novelId, partId).orElse(null);
+        if (existing != null) {
+            if (existing.getTranslationStatus() == ChapterTranslationStatus.TRANSLATED) {
+                throw new ChapterAlreadyTranslatedException(existing.getId());
+            }
+            return translation.start(existing.getId());
+        }
+        WattpadPart part = wattpad.storyWithParts(novel.getWattpadStoryId()).parts().stream()
+                .filter(p -> p.id().equals(partId)).findFirst().orElseThrow(() -> new WattpadPartProblemException(
+                        WattpadPartProblemException.NOT_FOUND, "This part is not in the story."));
+        if (part.deleted()) {
+            throw new WattpadPartProblemException(WattpadPartProblemException.DELETED,
+                    "This part was deleted on Wattpad.");
+        }
+        String text = WattpadText.toPlain(wattpad.partText(part.id()));
+        if (text.isEmpty()) {
+            throw new WattpadPartProblemException(WattpadPartProblemException.EMPTY, NO_TEXT);
+        }
+        long chapterId = chapterService.addFromSource(novelId, part.title(), text, part.id(), clock.instant());
+        return translation.start(chapterId);
+    }
+
     private String wattpadStoryOf(long novelId) {
+        return wattpadNovel(novelId).getWattpadStoryId();
+    }
+
+    private Novel wattpadNovel(long novelId) {
         Novel n = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
         if (n.getSourceType() != NovelSourceType.WATTPAD || n.getWattpadStoryId() == null) {
             throw new NovelNotWattpadException(novelId);
         }
-        return n.getWattpadStoryId();
+        return n;
     }
 
     private Map<String, Long> importedParts(long novelId) {

@@ -17,7 +17,8 @@ import {
 import { ChapterList } from '../components/novel/ChapterList';
 import { NotebookView } from '../components/novel/NotebookView';
 import { NovelForm } from '../components/novel/NovelForm';
-import { WattpadParts } from '../components/novel/WattpadParts';
+import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
+import { useNovelPolling } from '../lib/useNovelPolling';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { STATUS_LABEL } from './NovelsPage';
@@ -49,10 +50,13 @@ export default function NovelPage() {
 
   /** Reloads the novel (its chapter list) after parts were imported. */
   const reloadNovel = useCallback(() => {
-    getNovel(novelId)
+    return getNovel(novelId)
       .then(setNovel)
       .catch((e) => setError(errorMessage(e)));
   }, [novelId]);
+
+  // Poll the novel (never Wattpad) while a chapter translates or the notebook updates.
+  useNovelPolling(novelId, novel !== null && novelIsBusy(novel), setNovel);
 
   const onNotebook = useCallback((v: NotebookData) => setNotebook(v), []);
 
@@ -153,7 +157,7 @@ export default function NovelPage() {
 
             {novel.sourceType === 'WATTPAD' && (
               <Tabs.Content value="wattpad" className="tabs__panel">
-                <WattpadParts novelId={novelId} onImported={reloadNovel} />
+                <WattpadParts novel={novel} onChanged={reloadNovel} />
               </Tabs.Content>
             )}
 

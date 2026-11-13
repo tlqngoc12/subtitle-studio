@@ -89,14 +89,7 @@ public class ChapterTranslationService {
             if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
                 throw new ChapterPublishedException(chapterId);
             }
-            if (!gemini.configured()) {
-                throw new GeminiNotConfiguredException("chapter " + chapterId);
-            }
-            String profile = c.getNovel().getPromptProfile();
-            if (profile == null) {
-                throw new UnknownProfileException("(none)");
-            }
-            profiles.read(profile);
+            requireReady(c.getNovel());
             if (c.hasSourceText()) {
                 // translated from its original text; there are no pages
             } else if (pages.countByChapterId(chapterId) == 0) {
@@ -114,6 +107,18 @@ public class ChapterTranslationService {
         boolean resuming = resume[0];
         executor.execute(() -> run(chapterId, resuming));
         return started;
+    }
+
+    /** Throws what {@link #start} would throw when Gemini or the novel's translation profile is not usable. */
+    public void requireReady(Novel novel) {
+        if (!gemini.configured()) {
+            throw new GeminiNotConfiguredException("novel " + novel.getId());
+        }
+        String profile = novel.getPromptProfile();
+        if (profile == null) {
+            throw new UnknownProfileException("(none)");
+        }
+        profiles.read(profile);
     }
 
     public ChapterDetail publish(long chapterId) {

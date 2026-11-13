@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { createNovel, type WattpadNovelPreview } from '../api/novels';
 import { NovelForm } from '../components/novel/NovelForm';
+import { WattpadPreviewParts } from '../components/novel/WattpadPreviewParts';
 import { WattpadFetch } from '../components/novel/WattpadFetch';
 import { Alert } from '../components/ui/Alert';
 import { FilterPills } from '../components/ui/FilterPills';
@@ -58,7 +59,7 @@ export default function NovelNewPage() {
               key={preview.storyId}
               wattpad={preview}
               stickyActions
-          submitLabel="Create novel"
+              submitLabel="Create novel"
               pendingLabel="Creating…"
               onSubmit={async (input) => {
                 const created = await createNovel(input);
@@ -66,6 +67,7 @@ export default function NovelNewPage() {
               }}
             />
           )}
+          {preview && preview.existingNovelId == null && <WattpadPreviewParts parts={preview.parts} />}
         </>
       )}
     </Page>

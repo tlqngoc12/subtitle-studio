@@ -4,7 +4,10 @@ import com.subtitlestudio.fanfic.FanficExistsException;
 import com.subtitlestudio.fanfic.FanficNotFoundException;
 import com.subtitlestudio.fanfic.InvalidFanficLinkException;
 import com.subtitlestudio.fanfic.WattpadUnavailableException;
+import com.subtitlestudio.novel.ChapterAlreadyTranslatedException;
 import com.subtitlestudio.novel.ChapterHasNoPagesException;
+import com.subtitlestudio.novel.NovelTranslationBusyException;
+import com.subtitlestudio.novel.wattpad.WattpadPartProblemException;
 import com.subtitlestudio.novel.ChapterNotFoundException;
 import com.subtitlestudio.novel.ChapterNotTranslatedException;
 import com.subtitlestudio.novel.ChapterPublishedException;
@@ -310,6 +313,23 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ChapterTextSourceException.class)
     ProblemDetail chapterTextSource(ChapterTextSourceException e) {
         return problem(HttpStatus.CONFLICT, "CHAPTER_TEXT_SOURCE", e.getMessage());
+    }
+
+    @ExceptionHandler(NovelTranslationBusyException.class)
+    ProblemDetail novelTranslationBusy(NovelTranslationBusyException e) {
+        return problem(HttpStatus.CONFLICT, "NOVEL_TRANSLATION_BUSY", e.getMessage());
+    }
+
+    @ExceptionHandler(ChapterAlreadyTranslatedException.class)
+    ProblemDetail chapterAlreadyTranslated(ChapterAlreadyTranslatedException e) {
+        return problem(HttpStatus.CONFLICT, "CHAPTER_ALREADY_TRANSLATED", e.getMessage());
+    }
+
+    @ExceptionHandler(WattpadPartProblemException.class)
+    ProblemDetail wattpadPartProblem(WattpadPartProblemException e) {
+        HttpStatus status = WattpadPartProblemException.NOT_FOUND.equals(e.code()) ? HttpStatus.NOT_FOUND
+                : HttpStatus.CONFLICT;
+        return problem(status, e.code(), e.getMessage());
     }
 
     @ExceptionHandler(NovelNotWattpadException.class)

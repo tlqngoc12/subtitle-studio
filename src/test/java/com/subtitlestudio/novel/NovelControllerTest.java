@@ -179,12 +179,33 @@ class NovelControllerTest {
         when(wattpadNovels.preview("https://www.wattpad.com/story/396487502")).thenReturn(
                 new com.subtitlestudio.novel.wattpad.WattpadNovelPreview("396487502", "Warm", "emi", "About",
                         List.of("gl"), true, "English", "en", 28, "https://img.wattpad.com/c.jpg",
-                        "https://www.wattpad.com/story/396487502", null));
+                        "https://www.wattpad.com/story/396487502", null,
+                        List.of(new com.subtitlestudio.novel.wattpad.WattpadPreviewPart("1", "Prologue", 190, AT,
+                                false))));
 
         mvc.perform(post("/api/novels/wattpad/preview").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"url\":\"https://www.wattpad.com/story/396487502\"}")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Warm")).andExpect(jsonPath("$.sourceLanguage").value("en"))
-                .andExpect(jsonPath("$.partCount").value(28)).andExpect(jsonPath("$.existingNovelId").doesNotExist());
+                .andExpect(jsonPath("$.partCount").value(28)).andExpect(jsonPath("$.existingNovelId").doesNotExist())
+                .andExpect(jsonPath("$.parts[0].partId").value("1"));
+    }
+
+    @Test
+    void fetchTranslateReturns202() throws Exception {
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
+                ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
+                "", null, null, "text", "77", null, "en"));
+
+        mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"));
+    }
+
+    @Test
+    void fetchTranslateBusyIs409() throws Exception {
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3));
+
+        mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"));
     }
 
     @Test
