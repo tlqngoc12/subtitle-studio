@@ -163,7 +163,7 @@ public class ChapterService {
             c.setTitle(title);
         }
         if (request.label() != null) {
-            c.setLabel(label(request.label()));
+            c.setLabel(label(request.label(), no));
         }
         boolean textChanged = false;
         if (request.pages() != null && !request.pages().isEmpty() && c.hasSourceText()) {
@@ -362,12 +362,21 @@ public class ChapterService {
         return t;
     }
 
-    /** Stripped; blank means no label. */
-    private static String label(String label) {
+    private static final java.util.regex.Pattern DEFAULT_NAME =
+            java.util.regex.Pattern.compile("(?iu)(?:chapter|chương)\\s+0*(\\d+)");
+
+    /** Stripped; blank means no label, and so does the chapter's own default name ("Chapter 16" on chapter 16). */
+    static String label(String label, int chapterNo) {
         String l = label.isBlank() ? null : label.strip();
         if (l != null && l.length() > MAX_LABEL) {
             throw new InvalidChapterException(
                     List.of(new FieldError("label", "Use at most " + MAX_LABEL + " characters.")));
+        }
+        if (l != null) {
+            java.util.regex.Matcher m = DEFAULT_NAME.matcher(l);
+            if (m.matches() && m.group(1).length() <= 9 && Integer.parseInt(m.group(1)) == chapterNo) {
+                return null;
+            }
         }
         return l;
     }
