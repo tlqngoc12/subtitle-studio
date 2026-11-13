@@ -347,7 +347,7 @@ function Editor({
 
   return (
     <Page width="wide" className="vedit">
-      <div>
+      <div className="vedit__top">
         <PageHeader
           breadcrumbs={crumbs(video)}
           title={video.title}
