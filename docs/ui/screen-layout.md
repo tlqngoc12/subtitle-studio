@@ -67,8 +67,9 @@ Vietsub editor) · `narrow` 760 px (form một cột). Reader giữ khổ đọc
 
 - Thứ tự cố định: **tìm kiếm → pills → sort → (khoảng trống) → hành động**.
 - Ô tìm kiếm `SearchBar`, rộng tối đa 360 px trên desktop, chiếm cả dòng trên điện thoại.
-- Lọc một giá trị luôn là `FilterPills` bày sẵn (đang chọn = tím). **Không dùng nút "Filter" mở popover.**
-- Sort dùng `Select`.
+- Lọc một giá trị luôn là `FilterPills` bày sẵn: chưa chọn viền cam; đang chọn tím đặc + viền `--brand-2-ink` (giống NavBar/Pagination); cao 40 px trên điện thoại. **Không dùng nút "Filter" mở popover.**
+- Sort dùng `Select`, có icon `ArrowUpDown` ở đầu (trang danh sách thẻ dùng `ListToolbar`).
+- Placeholder ô tìm nói rõ tìm theo gì (vd "Tìm theo tên, tác giả…"); `aria-label` giữ ngắn.
 - Chỉ thêm ô tìm kiếm khi danh sách thực sự cần.
 
 ## 4. Form
