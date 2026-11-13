@@ -20,7 +20,7 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { CueEditorTable } from '../components/vietsub/CueEditorTable';
 import { Alert } from '../components/ui/Alert';
 import { IconButton } from '../components/ui/IconButton';
-import { LoadingText } from '../components/ui/LoadingText';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -108,7 +108,7 @@ export default function VietsubEditPage() {
   if (!loaded || !video) {
     return (
       <Page width="wide" className="vedit">
-        <LoadingText>Loading Vietsub…</LoadingText>
+        <PageSkeleton rows={6} />
       </Page>
     );
   }

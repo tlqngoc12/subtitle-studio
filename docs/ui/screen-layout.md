@@ -4,10 +4,6 @@ Bắt buộc cho **mọi màn hình mới hoặc màn hình sửa lại** của 
 [spec 2026-11-13](../superpowers/specs/2026-11-13-ui-consistency-design.md). Màu, cỡ nút, ô nhập xem `CLAUDE.md` ›
 Frontend; tài liệu này chỉ quy định **cấu trúc trang**.
 
-> Trạng thái: các component `Page`, `Toolbar`, `FormActions` và các tham số `breadcrumbs`/`variant` của `PageHeader`
-> được tạo trong đợt "UI consistency" (spec trên). Trước khi đợt đó merge, màn hình mới vẫn phải theo đúng bố cục ở
-> đây.
-
 ## 1. Khung chuẩn (Master Layout)
 
 ```

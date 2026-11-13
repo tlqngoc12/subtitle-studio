@@ -179,11 +179,14 @@ describe('VietsubEditPage', () => {
     cleanup();
   });
 
-  it('shows a loading line, then the video title, breadcrumb and source badge', async () => {
-    fakeFetch(routes());
+  it('shows a loading skeleton, then the video title, breadcrumb and source badge', async () => {
+    let release!: () => void;
+    const delay = new Promise<void>((r) => (release = r));
+    fakeFetch(routes().map((r, i) => (i === 0 ? { ...r, delay } : r)));
     render(tree());
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading Vietsub…');
+    expect(await screen.findByRole('status', { name: 'Loading' })).toBeInTheDocument(); // a skeleton, not a line of text
+    release();
     expect(await screen.findByRole('heading', { level: 1, name: 'Học Spring Boot' })).toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(crumbs).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub/list');

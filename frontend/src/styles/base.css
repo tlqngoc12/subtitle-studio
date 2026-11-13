@@ -294,21 +294,6 @@ input.field-control--l {
   overflow-wrap: anywhere;
 }
 
-/* ---------- Watch page (Phase 2) ---------- */
-.back-link {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--muted);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  color: var(--ink);
-}
-
 .field {
   display: grid;
   gap: var(--field-gap);
@@ -428,7 +413,6 @@ label.button:has(input:focus-visible) {
 }
 
 /* Phones: 44px touch targets. */
-.back-link,
 .tabs__tab {
   min-height: 44px;
   display: inline-flex;
