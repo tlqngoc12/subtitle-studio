@@ -38,6 +38,27 @@ class SpaForwardControllerTest {
                 .andExpect(forwardedUrl("/index.html"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/nope", "/nope/", "/a/b", "/a/b/", "/novels/1/chapters/2/", "/x/y/z/w", "/x/y/z/w/",
+        "/vietsub/list", "/not-a-route/1/2"})
+    void forwardsAnyExtensionlessNonApiPathSoTheAppCanShowItsOwnNotFound(String path) throws Exception {
+        mvc.perform(get(path))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/logo.webp", "/assets/missing.js", "/assets/app-123.css", "/favicon.ico", "/index.html.bak"})
+    void doesNotForwardPathsWithAFileExtension(String path) throws Exception {
+        mvc.perform(get(path)).andExpect(status().isNotFound());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api", "/api/nope", "/api/nope/", "/api/a/b/c", "/api/a/b/c/d"})
+    void apiPathsAreNeverForwarded(String path) throws Exception {
+        mvc.perform(get(path)).andExpect(status().isNotFound());
+    }
+
     @Test
     void unknownNovelApiPathStillReturns404() throws Exception {
         mvc.perform(get("/api/novels/x/y/z")).andExpect(status().isNotFound());

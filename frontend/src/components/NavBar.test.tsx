@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource, publicSite } from '../test/fakeSource';
 import { NavBar } from './NavBar';
+import { css } from '../test/css';
 
 function currentAt(path: string) {
   render(
@@ -29,8 +30,15 @@ describe('NavBar', () => {
       </MemoryRouter>,
     );
 
-    expect(scroll).toHaveBeenCalledWith({ inline: 'center', block: 'nearest' });
+    expect(scroll).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' });
     expect(scroll.mock.contexts[0]).toBe(screen.getByRole('link', { name: 'Profile' }));
+  });
+
+  it('snaps the scrolling row to whole items so no clipped fragment is left at the edge', () => {
+    expect(/\.nav \{[^}]*scroll-snap-type:\s*x\b/.test(css)).toBe(true);
+    expect(/\.nav__link \{[^}]*scroll-snap-align:\s*start/.test(css)).toBe(true);
+    // The padding of the row is the snap offset, so the first visible item starts flush with the edge.
+    expect(/\.nav \{[^}]*scroll-padding-inline:/.test(css)).toBe(true);
   });
 
   it('links to the four sections', () => {

@@ -6,6 +6,18 @@ import App from './App';
 import { fakeFetch } from './test/fakeFetch';
 
 describe('App', () => {
+  it('shows Page not found for an unknown admin URL', async () => {
+    fakeFetch([]);
+    render(
+      <MemoryRouter initialEntries={['/nope']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to Get Engsub' })).toHaveAttribute('href', '/');
+  });
+
   it.each(['/works/new', '/works/5/edit', '/novels/new'])('lifts Back to top above the sticky form bar on %s', async (path) => {
     fakeFetch([]);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
