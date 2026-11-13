@@ -114,6 +114,7 @@ export default function WatchPage() {
               containerRef={playerRef}
               cue={cue}
               error={player.error}
+              onRefreshSize={player.refreshSize}
               captionsOn={captionsOn}
               onToggleCaptions={toggleCaptions}
               captionSize={captionSize}
