@@ -19,7 +19,7 @@ interface Props {
 
 /**
  * A text field with a list of suggestions (replaces `<input list>` + `<datalist>`): free text is always allowed, the
- * list filters while typing, arrows move, Enter picks the highlighted one and Esc closes. The list is a Radix Popover
+ * list filters while typing, arrows move, Enter picks the highlighted one (or keeps the typed text) without submitting the form, and Esc closes. The list is a Radix Popover
  * in a portal, so a dialog's `overflow` never clips it.
  */
 export function Combobox({
@@ -71,9 +71,15 @@ export function Combobox({
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       move(e.key === 'ArrowDown' ? 1 : -1);
-    } else if (e.key === 'Enter' && visible && active >= 0) {
-      e.preventDefault(); // pick, do not submit the form around the field
-      pick(options[active]);
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); // never submit the form around the field
+      if (visible && active >= 0) {
+        pick(options[active]);
+      } else {
+        // keep the typed text (already in `value`) as the value
+        setDirty(false);
+        close();
+      }
     } else if (e.key === 'Escape' && open) {
       e.preventDefault();
       e.stopPropagation(); // closes the list only, not the dialog around it
