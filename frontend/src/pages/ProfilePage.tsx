@@ -20,6 +20,7 @@ import { MemberSection } from '../components/profile/MemberSection';
 import { ProfileBanner } from '../components/profile/ProfileBanner';
 import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PopoverPanel } from '../components/ui/PopoverPanel';
 import { Reveal } from '../components/ui/Reveal';
@@ -127,7 +128,7 @@ export default function ProfilePage() {
   const admin = !readOnly;
 
   return (
-    <main className="page">
+    <Page>
       {confirmDialog}
       <PageHeader
         title={t('Profile', 'Hồ sơ')}
@@ -148,7 +149,7 @@ export default function ProfilePage() {
                   Done
                 </button>
               ) : (
-                <button type="button" className="button button--s" onClick={() => setEditing(true)}>
+                <button type="button" className="button" onClick={() => setEditing(true)}>
                   <Pencil className="icon" aria-hidden="true" />
                   Edit
                 </button>
@@ -218,7 +219,7 @@ export default function ProfilePage() {
           )}
         </>
       )}
-    </main>
+    </Page>
   );
 }
 
@@ -251,7 +252,7 @@ function AddMember({ onCreated }: { onCreated: (member: Profile) => void }) {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" className="button button--s">
+        <button type="button" className="button">
           <UserPlus className="icon" aria-hidden="true" />
           Add member
         </button>

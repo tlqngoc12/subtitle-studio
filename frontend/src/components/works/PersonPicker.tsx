@@ -9,6 +9,7 @@ import { normalizeForSearch } from '../../lib/search';
 import { PopoverPanel } from '../ui/PopoverPanel';
 import '../profile/MemberMenu.css';
 import './WorkEditor.css';
+import { FormActions } from '../ui/FormActions';
 
 /**
  * `+ Person`: a popover searching the people directory (accent-insensitive), hiding people already credited, with
@@ -89,14 +90,14 @@ export function PersonPicker({ exclude, onPick }: { exclude: number[]; onPick: (
                 {error}
               </p>
             )}
-            <div className="form-actions form-actions--tight">
+            <FormActions tight>
               <button type="button" className="button" onClick={() => setCreating(false)}>
                 Back
               </button>
               <button type="submit" className="button button--primary" disabled={busy || !name.trim()}>
                 Create person
               </button>
-            </div>
+            </FormActions>
           </form>
         ) : (
           <div className="wpicker__list">

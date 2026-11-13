@@ -5,6 +5,7 @@ import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { Alert } from '../ui/Alert';
 import { ImageDropzone, previewOf, toPicked, type PickedImage } from '../ui/ImageDropzone';
 import './BlockEditor.css';
+import { FormActions } from '../ui/FormActions';
 
 const blankToNull = (s: string) => (s.trim() === '' ? null : s.trim());
 
@@ -101,14 +102,14 @@ export function MemberHeaderEditor({
         {group && <p className="field__hint">Used as the EmiBonnie avatar in filters</p>}
         {errorOf('portraitMediaId') && <p className="field__error">{errorOf('portraitMediaId')}</p>}
       </div>
-      <div className="form-actions form-actions--tight">
+      <FormActions tight>
         <button type="button" className="button" onClick={onCancel}>
           Cancel
         </button>
         <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
           Save
         </button>
-      </div>
+      </FormActions>
     </form>
   );
 }

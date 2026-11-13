@@ -16,6 +16,8 @@ interface Props {
   hideOn?: RegExp[];
   /** Routes with a fixed bar on phones (the novel's Read button): the button sits above it. */
   liftOn?: RegExp[];
+  /** Routes with a sticky form bar (FormActions): the button sits above it at every width. */
+  barOn?: RegExp[];
 }
 
 /** True while something covers the page: the filled video player, or a modal (Radix locks the body scroll). */
@@ -28,7 +30,7 @@ function pageCovered(): boolean {
  * scrolls smoothly up (at once with reduced motion) and then moves focus to the page's `<main>`, so keyboard users
  * continue from the top rather than from a button that has just disappeared.
  */
-export function BackToTop({ hideOn = [], liftOn = [] }: Props) {
+export function BackToTop({ hideOn = [], liftOn = [], barOn = [] }: Props) {
   const t = useT();
   const { pathname } = useLocation();
   const reduced = usePrefersReducedMotion();
@@ -54,6 +56,7 @@ export function BackToTop({ hideOn = [], liftOn = [] }: Props) {
 
   const hidden = covered || hideOn.some((r) => r.test(pathname));
   const lifted = liftOn.some((r) => r.test(pathname));
+  const aboveBar = barOn.some((r) => r.test(pathname));
 
   function goTop() {
     window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
@@ -71,7 +74,7 @@ export function BackToTop({ hideOn = [], liftOn = [] }: Props) {
         <motion.button
           key="back-to-top"
           type="button"
-          className={lifted ? 'back-to-top back-to-top--lifted' : 'back-to-top'}
+          className={['back-to-top', lifted && 'back-to-top--lifted', aboveBar && 'back-to-top--above-bar'].filter(Boolean).join(' ')}
           aria-label={t('Back to top', 'Lên đầu trang')}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

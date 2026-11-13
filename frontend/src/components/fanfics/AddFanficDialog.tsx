@@ -7,6 +7,7 @@ import { Field } from '../ui/Field';
 import { IconButton } from '../ui/IconButton';
 import { FanficCard } from './FanficCard';
 import './AddFanficDialog.css';
+import { FormActions } from '../ui/FormActions';
 
 /** Add a fanfic: paste a Wattpad link, Fetch shows the card, Save stores it. The form is mounted only while open. */
 export function AddFanficDialog({
@@ -110,14 +111,14 @@ function AddFanficForm({ onSaved, onCancel }: { onSaved: (fanfic: Fanfic) => voi
 
       {preview && <FanficCard fanfic={preview.story} />}
 
-      <div className="form-actions">
+      <FormActions>
         <button type="button" className="button" onClick={onCancel}>
           Cancel
         </button>
         <button type="button" className="button button--primary" disabled={!preview || saving} onClick={() => void save()}>
           Save
         </button>
-      </div>
+      </FormActions>
     </form>
   );
 }

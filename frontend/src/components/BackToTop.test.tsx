@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource } from '../test/fakeSource';
+import { css } from '../test/css';
 import { BackToTop } from './BackToTop';
 
 const scrollTo = vi.fn();
@@ -97,6 +98,13 @@ describe('BackToTop', () => {
     setup('/novels/abc', { liftOn: [/^\/novels\/[^/]+$/] });
     scrollTop(2000);
     expect(await screen.findByRole('button', { name: 'Back to top' })).toHaveClass('back-to-top--lifted');
+  });
+
+  it('sits above the sticky form bar on form routes, at every width', async () => {
+    setup('/works/new', { barOn: [/^\/works\/new$/] });
+    scrollTop(2000);
+    expect(await screen.findByRole('button', { name: 'Back to top' })).toHaveClass('back-to-top--above-bar');
+    expect(/\.back-to-top--above-bar\s*\{[^}]*bottom:/.test(css)).toBe(true);
   });
 
   it('hides while the filled video player is open and while a dialog locks the page', async () => {

@@ -33,7 +33,11 @@ export default function App() {
         <SkipLink />
         <NavBar />
         <AppToaster />
-        <BackToTop hideOn={[/^\/novels\/[^/]+\/chapters\/[^/]+$/]} />
+        <BackToTop
+          hideOn={[/^\/novels\/[^/]+\/chapters\/[^/]+$/]}
+          // Form pages with a sticky FormActions bar (the chapter page hides the button instead).
+          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/]}
+        />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/vietsub" element={<VietsubPage />} />

@@ -1,4 +1,4 @@
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -25,6 +25,8 @@ import { Combobox } from '../components/ui/Combobox';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Field } from '../components/ui/Field';
 import { LoadingText } from '../components/ui/LoadingText';
+import { FormActions } from '../components/ui/FormActions';
+import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Select } from '../components/ui/Select';
 import { useConfirmDialog } from '../components/useConfirmDialog';
@@ -46,6 +48,8 @@ export default function WorkEditPage() {
   const [loaded, setLoaded] = useState(id === null);
   const [notFound, setNotFound] = useState(Number.isNaN(id));
   const [title, setTitle] = useState('');
+  /** The title as stored: the breadcrumb must not follow what is being typed. */
+  const [savedTitle, setSavedTitle] = useState('');
   const [releaseDate, setReleaseDate] = useState<string | null>(null);
   const [categories, setCategories] = useState<WorkCategory[]>(['FILM_TV']);
   const [subcategory, setSubcategory] = useState('');
@@ -74,6 +78,7 @@ export default function WorkEditPage() {
       .then((w: Work) => {
         if (!current) return;
         setTitle(w.title);
+        setSavedTitle(w.title);
         setReleaseDate(w.releaseDate);
         setCategories(w.categories);
         setSubcategory(w.subcategory ?? '');
@@ -194,18 +199,15 @@ export default function WorkEditPage() {
     }
   }
 
-  const back = (
-    <Link className="back-link" to={id === null || Number.isNaN(id) ? '/works' : `/works/${id}`}>
-      <ArrowLeft className="icon" aria-hidden="true" />
-      {id === null || Number.isNaN(id) ? 'Back to Works' : 'Back to the work'}
-    </Link>
-  );
 
   if (notFound) {
     return (
-      <main className="page">
-        <PageHeader title="Work not found" lede={<Link to="/works">Back to Works</Link>} />
-      </main>
+      <Page width="narrow">
+        <PageHeader
+          breadcrumbs={[{ label: 'Works', to: '/works' }, { label: 'Not found' }]}
+          title="Work not found"
+        />
+      </Page>
     );
   }
 
@@ -220,10 +222,16 @@ export default function WorkEditPage() {
   }
 
   return (
-    <main className="page">
+    <Page width="narrow">
       {confirmDialog}
-      {back}
-      <PageHeader title={id === null ? 'Add work' : 'Edit work'} />
+      <PageHeader
+        breadcrumbs={
+          id === null
+            ? [{ label: 'Works', to: '/works' }, { label: 'Add work' }]
+            : [{ label: 'Works', to: '/works' }, { label: savedTitle || 'Work', to: `/works/${id}` }, { label: 'Edit' }]
+        }
+        title={id === null ? 'Add work' : 'Edit work'}
+      />
       {formError && <Alert title={formError.title} hint={formError.hint} />}
       {!loaded && <LoadingText>Loading work…</LoadingText>}
 
@@ -308,22 +316,26 @@ export default function WorkEditPage() {
           <LinksEditor value={links} onChange={setLinks} errors={fieldErrors} newKey={newKey} />
           <CreditsEditor value={credits} categories={categories} onChange={setCredits} errors={fieldErrors} newKey={newKey} />
 
-          <div className="form-actions">
-            {id !== null && (
-              <button type="button" className="button button--danger form-actions__start" onClick={() => void remove()}>
-                <Trash2 className="icon" aria-hidden="true" />
-                Delete work
-              </button>
-            )}
+          <FormActions
+            sticky
+            start={
+              id !== null && (
+                <button type="button" className="button button--danger" onClick={() => void remove()}>
+                  <Trash2 className="icon" aria-hidden="true" />
+                  Delete work
+                </button>
+              )
+            }
+          >
             <Link className="button" to={id === null ? '/works' : `/works/${id}`}>
               Cancel
             </Link>
             <button type="submit" className="button button--primary" disabled={saving || uploads > 0}>
               Save
             </button>
-          </div>
+          </FormActions>
         </form>
       )}
-    </main>
+    </Page>
   );
 }

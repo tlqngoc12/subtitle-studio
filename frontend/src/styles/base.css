@@ -65,6 +65,14 @@ a:not([class]):hover {
   line-height: 1.1;
 }
 
+/* The third heading role: a small group label (year dividers on Works). Page title h1, section title h2 20px. */
+.group-label {
+  color: var(--muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .masthead__lede {
   margin: var(--space-2) 0 0;
   max-width: 60ch;

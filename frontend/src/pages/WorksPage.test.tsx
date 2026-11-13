@@ -7,6 +7,7 @@ import { SiteProvider } from '../data/SiteContext';
 import { fakeFetch, type Route as FakeRoute } from '../test/fakeFetch';
 import { fakeSource, publicSite } from '../test/fakeSource';
 import { page, profile } from '../test/profileFixtures';
+import { css } from '../test/css';
 import { workSummary } from '../test/workFixtures';
 import WorksPage from './WorksPage';
 
@@ -130,6 +131,38 @@ describe('WorksPage admin', () => {
     await screen.findByRole('link', { name: 'Old song' });
     expect(screen.getByRole('link', { name: 'Add work' })).toHaveAttribute('href', '/works/new');
     expect(screen.getByRole('link', { name: 'Edit Old song' })).toHaveAttribute('href', '/works/2/edit');
+  });
+
+  it('keeps People and Add work at the standard header size', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/works', status: 200, body: WORKS },
+      { method: 'GET', path: '/api/profiles', status: 200, body: PROFILES },
+    ]);
+    render(
+      <MemoryRouter initialEntries={['/works']}>
+        <Routes>
+          <Route path="/works" element={<WorksPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('link', { name: 'Old song' });
+    const people = screen.getByRole('button', { name: 'People' });
+    expect(people).not.toHaveClass('button--s');
+    expect(screen.getByRole('link', { name: 'Add work' })).not.toHaveClass('button--s');
+    // The primary action is the last one in the header.
+    expect(people.compareDocumentPosition(screen.getByRole('link', { name: 'Add work' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('labels the year dividers as group labels (h2, 12.8px muted)', async () => {
+    renderPublic();
+
+    const divider = await screen.findByRole('heading', { level: 2, name: 'Sắp ra mắt' });
+    expect(divider).toHaveClass('group-label');
+    const rule = /\.group-label\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toMatch(/font-size:\s*var\(--step--1\)/);
+    expect(rule).toMatch(/font-weight:\s*700/);
+    expect(rule).toMatch(/color:\s*var\(--muted\)/);
   });
 
   it('a member also gets the works tagged with the group; the group gets only its own', async () => {

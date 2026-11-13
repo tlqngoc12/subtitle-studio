@@ -1,7 +1,6 @@
 .wedit {
   display: grid;
   gap: var(--space-4);
-  max-width: 760px;
 }
 
 .wedit__row {

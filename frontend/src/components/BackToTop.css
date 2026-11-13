@@ -32,3 +32,14 @@
     bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
   }
 }
+
+/* Form pages have a sticky FormActions bar: one row (about 65px) from 521px, stacked buttons on phones. */
+.back-to-top--above-bar {
+  bottom: calc(var(--space-4) + 176px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 521px) {
+  .back-to-top--above-bar {
+    bottom: calc(var(--space-4) + 73px + env(safe-area-inset-bottom));
+  }
+}
