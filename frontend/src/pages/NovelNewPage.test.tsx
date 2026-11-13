@@ -179,6 +179,14 @@ describe('NovelNewPage', () => {
     expect(sent.promptProfile).toBeNull();
   });
 
+  it('shows no create-a-profile hint on the Screenshots form', async () => {
+    fakeFetch([profiles]);
+    renderPage();
+    await screen.findByLabelText('Translation profile');
+
+    expect(screen.queryByText(/Leave empty to create/)).not.toBeInTheDocument();
+  });
+
   it('offers no profile when none exist', async () => {
     fakeFetch([{ ...profiles, body: { configured: false, profiles: [] } }]);
     renderPage();
@@ -203,6 +211,7 @@ describe('NovelNewPage', () => {
       coverUrl: 'https://img.wattpad.com/cover/396487502-256-k1.jpg',
       storyUrl: 'https://www.wattpad.com/story/396487502',
       existingNovelId: null,
+      suggestedProfile: 'TheWaySheWarmedMe',
       parts: [
         { partId: '1', title: 'PROLOGUE', wordCount: 190, modifiedAt: '2025-06-21T09:32:42Z', deleted: false },
         { partId: '2', title: 'Chapter 1: Cold Brew', wordCount: 1951, modifiedAt: null, deleted: false },
@@ -243,6 +252,37 @@ describe('NovelNewPage', () => {
       expect(screen.getByLabelText('Original book link (optional)')).toHaveValue('https://www.wattpad.com/story/396487502');
       expect(screen.getByLabelText('Source language')).toHaveTextContent('English');
       expect(screen.getByRole('img', { name: 'Cover from Wattpad' })).toHaveAttribute('src', preview.coverUrl);
+    });
+
+    async function fetchPreview(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('button', { name: 'From Wattpad' }));
+      await user.type(screen.getByLabelText('Wattpad story link'), STORY);
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      await screen.findByLabelText('Title');
+    }
+
+    it('hints the profile file that is created when the Translation profile is left empty', async () => {
+      fakeFetch([profiles, previewRoute]);
+      renderPage();
+      const user = userEvent.setup();
+
+      await fetchPreview(user);
+
+      const select = screen.getByLabelText('Translation profile');
+      expect(document.getElementById(select.getAttribute('aria-describedby')!)).toHaveTextContent(
+        'Leave empty to create TheWaySheWarmedMe.md from the Wattpad details.',
+      );
+    });
+
+    it('hides the profile hint once a profile is chosen', async () => {
+      fakeFetch([profiles, previewRoute]);
+      renderPage();
+      const user = userEvent.setup();
+      await fetchPreview(user);
+
+      await pickOption(user, screen.getByLabelText('Translation profile'), 'SummerLove');
+
+      expect(screen.queryByText(/Leave empty to create/)).not.toBeInTheDocument();
     });
 
     it('lists the chapters under the form, read-only', async () => {
