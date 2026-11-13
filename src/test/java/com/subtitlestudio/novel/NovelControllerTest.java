@@ -191,6 +191,24 @@ class NovelControllerTest {
     }
 
     @Test
+    void fetchTranslateReturns202() throws Exception {
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
+                ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
+                "", null, null, "text", "77", null, "en"));
+
+        mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"));
+    }
+
+    @Test
+    void fetchTranslateBusyIs409() throws Exception {
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3));
+
+        mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"));
+    }
+
+    @Test
     void wattpadPreviewErrorsKeepTheirCodes() throws Exception {
         when(wattpadNovels.preview(any())).thenThrow(
                 new com.subtitlestudio.fanfic.InvalidFanficLinkException("Paste a Wattpad story link"));
