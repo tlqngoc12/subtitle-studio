@@ -71,4 +71,20 @@ class NovelProfileStoreTest {
         assertThat(dataDir.resolve("prompts/novels/_example.md")).exists();
         assertThat(dataDir.resolve("prompts/_example.md")).doesNotExist();
     }
+
+    @Test
+    void createExistsAndDeleteGoThroughTheNovelFolder() {
+        SubtitleStudioProperties p = properties();
+        NovelProfileStore novels = new NovelProfileStore(p, new PromptProfileStore(p));
+
+        novels.create("MoonShadow", "Hồ sơ mới");
+
+        assertThat(dataDir.resolve("prompts/novels/MoonShadow.md")).exists().content().isEqualTo("Hồ sơ mới");
+        assertThat(novels.exists("MoonShadow")).isTrue();
+        assertThat(novels.list()).contains("MoonShadow");
+
+        novels.delete("MoonShadow");
+
+        assertThat(novels.exists("MoonShadow")).isFalse();
+    }
 }
