@@ -1,6 +1,6 @@
 # Wattpad: fetch and translate one chapter at a time (design)
 
-Date: 2026-11-13 · Status: draft, waiting for user review · Builds on [2026-11-12-wattpad-novels-design.md](2026-11-12-wattpad-novels-design.md)
+Date: 2026-11-13 · Status: approved 2026-11-13 · Builds on [2026-11-12-wattpad-novels-design.md](2026-11-12-wattpad-novels-design.md)
 
 ## Why
 
