@@ -900,6 +900,9 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Giao diện: dòng gợi ý "Leave empty to create <Tên>.md from the Wattpad details." dưới ô Translation profile khi ô đang trống (chỉ New novel › From Wattpad).
 - Lưu ý: file mới nằm trong `data/prompts/novels/` (được git theo dõi), người dùng tự commit cùng các thay đổi data khác.
 
+### 2026-11-14: Trang truyện công khai: hàng nút phụ riêng ✅ (chưa merge, chưa deploy)
+- Trên màn hình rộng, "Đọc từ đầu" và "Truyện gốc" nằm ở hàng riêng bên dưới hàng "Đọc tiếp" + nút tủ sách (bọc trong `novel-cta__more`), hết lệch chiều cao 48px/32px trên một dòng. Kích thước và kiểu nút giữ nguyên; trên điện thoại thanh đọc cố định ở đáy không đổi. Chỉ sửa `PublicNovelPage`; nhánh `fix/novel-cta-rows`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

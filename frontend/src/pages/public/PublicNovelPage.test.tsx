@@ -332,6 +332,24 @@ describe('PublicNovelPage reading progress', () => {
     expect(screen.queryByRole('link', { name: 'Bắt đầu đọc' })).not.toBeInTheDocument();
   });
 
+  it('puts the secondary links on their own row, apart from the main CTA and bookmark', async () => {
+    localStorage.setItem('novel-progress:summer', JSON.stringify({ chapterNo: 3 }));
+    renderPage();
+
+    const resume = await screen.findByRole('link', { name: 'Đọc tiếp: Ngoại truyện 1' });
+    const fromStart = screen.getByRole('link', { name: 'Đọc từ đầu' });
+    const original = screen.getByRole('link', { name: 'Truyện gốc' });
+    const mainRow = resume.parentElement as HTMLElement;
+    const moreRow = fromStart.parentElement as HTMLElement;
+
+    expect(mainRow).toHaveClass('novel-cta');
+    expect(within(mainRow).getByRole('button', { name: /tủ sách/ })).toBeInTheDocument();
+    expect(moreRow).toHaveClass('novel-cta__more');
+    expect(moreRow).not.toBe(mainRow);
+    expect(original.parentElement).toBe(moreRow);
+    expect(within(moreRow).queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('says Bắt đầu đọc without stored progress', async () => {
     renderPage();
 
