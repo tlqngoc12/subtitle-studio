@@ -166,6 +166,8 @@
 }
 
 .nav__pill {
+  box-sizing: border-box;
+  border: 1px solid var(--brand-2-ink);
   background: var(--brand-2);
 }
 

@@ -644,6 +644,23 @@ class SiteExporterTest {
     }
 
     @Test
+    void summaryCarriesTheBannerPickCreationTimeAndDescription() throws IOException {
+        long picked = novel("picked", null, 1, 1);
+        novel("plain", null, 1, 1);
+        tx.executeWithoutResult(s -> novels.findById(picked).orElseThrow().setFeatured(true));
+
+        exporter.export(out, NOW);
+
+        JsonNode list = readJson("data/novels.json");
+        for (JsonNode n : list) {
+            boolean isPicked = n.get("slug").asText().equals("picked");
+            assertThat(n.get("featured").asBoolean()).isEqualTo(isPicked);
+            assertThat(java.time.Instant.parse(n.get("createdAt").asText())).isEqualTo(NOW);
+            assertThat(n.get("description").asText()).isEqualTo("Giới thiệu");
+        }
+    }
+
+    @Test
     void aNovelWithOnePublishedChapterStillAppearsWithItsDates() throws IOException {
         novel("solo", null, 1, 1);
 

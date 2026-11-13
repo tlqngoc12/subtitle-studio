@@ -16,6 +16,11 @@ export function novelSummary(over: Partial<NovelSummary> = {}): NovelSummary {
     chapterCount: 12,
     publishedCount: 8,
     updatedAt: '2026-11-05T10:00:00Z',
+    featured: false,
+    createdAt: '2026-11-01T10:00:00Z',
+    lastPublishedAt: null,
+    originalAuthor: null,
+    description: null,
     ...over,
   };
 }

@@ -1,9 +1,11 @@
 import userEvent from '@testing-library/user-event';
 import { fanfic } from '../test/fanficFixtures';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { answerConfirm } from '../test/confirm';
 import { fakeFetch } from '../test/fakeFetch';
+import { pickOption } from '../test/select';
 import { loadedRegion } from '../test/loadedRegion';
 import { novelSummary } from '../test/novelFixtures';
 import NovelsPage from './NovelsPage';
@@ -22,10 +24,11 @@ describe('NovelsPage', () => {
     renderPage();
 
     const region = await loadedRegion('Novels');
-    const card = within(region).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
+    const card = await within(region).findByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/3');
     expect(within(card).getByText('Ongoing')).toBeInTheDocument();
-    expect(within(card).getByText('12 chapters · 8 published')).toBeInTheDocument();
+    expect(within(card).getByText('Chapters').nextSibling).toHaveTextContent('12');
+    expect(within(card).getByText('Published').nextSibling).toHaveTextContent('8');
   });
 
   it('shows the total reads of each novel, or a dash when unavailable', async () => {
@@ -36,7 +39,7 @@ describe('NovelsPage', () => {
     const { unmount } = renderPage();
 
     const region = await loadedRegion('Novels');
-    expect(await within(region).findByText('1,234 reads')).toBeInTheDocument();
+    expect(await within(region).findByText('1.2K')).toBeInTheDocument();
     unmount();
 
     fakeFetch([
@@ -69,7 +72,7 @@ describe('NovelsPage', () => {
     renderPage();
 
     const region = await loadedRegion('Novels');
-    expect(within(region).getByText(/No novels yet/)).toBeInTheDocument();
+    expect(await within(region).findByText(/No novels yet/)).toBeInTheDocument();
   });
 
   it('shows the error when the list cannot load', async () => {
@@ -79,15 +82,6 @@ describe('NovelsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Cannot reach the server.');
   });
 
-  it('uses singular words for one chapter', async () => {
-    fakeFetch([
-      { method: 'GET', path: '/api/novels', status: 200, body: [novelSummary({ chapterCount: 1, publishedCount: 0 })] },
-    ]);
-    renderPage();
-
-    const region = await loadedRegion('Novels');
-    expect(within(region).getByText('1 chapter · 0 published')).toBeInTheDocument();
-  });
 });
 
 describe('NovelsPage tabs', () => {
@@ -129,5 +123,109 @@ describe('NovelsPage tabs', () => {
     expect(await screen.findByRole('link', { name: /Warm Story/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: 'Translated' }));
     expect(await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ })).toBeInTheDocument();
+  });
+});
+
+describe('NovelsPage search, filter, sort and banner', () => {
+  const NOVELS = [
+    novelSummary({
+      id: 1,
+      slug: 'cho-dem',
+      title: 'Chợ Đêm',
+      originalAuthor: 'Minh Anh',
+      novelStatus: 'COMPLETED',
+      updatedAt: '2026-11-01T00:00:00Z',
+      createdAt: '2026-10-01T00:00:00Z',
+      featured: true,
+    }),
+    novelSummary({
+      id: 2,
+      slug: 'second-spring',
+      title: 'Second Spring',
+      originalAuthor: 'Rina',
+      updatedAt: '2026-11-08T00:00:00Z',
+      createdAt: '2026-10-20T00:00:00Z',
+    }),
+    novelSummary({
+      id: 3,
+      slug: 'winter',
+      title: 'Winter',
+      updatedAt: '2026-11-05T00:00:00Z',
+      createdAt: '2026-10-10T00:00:00Z',
+    }),
+  ];
+  const routes = [
+    { method: 'GET', path: '/api/novels', status: 200, body: NOVELS },
+    { method: 'GET', path: '/api/novels/reads', status: 200, body: { winter: 900, 'second-spring': 10 } },
+  ];
+
+  const titles = () =>
+    within(screen.getByRole('list', { name: 'Novel list' }))
+      .getAllByRole('listitem')
+      .map((li) => within(li).getByRole('link', { name: /./ }).textContent ?? '');
+
+  it('searches accent-insensitively and says when nothing matches', async () => {
+    fakeFetch(routes);
+    renderPage();
+    await screen.findByRole('link', { name: /Second Spring/ });
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search novels' }), 'cho dem');
+    expect(screen.getByRole('link', { name: /Chợ Đêm/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Second Spring/ })).not.toBeInTheDocument();
+
+    await userEvent.clear(screen.getByRole('searchbox', { name: 'Search novels' }));
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search novels' }), 'zzz');
+    expect(screen.getByText('No novels match.')).toBeInTheDocument();
+  });
+
+  it('filters by status with the pills', async () => {
+    fakeFetch(routes);
+    renderPage();
+    await screen.findByRole('link', { name: /Second Spring/ });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Completed' }));
+    expect(screen.getByRole('button', { name: 'Completed' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('link', { name: /Chợ Đêm/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Winter/ })).not.toBeInTheDocument();
+  });
+
+  it('sorts by newest update, most read, recently added and title', async () => {
+    fakeFetch(routes);
+    renderPage();
+    await screen.findByRole('link', { name: /Second Spring/ });
+    const sort = () => screen.getByRole('combobox', { name: 'Sort by' });
+    const user = userEvent.setup();
+
+    expect(titles().map((t) => t.slice(0, 6))).toEqual(['Second', 'Winter', 'Chợ Đê']);
+    await pickOption(user, sort(), 'Most read');
+    await waitFor(() => expect(titles().map((t) => t.slice(0, 6))).toEqual(['Winter', 'Second', 'Chợ Đê']));
+    await pickOption(user, sort(), 'Recently added');
+    await waitFor(() => expect(titles().map((t) => t.slice(0, 6))).toEqual(['Second', 'Winter', 'Chợ Đê']));
+    await pickOption(user, sort(), 'Title A–Z');
+    await waitFor(() => expect(titles().map((t) => t.slice(0, 6))).toEqual(['Chợ Đê', 'Second', 'Winter']));
+  });
+
+  it('shows the banner badge on picked novels and the menu action matches', async () => {
+    fakeFetch(routes);
+    renderPage();
+    await screen.findByRole('link', { name: /Second Spring/ });
+
+    expect(screen.getAllByText('On banner')).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Menu for Chợ Đêm' }));
+    expect(screen.getByRole('button', { name: 'Remove from banner' })).toBeInTheDocument();
+  });
+
+  it('alerts instead of calling the API when 5 novels are on the banner', async () => {
+    const many = [1, 2, 3, 4, 5].map((i) => novelSummary({ id: i, slug: `p${i}`, title: `Picked ${i}`, featured: true }));
+    const calls = fakeFetch([
+      { method: 'GET', path: '/api/novels', status: 200, body: [...many, novelSummary({ id: 9, slug: 'extra', title: 'Extra One' })] },
+    ]);
+    renderPage();
+    await screen.findByRole('link', { name: /Extra One/ });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Menu for Extra One' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add to banner' }));
+    await answerConfirm('OK', 'Banner is full');
+    expect(calls.some((c) => c.method === 'PUT')).toBe(false);
   });
 });

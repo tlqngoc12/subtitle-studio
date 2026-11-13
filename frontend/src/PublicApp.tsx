@@ -16,9 +16,9 @@ import PhotosPage from './pages/PhotosPage';
 import WorkDetailPage from './pages/WorkDetailPage';
 import WorksPage from './pages/WorksPage';
 import ProfilePage, { ProfileRedirect } from './pages/ProfilePage';
-import PublicAllNovelsPage from './pages/public/PublicAllNovelsPage';
 import PublicNovelPage from './pages/public/PublicNovelPage';
 import PublicNovelsPage from './pages/public/PublicNovelsPage';
+import PublicShelfPage from './pages/public/PublicShelfPage';
 import ReaderPage from './pages/public/ReaderPage';
 import VietsubListPage from './pages/VietsubListPage';
 import WatchPage from './pages/WatchPage';
@@ -38,7 +38,7 @@ export default function PublicApp() {
           <SkipLink />
           <NavBar />
           <AppToaster />
-          <BackToTop hideOn={[/^\/novels\/[^/]+\/[^/]+$/]} liftOn={[/^\/novels\/(?!all$)[^/]+$/]} />
+          <BackToTop hideOn={[/^\/novels\/[^/]+\/[^/]+$/]} liftOn={[/^\/novels\/(?!shelf$)[^/]+$/]} />
           <Routes>
             <Route path="/" element={<Navigate to="/vietsub/list" replace />} />
             <Route path="/vietsub/list" element={<VietsubListPage />} />
@@ -49,7 +49,8 @@ export default function PublicApp() {
             <Route path="/works" element={<WorksPage />} />
             <Route path="/works/:id" element={<WorkDetailPage />} />
             <Route path="/novels" element={<PublicNovelsPage source={novels} />} />
-            <Route path="/novels/all" element={<PublicAllNovelsPage source={novels} />} />
+            <Route path="/novels/all" element={<Navigate to="/novels" replace />} />
+            <Route path="/novels/shelf" element={<PublicShelfPage source={novels} />} />
             <Route path="/novels/:slug" element={<PublicNovelPage source={novels} />} />
             <Route path="/novels/:slug/:chapterNo" element={<ReaderPage source={novels} />} />
             <Route path="*" element={<NotFoundPage />} />

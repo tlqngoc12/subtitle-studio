@@ -301,6 +301,77 @@ class NovelServiceTest {
         assertThatThrownBy(() -> service.get(999)).isInstanceOf(NovelNotFoundException.class);
     }
 
+    private long novel(String slug) {
+        NovelRequest v = valid();
+        return service.create(new NovelRequest(slug, slug, null, "Author", "About it", List.of(), v.novelStatus(),
+                null, null, null, null)).id();
+    }
+
+    @Test
+    void featuredTogglesOnAndOffWithoutTouchingUpdatedAt() {
+        long id = novel("a");
+        Instant before = em.find(Novel.class, id).getUpdatedAt();
+
+        assertThat(service.setFeatured(id, true).featured()).isTrue();
+        assertThat(service.list().get(0).featured()).isTrue();
+        assertThat(service.setFeatured(id, false).featured()).isFalse();
+
+        em.flush();
+        em.clear();
+        assertThat(em.find(Novel.class, id).getUpdatedAt()).isEqualTo(before);
+    }
+
+    @Test
+    void theSixthPickIsRefusedButAPickedNovelCanBeResaved() {
+        long first = 0;
+        for (int i = 0; i < 5; i++) {
+            long id = novel("n" + i);
+            if (i == 0) {
+                first = id;
+            }
+            service.setFeatured(id, true);
+        }
+        long sixth = novel("n5");
+
+        assertThatThrownBy(() -> service.setFeatured(sixth, true)).isInstanceOf(BannerFullException.class);
+        assertThat(service.setFeatured(first, true).featured()).isTrue();
+        assertThat(service.setFeatured(first, false).featured()).isFalse();
+        assertThat(service.setFeatured(sixth, true).featured()).isTrue();
+    }
+
+    @Test
+    void setFeaturedOfAnUnknownNovelIsNotFound() {
+        assertThatThrownBy(() -> service.setFeatured(999_999, true)).isInstanceOf(NovelNotFoundException.class);
+    }
+
+    @Test
+    void listCarriesCreationTimeAuthorDescriptionAndLastPublishedAt() {
+        long id = novel("pub");
+        Novel novel = em.find(Novel.class, id);
+        Chapter one = new Chapter(novel, 1, null, NOW);
+        one.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        one.setPublishedAt(NOW.plusSeconds(10));
+        Chapter two = new Chapter(novel, 2, null, NOW);
+        two.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        two.setPublishedAt(NOW.plusSeconds(99));
+        Chapter draft = new Chapter(novel, 3, null, NOW);
+        draft.setPublishedAt(NOW.plusSeconds(500));
+        chapters.save(one);
+        chapters.save(two);
+        chapters.save(draft);
+        long none = novel("none");
+        em.flush();
+        em.clear();
+
+        NovelSummary s = service.list().stream().filter(n -> n.id() == id).findFirst().orElseThrow();
+        assertThat(s.lastPublishedAt()).isEqualTo(NOW.plusSeconds(99));
+        assertThat(s.createdAt()).isEqualTo(NOW);
+        assertThat(s.originalAuthor()).isEqualTo("Author");
+        assertThat(s.description()).isEqualTo("About it");
+        assertThat(service.list().stream().filter(n -> n.id() == none).findFirst().orElseThrow().lastPublishedAt())
+                .isNull();
+    }
+
     @Test
     void deleteRemovesChaptersAndUnusedImages() throws IOException {
         Media cover = mediaService.store("c.png", TestImages.png());

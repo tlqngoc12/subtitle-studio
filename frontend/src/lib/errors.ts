@@ -100,6 +100,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Check the highlighted fields.' };
     case 'INVALID_CHAPTER':
       return { title: 'Check the chapter number and title.' };
+    case 'BANNER_FULL':
+      return { title: 'The banner already has 5 novels.', hint: 'Remove one from the banner first.' };
     case 'DUPLICATE_NOVEL_SLUG':
       return { title: 'Another novel already uses this slug.' };
     case 'DUPLICATE_CHAPTER_NUMBER':

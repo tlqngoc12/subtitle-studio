@@ -17,11 +17,8 @@ import { EmptyState } from '../EmptyState';
 import { useConfirmDialog } from '../useConfirmDialog';
 import { Alert } from '../ui/Alert';
 import { Reveal } from '../ui/Reveal';
-import { SearchBar } from '../ui/SearchBar';
-import { FilterPills } from '../ui/FilterPills';
-import { Select } from '../ui/Select';
+import { ListToolbar } from '../ui/ListToolbar';
 import { Skeleton } from '../ui/Skeleton';
-import { Toolbar } from '../ui/Toolbar';
 import { useDelayedFlag } from '../../lib/useDelayedFlag';
 import { AddFanficDialog } from './AddFanficDialog';
 import { FanficCard } from './FanficCard';
@@ -194,19 +191,20 @@ export function FanficsTab() {
   return (
     <section className="fanfics" aria-label="Fanfics">
       {confirmDialog}
-      <Toolbar
-        search={<SearchBar value={query} onChange={setQuery} label={t('Search fanfics', 'Tìm fanfic')} onClear={() => setQuery('')} />}
-        filters={
-          <>
-            <FilterPills label={t('Status', 'Trạng thái')} options={statuses(t)} value={status} onChange={setStatus} />
-            <div className="fanfics__sort">
-              <label className="visually-hidden" htmlFor="fanfics-sort">
-                {t('Sort by', 'Sắp xếp theo')}
-              </label>
-              <Select id="fanfics-sort" value={sort} onChange={(v) => setSort(v as Sort)} options={sorts(t)} />
-            </div>
-          </>
-        }
+      <ListToolbar
+        searchLabel={t('Search fanfics', 'Tìm fanfic')}
+        searchPlaceholder={t('Search by title, author…', 'Tìm theo tên, tác giả…')}
+        query={query}
+        onQueryChange={setQuery}
+        statusLabel={t('Status', 'Trạng thái')}
+        statuses={statuses(t)}
+        status={status}
+        onStatusChange={setStatus}
+        sortId="fanfics-sort"
+        sortLabel={t('Sort by', 'Sắp xếp theo')}
+        sorts={sorts(t)}
+        sort={sort}
+        onSortChange={setSort}
         actions={
           !readOnly && (
             <>

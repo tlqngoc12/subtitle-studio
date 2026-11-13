@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-14 (hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-14 (Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng; trước đó: hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -899,6 +899,17 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Backend: `NovelProfileNames` (tên file từ tiêu đề), `NovelProfileTemplate` + hai mẫu `_novel_template_{th,en}.md`, `PromptProfileStore.create/exists/delete` (không ghi đè, `ProfileExistsException`), `WattpadNovelService.create` (xoá file nếu tạo truyện lỗi), preview trả `suggestedProfile`.
 - Giao diện: dòng gợi ý "Leave empty to create <Tên>.md from the Wattpad details." dưới ô Translation profile khi ô đang trống (chỉ New novel › From Wattpad).
 - Lưu ý: file mới nằm trong `data/prompts/novels/` (được git theo dõi), người dùng tự commit cùng các thay đổi data khác.
+
+### 2026-11-14: Trang truyện công khai: hàng nút phụ riêng ✅ (chưa merge, chưa deploy)
+- Trên màn hình rộng, "Đọc từ đầu" và "Truyện gốc" nằm ở hàng riêng bên dưới hàng "Đọc tiếp" + nút tủ sách (bọc trong `novel-cta__more`), hết lệch chiều cao 48px/32px trên một dòng. Kích thước và kiểu nút giữ nguyên; trên điện thoại thanh đọc cố định ở đáy không đổi. Chỉ sửa `PublicNovelPage`; nhánh `fix/novel-cta-rows`.
+
+### 2026-11-14: Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng ✅ (chưa merge, chưa deploy; có migration V22)
+- Tab Translated (admin) và Truyện dịch (public) dùng thẻ kiểu Fanfics (`NovelCard`), có tìm kiếm (tên, tác giả, thẻ/slug), lọc trạng thái, sắp xếp (Mới cập nhật, Đọc nhiều nhất, Mới thêm, Tên A–Z). Dùng chung `ListToolbar` và `lib/novelList.ts`.
+- Banner trang Novels public giờ hiện các truyện admin chọn tay (tối đa 5) qua menu `⋯` Add to banner / Remove from banner; đủ 5 thì hộp thoại cảnh báo. Chưa chọn truyện nào thì dùng 5 truyện cập nhật gần nhất như trước. Flyway V22 thêm `t_novel.featured` (Y/N) và đặt Y cho các truyện đang có.
+- API: `PUT /api/novels/{id}/featured` (409 `BANNER_FULL`); `NovelSummary` và `PublicNovelSummary` thêm các trường mới (xem CLAUDE.md).
+- Tủ sách ở trang public chỉ còn một hàng (`ShelfRow`, đo bề ngang, mục không vừa không được render), link "Xem tất cả (N)" mở trang mới `/novels/shelf`. Mục "Mới cập nhật" bị bỏ, `/novels/all` chuyển về `/novels`.
+- Sửa dùng chung (ảnh hưởng mọi trang có pill/NavBar/phân trang): pill chọn thành tím đặc + viền `--brand-2-ink` (giống `.nav__pill` và `.pager__link--active`, theme sáng cần viền vì nền tím chỉ 1.89:1), pill cao 40 px trên điện thoại, ô sort có icon, placeholder ô tìm của Fanfics nói rõ tìm theo gì; pill chưa chọn giữ viền cam theo quyết định của user. `useConfirmDialog` có chế độ `alertOnly`.
+- Làm trong PR #30 (nhánh `fix/novel-cta-rows`) theo ý user. Spec đã duyệt 2026-11-14.
 
 ## 9. Rủi ro đang theo dõi
 

@@ -103,6 +103,34 @@ class NovelControllerTest {
     }
 
     @Test
+    void featuredEndpointReturnsTheSummary() throws Exception {
+        when(service.setFeatured(3, true)).thenReturn(new NovelSummary(3, "summer-love", "T", null,
+                NovelStatus.ONGOING, 1, 1, AT, null, true, AT, AT, null, null));
+
+        mvc.perform(put("/api/novels/3/featured").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"featured\":true}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.featured").value(true));
+    }
+
+    @Test
+    void aFullBannerIs409BannerFull() throws Exception {
+        when(service.setFeatured(3, true)).thenThrow(new BannerFullException());
+
+        mvc.perform(put("/api/novels/3/featured").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"featured\":true}")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BANNER_FULL"));
+    }
+
+    @Test
+    void featuredOfAnUnknownNovelIs404() throws Exception {
+        when(service.setFeatured(eq(9L), org.mockito.ArgumentMatchers.anyBoolean()))
+                .thenThrow(new NovelNotFoundException(9));
+
+        mvc.perform(put("/api/novels/9/featured").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"featured\":true}")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void createsNovel() throws Exception {
         when(service.create(any())).thenReturn(DETAIL);
 

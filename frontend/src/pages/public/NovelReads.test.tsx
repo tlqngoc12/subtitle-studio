@@ -3,7 +3,6 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicChapterFile, PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
-import { NovelCard } from './NovelCard';
 import PublicNovelPage from './PublicNovelPage';
 import ReaderPage from './ReaderPage';
 
@@ -59,30 +58,6 @@ beforeEach(() => {
 });
 
 describe('read counts on the public site', () => {
-  it('shows the total on a novel card, compact', () => {
-    render(
-      <MemoryRouter>
-        <ul>
-          <NovelCard novel={SUMMARY} reads={1234} />
-        </ul>
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByText('1,2 N lượt đọc')).toBeInTheDocument();
-  });
-
-  it('hides the line on a card when the count is unavailable', () => {
-    render(
-      <MemoryRouter>
-        <ul>
-          <NovelCard novel={SUMMARY} />
-        </ul>
-      </MemoryRouter>,
-    );
-
-    expect(screen.queryByText(/lượt đọc/)).not.toBeInTheDocument();
-  });
-
   it('shows the total on the novel page and hides it without counts', async () => {
     const page = (
       <MemoryRouter initialEntries={['/novels/summer']}>

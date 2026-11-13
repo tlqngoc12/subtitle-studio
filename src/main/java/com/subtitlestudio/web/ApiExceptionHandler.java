@@ -15,6 +15,7 @@ import com.subtitlestudio.novel.ChapterTextSourceException;
 import com.subtitlestudio.novel.NovelNotWattpadException;
 import com.subtitlestudio.novel.ChapterTranslationInProgressException;
 import com.subtitlestudio.novel.DuplicateChapterNumberException;
+import com.subtitlestudio.novel.BannerFullException;
 import com.subtitlestudio.novel.DuplicateNovelSlugException;
 import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.InvalidChapterException;
@@ -257,6 +258,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "INVALID_NOVEL", e.getMessage());
         pd.setProperty("errors", e.errors());
         return pd;
+    }
+
+    @ExceptionHandler(BannerFullException.class)
+    ProblemDetail bannerFull(BannerFullException e) {
+        return problem(HttpStatus.CONFLICT, "BANNER_FULL", e.getMessage());
     }
 
     @ExceptionHandler(DuplicateNovelSlugException.class)

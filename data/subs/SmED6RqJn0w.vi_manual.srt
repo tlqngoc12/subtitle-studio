@@ -18,7 +18,7 @@ Chị không được hôn em nếu chưa được sự đồng ý đâu.
 
 5
 00:00:19,830 --> 00:00:21,198
-Chị không kiềm chế được. Chị quen mất rồi.
+Tôi không kiềm chế được. Tôi quen mất rồi.
 
 6
 00:00:24,685 --> 00:00:26,100
@@ -38,7 +38,7 @@ Thế là ăn gian đó.
 
 10
 00:00:40,651 --> 00:00:41,804
-Mình quay lại phòng chị đi.
+Mình quay lại phòng đi.
 
 11
 00:00:57,980 --> 00:01:02,282
@@ -179,21 +179,21 @@ Tóc mình kìa.
 43
 00:02:50,540 --> 00:02:52,514
 (Cứ lái cho đến khi xe vào khung hình.)
-[CHỊ ĐẾN RỒI ĐÂY, KEY.]
+[TÔI ĐẾN RỒI ĐÂY, KEY.]
 
 44
 00:02:52,514 --> 00:02:52,530
-[CHỊ ĐẾN RỒI ĐÂY, KEY.]
+[TÔI ĐẾN RỒI ĐÂY, KEY.]
 
 45
 00:02:52,530 --> 00:02:55,348
 - Em có cần đi tiếp không?
 - (Có chứ.)
-[CHỊ ĐẾN RỒI ĐÂY, KEY.]
+[TÔI ĐẾN RỒI ĐÂY, KEY.]
 
 46
 00:03:04,130 --> 00:03:05,500
-Chị đến đón em đây.
+Tôi đến đón em đây.
 
 47
 00:03:06,070 --> 00:03:08,001
@@ -229,7 +229,7 @@ cũng là lúc chị tan làm rồi.
 54
 00:03:41,220 --> 00:03:42,930
 Cố gắng làm việc tốt nhé.
-[GIỜ EM ẤY ĐÃ CÓ ĐỘNG LỰC ĐỂ ĐI LÀM RỒI.]
+[GIỜ CÔ ẤY ĐÃ CÓ ĐỘNG LỰC ĐỂ ĐI LÀM RỒI.]
 
 55
 00:03:43,290 --> 00:03:45,096
@@ -237,7 +237,7 @@ Cố gắng làm việc tốt nhé.
 
 56
 00:03:47,560 --> 00:03:49,830
-[CHỊ ẤY ĐANG TRÊU NHÂN VIÊN KÌA.]
+[CÔ ẤY ĐANG TRÊU NHÂN VIÊN KÌA.]
 
 57
 00:03:49,908 --> 00:03:54,201
@@ -267,12 +267,12 @@ Tôi nghĩ việc tăng ngân sách
 
 63
 00:04:20,260 --> 00:04:21,450
-Khi cậu nói chuyện với cô ấy.
+Khi em nói chuyện với em ấy.
 
 64
 00:04:21,505 --> 00:04:24,290
 Càng nói chuyện,
-tôi thấy cậu càng quá thân thiết rồi đấy.
+tôi thấy em càng quá thân thiết rồi đấy.
 
 65
 00:04:24,340 --> 00:04:27,090
@@ -300,11 +300,11 @@ Cuộc đời tôi,
 
 71
 00:04:49,730 --> 00:04:51,872
-không phải việc của cô đâu, dì.
+không phải việc của dì đâu.
 
 72
 00:04:52,040 --> 00:04:54,790
-[ĐI TIÊU CÁI ĐIỆN THOẠI RỒI.]
+[ĐI TONG CÁI ĐIỆN THOẠI RỒI.]
 
 73
 00:04:59,100 --> 00:05:01,530
@@ -313,7 +313,7 @@ CÔ NÀNG CỰC NGẦU.]
 
 74
 00:05:01,653 --> 00:05:02,897
-Cậu phải đỡ lấy tôi đấy.
+Cô phải đỡ lấy tôi đấy.
 
 75
 00:05:08,613 --> 00:05:09,325
@@ -325,7 +325,7 @@ Tay em với hơi xa quá rồi đó, Film.
 
 77
 00:05:15,200 --> 00:05:17,150
-[ELLE MUỐN BỊ TẮT NƯỚC HẢ?]
+[ELLE MUỐN TẠO ẤN TƯỢNG MẠNH HẢ?]
 
 78
 00:05:21,740 --> 00:05:23,004
@@ -380,7 +380,7 @@ Tôi…
 
 90
 00:06:21,411 --> 00:06:22,690
-Chị đã bảo em không được làm thế mà.
+Tôi đã bảo cô không được làm thế mà.
 
 91
 00:06:24,430 --> 00:06:25,629
@@ -434,7 +434,7 @@ Nên tôi mới phải đưa cô về đây.
 103
 00:06:47,330 --> 00:06:50,348
 - Tôi đâu biết cô sống ở đâu.
-- Chị thay đồ cho em ấy hả?
+- Cô thay đồ cho tôi ấy hả?
 
 104
 00:06:50,362 --> 00:06:50,760
@@ -466,15 +466,15 @@ Thế thì tôi thấy hết rồi còn đâu.
 
 111
 00:07:40,920 --> 00:07:43,970
-[LẠNG MẠN QUÁ THẾ.]
+[LÃNG MẠN QUÁ THẾ.]
 
 112
 00:07:58,354 --> 00:07:59,598
-Sao bác có thể làm vậy chứ?
+Sao con có thể làm vậy chứ?
 
 113
 00:08:00,364 --> 00:08:01,506
-Bác đang làm hủy hoại danh tiếng của gia đình đấy.
+Con đang làm hủy hoại danh tiếng của gia đình đấy.
 
 114
 00:08:04,480 --> 00:08:05,401
@@ -482,8 +482,8 @@ Xin lỗi ạ.
 
 115
 00:08:06,305 --> 00:08:09,200
-Dù em ấy có là con gái bác,
-bác cũng không nên dùng bạo lực với em ấy.
+Dù chị ấy có là con gái bác,
+bác cũng không nên dùng bạo lực với chị ấy.
 
 116
 00:08:09,459 --> 00:08:10,885

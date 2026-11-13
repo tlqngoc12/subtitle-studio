@@ -77,17 +77,17 @@ describe('PublicNovelsPage', () => {
     expect((await screen.findAllByText('Đang ra')).length).toBeGreaterThan(0);
   });
 
-  it('shows a small card per novel with x/y chương', async () => {
+  it('shows a card per novel with x/y chapters', async () => {
     render(
       <MemoryRouter>
         <PublicNovelsPage source={source()} />
       </MemoryRouter>,
     );
 
-    const section = await screen.findByRole('region', { name: 'Mới cập nhật' });
+    const section = await screen.findByRole('list', { name: 'Danh sách truyện' });
     const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText(/^2\/5 chương · /)).toBeInTheDocument();
+    expect(within(card).getByText('2/5')).toBeInTheDocument();
   });
 });
 
@@ -330,6 +330,32 @@ describe('PublicNovelPage reading progress', () => {
     expect(resume).toHaveAttribute('href', '/novels/summer/3');
     expect(screen.getByRole('link', { name: 'Đọc từ đầu' })).toHaveAttribute('href', '/novels/summer/1');
     expect(screen.queryByRole('link', { name: 'Bắt đầu đọc' })).not.toBeInTheDocument();
+  });
+
+  it('puts the secondary links on their own row, apart from the main CTA and bookmark', async () => {
+    localStorage.setItem('novel-progress:summer', JSON.stringify({ chapterNo: 3 }));
+    renderPage();
+
+    const resume = await screen.findByRole('link', { name: 'Đọc tiếp: Ngoại truyện 1' });
+    const fromStart = screen.getByRole('link', { name: 'Đọc từ đầu' });
+    const original = screen.getByRole('link', { name: 'Truyện gốc' });
+    const mainRow = resume.parentElement as HTMLElement;
+    const moreRow = fromStart.parentElement as HTMLElement;
+
+    expect(mainRow).toHaveClass('novel-cta');
+    expect(within(mainRow).getByRole('button', { name: /tủ sách/ })).toBeInTheDocument();
+    expect(moreRow).toHaveClass('novel-cta__more');
+    expect(moreRow).not.toBe(mainRow);
+    expect(original.parentElement).toBe(moreRow);
+    expect(within(moreRow).queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('renders no secondary row without progress or a source link', async () => {
+    renderPage(source({ getNovel: async () => ({ ...DETAIL, sourceUrl: null }) }));
+
+    const start = await screen.findByRole('link', { name: 'Bắt đầu đọc' });
+    expect(document.querySelector('.novel-cta__more')).toBeNull();
+    expect(start).toBeInTheDocument();
   });
 
   it('says Bắt đầu đọc without stored progress', async () => {

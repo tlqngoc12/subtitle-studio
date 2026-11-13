@@ -54,4 +54,36 @@ describe('useConfirmDialog', () => {
     await user.keyboard('{Escape}');
     await waitFor(() => expect(answers).toEqual([false, false]));
   });
+
+  it("shows an alert with only an OK button, focused, and closes on OK or Escape", async () => {
+    const answers: boolean[] = [];
+    function AlertHarness() {
+      const { confirm, dialog } = useConfirmDialog();
+      return (
+        <>
+          <button type="button" onClick={async () => answers.push(await confirm({ title: "Banner is full", description: "Remove one first.", confirmLabel: "OK", alertOnly: true }))}>
+            Open
+          </button>
+          {dialog}
+        </>
+      );
+    }
+    render(<AlertHarness />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button")).toHaveLength(1);
+    expect(within(dialog).getByRole("button", { name: "OK" })).toHaveFocus();
+    await user.click(within(dialog).getByRole("button", { name: "OK" }));
+    await waitFor(() => expect(answers).toHaveLength(1));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await screen.findByRole("alertdialog");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(answers).toHaveLength(2));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
 });
