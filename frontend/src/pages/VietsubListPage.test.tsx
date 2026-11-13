@@ -414,10 +414,20 @@ describe('VietsubListPage', () => {
         renderPage('/vietsub/list?playlist=1');
         const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
 
-        const link = within(header).getByRole('link', { name: 'Continue: EP 2' });
+        const link = within(header).getByRole('link', { name: 'Continue' });
         expect(link).toHaveAttribute('href', '/vietsub/CHO00000001?playlist=1');
         await userEvent.setup().click(link);
         expect(await screen.findByText('watch /vietsub/CHO00000001?playlist=1 autoplay=true')).toBeInTheDocument();
+      });
+
+      it('names the next video instead of an episode number', async () => {
+        markSeen('THAI0000001');
+        fakeFetch(routes());
+        renderPage('/vietsub/list?playlist=1');
+        const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
+
+        expect(within(header).getByText('Up next: Khám phá Chợ Đêm')).toBeInTheDocument();
+        expect(within(header).queryByText(/EP \d/)).not.toBeInTheDocument();
       });
 
       it('skips watched episodes in the middle', async () => {
@@ -426,7 +436,7 @@ describe('VietsubListPage', () => {
         renderPage('/vietsub/list?playlist=1');
         const header = await screen.findByRole('region', { name: 'Playlist VLOG' });
 
-        expect(within(header).getByRole('link', { name: 'Continue: EP 2' })).toBeInTheDocument();
+        expect(within(header).getByRole('link', { name: 'Continue' })).toBeInTheDocument();
       });
 
       it('has no Continue before anything was watched, or after everything was', async () => {
@@ -449,7 +459,7 @@ describe('VietsubListPage', () => {
         renderPage('/vietsub/list');
         await cardNames();
 
-        expect(within(card('VLOG')).getByRole('link', { name: 'Continue: EP 2' })).toHaveAttribute(
+        expect(within(card('VLOG')).getByRole('link', { name: 'Continue' })).toHaveAttribute(
           'href',
           '/vietsub/CHO00000001?playlist=1',
         );
