@@ -47,7 +47,7 @@
 
 .pager__link--active {
   background: var(--brand-2);
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-ink);
   color: var(--on-brand);
 }
 

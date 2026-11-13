@@ -1,0 +1,26 @@
+.list-toolbar__sort {
+  position: relative;
+  flex-basis: 100%;
+  width: 100%;
+}
+
+/* A decorative cue that the select sorts; the hidden label is its accessible name. */
+.list-toolbar__sort-icon {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--space-3);
+  margin-block: auto;
+  pointer-events: none;
+  color: var(--muted);
+}
+
+.list-toolbar__sort .select__trigger {
+  padding-inline-start: calc(var(--space-3) + 16px + var(--space-2));
+}
+
+@media (min-width: 521px) {
+  .list-toolbar__sort {
+    flex-basis: auto;
+    width: 200px;
+  }
+}

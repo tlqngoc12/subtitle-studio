@@ -9,6 +9,8 @@ export interface ConfirmOptions {
   confirmLabel: string;
   /** Red confirming button, for actions that delete data. */
   destructive?: boolean;
+  /** A notice, not a question: only the confirm button (no Cancel), focused; Esc or the button closes it. */
+  alertOnly?: boolean;
 }
 
 /**
@@ -18,6 +20,7 @@ export interface ConfirmOptions {
  */
 export function useConfirmDialog(): { confirm: (options: ConfirmOptions) => Promise<boolean>; dialog: ReactElement } {
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
   const resolver = useRef<((ok: boolean) => void) | null>(null);
 
   const confirm = useCallback((next: ConfirmOptions) => {
@@ -38,7 +41,13 @@ export function useConfirmDialog(): { confirm: (options: ConfirmOptions) => Prom
     <AlertDialog.Root open={options !== null} onOpenChange={(open) => !open && answer(false)}>
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="confirm__overlay" />
-        <AlertDialog.Content className="confirm">
+        <AlertDialog.Content className="confirm"
+          onOpenAutoFocus={(e) => {
+            if (!options?.alertOnly) return;
+            e.preventDefault();
+            actionRef.current?.focus();
+          }}
+        >
           <AlertDialog.Title className="confirm__title">{options?.title}</AlertDialog.Title>
           {options?.description ? (
             <AlertDialog.Description className="confirm__description">{options.description}</AlertDialog.Description>
@@ -46,8 +55,9 @@ export function useConfirmDialog(): { confirm: (options: ConfirmOptions) => Prom
             <AlertDialog.Description className="visually-hidden">{options?.title}</AlertDialog.Description>
           )}
           <div className="confirm__actions">
-            <AlertDialog.Cancel className="button">Cancel</AlertDialog.Cancel>
+            {!options?.alertOnly && <AlertDialog.Cancel className="button">Cancel</AlertDialog.Cancel>}
             <AlertDialog.Action
+              ref={actionRef}
               className={options?.destructive ? 'button button--danger-solid' : 'button button--primary'}
               onClick={() => answer(true)}
             >
