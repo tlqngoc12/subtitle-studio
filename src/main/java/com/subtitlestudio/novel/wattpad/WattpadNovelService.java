@@ -82,7 +82,9 @@ public class WattpadNovelService {
         Long existing = novels.findByWattpadStoryId(storyId).map(Novel::getId).orElse(null);
         return new WattpadNovelPreview(storyId, s.title(), s.author(), s.description(), s.tags(), s.completed(),
                 parts.languageName(), guessLanguage(parts.languageName()), s.partCount(), s.coverUrl(),
-                WattpadLink.canonicalUrl(storyId), existing);
+                WattpadLink.canonicalUrl(storyId), existing,
+                parts.parts().stream().map(p -> new WattpadPreviewPart(p.id(), p.title(), p.wordCount(),
+                        p.modifiedAt(), p.deleted())).toList());
     }
 
     /** Creates the novel; the story cover is downloaded first (a cover that fails never blocks the novel). */

@@ -106,6 +106,25 @@ class WattpadNovelServiceTest {
     }
 
     @Test
+    void previewListsThePartsInStoryOrder() {
+        WattpadStoryParts base = story("English");
+        when(wattpad.storyWithParts("396487502")).thenReturn(new WattpadStoryParts(base.story(), "English", List.of(
+                new com.subtitlestudio.fanfic.WattpadPart("1", "Prologue", 190, NOW, NOW, false),
+                new com.subtitlestudio.fanfic.WattpadPart("2", "One", 1200, NOW, NOW.plusSeconds(60), false),
+                new com.subtitlestudio.fanfic.WattpadPart("3", "Gone", 0, NOW, null, true))));
+
+        List<WattpadPreviewPart> parts = service.preview(LINK).parts();
+
+        assertThat(parts).extracting(WattpadPreviewPart::partId).containsExactly("1", "2", "3");
+        assertThat(parts).extracting(WattpadPreviewPart::title).containsExactly("Prologue", "One", "Gone");
+        assertThat(parts).extracting(WattpadPreviewPart::wordCount).containsExactly(190, 1200, 0);
+        assertThat(parts.get(1).modifiedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(parts).extracting(WattpadPreviewPart::deleted).containsExactly(false, false, true);
+        verify(wattpad, org.mockito.Mockito.times(1)).storyWithParts(anyString());
+        verify(wattpad, never()).partText(anyString());
+    }
+
+    @Test
     void previewGuessesThaiFromTheLanguageName() {
         when(wattpad.storyWithParts("396487502")).thenReturn(story("Thai"));
 
