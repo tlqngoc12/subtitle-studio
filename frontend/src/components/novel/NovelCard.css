@@ -1,0 +1,24 @@
+.novel-card2__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Picked for the banner is a state: solid purple with the ring, like the selected pills. */
+.novel-card2__banner {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-0-5) var(--space-2);
+  border: 1px solid var(--brand-2-ink);
+  border-radius: 999px;
+  background: var(--brand-2);
+  color: var(--on-brand);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.novel-card2__hint {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}

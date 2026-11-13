@@ -6,7 +6,7 @@ import { formatCompact, formatReadingTime } from './format';
 import './FanficCard.css';
 import { useT } from '../../lib/i18n';
 
-function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+export function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <span className="fanfic-stat">
       <span className="fanfic-stat__label">

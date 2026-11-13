@@ -42,6 +42,13 @@ export interface NovelSummary {
   updatedAt: string;
   /** Set for novels translated from Wattpad. */
   wattpadStoryId?: string | null;
+  /** Picked for the public banner (at most 5). */
+  featured: boolean;
+  createdAt: string;
+  /** Latest publish time of its published chapters; null when none. */
+  lastPublishedAt: string | null;
+  originalAuthor: string | null;
+  description: string | null;
 }
 
 export interface ChapterSummary {
@@ -167,6 +174,11 @@ export async function listNovels(): Promise<NovelSummary[]> {
 }
 
 /** Read totals per novel slug from the published site; {} when read counts are off or cannot be fetched. */
+/** Picks or unpicks a novel for the public banner; the server refuses a sixth pick (BANNER_FULL). */
+export async function setNovelFeatured(id: number, featured: boolean): Promise<NovelSummary> {
+  return (await send(`/api/novels/${id}/featured`, json('PUT', { featured }))).json();
+}
+
 export async function listNovelReads(): Promise<Record<string, number>> {
   try {
     return await (await send('/api/novels/reads')).json();

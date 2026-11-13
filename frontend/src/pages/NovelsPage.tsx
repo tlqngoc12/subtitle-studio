@@ -1,19 +1,25 @@
-import { BookOpen, Eye, Plus } from 'lucide-react';
+import { BookOpen, Plus, SearchX } from 'lucide-react';
 import { Reveal } from '../components/ui/Reveal';
-import { SkeletonGrid } from '../components/ui/Skeleton';
-import { useEffect, useState } from 'react';
+import { Skeleton } from '../components/ui/Skeleton';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { listNovelReads, listNovels, type NovelStatus, type NovelSummary } from '../api/novels';
 import { EmptyState } from '../components/EmptyState';
 import { NovelsTabs, useNovelsTab } from '../components/fanfics/NovelsTabs';
+import { NovelCard } from '../components/novel/NovelCard';
+import { NovelMenu } from '../components/novel/NovelMenu';
+import { ListToolbar } from '../components/ui/ListToolbar';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import {
+  filterNovels,
+  sortNovels,
+  type NovelSort,
+  type NovelStatusFilter,
+} from '../lib/novelList';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Toolbar } from '../components/ui/Toolbar';
-import { Cover } from '../components/ui/Cover';
-import './public/NovelCard.css';
-import './public/ReadsMeta.css';
+import '../components/fanfics/FanficsTab.css';
 
 export const STATUS_LABEL: Record<NovelStatus, string> = { ONGOING: 'Ongoing', COMPLETED: 'Completed' };
 
@@ -21,12 +27,28 @@ export function chapterCountLabel(count: number): string {
   return `${count} ${count === 1 ? 'chapter' : 'chapters'}`;
 }
 
-/** Novels: one card per novel, newest change first. */
+const STATUSES: { value: NovelStatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'ongoing', label: 'Ongoing' },
+];
+
+const SORTS: { value: NovelSort; label: string }[] = [
+  { value: 'updated', label: 'Newest update' },
+  { value: 'read', label: 'Most read' },
+  { value: 'added', label: 'Recently added' },
+  { value: 'title', label: 'Title A–Z' },
+];
+
+/** Novels › Translated: one Fanfics-style card per novel with search, a status filter, a sort and a banner menu. */
 export default function NovelsPage() {
   const [novels, setNovels] = useState<NovelSummary[] | null>(null);
-  const [reads, setReads] = useState<Record<string, number>>({});
+  const [reads, setReads] = useState<Record<string, number> | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [tab, setTab] = useNovelsTab();
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<NovelStatusFilter>('all');
+  const [sort, setSort] = useState<NovelSort>('updated');
 
   useEffect(() => {
     listNovels()
@@ -41,6 +63,14 @@ export default function NovelsPage() {
     void listNovelReads().then(setReads);
   }, []);
 
+  const visible = useMemo(
+    () => sortNovels(filterNovels(novels ?? [], query, status), sort, reads),
+    [novels, query, status, sort, reads],
+  );
+  const pickedCount = (novels ?? []).filter((n) => n.featured).length;
+  const replace = (updated: NovelSummary) =>
+    setNovels((all) => (all ?? []).map((n) => (n.id === updated.id ? updated : n)));
+
   return (
     <Page>
       <PageHeader
@@ -52,9 +82,21 @@ export default function NovelsPage() {
         tab={tab}
         onTabChange={setTab}
         translated={
-          <>
-            <Toolbar
-              className="toolbar--above-list"
+          <section className="fanfics" aria-label="Novels">
+            <ListToolbar
+              searchLabel="Search novels"
+              searchPlaceholder="Search by title, author, slug…"
+              query={query}
+              onQueryChange={setQuery}
+              statusLabel="Status"
+              statuses={STATUSES}
+              status={status}
+              onStatusChange={setStatus}
+              sortId="novels-sort"
+              sortLabel="Sort by"
+              sorts={SORTS}
+              sort={sort}
+              onSortChange={setSort}
               actions={
                 <Link className="button button--primary" to="/novels/new">
                   <Plus className="icon" aria-hidden="true" />
@@ -62,39 +104,34 @@ export default function NovelsPage() {
                 </Link>
               }
             />
-            {error && (
-              <Alert title={error.title} hint={error.hint} />
-            )}
+            {error && <Alert title={error.title} hint={error.hint} />}
 
-            <section className="history" aria-label="Novels">
-              {novels === null ? (
-                <SkeletonGrid count={6} aspect="3/4" />
-              ) : novels.length === 0 ? (
-                <EmptyState icon={BookOpen}>No novels yet. Choose New novel to add the first one.</EmptyState>
-              ) : (
-                <ul className="novel-grid">
-                  {novels.map((n, i) => (
-                    <Reveal as="li" key={n.id} delayIndex={i} layout>
-                      <Link className="novel-card" to={`/novels/${n.id}`}>
-                        <Cover src={n.coverUrl} lazy />
-                        <span className="novel-card__body">
-                          <span className="novel-card__title">{n.title}</span>
-                          <span className="badge badge--info">{STATUS_LABEL[n.novelStatus]}</span>
-                          <span className="meta">
-                            {chapterCountLabel(n.chapterCount)} · {n.publishedCount} published
-                          </span>
-                          <span className="meta reads-meta">
-                            <Eye className="icon" aria-hidden="true" />
-                            {reads[n.slug] === undefined ? '–' : `${reads[n.slug].toLocaleString('en-US')} reads`}
-                          </span>
-                        </span>
-                      </Link>
-                    </Reveal>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
+            {novels === null ? (
+              <div className="fanfic-list" role="status" aria-busy="true" aria-label="Loading">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} height="204px" radius="var(--radius-frame)" />
+                ))}
+              </div>
+            ) : novels.length === 0 ? (
+              !error && <EmptyState icon={BookOpen}>No novels yet. Choose New novel to add the first one.</EmptyState>
+            ) : visible.length === 0 ? (
+              <EmptyState icon={SearchX}>No novels match.</EmptyState>
+            ) : (
+              <ul className="fanfic-list" aria-label="Novel list">
+                {visible.map((n, i) => (
+                  <Reveal as="li" key={n.id} delayIndex={i} layout>
+                    <NovelCard
+                      admin
+                      novel={n}
+                      href={`/novels/${n.id}`}
+                      reads={reads?.[n.slug]}
+                      menu={<NovelMenu novel={n} pickedCount={pickedCount} onChange={replace} />}
+                    />
+                  </Reveal>
+                ))}
+              </ul>
+            )}
+          </section>
         }
       />
     </Page>
