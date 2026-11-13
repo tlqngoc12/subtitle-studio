@@ -2,6 +2,7 @@ package com.subtitlestudio.novel;
 
 import com.subtitlestudio.profile.Media;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -16,6 +17,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.hibernate.type.YesNoConverter;
 
 /** A translated novel: the eight fields guests see, its translation profile and its notebook update state. */
 @EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
@@ -88,7 +90,8 @@ public class Novel {
     private Integer notebookPendingChapterNo;
 
     /** Picked for the public Novels page banner (at most 5 novels; the service enforces it). */
-    @Column(name = "featured", nullable = false)
+    @Convert(converter = YesNoConverter.class)
+    @Column(name = "featured", length = 1, nullable = false)
     private boolean featured;
 
     @Column(name = "created_at", nullable = false)

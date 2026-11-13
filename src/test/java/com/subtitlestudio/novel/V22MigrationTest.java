@@ -33,12 +33,12 @@ class V22MigrationTest {
         flyway(ds, "22").migrate();
         novel(jdbc, 3, "new-one");
 
-        assertThat(featured(jdbc, 1)).isEqualTo(1);
-        assertThat(featured(jdbc, 2)).isEqualTo(1);
-        assertThat(featured(jdbc, 3)).isEqualTo(0);
+        assertThat(featured(jdbc, 1)).isEqualTo("Y");
+        assertThat(featured(jdbc, 2)).isEqualTo("Y");
+        assertThat(featured(jdbc, 3)).isEqualTo("N");
     }
 
-    private static int featured(JdbcTemplate jdbc, int id) {
-        return jdbc.queryForObject("select featured from t_novel where id = ?", Integer.class, id);
+    private static String featured(JdbcTemplate jdbc, int id) {
+        return jdbc.queryForObject("select featured from t_novel where id = ?", String.class, id);
     }
 }
