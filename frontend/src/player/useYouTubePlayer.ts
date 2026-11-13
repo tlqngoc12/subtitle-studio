@@ -152,6 +152,14 @@ export function useYouTubePlayer(
     player.playVideo();
   }, []);
 
+  /** Pauses a playing or buffering video; a paused one stays paused (no-op until the player is ready). */
+  const pause = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) return;
+    const s = player.getPlayerState();
+    if (s === YT_STATE.PLAYING || s === YT_STATE.BUFFERING) player.pauseVideo();
+  }, []);
+
   /** Pauses a playing video and plays any other (no-op until the player is ready). */
   const togglePlay = useCallback(() => {
     const player = playerRef.current;
@@ -179,5 +187,5 @@ export function useYouTubePlayer(
     else player.mute();
   }, []);
 
-  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play, togglePlay, seekBy, toggleMute };
+  return { currentMs, state: stateFor === videoId ? state : 'loading', error, seekTo, play, pause, togglePlay, seekBy, toggleMute };
 }

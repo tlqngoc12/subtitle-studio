@@ -207,7 +207,7 @@ function Editor({
   const [lineErrors, setLineErrors] = useState<Record<number, string>>({});
   const playerRef = useRef<HTMLDivElement>(null);
   const player = useYouTubePlayer(playerRef, video.id);
-  const { seekTo, play } = player;
+  const { seekTo, pause } = player;
   const [changingStatus, setChangingStatus] = useState(false);
 
   /** The table compares with the saved text, and keeps the timing of the loaded lines. */
@@ -264,13 +264,13 @@ function Editor({
     }
   }, [texts, video.id, video.viUpdatedAt]);
 
-  /** Focusing another line seeks the video to that line and plays it. */
-  const seekAndPlay = useCallback(
+  /** Focusing another line seeks the video to that line and pauses it (a paused video stays paused). */
+  const seekAndPause = useCallback(
     (ms: number) => {
       seekTo(ms);
-      play();
+      pause();
     },
-    [seekTo, play],
+    [seekTo, pause],
   );
 
   const changeStatus = useCallback(
@@ -426,7 +426,7 @@ function Editor({
           errors={lineErrors}
           onChange={onChange}
           onSeek={seekTo}
-          onSeekPlay={seekAndPlay}
+          onSeekPause={seekAndPause}
         />
       </div>
       {dialog}
