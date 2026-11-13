@@ -28,3 +28,10 @@ describe('iPhone safe area', () => {
     expect(rule('.player--filled .player__tools')).toMatch(/var\(--safe-right\)/);
   });
 });
+
+describe('Page title', () => {
+  it('has a line-height tall enough for stacked Thai marks (not the old 1.1)', () => {
+    const m = rule('.masthead__name').match(/line-height:\s*([\d.]+)/);
+    expect(Number(m?.[1])).toBeGreaterThanOrEqual(1.25);
+  });
+});
