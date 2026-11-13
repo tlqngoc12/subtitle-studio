@@ -128,7 +128,8 @@ public class WattpadNovelService {
                         request.originalAuthor(), request.tags(), request.description()));
                 createdProfile = name;
                 toCreate = withProfile(toCreate, name);
-            }            return novelService.create(toCreate);
+            }
+            return novelService.create(toCreate);
         } catch (RuntimeException e) {
             if (createdProfile != null) {
                 profiles.delete(createdProfile);
