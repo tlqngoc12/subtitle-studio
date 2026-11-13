@@ -37,6 +37,15 @@
   max-width: 160px;
 }
 
+/* A novel cover or a work cover fills the media column. */
+.masthead__media > img,
+.masthead__media > .novel-card__cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+
 .masthead__body {
   display: flex;
   flex-wrap: wrap;
@@ -53,7 +62,7 @@
 
 @media (min-width: 521px) {
   .masthead--hero {
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: 160px minmax(0, 1fr);
     gap: var(--space-6);
   }
 

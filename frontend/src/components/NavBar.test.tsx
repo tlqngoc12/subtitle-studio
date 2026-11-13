@@ -30,7 +30,7 @@ describe('NavBar', () => {
       </MemoryRouter>,
     );
 
-    expect(scroll).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' });
+    expect(scroll).toHaveBeenCalledWith({ inline: 'start', block: 'nearest' });
     expect(scroll.mock.contexts[0]).toBe(screen.getByRole('link', { name: 'Profile' }));
   });
 

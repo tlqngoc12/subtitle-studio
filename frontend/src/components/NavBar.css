@@ -97,6 +97,20 @@
   }
 }
 
+/* Room after the last item so it can also rest at the left edge: a scroller cannot scroll past its end, which would
+   leave a clipped piece of the previous item there. Not needed once everything fits (761px). */
+.nav::after {
+  content: "";
+  flex: none;
+  width: 100vw;
+}
+
+@media (min-width: 761px) {
+  .nav::after {
+    display: none;
+  }
+}
+
 .nav::-webkit-scrollbar {
   display: none;
 }

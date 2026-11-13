@@ -60,9 +60,9 @@ export function NavBar() {
   const scroll = useScrollDirection({ locked: focusIn });
   const slideAway = hidden || (!active && scroll.hidden);
 
-  // On a phone only part of the row fits: bring the current section into view (the row then snaps to a whole item).
+  // On a phone only part of the row fits: bring the current section into view (flush left: the row snaps to whole items, so no piece of the previous item is left showing).
   useEffect(() => {
-    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'start', block: 'nearest' });
   }, [pathname]);
   return (
     <header

@@ -8,7 +8,7 @@
 .work__cover {
   display: block;
   width: 100%;
-  max-width: 200px;
+  max-width: 160px;
   aspect-ratio: 4 / 5;
   padding: 0;
   overflow: hidden;
