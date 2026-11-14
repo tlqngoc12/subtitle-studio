@@ -1,4 +1,4 @@
-import { BookOpen, Eye, List, Star, type LucideIcon } from 'lucide-react';
+import { BookOpen, Eye, Library, Star, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { FanficBase } from '../../api/fanfics';
 import { Cover } from '../ui/Cover';
@@ -19,7 +19,8 @@ export function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: st
 }
 
 /**
- * A Wattpad story as a card: cover, title, Complete/Ongoing, Reads | Votes | Parts | Time and a 3-line description.
+ * A Wattpad story as a card: cover, title, Complete/Ongoing, Chapters | Reads | Votes | Time (Chapters and Reads in the
+ * same place as on a translated novel's `NovelCard`) and a 3-line description.
  * The whole card is a link to the story on Wattpad; `menu` (the admin actions) sits beside it, never inside it.
  */
 export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactNode }) {
@@ -34,9 +35,9 @@ export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactN
             {fanfic.completed ? t('Complete', 'Hoàn thành') : t('Ongoing', 'Đang ra')}
           </span>
           <span className="fanfic-card__stats">
+            <Stat icon={Library} label={t('Chapters', 'Chương')} value={formatCompact(fanfic.partCount)} />
             <Stat icon={Eye} label={t('Reads', 'Lượt đọc')} value={formatCompact(fanfic.readCount)} />
             <Stat icon={Star} label={t('Votes', 'Bình chọn')} value={formatCompact(fanfic.voteCount)} />
-            <Stat icon={List} label={t('Parts', 'Phần')} value={formatCompact(fanfic.partCount)} />
             <Stat icon={BookOpen} label={t('Time', 'Thời gian đọc')} value={formatReadingTime(fanfic.readingMinutes)} />
           </span>
           {fanfic.description && <span className="fanfic-card__desc">{fanfic.description}</span>}

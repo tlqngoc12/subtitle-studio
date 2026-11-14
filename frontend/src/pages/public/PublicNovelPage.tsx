@@ -177,8 +177,10 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                       className="button button--primary button--l novel-cta__read"
                       to={`/novels/${novel.slug}/${resume.chapterNo}`}
                     >
-                      Đọc tiếp:{" "}
-                      {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                      <span className="novel-cta__label">
+                        Đọc tiếp:{" "}
+                        {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                      </span>
                     </Link>
                   ) : (
                     first && (
@@ -186,7 +188,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                         className="button button--primary button--l novel-cta__read"
                         to={`/novels/${novel.slug}/${first.chapterNo}`}
                       >
-                        Bắt đầu đọc
+                        <span className="novel-cta__label">Bắt đầu đọc</span>
                       </Link>
                     )
                   )}

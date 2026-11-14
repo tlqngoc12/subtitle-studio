@@ -8,6 +8,7 @@ import { SiteProvider } from '../../data/SiteContext';
 import { answerConfirm } from '../../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../../test/fakeFetch';
 import { fakeSource, publicSite } from '../../test/fakeSource';
+import { expectTooltip } from '../../test/tooltip';
 import { fanfic } from '../../test/fanficFixtures';
 import { optionNames, pickOption } from '../../test/select';
 import { FanficsTab } from './FanficsTab';
@@ -200,6 +201,17 @@ describe('FanficsTab (admin)', () => {
     expect(screen.getByRole('button', { name: 'Add fanfic' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh all' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Menu for/ })).toHaveLength(3);
+  });
+
+  it('shows Refresh all as an icon button with a tooltip, no visible text', async () => {
+    fakeFetch([GET]);
+    renderAdmin();
+
+    await screen.findByRole('link', { name: /Second Spring/ });
+    const refresh = screen.getByRole('button', { name: 'Refresh all' });
+    expect(refresh).toHaveClass('button--icon');
+    expect(refresh).toHaveTextContent('');
+    await expectTooltip(refresh, 'Refresh all');
   });
 
   it('orders the toolbar search, status pills, sort, Refresh all, Add fanfic', async () => {

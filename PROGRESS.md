@@ -1,6 +1,7 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-14 (Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng; trước đó: hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-14 (sửa thanh Đọc tiếp tràn màn hình, thẻ Fanfic, Refresh all thành icon; trước đó: Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng; trước đó: hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> **Trạng thái nhánh (2026-11-14):** mọi việc trong nhật ký đến PR #30 đã merge vào `main` và đã deploy (image Docker build 2026-11-14 03:20, ngay sau merge PR #30); các nhánh cũ đã xoá cả ở máy lẫn GitHub. Nhãn "chưa merge"/"chưa deploy" cũ trong nhật ký đã được bỏ.
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
 ## 1. Project là gì
@@ -458,9 +459,9 @@ Spec: [docs/superpowers/specs/2026-11-04-public-site-design.md](docs/superpowers
 - **Theo review giao diện:** menu tự cuộn tới mục đang mở + mép phải mờ trên điện thoại, viền focus không bị cắt, Publish chỉ còn icon ở ≤520px; tiêu đề video 2 dòng trên điện thoại (thấy số tập); trang xem trên iPhone tiêu đề nhỏ để video lên cao; video đang phát trong khung playlist màu **tím**; thẻ playlist gọn, bấm cả thẻ (stretched link), không có mô tả thì hiện 3 tập đầu; link quay lại một kiểu "← Back to …"; Delete playlist xuống cuối trang sửa; ô dán link: gợi ý nhạt, focus xanh; profile trống trên trang public: "Nothing here yet — check back soon."; vùng chạm ≥44px trên điện thoại. Chưa làm (để sau): gom hàng trang sửa playlist trên điện thoại, gợi ý video khác dưới trang xem.
 - Frontend 309/309.
 
-### 2026-11-09: Thanh đọc truyện, trang chủ Novels, nút Filter Vietsub ✅ (chưa deploy)
+### 2026-11-09: Thanh đọc truyện, trang chủ Novels, nút Filter Vietsub ✅
 
-Plan: [docs/superpowers/plans/2026-11-09-reader-and-novels-home.md](docs/superpowers/plans/2026-11-09-reader-and-novels-home.md). Nhánh `feature/novel-page-checks`, chưa merge, chưa push, chưa deploy.
+Plan: [docs/superpowers/plans/2026-11-09-reader-and-novels-home.md](docs/superpowers/plans/2026-11-09-reader-and-novels-home.md). Nhánh `feature/novel-page-checks` (đã merge).
 
 - **Ảnh chương ít khoảng trắng hơn:** `NovelRenderer` lề trên các trang 2+ còn 56 (trang 1 giữ 110 cho tiêu đề), vùng chân trang 120 xuống 64, chữ `Ch. N · k/n` căn giữa theo chiều dọc. `VERSION` lên 3. **Ảnh đã đăng cần Publish again** mới vẽ lại.
 - **Tiêu đề video dài trong playlist** (panel, thẻ playlist, danh sách Vietsub list) xuống dòng và cắt ở 2 dòng bằng class `title-clamp`, không tràn viền thẻ.
@@ -471,9 +472,9 @@ Plan: [docs/superpowers/plans/2026-11-09-reader-and-novels-home.md](docs/superpo
 - **Dữ liệu public:** `PublicNovelSummary` có thêm `totalChapters` (mọi chương, kể cả nháp) và `lastPublishedAt` (ngày đăng mới nhất trong các chương đã đăng, null nếu không có). File cũ chưa có hai trường này vẫn chạy: `y` = số chương đã đăng, ngày = `updatedAt`. **Cần Publish again** để có dữ liệu mới.
 - Backend 733/733, frontend 500/500 (vài test phân trang có sẵn của VietsubPage/HomePage thỉnh thoảng fail do thời gian khi chạy cả bộ, chạy lại pass).
 
-### 2026-11-09: Banner ảnh trên trang Profile và tab Trailer của truyện ✅ (chưa deploy)
+### 2026-11-09: Banner ảnh trên trang Profile và tab Trailer của truyện ✅
 
-Spec: [docs/superpowers/specs/2026-11-09-profile-banner-design.md](docs/superpowers/specs/2026-11-09-profile-banner-design.md), plan: [docs/superpowers/plans/2026-11-09-profile-banner-and-trailer.md](docs/superpowers/plans/2026-11-09-profile-banner-and-trailer.md). Nhánh `feature/novel-page-checks`, **chưa merge, chưa push, chưa deploy**. **Migration `V10__profile_banner_and_novel_trailer.sql`** (bảng `t_profile_banner_image` + cột `t_novel.trailer_video_id`) chưa chạy trên DB thật nào; tự chạy khi app khởi động. **Public site cần Publish again** mới có banner và trailer (file cũ không có `banner` / `trailerVideoId` vẫn chạy: không có banner, không có tab Trailer).
+Spec: [docs/superpowers/specs/2026-11-09-profile-banner-design.md](docs/superpowers/specs/2026-11-09-profile-banner-design.md), plan: [docs/superpowers/plans/2026-11-09-profile-banner-and-trailer.md](docs/superpowers/plans/2026-11-09-profile-banner-and-trailer.md). Nhánh `feature/novel-page-checks` (đã merge). **Migration `V10__profile_banner_and_novel_trailer.sql`** (bảng `t_profile_banner_image` + cột `t_novel.trailer_video_id`) chưa chạy trên DB thật nào; tự chạy khi app khởi động. **Public site cần Publish again** mới có banner và trailer (file cũ không có `banner` / `trailerVideoId` vẫn chạy: không có banner, không có tab Trailer).
 
 - **Banner Profile:** tối đa 8 ảnh mỗi profile, ảnh upload riêng cho banner, xếp quạt giữa khung dưới tên profile (admin và public), không có chú thích hiện. Mỗi ảnh có mô tả tuỳ chọn (tối đa 200 ký tự, cắt khoảng trắng, rỗng = NULL) chỉ dùng làm `alt`; không có mô tả thì `alt=""` và tên của mục bấm là `Ảnh k/n`. Bấm ảnh mở lightbox (`‹ ›`, ←/→, Esc, ✕, bấm nền; focus về ảnh đã mở). Không có ảnh thì không có phần tử banner. API: `POST /api/profiles/{slug}/banner`, `PUT .../banner/{imageId}` (mô tả), `DELETE .../banner/{imageId}`, `PUT .../banner/order`; mỗi lệnh trả cả danh sách. Giới hạn 8, độ dài mô tả và vị trí liền mạch 1..n do **service** bảo đảm (`ProfileBannerService`); sắp xếp thiếu/trùng/lạ id → 400 `imageIds` và không đổi gì; ảnh của profile khác → 404 `BANNER_IMAGE_NOT_FOUND`. `ProfileDto` có thêm `banner: [{id, mediaUrl, altText}]` (`mediaId` không được serialize); bản export public chép ảnh như ảnh profile khác (file mất thì `mediaUrl` null và hiện khung trống).
 - **Dọn ảnh:** xoá ảnh banner thì xoá dòng, đánh lại vị trí, rồi `MediaService.deleteIfUnreferenced` (cùng quy tắc với khối ảnh); `MediaRepository.isReferenced` và việc dọn ảnh mồ côi lúc khởi động đều tính ảnh banner.
@@ -482,9 +483,9 @@ Spec: [docs/superpowers/specs/2026-11-09-profile-banner-design.md](docs/superpow
 - **Trailer truyện:** Novels › Details có ô `Trailer (YouTube link)`; server lấy id 11 ký tự bằng `UrlParser` (nhận `watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, có/không `www`/`m`, và cả id trần), link sai/không phải YouTube → 400 trường `trailerUrl`, rỗng = xoá; form hiện `https://youtu.be/<id>`. Trang truyện public: tab `Giới thiệu` · `Danh sách chương` · `Trailer`, tab chỉ có khi có nội dung, mặc định `Danh sách chương`, URL chỉ ghi tab khác (`?tab=intro|trailer`), tab không có thì về danh sách chương. `<iframe>` `youtube-nocookie.com/embed/<id>` chỉ được tạo khi tab Trailer đang mở.
 - Kiểm thử: `mvn test -Dskip.npm` 789/789, vitest 686/686, `tsc -b --noEmit`, `npm run build`, `npm run build:public` đều qua. `mvn verify -Poracle` chưa chạy (cần Docker).
 
-### 2026-11-09: Trình sửa Vietsub trực tiếp (Vietsub live editor) ✅ (chưa deploy, chưa merge)
+### 2026-11-09: Trình sửa Vietsub trực tiếp (Vietsub live editor) ✅
 
-Spec: [docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md](docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md), plan: [docs/superpowers/plans/2026-11-09-vietsub-live-editor.md](docs/superpowers/plans/2026-11-09-vietsub-live-editor.md). Nhánh `feature/novel-page-checks`, **chưa merge, chưa push, chưa deploy**. Không đổi schema, không có migration.
+Spec: [docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md](docs/superpowers/specs/2026-11-09-vietsub-live-editor-design.md), plan: [docs/superpowers/plans/2026-11-09-vietsub-live-editor.md](docs/superpowers/plans/2026-11-09-vietsub-live-editor.md). Nhánh `feature/novel-page-checks` (đã merge). Không đổi schema, không có migration.
 
 - **Thay đổi hành vi:** bấm một hàng ở **Manage Vietsub** (`/vietsub`) nay mở trình sửa `/vietsub/:id/edit` (admin, không có trên public site); Vietsub list và trang xem vẫn mở trang xem. Nút Download/Replace/Delete giữ nguyên.
 - **Trang sửa:** video YouTube bên trái (sticky dưới top bar, phụ đề đè lên là **chữ đang sửa, chưa lưu**), bảng bên phải (`#` bấm để tua tới dòng, Start/End chỉ đọc, ô text tự giãn). Dòng đang chiếu được tô tím + `aria-current`, bảng tự cuộn theo nhưng **dừng khi đang gõ** và tiếp tục 3 giây sau khi rời ô. Dòng đã sửa có chấm cam `Edited`. Từ 1024px hai cột, nhỏ hơn thì xếp chồng; ≤520px ẩn cột End. Hàng được `memo`, gõ một dòng chỉ render lại dòng đó.
@@ -506,7 +507,7 @@ Thay thế phần mô tả banner Profile và bảng dòng của hai mục ngay 
 - **Trình sửa Vietsub** (`/vietsub/:id/edit`): bảng chỉ còn hai cột `#` + Text. Dòng được tô là dòng đang chiếu tại thời điểm hiện tại, hoặc dòng gần nhất ngay trước đó (kể cả khi đang ở khoảng trống giữa hai dòng). Khi **tua** (lùi, hoặc nhảy hơn 1,5 giây) hoặc bấm nút `#`, bảng cuộn tới dòng đó và đặt con trỏ ở cuối text; phát bình thường chỉ tô dòng. Giới hạn đã biết: nút Back của trình duyệt không bị chặn khi còn sửa chưa lưu (`BrowserRouter`).
 - **Trạng thái deploy:** nhánh `feature/novel-page-checks` đã merge vào `main` và deploy local (migration V10 chạy khi app khởi động). Image cũ để quay lại: `subtitle-studio:pre-filmstrip-slides`. **Public site cần Publish again** mới có banner, trailer và các thay đổi giao diện công khai.
 
-### 2026-11-13: Sửa 4 lỗi giao diện (Safari, nút, phân trang) ✅ (chưa merge, chưa deploy)
+### 2026-11-13: Sửa 4 lỗi giao diện (Safari, nút, phân trang) ✅
 
 Nhánh `fix/ui-safari`. Chỉ đổi frontend.
 
@@ -516,7 +517,7 @@ Nhánh `fix/ui-safari`. Chỉ đổi frontend.
 - **Player toàn khung trên iPhone (xoay ngang bị lệch phải):** YouTube đặt `<video>` một lần theo bề rộng toàn màn hình và không bố trí lại khi iframe co vào vùng an toàn. Cách cũ (nudge 1px, `refreshSize`) không hiệu quả trên máy thật nên **bỏ hẳn** (`refreshSize`, `onRefreshSize`, effect resize/orientationchange và các test của chúng). Cách mới: `.player--filled` không còn padding, iframe phủ **toàn bộ** viewport để YouTube đo đúng; video 16:9 trên màn hình ~19,5:9 bị YouTube chừa lề đen ~84pt mỗi bên, lớn hơn phần tai thỏ (~59pt) nên hình không bị che. Chỉ nút của app (Vietsub/toàn màn hình) và phụ đề vẫn cách mép theo `env(safe-area-inset-*)`. Test `safeArea.test.ts` cập nhật theo. **Cần kiểm tra trên iPhone Safari thật (dọc và ngang).**
 - **Tiêu đề trang sửa Vietsub đè lên breadcrumbs:** `VietsubEditPage` bọc `PageHeader` và dòng gợi ý trong một `<div>` thường, nên breadcrumbs không còn là con trực tiếp của lưới `.page` (gap 24px); `margin-bottom` âm của breadcrumbs (giả định gap 24px) kéo H1 lên 8px, đè vào dòng breadcrumbs. Thêm class `vedit__top` (`display: grid; gap: var(--space-6)`) cho wrapper và bù margin của `vedit__hint`. Ngoài ra `.masthead__name` đổi `line-height` từ `1.1` sang `1.25` để dấu thanh và nguyên âm trên của Noto Sans Thai không chạm dòng trước trong tiêu đề nhiều dòng. Thêm test CSS trong `safeArea.test.ts`.
 
-### 2026-11-10: Trình sửa Vietsub hiện dòng Engsub phía trên mỗi dòng ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Trình sửa Vietsub hiện dòng Engsub phía trên mỗi dòng ✅
 
 Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay schema.
 
@@ -597,7 +598,7 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - `PageTextOutput`: trang có **> 30% chữ cái là chữ Thái** bị coi là thiếu (log `untranslated [n]`, hỏi lại đúng trang đó); prompt thêm quy tắc "text là bản dịch tiếng Việt, không để sót chữ Thái kể cả thán từ/cách gọi".
 - **Nhãn chương** (Oracle **V7** `t_chapter.label`, ≤ 100 ký tự, sửa được cả khi Published): hiện thay "Chapter N" ở danh sách chương, trang chương, Notebook › Recent chapters, trang public (danh sách, nút Read, trang đọc), tiêu đề/chân ảnh vẽ và prompt Gemini. Số chương (ô **Order**) vẫn là thứ tự, số trong link public và khoá phiên bản sổ tay. Chương không nhãn giữ nguyên ảnh đã cache.
 
-### 2026-11-09: Kiểm tra trang ảnh trước/sau khi dịch (xoay, ảnh ngang, chữ Thái gốc) ✅ (chưa deploy)
+### 2026-11-09: Kiểm tra trang ảnh trước/sau khi dịch (xoay, ảnh ngang, chữ Thái gốc) ✅
 
 - **Nguyên nhân tìm được:** chương 17 (trang 14–22), 18 và 19 được upload từ ảnh chụp điện thoại xoay 90° (3264×2448, không có EXIF); Gemini (`gemini-3.5-flash-lite` sau các lỗi 503) đọc chữ Thái nằm ngang rất tệ và bịa nội dung, mà vẫn qua mọi kiểm tra cũ (đủ trang, là tiếng Việt, không trống).
 - **Xoay ảnh** (chỉ chương Draft, không đang dịch): `POST /api/chapters/{id}/pages/{pageId}/rotate` và `.../pages/rotate` (cả chương), body `{direction: LEFT|RIGHT}`. Mỗi lần xoay tạo file media mới (PNG giữ PNG, JPEG/WebP ra JPEG 0.92), file cũ xoá nếu không trang nào dùng. Bản dịch và chữ gốc của trang giữ nguyên. Nút Rotate trên từng thẻ và Rotate all left/right ở mục Pages.
@@ -605,9 +606,9 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - **Gemini trả thêm chữ Thái đã đọc** (`source`, cùng request, vẫn 1 request/lượt) lưu ở `t_chapter_page.source_th` (Oracle **V8**). `SuspectPages`: trang có chữ gốc ≥ 100 ký tự mà bản dịch/chữ gốc < 0,6 × trung vị của cả truyện (cần ≥ 5 trang để lấy trung vị, ít hơn thì dùng ngưỡng cố định 0,5) bị đánh dấu "May be incomplete"; dòng cảnh báo trên ô Chapter text, badge `⚠ N` ở danh sách chương, chữ gốc hiện trong lightbox kèm nút Copy source. Chương dịch trước đây không có chữ gốc nên không bao giờ bị đánh dấu.
 - **Việc cần làm sau khi deploy (sau 15:00 giờ VN, khi quota reset):** chương 17–19: Unpublish → xoay ảnh bị ngang → Translate again → Publish.
 
-### 2026-11-09: Lô cải tiến (tìm Vietsub, autoplay, Novels: lưu/thứ tự/model) ✅ (chưa deploy)
+### 2026-11-09: Lô cải tiến (tìm Vietsub, autoplay, Novels: lưu/thứ tự/model) ✅
 
-Plan: [docs/superpowers/plans/2026-11-09-enhancements-batch.md](docs/superpowers/plans/2026-11-09-enhancements-batch.md). Nhánh `feature/novel-page-checks`, chưa merge, chưa push, chưa deploy.
+Plan: [docs/superpowers/plans/2026-11-09-enhancements-batch.md](docs/superpowers/plans/2026-11-09-enhancements-batch.md). Nhánh `feature/novel-page-checks` (đã merge).
 
 - **Vietsub › Videos:** ô tìm kiếm (không phân biệt dấu), chip All/AI/Manual, sắp xếp AI trước rồi Manual (mới cập nhật trước), phân trang sau khi lọc, `q` và `source` giữ trên URL; bỏ nút Watch Video ở danh sách (bấm cả hàng vẫn mở trang xem).
 - **Autoplay trong playlist:** giữ một `YT.Player` cho mỗi container, đổi video bằng `loadVideoById` (tự phát) hoặc `cueVideoById` (không tự phát) thay vì huỷ/tạo iframe mới. **Cần kiểm tra tay trên Edge và Safari sau khi deploy** (test tự động không có trình duyệt thật).
@@ -616,9 +617,9 @@ Plan: [docs/superpowers/plans/2026-11-09-enhancements-batch.md](docs/superpowers
 - **Model Gemini:** `GeminiCaller` báo từng model trước khi gọi; chương và Vietsub hiện `Translating with <model>…` (cập nhật khi chuyển sang model dự phòng) và `Translated by <model>` (nhiều model: nối bằng `, `); lưu ở `t_chapter.translation_model` và `video.translation_model`. Lỗi → giữ giá trị đã lưu trước đó. Dữ liệu cũ: không hiện gì.
 - **Flyway V9** (`V9__chapter_order_and_translation_model.sql`, một file cho cả lô): `t_chapter.sort_order` (backfill = `chapter_no`, rồi NOT NULL), `t_chapter.translation_model`, `video.translation_model` (VARCHAR2(200 CHAR)). Chạy được trên H2 MODE=Oracle (test); **chưa chạy trên Oracle thật**, sẽ chạy khi deploy.
 
-### 2026-11-09: Trang đọc truyện public dễ đọc hơn (tiếng Việt, tiến độ đọc, chế độ đêm) ✅ (chưa deploy)
+### 2026-11-09: Trang đọc truyện public dễ đọc hơn (tiếng Việt, tiến độ đọc, chế độ đêm) ✅
 
-Plan: [docs/superpowers/plans/2026-11-09-novel-reader-polish.md](docs/superpowers/plans/2026-11-09-novel-reader-polish.md). Nhánh `feature/novel-page-checks`, chưa merge, chưa push, chưa deploy.
+Plan: [docs/superpowers/plans/2026-11-09-novel-reader-polish.md](docs/superpowers/plans/2026-11-09-novel-reader-polish.md). Nhánh `feature/novel-page-checks` (đã merge).
 
 - **Toast:** hiện giữa màn hình (sonner `top-center` + `offset`/`mobileOffset` top `calc(50vh - 40px)`), cả trang admin lẫn public.
 - **Ảnh chương giữ dòng trống:** `NovelRenderer` vẽ đúng như người dịch gõ: mỗi dòng trống thêm một dòng cao `lineHeight`, các dòng liền nhau vẫn là đoạn (khoảng cách 0,35); dòng trống đầu và cuối bị bỏ. `VERSION` lên 2. **Ảnh đã đăng cần Publish again** mới vẽ lại theo cách mới.
@@ -639,7 +640,7 @@ Plan: [docs/superpowers/plans/2026-11-09-reader-bar-wide-and-polish.md](docs/sup
 - **Trang truyện (public):** danh sách chương là một hộp viền liền, hàng gọn (40 px), từ 760 px và hơn 12 chương thì chia hai cột (CSS columns: đọc xuống hết cột trái rồi sang cột phải). Có mô tả thì hiện hai tab `Giới thiệu` | `Danh sách chương`, mặc định mở `Danh sách chương`; URL chỉ ghi tab còn lại (`?tab=intro`). Không có mô tả thì không có tab.
 - **Admin:** Number, Chapter label, Chapter title trên một hàng (tự xuống dòng khi hẹp); khoảng cách giữa thanh Search/Filter và đường kẻ trên của danh sách Manage Vietsub.
 
-### 2026-11-09: Rà soát UI vòng 1 (token, độ tương phản) và điều khiển đọc truyện trên thanh trên cùng ✅ (chưa merge, chưa deploy)
+### 2026-11-09: Rà soát UI vòng 1 (token, độ tương phản) và điều khiển đọc truyện trên thanh trên cùng ✅
 
 Plan: [docs/superpowers/plans/2026-11-09-ui-tokens-and-reader-topbar.md](docs/superpowers/plans/2026-11-09-ui-tokens-and-reader-topbar.md). Nhánh `feature/novel-page-checks`. Chỉ đổi frontend.
 
@@ -649,7 +650,7 @@ Plan: [docs/superpowers/plans/2026-11-09-ui-tokens-and-reader-topbar.md](docs/su
 - **Thanh đọc** nằm trong thanh trên cùng (thay logo và menu) chỉ ở trang đọc chương; cả thanh trên cùng ẩn khi cuộn xuống, hiện lại khi cuộn lên. Cơ chế: `TopbarSlotProvider` (context) + portal; `ReaderPage` vẫn giữ state.
 - **Vòng sau:** xem mục ngay dưới (vòng 2–3, đã làm).
 
-### 2026-11-09: Rà soát UI vòng 2–3 (component dùng chung, breakpoint, tách CSS) ✅ (chưa merge, chưa deploy)
+### 2026-11-09: Rà soát UI vòng 2–3 (component dùng chung, breakpoint, tách CSS) ✅
 
 Plan: [docs/superpowers/plans/2026-11-09-ui-components-and-css-split.md](docs/superpowers/plans/2026-11-09-ui-components-and-css-split.md). Refactor thuần: không đổi giao diện.
 
@@ -660,7 +661,7 @@ Plan: [docs/superpowers/plans/2026-11-09-ui-components-and-css-split.md](docs/su
 - **Kiểm tra:** `node frontend/scripts/check-css-split.mjs <commit-trước-khi-tách>` so từng luật (selector, khai báo, @media) của `styles.css` cũ với mọi file `.css` hiện tại: báo thiếu, trùng, luật mới ngoài danh sách chủ ý (`INTENDED` trong script) và breakpoint lạ; thoát mã 1 nếu có vấn đề. Commit trước khi tách: `a171382`.
 - Test đọc CSS dùng `src/test/css.ts` (gộp mọi `src/**/*.css`, tokens trước). `vite.config.ts` chỉ xử lý các import `?raw` của CSS, nên `import './X.css'` trong component vẫn rỗng khi chạy test jsdom.
 
-### 2026-11-09: Vai trò màu cam/tím, mục lục dạng ngăn kéo, nút cuối chương ở hai góc ✅ (chưa merge, chưa deploy)
+### 2026-11-09: Vai trò màu cam/tím, mục lục dạng ngăn kéo, nút cuối chương ở hai góc ✅
 
 Plan: [docs/superpowers/plans/2026-11-09-brand-colours-and-reader-drawer.md](docs/superpowers/plans/2026-11-09-brand-colours-and-reader-drawer.md). Nhánh `feature/novel-page-checks`. Chỉ đổi frontend; thêm `@radix-ui/react-dialog@1.3.1`.
 
@@ -670,7 +671,7 @@ Plan: [docs/superpowers/plans/2026-11-09-brand-colours-and-reader-drawer.md](doc
 - **Mục lục** (`ReaderBar`): Radix Dialog dạng ngăn kéo bên phải (`min(360px, 85vw)`, cao `100dvh`, overlay mờ, thân cuộn riêng có thanh cuộn mảnh), trượt vào/ra (tắt khi `prefers-reduced-motion`). Esc, ✕, bấm overlay đều đóng; focus trả về nút `Mục lục`. Khi mở, focus rơi vào ngăn kéo (không vào nút ✕, vì tooltip của ✕ sẽ nuốt lần Esc đầu).
 - **Cuối chương:** `Chương trước` góc trái, `Chương sau` góc phải của cột đọc (`--reader-width`), cả hai là nút cam `button--primary`.
 
-### 2026-11-09: Bảng màu ấm (sáng A, tối C) ✅ (chưa merge, chưa deploy)
+### 2026-11-09: Bảng màu ấm (sáng A, tối C) ✅
 
 Plan: [docs/superpowers/plans/2026-11-09-warm-palette.md](docs/superpowers/plans/2026-11-09-warm-palette.md). Nhánh `feature/novel-page-checks`. Chỉ đổi frontend, không thêm package.
 
@@ -678,7 +679,7 @@ Plan: [docs/superpowers/plans/2026-11-09-warm-palette.md](docs/superpowers/plans
 - **Khung video:** `UrlForm.css` và `VideoPlayer.css` dùng `--frame`/`--on-frame` thay hex.
 - **Test:** `contrast.test.ts` kiểm `--ink` ≥ 7:1 (AAA), chữ phụ/brand-ink/danger ≥ 4.5:1, viền ô nhập/focus ≥ 3:1, `--on-brand` trên `--brand-hover`, `--on-frame` 7:1. `--danger` và `--hover` giữ nguyên (đạt).
 
-### 2026-11-10: Dịch phim bộ chính xác hơn: ví dụ từ tập đã Done + mô tả YouTube ✅ (đã merge PR #8, chưa deploy; cần deploy vì có V12)
+### 2026-11-10: Dịch phim bộ chính xác hơn: ví dụ từ tập đã Done + mô tả YouTube ✅ (PR #8, có V12)
 
 Nhánh `feat/translate-series-context`. Plan: [docs/superpowers/plans/2026-11-10-translate-series-context.md](docs/superpowers/plans/2026-11-10-translate-series-context.md). User đã duyệt, chọn (a): không chuyển hồ sơ của video cũ.
 
@@ -688,9 +689,9 @@ Nhánh `feat/translate-series-context`. Plan: [docs/superpowers/plans/2026-11-10
 - **Cách dùng:** nên tạo **một hồ sơ cho mỗi bộ phim** (vd `data/prompts/Moonshadow.md`) và dùng nhất quán cho mọi tập. Theo lựa chọn (a), video cũ không được chuyển hồ sơ nên ví dụ chỉ xuất hiện khi đã có tập dịch bằng hồ sơ đó và được đánh dấu Done; tập đầu của bộ phim chưa có ví dụ.
 - **Cần deploy** (V12 chạy khi app khởi động). Chưa kiểm tra bằng Gemini thật: sau deploy, dịch một tập có ít nhất một tập Done cùng hồ sơ và xem log `examples: ...`.
 
-### 2026-11-10: Vietsub › Profiles (phân tích câu đã sửa) + sửa viền focus của tab ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Vietsub › Profiles (phân tích câu đã sửa) + sửa viền focus của tab ✅
 
-Nhánh `fix/tab-focus-ring-on-click`, một PR cho cả hai phần. Plan: [docs/superpowers/plans/2026-11-10-profiles-analyze-corrections.md](docs/superpowers/plans/2026-11-10-profiles-analyze-corrections.md) (user đã duyệt). **PR #8 (V12) đã merge nhưng chưa deploy, nên lần deploy tới gồm V12 + nhánh này.** Nhánh này không có migration.
+Nhánh `fix/tab-focus-ring-on-click`, một PR cho cả hai phần. Plan: [docs/superpowers/plans/2026-11-10-profiles-analyze-corrections.md](docs/superpowers/plans/2026-11-10-profiles-analyze-corrections.md) (user đã duyệt). Nhánh này không có migration.
 
 - **Viền focus khi click tab:** nguyên nhân là Radix Tabs 1.2.1 gọi `event.currentTarget.focus()` bằng script trong `onMouseDown`, Chromium coi focus do script là `:focus-visible` nên viền xuất hiện khi click chuột (dựng lại bằng Edge headless + CDP: sau click `matches(':focus-visible')` = true, outline 3px). `components/ui/TabTrigger` đánh dấu `data-pointer` lúc `pointerdown`, CSS `.tabs__tab[data-pointer]:focus-visible { outline: none }`; phím hoặc blur xoá dấu nên Tab/mũi tên vẫn hiện viền. Dùng ở trang truyện public, Vietsub list và trang Novel (admin).
 - **Backend:** `CorrectionReader` tách khỏi `ExampleSource` (hành vi `ExampleSource` giữ nguyên, test cũ xanh); `PromptProfileStore` thêm `sha`/`write` (backup `.history/`, ghi atomic, 20 KB, 409 `PROFILE_CHANGED`); `ProfileAnalyzer` + 3 endpoint (GET, POST analyze, PUT) trong `PromptProfileController`; `/vietsub/profiles` thêm vào `SpaForwardController`. Chi tiết trong CLAUDE.md.
@@ -699,7 +700,7 @@ Nhánh `fix/tab-focus-ring-on-click`, một PR cho cả hai phần. Plan: [docs/
 - **Sửa giao diện thêm trong PR này:** (1) nút ✕ của toast về lại bên phải: sonner 2.0.8 đặt nút bằng biến `--toast-close-button-*` qua luật cùng độ ưu tiên với luật của app nên thắng thua theo thứ tự nạp CSS; giờ ghi đè các biến trên chính toast (thắng theo độ gần) và thêm `[data-styled='true']`; (2) nhóm nút trên đầu trình sửa Vietsub căn phải (kể cả khi xuống dòng trên màn nhỏ) và tiêu đề dài không còn làm trang rộng hơn màn hình 390px; (3) bỏ mũi tên `>` cuối mỗi hàng Manage Vietsub; (4) nút Back và các nút icon trên thanh đọc truyện public hết bo tròn (bỏ `border-radius: 999px` riêng), dùng `--radius-control` như mọi nút icon; (5) NavBar tô đúng "Vietsub" ở `/vietsub/profiles`; nút "Edit before saving"/"Cancel" dùng kiểu nút phụ.
 - **Chưa kiểm tra với Gemini thật.** Sau deploy (khi user cho phép): Analyze `EmiBonnie` (34 video), xem diff, thử Edit rồi Cancel; chỉ Save khi muốn.
 
-### 2026-11-10: Banner Profile tự chạy và lượt đọc truyện ✅ (chưa deploy)
+### 2026-11-10: Banner Profile tự chạy và lượt đọc truyện ✅
 
 Plan: [docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md](docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md). Nhánh `feature/banner-autoplay-novel-reads`.
 
@@ -709,7 +710,7 @@ Plan: [docs/superpowers/plans/2026-11-10-banner-autoplay-novel-reads.md](docs/su
 - **Việc làm tay một lần:** (1) Cloudflare dashboard, Storage & Databases, D1, tạo database tên `novel-reads`; (2) copy Database ID vào `.env` (`CLOUDFLARE_D1_DATABASE_ID=...`) rồi chạy lại app; (3) bấm Publish; nếu deploy báo lỗi binding thì cấp cho API token thêm quyền Account, D1, Edit.
 - **Test:** `FilmStrip`/`ProfileBanner` (fake timers), `publicFunctions.test.ts` (function với D1 giả), `novelReads.test.ts`, `NovelReads.test.tsx`, `NovelsPage`; Java: `ReadCountsFunctionsTest`, `PublishServiceTest`, `NovelReadsServiceTest`, `NovelReadsControllerTest`.
 
-### 2026-11-10: Trang public chỉ hiện Vietsub Manual ✅ (chưa deploy)
+### 2026-11-10: Trang public chỉ hiện Vietsub Manual ✅
 
 Nhánh `feature/public-manual-vietsub-only`. Chỉ đổi backend (`SiteExporter`), admin không đổi.
 
@@ -718,7 +719,7 @@ Nhánh `feature/public-manual-vietsub-only`. Chỉ đổi backend (`SiteExporter
 - **Test:** `SiteExporterTest` thêm 3 ca (video AI bị loại, playlist chỉ có AI bị bỏ, playlist hỗn hợp tính lại số lượng + bìa); các ca cũ dùng Vietsub Manual.
 - **Cần làm:** bấm **Publish lại** để bản public bỏ các video AI đã đăng trước đó.
 
-### 2026-11-10: Trạng thái sửa Vietsub (In progress / Done), public chỉ xuất Done, tua và phát khi focus dòng ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Trạng thái sửa Vietsub (In progress / Done), public chỉ xuất Done, tua và phát khi focus dòng ✅
 
 Nhánh `feat/vietsub-edit-status`. Plan: [docs/superpowers/plans/2026-11-10-vietsub-edit-status-and-seek-on-focus.md](docs/superpowers/plans/2026-11-10-vietsub-edit-status-and-seek-on-focus.md).
 
@@ -728,7 +729,7 @@ Nhánh `feat/vietsub-edit-status`. Plan: [docs/superpowers/plans/2026-11-10-viet
 - **Editor:** focus textarea của dòng khác dòng focus trước thì tua video tới dòng đó và phát (nhớ dòng trong ref); cùng dòng, readonly (đang dịch) thì không; nút `#` chỉ tua và cuộn.
 - **Cần làm:** deploy (có migration V11), rồi bấm **Publish lại**; chỉ các video đã Done mới lên bản public. Backlog: lọc Manage Vietsub theo trạng thái.
 
-### 2026-11-10: UI review Get Engsub, Vietsub, Vietsub list và trang xem ✅ (chưa merge, chưa deploy)
+### 2026-11-10: UI review Get Engsub, Vietsub, Vietsub list và trang xem ✅
 
 Nhánh `feat/ui-review-watch-lists` (tạo từ `feat/vietsub-edit-status`, rebase lên `main` sau khi PR #4 merge). Plan: [docs/superpowers/plans/2026-11-10-ui-review-engsub-vietsub-lists.md](docs/superpowers/plans/2026-11-10-ui-review-engsub-vietsub-lists.md). Phạm vi: W1–W8, P1–P4, E1–E5, V1–V3, L1 (W9 Theater mode và cỡ chữ S/M/L để Backlog).
 
@@ -740,7 +741,7 @@ Nhánh `feat/ui-review-watch-lists` (tạo từ `feat/vietsub-edit-status`, reba
 - **Test:** `cd frontend && npx tsc --noEmit && npm test`: 65 file, 862 test pass (trước nhánh này 849 chưa tính test mới của PR #4); thêm test cho hook phím tắt, `watched`, `useYouTubePlayer`, `WatchPage`, `VietsubListPage`, test CSS (`listsLayout.test.ts`, `WatchPage.css.test.ts`). `test/css.ts` chuẩn hoá CRLF (checkout Windows làm 2 test `brandRoles` fail).
 - **Chưa deploy; public cần Publish lại** (dữ liệu "đã xem" chỉ nằm ở trình duyệt từng người xem, không gửi đi đâu).
 
-### 2026-11-10: Novel reader UX (trang đọc truyện public) ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Novel reader UX (trang đọc truyện public) ✅
 
 Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-reader-ux.md](docs/superpowers/plans/2026-11-10-novel-reader-ux.md).
 
@@ -752,11 +753,11 @@ Nhánh `feat/novel-reader-ux`. Plan: [docs/superpowers/plans/2026-11-10-novel-re
 - **Hướng sau:** chuyển ảnh chương sang R2 để hết giới hạn số file.
 - **Kiểm tra:** `mvn test`, `npm run build`, `npm run build:public`. Chưa kiểm tra bằng trình duyệt trên site thật (chưa publish).
 
-### 2026-11-10: Sửa Analyze ở Vietsub › Profiles báo 0 video / 0 câu ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Sửa Analyze ở Vietsub › Profiles báo 0 video / 0 câu ✅
 - Nguyên nhân: `ProfileAnalyzer` gọi `findExampleVideos(name, "", ...)`; Oracle coi `''` là NULL nên `v.id <> NULL` không bao giờ đúng, ra 0 dòng (H2 và test mock không bắt được). `ExampleSource` luôn truyền id video thật nên không bị.
 - Sửa: thêm `VideoRepository.findCorrectionVideos(profile)` (cùng bộ lọc và thứ tự, không có `excludeId`); `ProfileAnalyzer` dùng nó. Test mới `PersistenceOracleIT.findsEveryFinishedHandMadeVideoOfAProfileWithoutAnExcludedId` trên Oracle thật.
 
-### 2026-11-10: Profile thành một trang (Flyway V13) ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Profile thành một trang (Flyway V13) ✅
 Spec: [docs/superpowers/specs/2026-11-10-profile-single-page-design.md](docs/superpowers/specs/2026-11-10-profile-single-page-design.md), plan: [docs/superpowers/plans/2026-11-10-profile-single-page.md](docs/superpowers/plans/2026-11-10-profile-single-page.md). Nhánh `feat/profile-single-page` (một PR chung với Photos và Works). **Migration `V13__profile_single_page.sql` chưa chạy trên DB thật nào.** Sau khi deploy: tải ảnh chân dung cho Emi, Bonnie (và avatar EmiBonnie) rồi Publish again.
 - **Trang `/profiles` duy nhất** thay ba tab: tiêu đề `Profile`, banner EmiBonnie (`FilmStrip`), rồi mỗi thành viên một `MemberSection` (chân dung 3:4 bên trái/phải xen kẽ, tên, tagline, icon mạng xã hội lấy từ các khối LINKS; bên kia là họ tên đầy đủ và các khối). FACTS thành lưới 2 cột (1 cột dưới 520px, khối FACTS đầu tiên ẩn tiêu đề), khối mới **CHIPS** (nhãn dạng viên thuốc, tối đa 50, nhãn 1-100 ký tự). `/profiles/:slug` chuyển sang `/profiles#slug`, cuộn tới mục sau khi tải; hash lạ bị bỏ qua. `ProfileTabs` đã xoá.
 - **Schema V13:** `t_profile` thêm `kind` (GROUP/MEMBER, check), `sort_order`, `tagline`, `full_name`, `portrait_media_id` (FK `t_media`); `t_media` thêm `width`/`height` (chỉ ảnh upload có `maxSide` mới có); check `block_type` thêm `CHIPS`. Đúng một dòng GROUP (`emibonnie`), API không tạo/xoá được.
@@ -766,7 +767,7 @@ Spec: [docs/superpowers/specs/2026-11-10-profile-single-page-design.md](docs/sup
 - **Quy tắc ảnh:** mọi bảng trỏ tới `t_media` phải được thêm vào `MediaRepository.isReferenced` và `findUnreferencedCreatedBefore`, nếu không ảnh bị dọn sau 24 giờ (chân dung là bảng mới nhất).
 - **Test:** `mvn test -Dskip.npm` 960 pass; `npm test` 85 file / 1002 test; `PersistenceOracleIT` (xem mục Oracle trong PR). Ảnh chụp màn hình chụp một lần ở cuối nhánh cho cả ba phần.
 
-### 2026-11-10: Menu Photos (Flyway V14) ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Menu Photos (Flyway V14) ✅
 Spec: [docs/superpowers/specs/2026-11-10-photos-design.md](docs/superpowers/specs/2026-11-10-photos-design.md), plan: [docs/superpowers/plans/2026-11-10-photos.md](docs/superpowers/plans/2026-11-10-photos.md). Cùng nhánh `feat/profile-single-page` (một PR chung với Profile và Works). **Migration `V14__photos.sql` chưa chạy trên DB thật nào.** Cần Publish again để bản public có `photos.json`.
 - **Schema V14:** `t_photo_post` (link Instagram đã chuẩn hoá, unique; `media_id` FK; `taken_on`/`taken_until` kiểu `DATE`; `source` OFFICIAL/MEDIA/FAN; `photo_count` 1-99 hoặc NULL) và `t_photo_post_profile` (nhiều-nhiều với `t_profile`, `ON DELETE CASCADE`). **Điều chỉnh:** `DATE` của H2 (MODE=Oracle) và Oracle đều trả về `TIMESTAMP` nên entity map `LocalDate` bằng `@JdbcTypeCode(SqlTypes.TIMESTAMP)`; chỉ phần ngày được dùng.
 - **API:** `GET/POST /api/photos`, `PUT/DELETE /api/photos/{id}`. `InstagramUrl.normalize` đưa mọi link chia sẻ (host `instagram.com`/`www.`/`m.`, tiền tố `/{username}`, query, fragment, thiếu scheme) về `https://www.instagram.com/{p|reel|tv}/{code}/`; trùng link → 409 `PHOTO_POST_EXISTS` kèm `title` bài cũ (khi sửa, chính bài đó không tính). Ảnh phải upload bằng `?maxSide=` (cần `width`/`height`), thiếu thì 400 trên `mediaId`. Mọi lỗi field trả cùng lúc (`INVALID_BLOCK` + `errors[]`). Đổi/xoá ảnh thì ảnh cũ bị xoá nếu không ai dùng.
@@ -774,7 +775,7 @@ Spec: [docs/superpowers/specs/2026-11-10-photos-design.md](docs/superpowers/spec
 - **Public:** `data/photos.json` (ảnh đổi sang `/media/...`; bài mất file ảnh thì bỏ và WARN). NavBar: `Get Engsub | Vietsub | Vietsub list | Profile | Photos | Novels`; `/photos` thêm vào `SpaForwardController`.
 - **Test:** `mvn test -Dskip.npm` 991+ pass (`InstagramUrlTest`, `PhotoServiceTest`, `PhotoControllerTest`, `PhotoPostRepositoryTest`, `SiteExporterTest`), `npm test` (`PhotosPage`, `PhotoPostDialog`, `PeopleFilter`, `dates`, `tileShape`, `photos`, `NavBar`); `PersistenceOracleIT` thêm hai bảng và test ngày trên Oracle.
 
-### 2026-11-10: Menu Works (Flyway V15) ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Menu Works (Flyway V15) ✅
 Spec: [docs/superpowers/specs/2026-11-10-works-design.md](docs/superpowers/specs/2026-11-10-works-design.md), plan: [docs/superpowers/plans/2026-11-10-works.md](docs/superpowers/plans/2026-11-10-works.md). Cùng nhánh `feat/profile-single-page` (một PR chung với Profile và Photos). **Migration `V15__works.sql` chưa chạy trên DB thật nào.** Cần Publish again để bản public có `works.json` và `works/{id}.json`.
 - **Schema V15:** `t_person` (danh bạ: tên + avatar), `t_work` (bìa, `release_date` NULL = Coming Soon, `category` 8 giá trị cố định, `subcategory`, `profile_id` làm huy hiệu, mô tả), `t_work_link` (PILOT/TRAILER/X/INSTAGRAM/OTHER, nhãn, URL, `icon` NULL = tự nhận), `t_work_credit` (người + vai + tên nhân vật). Link và credit xoá theo work (`ON DELETE CASCADE`); không có unique `(work_id, person_id)` vì ghi lại cả danh sách sẽ va chạm giữa chừng, nên service kiểm tra.
 - **Quy tắc (ở `WorkValidator`, mọi lỗi trả cùng lúc với đường dẫn như `links[2].url`):** tối đa 20 link, mỗi loại cố định (khác OTHER) một lần, URL http(s) ≤ 500, nhãn 1-60 (để trống thì dùng nhãn mặc định), icon thuộc danh sách; tối đa 30 người, một người một lần, vai ≤ 40, nhân vật ≤ 100 và **bị xoá khi category khác FILM_TV**; tiêu đề 1-200, subcategory ≤ 50, mô tả ≤ 2000. Xoá người đang được credit → 409 `PERSON_IN_USE` kèm danh sách tên work (`Used by: A, B`). Tên người duy nhất không phân biệt hoa thường. Đổi/xoá bìa hoặc avatar thì file cũ bị xoá nếu không ai dùng.
@@ -783,7 +784,7 @@ Spec: [docs/superpowers/specs/2026-11-10-works-design.md](docs/superpowers/specs
 - **Quy tắc ảnh:** `t_work.cover_media_id` và `t_person.avatar_media_id` đã nằm trong `MediaRepository.isReferenced` / `findUnreferencedCreatedBefore`.
 - **Lệch so với plan:** gộp Task 6 và 7 vào một commit; xác thực nằm trong `WorkValidator` (không cần DB) + `WorkService` (cần DB); lỗi 400 dùng `INVALID_WORK`.
 
-### 2026-11-10: Lô cải tiến 2 (video dài, theater, cỡ chữ, backup Oracle, Select, cuộn đầu trang) ✅ (chưa merge, chưa deploy)
+### 2026-11-10: Lô cải tiến 2 (video dài, theater, cỡ chữ, backup Oracle, Select, cuộn đầu trang) ✅
 
 Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enhancements-batch-2.md](docs/superpowers/plans/2026-11-10-enhancements-batch-2.md).
 
@@ -793,7 +794,7 @@ Nhánh `feat/enhancements-batch-2`. Plan: [docs/superpowers/plans/2026-11-10-enh
 - **Select dùng chung** (Radix) thay 5 `<select>` gốc; `ScrollToTop` cho cả hai app.
 - **Cần làm:** chạy `scripts/register-backup-task.ps1` trên máy khác nếu có; deploy không cần migration mới.
 
-### 2026-11-11: UI polish (hệ thống điều khiển, chuyển động, Works/Photos) ✅ (chưa merge, chưa deploy; cần deploy vì có V16)
+### 2026-11-11: UI polish (hệ thống điều khiển, chuyển động, Works/Photos) ✅ (có V16)
 
 Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-design.md](docs/superpowers/specs/2026-11-11-ui-polish-design.md), plan: [docs/superpowers/plans/2026-11-11-ui-polish.md](docs/superpowers/plans/2026-11-11-ui-polish.md).
 
@@ -810,7 +811,7 @@ Nhánh `feat/ui-polish`. Spec: [docs/superpowers/specs/2026-11-11-ui-polish-desi
 
 - **Sửa theo review PR #15:** màn hình cảm ứng (`pointer: coarse`) mọi `.button` (gồm `--s`, `--icon`) có vùng bấm 44 x 44 px qua `::after` trong suốt, kích thước hiển thị giữ 32/40/48 (hai nút cách nhau 8 px có thể chồng 4 px vùng bấm); ô chọn hồ sơ dịch của Get Engsub đổi nhãn rỗng thành "No profile" và rộng tối đa 16rem; nhãn icon "Generic link" của Works đổi thành "Link".
 
-### 2026-11-11: Fanfics (Wattpad) trong Novels, phần backend ✅ (chưa merge, chưa deploy; cần deploy vì có V18)
+### 2026-11-11: Fanfics (Wattpad) trong Novels, phần backend ✅ (có V18)
 
 Nhánh `feat/fanfics`. Spec: [docs/superpowers/specs/2026-11-11-fanfics-design.md](docs/superpowers/specs/2026-11-11-fanfics-design.md), plan: [docs/superpowers/plans/2026-11-11-fanfics.md](docs/superpowers/plans/2026-11-11-fanfics.md).
 
@@ -820,7 +821,7 @@ Nhánh `feat/fanfics`. Spec: [docs/superpowers/specs/2026-11-11-fanfics-design.m
 - **Export:** `data/fanfics.json` (`FanficDto[]`, bìa là `/media/<key>.webp`; file bìa mất thì giữ truyện, `coverUrl` null).
 - **Test:** không test nào gọi Wattpad thật (stub HTTP server cục bộ + fixture `src/test/resources/wattpad/story-396487502.json`).
 
-### 2026-11-11: Works/Photos polish (Combobox, ô chọn ngày, link X, logo) ✅ (chưa merge, chưa deploy; cần deploy vì có V17)
+### 2026-11-11: Works/Photos polish (Combobox, ô chọn ngày, link X, logo) ✅ (có V17)
 
 Nhánh `fix/works-photos-polish`.
 
@@ -832,13 +833,13 @@ Nhánh `fix/works-photos-polish`.
 - **Logo:** `frontend/public/logo.webp` ở navbar và favicon cho cả app lẫn bản public.
 - **Lệch so với yêu cầu:** Combobox tự viết (không dùng `cmdk`); tooltip tăng lên z-index 80 vì dialog (51) che tooltip cũ (50).
 
-### 2026-11-11: Fanfics (Wattpad) trong Novels, phần giao diện + kiểm tra ✅ (chưa merge, chưa deploy; cần deploy vì có V18)
+### 2026-11-11: Fanfics (Wattpad) trong Novels, phần giao diện + kiểm tra ✅ (có V18)
 
 - **Frontend:** `components/fanfics/` (`FanficCard` thẻ kiểu Wattpad, `format.ts` với `formatCompact` cắt không làm tròn lên và `formatReadingTime`, `FanficsTab` tìm kiếm không dấu theo title/author/tags, lọc All/Completed/Ongoing, sắp xếp Newest update/Most read/Most voted/Recently added, `AddFanficDialog` Fetch → xem trước → Save, `FanficMenu` Refresh/Delete, `NovelsTabs` + `useNovelsTab` giữ tab trong `?tab=`). Trang Novels của admin và public đều có tab Translated | Fanfics; public chỉ đọc qua `ReadSource.listFanfics` (`fanfics.json`). Mã lỗi `INVALID_FANFIC_LINK`, `FANFIC_NOT_FOUND`, `FANFIC_EXISTS`, `WATTPAD_UNAVAILABLE` có chữ riêng trong `lib/errors.ts`.
 - **Lệch so với plan:** `WattpadClient` đọc `subtitlestudio.wattpad.base-url` bằng `@Value` (đúng key của plan, không qua `SubtitleStudioProperties`); không tải được bìa thì vẫn lưu truyện không có bìa (Refresh thử lại); tab Fanfics tải lại danh sách mỗi lần chuyển tab (Radix gỡ tab ẩn).
 - **Kiểm tra:** `mvn test -Dskip.npm` 1128 test, `mvn verify -Poracle -Dskip.npm` (`PersistenceOracleIT` 20 test, gồm mô tả có ký tự astral và emoji), `npm test` 119 file, `npx tsc -b` sạch. Chạy jar thật trên cổng 8098 với H2 và bản sao `data/`, thêm truyện mẫu 396487502: Reads 51K, Votes 2.1K, Parts 28, Time 1h 8m, Complete.
 
-### 2026-11-12: Lô phản hồi UI (hover thẻ Works, nhóm theo năm, ngày dd/MM/yyyy, FilterPills, nhãn Vietsub, Profile cuộn) ✅ (chưa merge, chưa deploy)
+### 2026-11-12: Lô phản hồi UI (hover thẻ Works, nhóm theo năm, ngày dd/MM/yyyy, FilterPills, nhãn Vietsub, Profile cuộn) ✅
 
 Nhánh `fix/ui-feedback-batch`, chỉ frontend.
 
@@ -851,7 +852,7 @@ Nhánh `fix/ui-feedback-batch`, chỉ frontend.
 - **Đợt 2 (cùng nhánh):** `<html lang="vi">` cho public; `SkipLink` (link bỏ qua tới `<main>`, gán `id=main` khi bấm); `FilmStrip` có nút Tạm dừng/Tiếp tục (người dùng tạm dừng thì giữ tới khi bấm lại); `html { scroll-padding-top }` theo `--topbar-h` (bỏ scroll-margin lẻ); thang `--z-*` thay mọi z-index số trần; `100dvh` cho dialog; token scrim (`--scrim`, `--scrim-strong`, `--on-scrim`…) thay màu thô; thời lượng vòng lặp trang trí qua `--dur-pulse/scrub/spin/flash` (reduced motion về 0 + `animation: none`); **trang public tiếng Việt** (`lib/i18n.ts` `useT`, menu giữ tiếng Anh, admin giữ tiếng Anh); player `--filled` trong vùng an toàn iPhone (`viewport-fit=cover`, `env(safe-area-inset-*)`); breakpoint mobile-first cho Select, Combobox, ItemListEditor, BlockView facts, VideoPlayer, CueTable, ResultPanel, WatchPage, UrlForm, NavBar, FanficsTab, AddFanficDialog, PhotoPostDialog. Đợt 3: chuyển nốt mọi `@media (max-width)` sang mobile-first (PlaylistHeader, FanficCard, PublishButton, ChapterPage, ProfilesPage, WorkEditPage, CueEditorTable, FeaturedNovels, FanCarousel, NovelRow, PublicNovelPage, ReaderBar, ReaderPage, vietsub-lists, base.css); ngoại lệ duy nhất: `.history__open img` (thuộc tính width/height của img). Nút Tạm dừng/Tiếp tục của FilmStrip nằm cùng hàng với các chấm; avatar "Tất cả" của PeopleFilter dùng icon `Users`.
 - **Đợt 3 (cùng nhánh):** nút Fetch của dialog Add fanfic cao 40 px như ô link; `DatePicker` là ô nhập `dd/MM/yyyy` (cũng nhận `d/M/yyyy`, phân cách `-` hoặc `.`; `parseDay` ở `lib/dates.ts`; nhập sai báo lỗi dưới ô và không gọi `onChange`; Esc khôi phục giá trị hợp lệ gần nhất) kèm nút lịch "Open calendar"; ô Subcategory của Work gợi ý theo loại (`SUBCATEGORY_SUGGESTIONS` ở `components/works/categories.ts` cộng giá trị các work khác đang dùng) và `Combobox` có thêm `openOnFocus`; ô mô tả ảnh trong Banner editor không còn tràn khỏi thẻ.
 
-### 2026-11-12: Ảnh trong `data/media` xếp theo thư mục (Flyway V19) ✅ (chưa merge, chưa deploy; cần deploy vì có V19)
+### 2026-11-12: Ảnh trong `data/media` xếp theo thư mục (Flyway V19) ✅ (có V19)
 
 Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11-12-media-folders-design.md](docs/superpowers/specs/2026-11-12-media-folders-design.md).
 
@@ -860,13 +861,13 @@ Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11
 - `MediaStorage.locate` tìm theo storage key khi file bị DB kia (H2/Oracle dùng chung `./data`) di chuyển (quét tối đa 1 lần/phút). `SiteExporter` đọc qua `MediaStorage`, tên file public không đổi.
 - Deploy: sao lưu DB và chép `data/media` sang `data/media-backup-YYYYMMDD` trước lần chạy đầu, rồi kiểm dòng log `Filed N image(s) into folders ...`.
 
-### 2026-11-12: Nút lên đầu trang, Badge tự thêm People, lấy ảnh từ link X ✅ (chưa merge, chưa deploy; cùng PR #19)
+### 2026-11-12: Nút lên đầu trang, Badge tự thêm People, lấy ảnh từ link X ✅ (PR #19)
 - **Nút lên đầu trang** (`components/BackToTop`, gắn một lần trong `App` và `PublicApp`): nút tròn góc phải dưới, hiện sau khi cuộn quá 1 màn hình, ẩn khi về gần đầu; bấm thì cuộn mượt (tức thì khi giảm chuyển động) rồi đưa focus về `<main>`. Ẩn ở trang đọc truyện public, trang sửa chương (admin), khi player toàn khung (`html.player-filled-open`) và khi có dialog (`body[data-scroll-locked]`); ở trang truyện public nó nằm trên thanh Read cố định (điện thoại). z-index `--z-fixed-bar`, dưới dialog.
 - **Badge → People** (`lib/badgePeople.ts`, `WorkEditPage`): đổi Badge thì thêm thành viên đó (nhóm EmiBonnie thì thêm cả hai) vào People, chỉ thêm, bỏ qua người đã có; tìm theo tên hiển thị hoặc họ tên (không phân biệt hoa thường, dấu), thiếu thì tạo Person với chân dung profile làm avatar (dùng chung media id); toast "Added Emi, Bonnie to People"; lỗi API thì toast lỗi và giữ nguyên danh sách. Mở sửa một work không tự thêm.
 - **Fetch from X** (`POST /api/photos/x-fetch`, `XClient`/`XFetchService`): đọc bài qua `cdn.syndication.twimg.com/tweet-result` (token tính như react-tweet, port V8 `toString(36)`, có test so với node), lấy ảnh đầu (poster nếu là video/GIF) ở cỡ `name=orig` (tối đa 10 MB), lưu bằng `storeResized(..., 1600)`, trả `{mediaId, mediaUrl, width, height, takenOn (giờ Việt Nam), title}`. Lỗi: link sai 400 (`postUrl`), không thấy/bị khoá 404, không có ảnh 422, X không trả lời/429/5xx/timeout 502; không ghi body vào log. Dialog Add post có nút "Fetch from X" cho link X (cả fxtwitter, vxtwitter, mobile.); chỉ điền Title/Date còn trống và nói rõ trong toast nếu bỏ qua. `PostUrl` nhận thêm các host này (chuẩn hoá về x.com). Không cần Flyway.
 - Kiểm tra: `mvn test` 1185 test xanh (gồm phần media folders); `npx vitest run` 126 file; `npx tsc -b --noEmit` sạch. Gọi thật một lần `tweet-result?id=20` cho 200 và đúng dạng JSON.
 
-### 2026-11-13: Truyện dịch từ Wattpad (Flyway V20) ✅ (chưa merge, chưa deploy; cần deploy vì có V20)
+### 2026-11-13: Truyện dịch từ Wattpad (Flyway V20) ✅ (có V20)
 - Một truyện Wattpad **là** một Novel (nguồn `WATTPAD`), dùng lại form, trang truyện, trang chương, Publish, render và trang public của Novels. Spec [docs/superpowers/specs/2026-11-12-wattpad-novels-design.md](docs/superpowers/specs/2026-11-12-wattpad-novels-design.md), plan [docs/superpowers/plans/2026-11-12-wattpad-novels.md](docs/superpowers/plans/2026-11-12-wattpad-novels.md), nhánh `feat/wattpad-novels`.
 - Backend: Flyway V20 (`t_novel.source_type/source_language/wattpad_story_id`, `t_chapter.source_text/wattpad_part_id/source_fetched_at`; `wattpad_part_id` unique riêng vì Oracle coi `(novel_id, NULL)` là một giá trị); `WattpadClient.storyWithParts`/`partText` + `WattpadText.toPlain` (Jsoup 1.18.3); `WattpadNovelService` (preview, tạo kèm bìa chỉ từ host wattpad.com, danh sách phần, import tuần tự nghỉ 500 ms, reload original); chặn endpoint trang cho chương có chữ gốc (409 `CHAPTER_TEXT_SOURCE`); dịch cả chương một request (`TextChapterTranslation`, `GeminiTextChapterTranslator`, `TextSplitter`), `GeminiCaller` có overload `allowTruncated`.
 - Giao diện: New novel có Screenshots | From Wattpad (Fetch → form điền sẵn + Source language; `?wattpad=<link>` tự Fetch); tab Wattpad ở trang truyện (chọn phần, Import, Check for new chapters); trang chương có panel Original (chỉ đọc) cạnh Chapter text + Reload original; menu thẻ Fanfic có Translate this story / Open translation.
@@ -874,18 +875,18 @@ Nhánh `feat/media-folders`, chỉ backend. Spec [docs/superpowers/specs/2026-11
 - Kiểm tra: `mvn test` 1293 test xanh; `mvn verify -Poracle -Dskip.npm` thêm 20 test `PersistenceOracleIT` xanh (Testcontainers); `npx vitest run` 127 file / 1368 test xanh; `npx tsc -b --noEmit` sạch. `ReaderPage.test` (`tap in the middle toggles the bars`) thỉnh thoảng rớt khi máy tải nặng, không liên quan nhánh này.
 - Deploy: sao lưu DB trước (có V20); chỉ Publish sau khi truyện Wattpad đã có chương.
 
-### 2026-11-13: Wattpad dịch từng chương (Fetch & translate) ✅ (chưa merge, chưa deploy; không có migration)
+### 2026-11-13: Wattpad dịch từng chương (Fetch & translate) ✅ (không có migration)
 - Mỗi chương Wattpad có một nút riêng: **Fetch & translate** (lấy bản gốc rồi dịch ngay) hoặc **Translate** (đã nhập). Mỗi truyện chỉ dịch một chương một lúc để tiết kiệm token Gemini và giữ sổ tay đúng thứ tự. Spec [docs/superpowers/specs/2026-11-13-wattpad-per-chapter-fetch-design.md](docs/superpowers/specs/2026-11-13-wattpad-per-chapter-fetch-design.md), plan [docs/superpowers/plans/2026-11-13-wattpad-per-chapter-fetch.md](docs/superpowers/plans/2026-11-13-wattpad-per-chapter-fetch.md), nhánh `feat/wattpad-per-chapter`.
 - Backend: preview trả thêm `parts` (`WattpadPreviewPart`); `POST /api/novels/{id}/wattpad/parts/{partId}/fetch-translate` (202); bận = có chương `TRANSLATING` hoặc sổ tay `UPDATING` (409 `NOVEL_TRANSLATION_BUSY`); `CHAPTER_ALREADY_TRANSLATED`; `WattpadPartProblemException` (`WATTPAD_PART_DELETED`/`EMPTY`/`NOT_FOUND`); `ChapterTranslationService.requireReady` tách khỏi `start`.
 - Giao diện: New novel › From Wattpad hiện danh sách chương (chỉ đọc); tab Wattpad bỏ checkbox/Import, thêm nút theo hàng, huy hiệu Next (tím), hỏi xác nhận khi dịch lệch thứ tự; `NovelPage` poll `GET /api/novels/{id}` (không gọi Wattpad) khi đang dịch hoặc sổ tay đang cập nhật.
 
-### 2026-11-13: UI consistency (Master Layout) ✅ (chưa merge, chưa deploy; bản public cần Publish để thấy)
+### 2026-11-13: UI consistency (Master Layout) ✅
 - Mọi màn hình admin và public theo một khung: breadcrumbs (cấp ≥ 2, điện thoại chỉ "← cha"), H1 luôn hiện, hành động trang ở góc phải header (tối đa 1 primary, cỡ 40 px), `Toolbar` (tìm → pills → sort → hành động của tab), `FormActions` dính đáy ở trang form, `EmptyState`/skeleton cho trạng thái trống/đang tải. Spec [docs/superpowers/specs/2026-11-13-ui-consistency-design.md](docs/superpowers/specs/2026-11-13-ui-consistency-design.md), plan [docs/superpowers/plans/2026-11-13-ui-consistency.md](docs/superpowers/plans/2026-11-13-ui-consistency.md), luật [docs/ui/screen-layout.md](docs/ui/screen-layout.md).
 - Component mới: `Page`, `Toolbar`, `FormActions`, `PageSkeleton`; `PageHeader` thêm `breadcrumbs`/`variant` (default, hero, media)/`media`/`meta`/`onNavigate`; `Breadcrumbs` thêm link "← cha" cho điện thoại; `CreatePlaylistDialog`. Xoá `SourceFilter` (bộ lọc nguồn Vietsub thành `FilterPills`), `.back-link` và mọi "Back to…".
 - Sửa kèm: route `*` + `SpaForwardController` chuyển tiếp theo mẫu (admin gõ URL lạ ra "Page not found" thay vì JSON); navbar điện thoại cuộn theo từng mục (scroll-snap), hết mảnh chữ bị cắt; `BackToTop barOn` nâng nút lên trên thanh form dính đáy.
 - Test `styles/layoutRules.test.ts` quét `src/`: không `<main>`/`<h1>` viết tay, không `back-link`, không `.form-actions` viết tay, không `SourceFilter`.
 
-### 2026-11-13: Sửa video lệch phải ở toàn màn hình iPhone ✅ (chưa merge, chưa deploy)
+### 2026-11-13: Sửa video lệch phải ở toàn màn hình iPhone ✅
 
 Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 
@@ -894,22 +895,30 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - **Sửa thêm (cùng nhánh):** nhãn chương chỉ lặp lại tên mặc định ("Chapter 16" hoặc "Chương 16" trên chương 16, không phân biệt hoa thường) giờ được lưu là NULL (`ChapterService.label`), để trang public hiện đúng "Chương N"; migration `V21__clear_default_chapter_labels.sql` dọn dữ liệu cũ (truyện 1 có chương 16-19 bị nhãn "Chapter N"). Ô nhãn ở trang chương đổi placeholder thành "e.g. Ngoại truyện 1". Cần deploy (có V21) và **Publish lại** để các chương đó vẽ lại ảnh. Ô Number ở trang chương không còn tràn đè lên ô nhãn (`min-width: 0` cho input trong `.chapter-meta__row .field`); các `.field` khác không bị lỗi này.
 - **Sửa thêm 2 (cùng nhánh):** ở trình sửa Vietsub, focus vào text của một dòng khác (bấm hoặc Tab) giờ tua video tới đầu dòng đó và **tạm dừng** thay vì phát (`seekAndPause`, hook `useYouTubePlayer` có thêm `pause()`: chỉ dừng khi đang phát hoặc đang đệm). Video đang dừng thì vẫn dừng; nút `#`, phím tắt phát/dừng và việc tô dòng khi đang phát không đổi.
 
-### 2026-11-14: Hồ sơ dịch tự tạo cho truyện Wattpad ✅ (chưa merge, chưa deploy; không có migration)
+### 2026-11-14: Hồ sơ dịch tự tạo cho truyện Wattpad ✅ (không có migration)
 - Tạo truyện từ Wattpad mà để trống Translation profile thì app tự tạo `data/prompts/novels/<Tên>.md` từ mẫu (Thái hoặc Anh theo Source language, lấy tiêu đề, tác giả, thẻ, mô tả từ Wattpad; không gọi Gemini) và gán làm hồ sơ của truyện, nên Fetch & translate chạy được ngay. Nhân vật để trống, sổ tay truyện tự cập nhật sau mỗi chương. Spec [docs/superpowers/specs/2026-11-14-wattpad-auto-profile-design.md](docs/superpowers/specs/2026-11-14-wattpad-auto-profile-design.md), plan [docs/superpowers/plans/2026-11-14-wattpad-auto-profile.md](docs/superpowers/plans/2026-11-14-wattpad-auto-profile.md), nhánh `feat/wattpad-auto-profile`.
 - Backend: `NovelProfileNames` (tên file từ tiêu đề), `NovelProfileTemplate` + hai mẫu `_novel_template_{th,en}.md`, `PromptProfileStore.create/exists/delete` (không ghi đè, `ProfileExistsException`), `WattpadNovelService.create` (xoá file nếu tạo truyện lỗi), preview trả `suggestedProfile`.
 - Giao diện: dòng gợi ý "Leave empty to create <Tên>.md from the Wattpad details." dưới ô Translation profile khi ô đang trống (chỉ New novel › From Wattpad).
 - Lưu ý: file mới nằm trong `data/prompts/novels/` (được git theo dõi), người dùng tự commit cùng các thay đổi data khác.
 
-### 2026-11-14: Trang truyện công khai: hàng nút phụ riêng ✅ (chưa merge, chưa deploy)
+### 2026-11-14: Trang truyện công khai: hàng nút phụ riêng ✅
 - Trên màn hình rộng, "Đọc từ đầu" và "Truyện gốc" nằm ở hàng riêng bên dưới hàng "Đọc tiếp" + nút tủ sách (bọc trong `novel-cta__more`), hết lệch chiều cao 48px/32px trên một dòng. Kích thước và kiểu nút giữ nguyên; trên điện thoại thanh đọc cố định ở đáy không đổi. Chỉ sửa `PublicNovelPage`; nhánh `fix/novel-cta-rows`.
 
-### 2026-11-14: Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng ✅ (chưa merge, chưa deploy; có migration V22)
+### 2026-11-14: Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng ✅ (PR #30; có migration V22)
 - Tab Translated (admin) và Truyện dịch (public) dùng thẻ kiểu Fanfics (`NovelCard`), có tìm kiếm (tên, tác giả, thẻ/slug), lọc trạng thái, sắp xếp (Mới cập nhật, Đọc nhiều nhất, Mới thêm, Tên A–Z). Dùng chung `ListToolbar` và `lib/novelList.ts`.
 - Banner trang Novels public giờ hiện các truyện admin chọn tay (tối đa 5) qua menu `⋯` Add to banner / Remove from banner; đủ 5 thì hộp thoại cảnh báo. Chưa chọn truyện nào thì dùng 5 truyện cập nhật gần nhất như trước. Flyway V22 thêm `t_novel.featured` (Y/N) và đặt Y cho các truyện đang có.
 - API: `PUT /api/novels/{id}/featured` (409 `BANNER_FULL`); `NovelSummary` và `PublicNovelSummary` thêm các trường mới (xem CLAUDE.md).
 - Tủ sách ở trang public chỉ còn một hàng (`ShelfRow`, đo bề ngang, mục không vừa không được render), link "Xem tất cả (N)" mở trang mới `/novels/shelf`. Mục "Mới cập nhật" bị bỏ, `/novels/all` chuyển về `/novels`.
 - Sửa dùng chung (ảnh hưởng mọi trang có pill/NavBar/phân trang): pill chọn thành tím đặc + viền `--brand-2-ink` (giống `.nav__pill` và `.pager__link--active`, theme sáng cần viền vì nền tím chỉ 1.89:1), pill cao 40 px trên điện thoại, ô sort có icon, placeholder ô tìm của Fanfics nói rõ tìm theo gì; pill chưa chọn giữ viền cam theo quyết định của user. `useConfirmDialog` có chế độ `alertOnly`.
 - Làm trong PR #30 (nhánh `fix/novel-cta-rows`) theo ý user. Spec đã duyệt 2026-11-14.
+
+### 2026-11-14: Thanh Đọc tiếp tràn màn hình (Safari), thẻ Fanfic giống thẻ Truyện dịch, Refresh all thành icon, tiêu đề Tất cả truyện, pill 40 px ✅ (nhánh `fix/public-novel-polish`)
+- **Thanh "Đọc tiếp" cố định ở đáy (điện thoại) tràn sang phải và đẩy nút Tủ sách ra ngoài màn hình** khi tên chương dài: cột grid `1fr` có `min-width: auto` nên giãn theo chữ (`.button` có `white-space: nowrap`). Sửa: `grid-template-columns: minmax(0, 1fr) 48px`, link `min-width: 0`, chữ bọc trong `.novel-cta__label` (cắt `…`). Chân trang (nằm ngoài `.novel-page`) bị thanh che: đệm đáy chuyển từ `.novel-page` sang `body:has(.novel-cta)` (dưới 768 px). Test `PublicNovelPage.css.test.ts`.
+- Thẻ Fanfic: thứ tự chỉ số thành **Chương | Lượt đọc | Bình chọn | Thời gian đọc** (admin: Chapters | Reads | Votes | Time; icon `Library` như thẻ Truyện dịch; "Phần"/"Parts" đổi thành "Chương"/"Chapters").
+- Admin Novels › Fanfics: nút Refresh all thành `IconButton` (tooltip "Refresh all", lúc chạy "Refreshing…").
+- Trang Novels public: tiêu đề **"Tất cả truyện"** (cùng kiểu "Tủ sách") ngay trên ô tìm, để ô tìm không trông như thuộc Tủ sách.
+- `FilterPills` dùng nút M 40 px ở mọi cỡ màn hình (trước là `button--s` 32 px, chỉ điện thoại 40 px), cao bằng ô tìm và ô sort cạnh nó; bỏ quy tắc `max-width: 520px` cũ. Áp dụng mọi trang có pill (Works, Fanfics, Vietsub, Novels).
+- Chưa kiểm tra bằng trình duyệt thật (máy không có Chrome cho Playwright); cần xem lại trên Safari iPhone sau khi deploy + Publish.
 
 ## 9. Rủi ro đang theo dõi
 

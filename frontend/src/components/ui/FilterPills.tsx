@@ -7,7 +7,7 @@ export interface FilterOption<T extends string | null> {
 
 /**
  * One row of toggle pills (`aria-pressed`) that filters a list; the chosen pill is purple (state). Scrolls sideways
- * on phones. Shared by Works categories and Fanfics status. Options carry their own values, so `null` can mean All.
+ * on phones. Standard 40 px buttons, the height of the search box and sort beside them. Shared by Works categories and Fanfics status. Options carry their own values, so `null` can mean All.
  */
 export function FilterPills<T extends string | null>({
   label,
@@ -27,7 +27,7 @@ export function FilterPills<T extends string | null>({
         <button
           key={o.value ?? '__all'}
           type="button"
-          className="button button--s filter-pills__pill"
+          className="button filter-pills__pill"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
         >

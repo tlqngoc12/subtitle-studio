@@ -15,6 +15,7 @@ import { formatInstant } from '../../lib/dates';
 import { normalizeForSearch } from '../../lib/search';
 import { EmptyState } from '../EmptyState';
 import { useConfirmDialog } from '../useConfirmDialog';
+import { IconButton } from '../ui/IconButton';
 import { Alert } from '../ui/Alert';
 import { Reveal } from '../ui/Reveal';
 import { ListToolbar } from '../ui/ListToolbar';
@@ -208,10 +209,12 @@ export function FanficsTab() {
         actions={
           !readOnly && (
             <>
-              <button type="button" className="button" disabled={refreshingAll} onClick={() => void refreshAll()}>
-                <RefreshCw className="icon" aria-hidden="true" />
-                {refreshingAll ? 'Refreshing…' : 'Refresh all'}
-              </button>
+              <IconButton
+                icon={RefreshCw}
+                label={refreshingAll ? 'Refreshing…' : 'Refresh all'}
+                disabled={refreshingAll}
+                onClick={() => void refreshAll()}
+              />
               <button type="button" className="button button--primary" onClick={() => setAdding(true)}>
                 <Plus className="icon" aria-hidden="true" />
                 Add fanfic

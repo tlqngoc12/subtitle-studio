@@ -22,8 +22,9 @@ describe('selected-state CSS', () => {
     expect(rule('.filter-pills__pill')).not.toMatch(/border/);
   });
 
-  it('gives the pills a 40 px height on phones', () => {
-    expect(css).toMatch(/@media \(max-width: 520px\)\s*\{\s*\.filter-pills__pill\s*\{\s*height:\s*var\(--control-m\)/);
+  it('sets no size of its own: the pills are standard 40 px buttons on every screen, like the search box and sort', () => {
+    expect(css).not.toMatch(/\.filter-pills__pill\s*\{[^}]*height/);
+    expect(css).not.toMatch(/@media \(max-width: 520px\)\s*\{\s*\.filter-pills__pill/);
   });
 
   it('gives the nav pill and the active page link the same ring', () => {
