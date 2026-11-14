@@ -201,3 +201,33 @@ In Edge at 390 px, a 27,422-char chapter measured `clientHeight` 26,251 against 
 
   → FAIL → implement → full vitest + tsc green. Commit `feat: disable translate actions with the reason while a novel is busy`.
 - [ ] `CLAUDE.md` and `PROGRESS.md` updates per the spec. Commit `docs: busy reason`.
+
+### Task 11: Pause notebook updates per novel (user-approved 2026-11-15)
+
+**Spec:** `docs/superpowers/specs/2026-11-15-notebook-pause-design.md` (read fully). **This task has a DB migration.**
+
+**Files:**
+- New `src/main/resources/db/migration/V23__novel_notebook_paused.sql`, written in Oracle SQL.
+- Modify `novel/Novel.java` (Y/N boolean like `featured`) and `NotebookService` (no scheduling while paused; retry rejected while paused with 409 `NOTEBOOK_PAUSED`).
+- Add the controller endpoint `PUT /api/novels/{id}/notebook/paused`, and `notebookPaused` in `NovelDetail` and `NotebookView`.
+- Also add `notebookChapterNo` to `NovelDetail` (the pending chapter while updating, else null). Use it on the novel page's busy line instead of the latest-published fallback.
+- Frontend: Notebook tab switch, resume line, Update now, header badge "Notebook paused"; `api/novels.ts`; `errors.ts` message for `NOTEBOOK_PAUSED`.
+
+**Interfaces — Produces:**
+- `NotebookView setNotebookPaused(long novelId, boolean paused)`;
+- `setNotebookPaused(novelId: number, paused: boolean): Promise<NotebookView>`.
+
+- [ ] **Backend tests:** the service cases from the spec, the controller JSON, and the migration default 'N'. Run them and see them FAIL, then implement. Then run, all green:
+  - `timeout 600 mvn -q test -Dskip.npm`;
+  - `timeout 900 mvn verify -Poracle -Dskip.npm` (needs Docker; reuse or add an `*OracleIT` that reads the new column).
+
+  Commit `feat: pause notebook updates per novel (V23)`.
+- [ ] **Frontend tests per the spec:**
+  - the switch calls the PUT, and rolls back with an error toast on failure;
+  - Retry is disabled with its tooltip while paused;
+  - the resume line and Update now appear only when chapters were published since;
+  - the header badge shows while paused;
+  - the busy line uses `notebookChapterNo`.
+
+  Run them and see them FAIL, then implement; full vitest + tsc green. Commit `feat: notebook pause switch, resume line and badge`.
+- [ ] `CLAUDE.md` (Novels notebook: the pause rule, V23, endpoint) and `PROGRESS.md` (deploy note: V23, back up first). Commit `docs: notebook pause`.
