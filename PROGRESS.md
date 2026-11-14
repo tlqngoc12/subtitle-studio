@@ -955,12 +955,12 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 ### 2026-11-15: Lý do "bận" và vô hiệu hoá trước khi bấm; sửa auto-grow bị cắt chữ ✅
 - Spec [docs/superpowers/specs/2026-11-15-novel-busy-reason-design.md](docs/superpowers/specs/2026-11-15-novel-busy-reason-design.md), plan [docs/superpowers/plans/2026-11-15-novel-editor-ux.md](docs/superpowers/plans/2026-11-15-novel-editor-ux.md) (task 9-10).
 - Nguyên nhân gốc: Fetch & translate báo "Another chapter is still translating" trong khi thật ra sổ tay đang cập nhật (Gemini 503 rồi chậm). `NovelTranslationBusyException` giờ có `reason` + `chapterNo`; frontend nói đúng nguyên nhân, vô hiệu hoá các nút dịch kèm tooltip và hiện dòng "Notebook updating after chapter N…" / "Chapter N is translating…". Trang truyện lấy số chương của sổ tay từ chương Published mới nhất (`NovelDetail` chưa có `notebookChapterNo`).
+- Auto-grow: ngoài việc đo lại sau khi font tải xong, khi đổi bề ngang và mỗi lần nhập, chiều cao nay cộng cả viền (`scrollHeight` không tính viền nên luôn thiếu 2 px) và có lưới an toàn đo lại ở frame sau nếu vẫn `scrollHeight > clientHeight`.
 
 ### 2026-11-15: Tạm dừng cập nhật sổ tay theo truyện ✅ (có migration V23)
 - Spec [docs/superpowers/specs/2026-11-15-notebook-pause-design.md](docs/superpowers/specs/2026-11-15-notebook-pause-design.md), plan Task 11 trong [docs/superpowers/plans/2026-11-15-novel-editor-ux.md](docs/superpowers/plans/2026-11-15-novel-editor-ux.md). Gemini quá tải khiến mỗi Publish chiếm truyện vài phút (có lần quá 5 phút thì lỗi), nên mỗi truyện có công tắc "Pause notebook updates": bật thì Publish không cập nhật sổ tay, dịch vẫn dùng sổ tay hiện có.
 - `t_novel.notebook_paused` (V23); `PUT /api/novels/{id}/notebook/paused`; `retry` khi tạm dừng thì 409 `NOTEBOOK_PAUSED`; tắt tạm dừng không tự chạy gì, tab Notebook hiện dòng còn thiếu mấy chương và nút Update now (chạy `retry`, nay mặc định lấy chương Published mới nhất khi không có chương lỗi chờ). `NovelDetail` thêm `notebookChapterNo` nên dòng bận dùng đúng số chương.
 - **Lưu ý deploy:** V23 chạy trên Oracle, chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi thì dừng.
-- Auto-grow: ngoài việc đo lại sau khi font tải xong, khi đổi bề ngang và mỗi lần nhập, chiều cao nay cộng cả viền (`scrollHeight` không tính viền nên luôn thiếu 2 px) và có lưới an toàn đo lại ở frame sau nếu vẫn `scrollHeight > clientHeight`.
 
 ## 9. Rủi ro đang theo dõi
 
