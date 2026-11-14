@@ -130,3 +130,37 @@
 - [ ] `PROGRESS.md`: one Vietnamese log entry at the end of section 7 (before `## 9.`) linking both specs and this plan; note "cần Publish lại để có ngày đăng chương".
 - [ ] Run `npx vitest run`, `npx tsc -b`, `mvn -q test -Dskip.npm`; report real counts.
 - [ ] Commit `docs: Novels UI review and translate-next`.
+
+---
+
+## Added 2026-11-14 (approved by the user after tasks 1–8)
+
+### Task 9: Notebook field limits and cleaning leaked text
+
+**Spec:** `docs/superpowers/specs/2026-11-14-notebook-field-limits-design.md` (read it; its "Tests" section is the test list).
+
+**Files:**
+- `src/main/java/com/subtitlestudio/novel/NotebookMerger.java` (limits, `check`, sanitizing old content)
+- `NotebookText.java`
+- `NotebookService.java` (view)
+- `GeminiNotebookUpdater.java` (`SYSTEM_RULES` line; schema `maxLength` if the `Schema` builder has it)
+- their tests under `src/test/java/com/subtitlestudio/novel/`
+
+**Interfaces — Produces:** `static NotebookContent NotebookMerger.sanitize(NotebookContent content)`. It is pure and idempotent: it drops `sourceName` values longer than 120 chars (sets them to null), and drops glossary/addressing entries over their limits. It is used by the view, `NotebookText`, and the old side of `merge`.
+
+- [ ] Tests per the spec → FAIL → implement → `mvn -q test -Dskip.npm` green. Logs and messages carry only field names and lengths, never content.
+- [ ] Commit `fix: notebook name and glossary limits; drop leaked text on read`.
+
+### Task 10: Chapter auto-save every 15 minutes
+
+**Files:** `frontend/src/pages/ChapterPage.tsx` (`AUTO_SAVE_MS`), `ChapterPage.test.tsx`.
+
+- [ ] Test: rename "auto-saves after 3 minutes…" to "…15 minutes…". Assert that `AUTO_SAVE_MS === 900_000`, that nothing is saved at `AUTO_SAVE_MS - 1000`, and that it is saved at `AUTO_SAVE_MS`. FAIL → set `AUTO_SAVE_MS = 900_000` → green.
+- [ ] Commit `feat: chapter auto-save every 15 minutes`.
+
+### Task 11: Docs for tasks 9–10
+
+- [ ] `CLAUDE.md`, Novels notebook (package `novel` line or the Novels bullet): the field limits (name 80, sourceName 120, glossary source/target 120, note 300, addressing from/to 80, rule 300) and "content is sanitized on read (`NotebookMerger.sanitize`)".
+- [ ] `PROGRESS.md`: add both to this branch's log entry. Mention "tự lưu chương mỗi 15 phút (trước là 3 phút)" and the sổ tay cleanup, with the measured lengths from the spec.
+- [ ] Run `npx vitest run`, `npx tsc -b`, `mvn -q test -Dskip.npm`; report the real counts.
+- [ ] Commit `docs: notebook limits and 15-minute auto-save`.
