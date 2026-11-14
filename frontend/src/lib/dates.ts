@@ -24,6 +24,13 @@ const DATE_TIME = new Intl.DateTimeFormat('en-GB', {
   hourCycle: 'h23',
 });
 
+const CLOCK = new Intl.DateTimeFormat('en-GB', { timeZone: ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** A moment → `HH:mm` (24 hour) in Vietnam time. */
+export function formatClock(at: Date): string {
+  return CLOCK.format(at);
+}
+
 /** An instant (ISO timestamp) → `dd/MM/yyyy` in Vietnam time. */
 export function formatInstant(iso: string): string {
   return DATE.format(new Date(iso));

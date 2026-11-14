@@ -35,8 +35,7 @@ export default function App() {
         <NavBar />
         <AppToaster />
         <BackToTop
-          hideOn={[/^\/novels\/[^/]+\/chapters\/[^/]+$/]}
-          // Form pages with a sticky FormActions bar (the chapter page hides the button instead).
+          // Form pages with a sticky FormActions bar (the chapter editor's bar is at the top, so it needs nothing).
           barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/, /^\/novels\/\d+$/]}
         />
         <Routes>

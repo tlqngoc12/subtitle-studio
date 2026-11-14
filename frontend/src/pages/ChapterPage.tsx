@@ -6,13 +6,9 @@ import {
   CloudDownload,
   Copy,
   Info,
-  Languages,
-  RefreshCw,
   RotateCcw,
   RotateCw,
-  Send,
   TriangleAlert,
-  Undo2,
 } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -41,6 +37,8 @@ import {
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
 import { countText, paragraphs } from '../lib/chapterText';
+import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
+import { useAutoGrow } from '../lib/useAutoGrow';
 import { PageRow } from '../components/novel/PageRow';
 import { PageUploader } from '../components/novel/PageUploader';
 import { StatusBadges } from '../components/novel/StatusBadges';
@@ -50,7 +48,6 @@ import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError } from '../lib/toast';
 import { Alert } from '../components/ui/Alert';
-import { FormActions } from '../components/ui/FormActions';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
@@ -85,6 +82,10 @@ export default function ChapterPage() {
   const [uploading, setUploading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [enlarged, setEnlarged] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [lastSave, setLastSave] = useState<{ kind: 'saved' | 'autosaved'; at: Date } | null>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(textRef, text);
 
   // The counts follow the text about 300 ms after the last key, so typing in a long chapter stays light.
   const [counted, setCounted] = useState('');
@@ -111,6 +112,7 @@ export default function ChapterPage() {
   useEffect(() => {
     setChapter(null);
     setStarting(false); // the page is reused for the chapter just opened
+    setLastSave(null);
     getChapter(chapterId)
       .then(load)
       .catch((e) => setError(errorMessage(e)));
@@ -279,17 +281,23 @@ export default function ChapterPage() {
 
   async function save(auto = false) {
     if (!chapter) return;
-    await run(async () => {
-      load(
-        await updateChapter(chapterId, {
-          chapterNo: Number(number),
-          label: label.trim(),
-          title: title.trim(),
-          text,
-        }),
-      );
-      toast.success(auto ? 'Chapter auto-saved' : 'Chapter saved');
-    });
+    setSaving(true);
+    try {
+      await run(async () => {
+        load(
+          await updateChapter(chapterId, {
+            chapterNo: Number(number),
+            label: label.trim(),
+            title: title.trim(),
+            text,
+          }),
+        );
+        setLastSave({ kind: auto ? 'autosaved' : 'saved', at: new Date() });
+        toast.success(auto ? 'Chapter auto-saved' : 'Chapter saved');
+      });
+    } finally {
+      setSaving(false);
+    }
   }
   saveRef.current = save;
 
@@ -357,6 +365,29 @@ export default function ChapterPage() {
     });
   }
 
+  const saveState: SaveState = saving ? { kind: 'saving' } : dirty ? { kind: 'dirty' } : (lastSave ?? { kind: 'idle' });
+  const menuItems: ChapterMenuItem[] = [
+    ...(published
+      ? [
+          {
+            label: 'Unpublish',
+            // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
+            disabled: locked || dirty,
+            onSelect: () => void run(async () => load(await unpublishChapter(chapterId))),
+          },
+        ]
+      : [
+          {
+            label: chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again',
+            // Translating again replaces the text, edits included.
+            danger: chapter.translationStatus !== 'NONE',
+            disabled: locked || (!fromText && chapter.pages.length === 0),
+            onSelect: () => void translate(),
+          },
+        ]),
+    ...(showOriginal ? [{ label: 'Reload original', disabled: locked, onSelect: () => void reloadOriginal() }] : []),
+  ];
+
   return (
     <Page width={showOriginal ? 'default' : 'narrow'} className="chapter-page">
       {confirmDialog}
@@ -368,54 +399,51 @@ export default function ChapterPage() {
         ]}
         onNavigate={(e, to) => void leave(e, to)}
         title={chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}
-        meta={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
-        actions={
+      />
+
+      <ChapterBar
+        nav={
           <>
-            <span className="chapter-head__nav">
-              {chapter.prevChapterId !== null && (
-                <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
-                  onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
-              )}
-              {chapter.nextChapterId !== null && (
-                <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
-                  onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
-              )}
-              {/* The last chapter of a Wattpad novel: start the next part from here instead of the Wattpad tab. */}
-              {chapter.wattpadPartId !== null && chapter.nextChapterId === null && (
-                <Tip label="Wait until this chapter finishes translating." disabled={!translating}>
-                  <span className="chapter-head__next">
-                    <button className="button" type="button" disabled={locked || starting}
-                      onClick={() => void startNext()}>
-                      <CloudDownload className="icon" aria-hidden="true" />
-                      {starting ? 'Starting…' : 'Fetch & translate next'}
-                    </button>
-                  </span>
-                </Tip>
-              )}
-            </span>
-            {!published && (
-              <button className="button" type="button" onClick={() => void translate()}
-                disabled={locked || (!fromText && chapter.pages.length === 0)}>
-                <Languages className="icon" aria-hidden="true" />
-                {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
-              </button>
+            {chapter.prevChapterId !== null && (
+              <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
+                onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
             )}
-            {published ? (
-              // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
-              <button className="button" type="button" disabled={locked || dirty}
-                onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
-                <Undo2 className="icon" aria-hidden="true" />
-                Unpublish
-              </button>
-            ) : (
-              <button className="button button--primary" type="button" disabled={locked || dirty}
-                onClick={() => void run(async () => load(await publishChapter(chapterId)))}>
-                <Send className="icon" aria-hidden="true" />
-                Publish
-              </button>
+            {chapter.nextChapterId !== null && (
+              <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
+                onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
+            )}
+            {/* The last chapter of a Wattpad novel: start the next part from here instead of the Wattpad tab. */}
+            {chapter.wattpadPartId !== null && chapter.nextChapterId === null && (
+              <Tip label="Wait until this chapter finishes translating." disabled={!translating}>
+                <span className="chapter-head__next">
+                  <button className="button" type="button" disabled={locked || starting}
+                    onClick={() => void startNext()}>
+                    <CloudDownload className="icon" aria-hidden="true" />
+                    {starting ? 'Starting…' : 'Fetch & translate next'}
+                  </button>
+                </span>
+              </Tip>
             )}
           </>
         }
+        title={chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}
+        badges={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
+        saveState={saveState}
+        canSave={canSave}
+        onSave={() => void save()}
+        publish={
+          published
+            ? undefined
+            : {
+                onPublish: () => void run(async () => load(await publishChapter(chapterId))),
+                disabledReason: translating
+                  ? 'Wait until this chapter finishes translating.'
+                  : busy
+                    ? 'Wait until the current action finishes.'
+                    : null,
+              }
+        }
+        menuItems={menuItems}
       />
 
       <p className="chapter-count muted">
@@ -552,10 +580,6 @@ export default function ChapterPage() {
               <h2 id={`${ids}-original`} className="history__heading">
                 Original ({chapter.sourceLanguage === 'en' ? 'English' : 'Thai'})
               </h2>
-              <button className="button button--s" type="button" disabled={locked} onClick={() => void reloadOriginal()}>
-                <RefreshCw className="icon" aria-hidden="true" />
-                Reload original
-              </button>
             </div>
             <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0}
               lang={chapter.sourceLanguage}>
@@ -568,16 +592,10 @@ export default function ChapterPage() {
         )}
         <div className="field chapter-text">
           <label htmlFor={`${ids}-text`}>Chapter text</label>
-          <textarea id={`${ids}-text`} rows={24} value={text} disabled={locked}
+          <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
             onChange={(e) => setText(e.target.value)} />
         </div>
       </div>
-
-      <FormActions sticky start={dirty && <span className="muted form-actions__label">Unsaved changes</span>}>
-        <button className="button button--primary" type="button" onClick={() => void save()} disabled={locked || !dirty || !number}>
-          Save
-        </button>
-      </FormActions>
 
       <Lightbox
         open={enlarged !== null}

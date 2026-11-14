@@ -53,6 +53,27 @@ async function loaded() {
 
 const textBox = () => screen.getByLabelText('Chapter text');
 
+/** Opens the bar's ⋯ menu and returns the item with this name. */
+async function menuItem(name: string | RegExp) {
+  const trigger = screen.getByRole('button', { name: 'Chapter actions' });
+  if (trigger.getAttribute('aria-expanded') !== 'true') await userEvent.setup(vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : {}).click(trigger);
+  return screen.findByRole('button', { name });
+}
+
+/** Opens the menu and clicks the item. */
+async function chooseAction(name: string | RegExp) {
+  await userEvent.setup(vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : {}).click(await menuItem(name));
+}
+
+/** Names of the menu's items (it is closed again afterwards). */
+async function menuItemNames() {
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Chapter actions' }));
+  await waitFor(() => expect(document.querySelector('.member-menu__list')).not.toBeNull());
+  const names = [...document.querySelectorAll('.member-menu__item:not(.chapter-bar__menu-publish)')].map((b) => b.textContent);
+  await userEvent.setup().keyboard('{Escape}');
+  return names;
+}
+
 describe('ChapterPage', () => {
   beforeEach(() => vi.mocked(toast.success).mockClear());
   afterEach(() => vi.useRealTimers());
@@ -84,31 +105,97 @@ describe('ChapterPage', () => {
     expect(await screen.findByText('novel page')).toBeInTheDocument();
   });
 
-  it('puts Translate, Publish and Unpublish in the header at the standard size, one primary', async () => {
+  it('puts Save, Publish and the ⋯ menu in the sticky bar with the badges, and no other buttons in the header', async () => {
     renderPage([get()]);
     await loaded();
 
+    const bar = document.querySelector('.chapter-bar') as HTMLElement;
+    expect(within(bar).getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Publish' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Chapter actions' })).toBeInTheDocument();
+    expect(within(bar).getByText('Translated')).toBeInTheDocument();
     const header = screen.getByRole('heading', { level: 1 }).closest('header')!;
-    const translate = within(header).getByRole('button', { name: 'Translate again' });
-    const publish = within(header).getByRole('button', { name: 'Publish' });
-    expect(translate).not.toHaveClass('button--s', 'button--primary');
-    expect(publish).toHaveClass('button--primary');
-    expect(header.querySelectorAll('.button--primary')).toHaveLength(1);
-    expect(within(header).getByText('Translated')).toBeInTheDocument();
+    expect(within(header).queryByRole('button')).toBeNull();
   });
 
-  it('keeps Unpublish at the standard size', async () => {
+  it('has no bottom form bar: Save is not in a FormActions', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(document.querySelector('.form-actions')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save' }).closest('.chapter-bar')).not.toBeNull();
+  });
+
+  describe('one primary button', () => {
+    const primaries = () => [...document.querySelectorAll('.chapter-bar .button--primary')].map((b) => b.textContent);
+
+    it('is Publish on a clean Draft', async () => {
+      renderPage([get()]);
+      await loaded();
+
+      expect(primaries()).toEqual(['Publish']);
+    });
+
+    it('is Save on a dirty Draft, and Publish is disabled with "Save first"', async () => {
+      renderPage([get()]);
+      await loaded();
+
+      fireEvent.change(textBox(), { target: { value: 'đã sửa' } });
+
+      expect(primaries()).toEqual(['Save']);
+      const publish = screen.getByRole('button', { name: 'Publish' });
+      expect(publish).toBeDisabled();
+      await expectTooltip(publish.parentElement!, 'Save first');
+    });
+
+    it('is none on a clean Published chapter, and Save on a dirty one', async () => {
+      renderPage([get({ publishStatus: 'PUBLISHED' })]);
+      await loaded();
+      expect(primaries()).toEqual([]);
+
+      fireEvent.change(textBox(), { target: { value: 'đã sửa' } });
+
+      expect(primaries()).toEqual(['Save']);
+    });
+  });
+
+  describe('the ⋯ menu', () => {
+    it('lists Translate again (red), no Unpublish on a translated Draft', async () => {
+      renderPage([get()]);
+      await loaded();
+
+      expect(await menuItemNames()).toEqual(['Translate again']);
+      const again = await menuItem('Translate again');
+      expect(again).toHaveClass('member-menu__item--danger');
+    });
+
+    it('says plain Translate (not red) before the first translation', async () => {
+      renderPage([get({ translationStatus: 'NONE', text: '' })]);
+      await loaded();
+
+      expect(await menuItem('Translate')).not.toHaveClass('member-menu__item--danger');
+    });
+
+    it('lists Unpublish on a Published chapter, and no Translate', async () => {
+      renderPage([get({ publishStatus: 'PUBLISHED' })]);
+      await loaded();
+
+      expect(await menuItemNames()).toEqual(['Unpublish']);
+    });
+
+    it('lists Reload original on a Wattpad Draft', async () => {
+      renderPage([get({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', sourceLanguage: 'en' })]);
+      await loaded();
+
+      expect(await menuItemNames()).toEqual(['Translate again', 'Reload original']);
+    });
+  });
+
+  it('has no Publish button on a Published chapter', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    expect(screen.getByRole('button', { name: 'Unpublish' })).not.toHaveClass('button--s');
-  });
-
-  it('keeps Save in the sticky form bar', async () => {
-    renderPage([get()]);
-    await loaded();
-
-    expect(screen.getByRole('button', { name: 'Save' }).parentElement).toHaveClass('form-actions--sticky');
+    expect(document.querySelector('.chapter-bar__publish')).toBeNull();
   });
 
   it('has a text-only Save button', async () => {
@@ -257,7 +344,7 @@ describe('ChapterPage', () => {
     ]);
     await loaded();
 
-    await user().click(screen.getByRole('button', { name: 'Translate again' }));
+    await chooseAction('Translate again');
     await answerConfirm('Translate again', 'Translate this chapter again?');
 
     await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(true));
@@ -286,7 +373,7 @@ describe('ChapterPage', () => {
     await loaded();
 
     expect(screen.getByText('Gemini free quota is used up, try again later.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Translate again' })).toBeEnabled();
+    expect(await menuItem('Translate again')).toBeEnabled();
   });
 
   it('publishes, and explains when pages are missing a translation', async () => {
@@ -308,18 +395,19 @@ describe('ChapterPage', () => {
     routes[1] = { method: 'POST', path: '/api/chapters/9/publish', status: 200, body: chapterDetail({ publishStatus: 'PUBLISHED' }) };
     await user().click(screen.getByRole('button', { name: 'Publish' }));
 
-    expect(await screen.findByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
-    expect(within(screen.getByRole('heading', { level: 1 }).closest('header')!).getByText('Published')).toBeInTheDocument();
+    expect(await menuItem('Unpublish')).toBeInTheDocument();
+    expect(within(document.querySelector('.chapter-bar') as HTMLElement).getByText('Published')).toBeInTheDocument();
   });
 
   it('does not let Unpublish drop unsaved edits', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeEnabled();
+    expect(await menuItem('Unpublish')).toBeEnabled();
+    await user().keyboard('{Escape}');
 
     await user().type(textBox(), '!');
 
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeDisabled();
+    expect(await menuItem('Unpublish')).toBeDisabled();
   });
 
   it('shows only the text and title of a published chapter', async () => {
@@ -335,7 +423,7 @@ describe('ChapterPage', () => {
     expect(screen.queryByRole('list', { name: 'Pages' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Enlarge page 1' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
+    expect(await menuItem('Unpublish')).toBeInTheDocument();
   });
 
   it('saves a label shown instead of the chapter number', async () => {
@@ -368,7 +456,7 @@ describe('ChapterPage', () => {
     expect(screen.queryByText(/This chapter is published/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Number')).toBeEnabled();
     expect(screen.getByLabelText('Add page screenshots')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Translate again' })).toBeInTheDocument();
+    expect(await menuItem('Translate again')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Drag to reorder: page 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete page 1' })).toBeInTheDocument();
   });
@@ -427,7 +515,7 @@ describe('ChapterPage', () => {
       ]);
       await loaded();
 
-      await user().click(screen.getByRole('button', { name: 'Translate again' }));
+      await chooseAction('Translate again');
       const dialog = await screen.findByRole('alertdialog');
       expect(dialog).toHaveAccessibleName('Landscape pages');
       expect(dialog).toHaveTextContent('1 page(s) are landscape — Gemini reads sideways text poorly. Translate anyway?');
@@ -436,7 +524,7 @@ describe('ChapterPage', () => {
 
       expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(false);
 
-      await user().click(screen.getByRole('button', { name: 'Translate again' }));
+      await chooseAction('Translate again');
       await answerConfirm('Translate anyway', 'Landscape pages');
       await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(true));
     });
@@ -712,7 +800,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     ]);
     await loaded();
 
-    const translate = screen.getByRole('button', { name: 'Translate' });
+    const translate = await menuItem('Translate');
     expect(translate).toBeEnabled();
     await userEvent.setup().click(translate);
 
@@ -727,7 +815,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     ]);
     await loaded();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Translate again' }));
+    await chooseAction('Translate again');
     await answerConfirm('Translate again', 'Translate this chapter again?');
 
     expect(await screen.findByText('Gemini is translating the chapter…')).toBeInTheDocument();
@@ -747,7 +835,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     const u = userEvent.setup();
     await u.type(textBox(), ' sửa');
 
-    await u.click(screen.getByRole('button', { name: 'Reload original' }));
+    await chooseAction('Reload original');
     await answerConfirm('Reload original', 'Reload the original text?');
 
     await waitFor(() => expect(screen.getByRole('region', { name: 'Original text' })).toHaveTextContent('Fresh original.'));
@@ -760,7 +848,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     const calls = renderPage([wattpad()]);
     await loaded();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Reload original' }));
+    await chooseAction('Reload original');
     await answerConfirm('Cancel');
 
     expect(calls.some((c) => c.path === '/api/chapters/9/reload-original')).toBe(false);
@@ -770,14 +858,12 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'Bản dịch' })]);
     await loaded();
 
-    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+    expect(await menuItemNames()).toEqual(['Unpublish']);
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /^Original/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
     expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
     expect(textBox()).toHaveValue('Bản dịch');
-    expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
   });
 
@@ -810,7 +896,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     await loaded();
 
     expect(screen.getByRole('region', { name: 'Original text' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reload original' })).toBeInTheDocument();
+    expect(await menuItem('Reload original')).toBeInTheDocument();
     expect(screen.getByRole('main').className).not.toContain('page--narrow');
   });
 
@@ -820,7 +906,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
       { method: 'POST', path: '/api/chapters/9/reload-original', status: 502, body: problem(502, 'WATTPAD_UNAVAILABLE', 'x') },
     ]);
     await loaded();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Reload original' }));
+    await chooseAction('Reload original');
     await answerConfirm('Reload original');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Wattpad did not answer. Try again later.');
@@ -831,7 +917,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     await loaded();
 
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+    expect(await menuItemNames()).toEqual(['Translate again']);
   });
 });
 
@@ -1011,5 +1097,88 @@ describe('ChapterPage status line', () => {
     it('colours the warning with the danger token', () => {
       expect(css).toMatch(/\.chapter-count__warn\s*\{[^}]*color:\s*var\(--danger\)/);
     });
+  });
+});
+
+describe('ChapterPage editor and save state', () => {
+  const put: FakeRoute = { method: 'PUT', path: '/api/chapters/9', status: 200, body: chapterDetail({ text: 'x' }) };
+  const edit = (value = 'đã sửa') => fireEvent.change(textBox(), { target: { value } });
+  const state = () => document.querySelector('.chapter-bar__state') as HTMLElement;
+  afterEach(() => vi.useRealTimers());
+
+  it('grows with its text and has no scrollbar of its own', async () => {
+    // 100 px per character makes the heights easy to read; the window is 768 px high in jsdom, so the minimum is 460 px.
+    vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return this.value.length * 100;
+    });
+    renderPage([get()]);
+    await loaded();
+
+    await waitFor(() => expect(textBox().style.height).toBe('2000px'));
+    edit('x'.repeat(50));
+    await waitFor(() => expect(textBox().style.height).toBe('5000px'));
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*resize:\s*none/);
+  });
+
+  it('shows nothing before the first save, then Unsaved changes, Saving…, Saved HH:mm', async () => {
+    let finish!: () => void;
+    renderPage([get(), { ...put, delay: new Promise<void>((r) => (finish = r)) }]);
+    await loaded();
+    expect(state()).toHaveTextContent('');
+    expect(state()).toHaveAttribute('aria-live', 'polite');
+
+    edit();
+    expect(state()).toHaveTextContent('Unsaved changes');
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    expect(state()).toHaveTextContent('Saving…');
+    finish();
+
+    await waitFor(() => expect(state().textContent).toMatch(/^Saved \d\d:\d\d$/));
+  });
+
+  it('says Auto-saved HH:mm after the 15-minute timer', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    vi.useFakeTimers();
+    edit();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS));
+    vi.useRealTimers();
+
+    await waitFor(() => expect(state().textContent).toMatch(/^Auto-saved \d\d:\d\d$/));
+  });
+
+  it('goes back to Unsaved changes when typing after a save', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    edit();
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(state().textContent).toMatch(/^Saved /));
+
+    edit('another');
+
+    expect(state()).toHaveTextContent('Unsaved changes');
+  });
+
+  it('Save is a plain disabled button when clean and the one primary when dirty', async () => {
+    renderPage([get()]);
+    await loaded();
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save).toBeDisabled();
+    expect(save).not.toHaveClass('button--primary');
+
+    edit();
+
+    expect(save).toBeEnabled();
+    expect(save).toHaveClass('button--primary');
+  });
+
+  it('Publish is disabled while a translation runs, with the reason in a tooltip', async () => {
+    renderPage([get({ translationStatus: 'TRANSLATING' })]);
+    await loaded();
+    const publish = screen.getByRole('button', { name: 'Publish' });
+
+    expect(publish).toBeDisabled();
+    await expectTooltip(publish.parentElement!, 'Wait until this chapter finishes translating.');
   });
 });
