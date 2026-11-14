@@ -83,6 +83,9 @@ export function ChapterBar({
         <span className="chapter-bar__title">{title}</span>
         {badges}
       </div>
+      <p className="chapter-bar__state" aria-live="polite">
+        {text}
+      </p>
       <div className="chapter-bar__actions">
         {tools}
         <button
@@ -145,9 +148,6 @@ export function ChapterBar({
           </PopoverPanel>
         </Popover.Root>
       </div>
-      <p className="chapter-bar__state" aria-live="polite">
-        {text}
-      </p>
     </div>
   );
 }

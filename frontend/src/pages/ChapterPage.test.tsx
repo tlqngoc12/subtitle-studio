@@ -1464,3 +1464,21 @@ describe('ChapterPage editor CSS cannot stop the textarea growing', () => {
     expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow-y:\s*hidden/);
   });
 });
+
+describe('ChapterPage bar title', () => {
+  it('shows a short label in the bar, not the long title the H1 already has', async () => {
+    renderPage([get({ chapterNo: 25, title: 'A very long chapter title that the H1 shows' })]);
+    await screen.findByRole('heading', { level: 1 });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A very long chapter title');
+    const title = document.querySelector('.chapter-bar__title')!;
+    expect(title).toHaveTextContent(/^Chapter 25$/);
+  });
+
+  it('uses the custom label when there is one', async () => {
+    renderPage([get({ label: 'Ngoại truyện 1' })]);
+    await screen.findByRole('heading', { level: 1 });
+
+    expect(document.querySelector('.chapter-bar__title')).toHaveTextContent(/^Ngoại truyện 1$/);
+  });
+});

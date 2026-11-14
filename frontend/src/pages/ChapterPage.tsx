@@ -485,7 +485,8 @@ export default function ChapterPage() {
             )}
           </>
         }
-        title={chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}
+        // Short: the H1 above already shows the full title.
+        title={chapter.label?.trim() || `Chapter ${chapter.chapterNo}`}
         badges={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
         saveState={saveState}
         canSave={canSave}

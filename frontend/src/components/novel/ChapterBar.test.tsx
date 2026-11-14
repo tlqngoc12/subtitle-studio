@@ -157,3 +157,24 @@ describe('ChapterBar layout', () => {
     expect(block).toMatch(/\.chapter-bar__menu-publish\s*\{[^}]*display:\s*none/);
   });
 });
+
+describe('ChapterBar on one row', () => {
+  it('puts the save state before the actions, so on desktop it sits next to them on the right', () => {
+    const { container } = bar({ saveState: { kind: 'dirty' } });
+    const state = container.querySelector('.chapter-bar__state')!;
+    const actions = container.querySelector('.chapter-bar__actions')!;
+
+    expect(state.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('is a single non-wrapping row from 761 px, with the state and actions pushed right', () => {
+    const block = css.slice(css.indexOf('@media (min-width: 761px)', css.indexOf('.chapter-bar__state')));
+    expect(block).toMatch(/\.chapter-bar\s*\{[^}]*flex-wrap:\s*nowrap/);
+    expect(block).toMatch(/\.chapter-bar__state\s*\{[^}]*margin-left:\s*auto/);
+  });
+
+  it('has the page background and a bottom rule', () => {
+    expect(css).toMatch(/\.chapter-bar\s*\{[^}]*background:\s*var\(--paper\)/);
+    expect(css).toMatch(/\.chapter-bar\s*\{[^}]*border-bottom:\s*1px solid var\(--rule\)/);
+  });
+});

@@ -79,3 +79,24 @@
     margin-left: 0;
   }
 }
+
+/* Desktop: one row. Left: nav, short name, badges. Right: save state, tools, Save, Publish, menu. */
+@media (min-width: 761px) {
+  .chapter-bar {
+    flex-wrap: nowrap;
+  }
+
+  .chapter-bar__name {
+    flex: 0 1 auto;
+  }
+
+  .chapter-bar__state {
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* An empty state still takes its place, so the actions stay on the right. */
+  .chapter-bar__state:empty {
+    display: block;
+  }
+}
