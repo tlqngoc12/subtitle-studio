@@ -1,3 +1,4 @@
+import { afterTranslateStart } from '../lib/geminiQuota';
 import { send } from './client';
 
 export interface ProfileStats {
@@ -35,7 +36,7 @@ export async function getProfileDetails(name: string): Promise<ProfileDetails> {
 
 /** One Gemini call; takes 10 to 60 seconds. */
 export async function analyzeProfile(name: string): Promise<ProfileAnalysis> {
-  return (await send(`${url(name)}/analyze`, { method: 'POST' })).json();
+  return (await afterTranslateStart(send(`${url(name)}/analyze`, { method: 'POST' }))).json();
 }
 
 /** Saves the profile; fails with PROFILE_CHANGED (409) when the file is no longer the one with `baseSha`. */

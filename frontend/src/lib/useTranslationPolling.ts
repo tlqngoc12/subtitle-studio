@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ApiError, getVideo, type VideoDto } from '../api/client';
+import { createQuotaWatcher } from './geminiQuota';
 
 export const POLL_INTERVAL_MS = 3000;
 
@@ -19,10 +20,14 @@ export function useTranslationPolling(
   useEffect(() => {
     if (!key) return;
     const pending = key.split(',');
+    const watchers = new Map(pending.map((id) => [id, createQuotaWatcher()])); // a model change or a failure may mean a quota ran out
     const timer = setInterval(() => {
       for (const id of pending) {
         getVideo(id)
-          .then((video) => callbacks.current.onUpdate(video))
+          .then((video) => {
+            watchers.get(id)?.(video.translationModel, video.translationStatus === 'FAILED');
+            callbacks.current.onUpdate(video);
+          })
           .catch((e) => {
             if (e instanceof ApiError && e.status === 404) callbacks.current.onGone(id);
             // other errors: try again on the next tick

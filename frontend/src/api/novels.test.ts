@@ -76,13 +76,15 @@ describe('novels API', () => {
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
       'POST /api/novels/3/chapters',
       'POST /api/chapters/9/translate',
+      'GET /api/gemini/quota', // after each translate start
       'POST /api/chapters/9/publish',
       'PUT /api/chapters/9',
       'DELETE /api/chapters/9/pages/11',
       'POST /api/novels/3/notebook/retry',
+      'GET /api/gemini/quota',
     ]);
     expect(JSON.parse(calls[0].body as string)).toEqual({ title: 'Mở đầu' });
-    expect(JSON.parse(calls[3].body as string)).toEqual({ pages: [{ id: 11, textVi: 'Chào' }] });
+    expect(JSON.parse(calls[4].body as string)).toEqual({ pages: [{ id: 11, textVi: 'Chào' }] });
   });
 
   it('lists novel profiles from their own endpoint', async () => {

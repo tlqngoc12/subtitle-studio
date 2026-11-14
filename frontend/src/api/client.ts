@@ -1,3 +1,5 @@
+import { afterTranslateStart } from '../lib/geminiQuota';
+
 /** Typed client for the backend REST API (PLAN section 6). */
 
 export type SourceType = 'MANUAL' | 'AUTO';
@@ -124,11 +126,13 @@ export async function getPromptProfiles(): Promise<PromptProfiles> {
 /** "Dịch lại bằng Gemini": returns the video, now TRANSLATING. */
 export async function translateVideo(id: string, profile: string): Promise<VideoDto> {
   return (
-    await send(`/api/videos/${encodeURIComponent(id)}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile }),
-    })
+    await afterTranslateStart(
+      send(`/api/videos/${encodeURIComponent(id)}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile }),
+      }),
+    )
   ).json();
 }
 

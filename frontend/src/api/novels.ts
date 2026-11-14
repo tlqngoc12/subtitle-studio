@@ -1,3 +1,4 @@
+import { afterTranslateStart } from '../lib/geminiQuota';
 import { send, type PromptProfiles } from './client';
 
 /** Novels API (spec section 6). Field names match the backend records. */
@@ -256,7 +257,7 @@ export async function rotatePages(id: number, direction: RotateDirection): Promi
 }
 
 export async function translateChapter(id: number): Promise<ChapterDetail> {
-  return (await send(`/api/chapters/${id}/translate`, { method: 'POST' })).json();
+  return (await afterTranslateStart(send(`/api/chapters/${id}/translate`, { method: 'POST' }))).json();
 }
 
 export async function publishChapter(id: number): Promise<ChapterDetail> {
@@ -273,7 +274,7 @@ export async function getNotebook(novelId: number, after?: number): Promise<Note
 }
 
 export async function retryNotebook(novelId: number): Promise<void> {
-  await send(`/api/novels/${novelId}/notebook/retry`, { method: 'POST' });
+  await afterTranslateStart(send(`/api/novels/${novelId}/notebook/retry`, { method: 'POST' }));
 }
 
 /** What the New novel form is prefilled with from a Wattpad story (nothing is saved). */
@@ -340,9 +341,11 @@ export async function importWattpadParts(novelId: number, partIds: string[]): Pr
 /** Fetches one part (unless already a chapter) and starts its translation; one chapter at a time per novel. */
 export async function fetchAndTranslateWattpadPart(novelId: number, partId: string): Promise<ChapterDetail> {
   return (
-    await send(`/api/novels/${novelId}/wattpad/parts/${encodeURIComponent(partId)}/fetch-translate`, {
-      method: 'POST',
-    })
+    await afterTranslateStart(
+      send(`/api/novels/${novelId}/wattpad/parts/${encodeURIComponent(partId)}/fetch-translate`, {
+        method: 'POST',
+      }),
+    )
   ).json();
 }
 
@@ -351,7 +354,9 @@ export async function fetchAndTranslateWattpadPart(novelId: number, partId: stri
  * chapter yet. Resolves to the chapter that is now translating.
  */
 export async function fetchTranslateNext(novelId: number): Promise<ChapterDetail> {
-  return (await send(`/api/novels/${novelId}/wattpad/next/fetch-translate`, { method: 'POST' })).json();
+  return (
+    await afterTranslateStart(send(`/api/novels/${novelId}/wattpad/next/fetch-translate`, { method: 'POST' }))
+  ).json();
 }
 
 /** Fetches the chapter's original text from Wattpad again (Draft chapters only); the translation is untouched. */
