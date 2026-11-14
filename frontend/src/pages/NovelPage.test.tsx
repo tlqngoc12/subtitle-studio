@@ -8,6 +8,7 @@ import { pickOption } from '../test/select';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../test/novelFixtures';
 import { css } from '../test/css';
+import { expectTooltip } from '../test/tooltip';
 import NovelPage from './NovelPage';
 
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -141,13 +142,13 @@ describe('NovelPage', () => {
     it('shows the stored trailer as a youtu.be link', async () => {
       await openDetails([withTrailer, profiles]);
 
-      expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ');
+      expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ');
     });
 
     it('is empty without a trailer', async () => {
       await openDetails([getNovel, profiles]);
 
-      expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('');
+      expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue('');
     });
 
     it('clears the trailer when the field is emptied (sent as null)', async () => {
@@ -161,12 +162,12 @@ describe('NovelPage', () => {
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
       await user.click(screen.getByRole('tab', { name: 'Details' }));
 
-      await user.clear(screen.getByLabelText('Trailer (YouTube link)'));
+      await user.clear(screen.getByLabelText('Trailer (YouTube link, optional)'));
       await user.click(screen.getByRole('button', { name: 'Save' }));
 
       await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).trailerUrl).toBeNull();
-      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue(''));
+      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue(''));
     });
 
     it('shows the saved trailer as a youtu.be link after pasting another form of it', async () => {
@@ -180,14 +181,28 @@ describe('NovelPage', () => {
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
       await user.click(screen.getByRole('tab', { name: 'Details' }));
 
-      await user.type(screen.getByLabelText('Trailer (YouTube link)'), 'https://www.youtube.com/shorts/dQw4w9WgXcQ');
+      await user.type(screen.getByLabelText('Trailer (YouTube link, optional)'), 'https://www.youtube.com/shorts/dQw4w9WgXcQ');
       await user.click(screen.getByRole('button', { name: 'Save' }));
 
-      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ'));
+      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ'));
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).trailerUrl).toBe(
         'https://www.youtube.com/shorts/dQw4w9WgXcQ',
       );
     });
+  });
+
+  it('Details has one sticky bar with Delete novel at its start and no separate delete block', async () => {
+    fakeFetch([getNovel, profiles]);
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    await user.click(screen.getByRole('tab', { name: 'Details' }));
+
+    const bar = screen.getByRole('button', { name: 'Save' }).closest('.form-actions')!;
+    expect(bar).toHaveClass('form-actions--sticky');
+    expect(bar.querySelector('.form-actions__start')).toContainElement(screen.getByRole('button', { name: 'Delete novel' }));
+    expect(document.querySelector('.danger-zone')).toBeNull();
   });
 
   it('deletes the novel after confirming', async () => {
@@ -533,5 +548,199 @@ describe('NovelPage', () => {
         vi.useRealTimers();
       }
     });
+  });
+});
+
+describe('NovelPage busy novel', () => {
+  const wattpad = (over: Partial<ReturnType<typeof novelDetail>> = {}) =>
+    novelDetail({
+      sourceType: 'WATTPAD',
+      sourceLanguage: 'en',
+      wattpadStoryId: '1',
+      chapters: [chapterSummary({ id: 9, chapterNo: 24, pageCount: 0, publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED' })],
+      ...over,
+    });
+  const route = (body: unknown) => ({ method: 'GET', path: '/api/novels/3', status: 200, body });
+  const parts = { method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200, body: [] };
+  const next = () => screen.getByRole('button', { name: 'Fetch & translate next' });
+  const line = () => screen.queryByText(/Notebook updating|is translating…/, { selector: '.novel-busy' });
+
+  it('shows the notebook line and disables Fetch & translate next, with the reason in a tooltip', async () => {
+    fakeFetch([route(wattpad({ notebookStatus: 'UPDATING', notebookChapterNo: 24 })), parts]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    expect(line()).toHaveTextContent('Notebook updating after chapter 24…');
+    expect(next()).toBeDisabled();
+    await expectTooltip(next().parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('shows the translating chapter and the reason when a chapter translates', async () => {
+    const busy = wattpad({
+      chapters: [chapterSummary({ id: 10, chapterNo: 25, pageCount: 0, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' })],
+    });
+    fakeFetch([route(busy), parts]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    expect(line()).toHaveTextContent('Chapter 25 is translating…');
+    expect(next()).toBeDisabled();
+    await expectTooltip(next().parentElement!, 'Chapter 25 is still translating');
+  });
+
+  it('a failed notebook shows no line and disables nothing', async () => {
+    fakeFetch([route(wattpad({ notebookStatus: 'FAILED', notebookError: 'x' })), parts]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    expect(line()).toBeNull();
+    expect(next()).toBeEnabled();
+  });
+
+  it('polls while the notebook updates, then drops the line and re-enables the button', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const routes = [route(wattpad({ notebookStatus: 'UPDATING' })), parts];
+      const calls = fakeFetch(routes);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      expect(line()).not.toBeNull();
+      const before = calls.filter((c) => c.path === '/api/novels/3').length;
+
+      await vi.advanceTimersByTimeAsync(3500);
+      expect(calls.filter((c) => c.path === '/api/novels/3').length).toBeGreaterThan(before);
+      expect(line()).not.toBeNull();
+
+      routes[0] = route(wattpad({ notebookStatus: 'IDLE' }));
+      await vi.advanceTimersByTimeAsync(3500);
+
+      await waitFor(() => expect(line()).toBeNull());
+      expect(next()).toBeEnabled();
+      const after = calls.filter((c) => c.path === '/api/novels/3').length;
+      await vi.advanceTimersByTimeAsync(7000);
+      expect(calls.filter((c) => c.path === '/api/novels/3').length).toBe(after); // idle: polling stopped
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('NovelPage notebook pause', () => {
+  const notebookRoute = (over = {}) => ({
+    method: 'GET',
+    path: '/api/novels/3/notebook',
+    status: 200,
+    body: notebookView(over),
+  });
+  const pausePut = { method: 'PUT', path: '/api/novels/3/notebook/paused', status: 200 };
+  const published = (chapterNo: number, id = chapterNo) =>
+    chapterSummary({ id, chapterNo, publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED' });
+
+  async function openNotebook() {
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    await user.click(screen.getByRole('tab', { name: 'Notebook' }));
+    return user;
+  }
+
+  it('the switch calls the PUT, shows the header badge and keeps the version on screen', async () => {
+    const calls = fakeFetch([
+      getNovel,
+      notebookRoute(),
+      { ...pausePut, body: notebookView({ notebookPaused: true, afterChapterNo: 9 }) },
+    ]);
+    const user = await openNotebook();
+    const toggle = await screen.findByRole('switch', { name: 'Pause notebook updates' });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText('Notebook paused')).toBeNull();
+
+    await user.click(toggle);
+
+    expect(toggle).toBeChecked();
+    expect(screen.getByText('Notebook paused')).toBeInTheDocument();
+    const put = calls.find((c) => c.method === 'PUT')!;
+    expect(JSON.parse(put.body as string)).toEqual({ paused: true });
+    expect(screen.getByText('Mai gặp Nam.')).toBeInTheDocument();
+  });
+
+  it('rolls the switch back and shows an error toast when saving fails', async () => {
+    fakeFetch([getNovel, notebookRoute(), { ...pausePut, status: 500, body: problem(500, 'X', 'boom') }]);
+    const user = await openNotebook();
+    const toggle = await screen.findByRole('switch', { name: 'Pause notebook updates' });
+
+    await user.click(toggle);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText('Notebook paused')).toBeNull();
+  });
+
+  it('shows the badge from the novel and checks the switch', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ notebookPaused: true }) }, notebookRoute({ notebookPaused: true })]);
+    await openNotebook();
+
+    expect(screen.getByText('Notebook paused')).toBeInTheDocument();
+    expect(await screen.findByRole('switch', { name: 'Pause notebook updates' })).toBeChecked();
+    expect(screen.getByText(/Publishing will not update the notebook/)).toBeInTheDocument();
+  });
+
+  it('disables Retry with its reason while paused', async () => {
+    fakeFetch([
+      { ...getNovel, body: novelDetail({ notebookPaused: true }) },
+      notebookRoute({ status: 'FAILED', error: 'x', notebookPaused: true }),
+    ]);
+    await openNotebook();
+
+    const retry = await screen.findByRole('button', { name: 'Retry notebook update' });
+    expect(retry).toBeDisabled();
+    await expectTooltip(retry.parentElement!, 'Notebook updates are paused');
+  });
+
+  it('says how far behind the notebook is after resuming and updates on demand', async () => {
+    const calls = fakeFetch([
+      { ...getNovel, body: novelDetail({ chapters: [published(5), published(8)] }) },
+      notebookRoute({ versions: [2, 5] }),
+      { method: 'POST', path: '/api/novels/3/notebook/retry', status: 202 },
+    ]);
+    const user = await openNotebook();
+
+    expect(
+      await screen.findByText('The notebook was last updated after chapter 5; chapters 6–8 were published since.'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Update now' }));
+
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/novels/3/notebook/retry')).toBe(true));
+    expect(await screen.findByText('Updating notebook…')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull();
+  });
+
+  it('words a single missing chapter in the singular', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [published(6)] }) }, notebookRoute({ versions: [2, 5] })]);
+    await openNotebook();
+
+    expect(
+      await screen.findByText('The notebook was last updated after chapter 5; chapter 6 was published since.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows neither the line nor Update now when the notebook is up to date', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [published(5)] }) }, notebookRoute({ versions: [2, 5] })]);
+    await openNotebook();
+
+    await screen.findByRole('switch', { name: 'Pause notebook updates' });
+    expect(screen.queryByText(/were published since|was published since/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull();
+  });
+
+  it('shows neither the line nor Update now while paused', async () => {
+    fakeFetch([
+      { ...getNovel, body: novelDetail({ notebookPaused: true, chapters: [published(8)] }) },
+      notebookRoute({ versions: [2, 5], notebookPaused: true }),
+    ]);
+    await openNotebook();
+
+    await screen.findByRole('switch', { name: 'Pause notebook updates' });
+    expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull();
   });
 });

@@ -50,6 +50,8 @@ export interface NovelSummary {
   lastPublishedAt: string | null;
   originalAuthor: string | null;
   description: string | null;
+  /** The same tags as the detail; the novel form suggests them. */
+  tags: string[];
 }
 
 export interface ChapterSummary {
@@ -79,6 +81,10 @@ export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 's
   coverUrl: string | null;
   notebookStatus: NotebookStatus;
   notebookError: string | null;
+  /** "Pause notebook updates": publishing does not start a notebook update. */
+  notebookPaused: boolean;
+  /** The chapter the running notebook update is for (only while UPDATING). */
+  notebookChapterNo: number | null;
   chapters: ChapterSummary[];
 }
 
@@ -122,6 +128,10 @@ export interface ChapterDetail {
   sourceFetchedAt: string | null;
   /** Language of the original text of the novel (th or en). */
   sourceLanguage: SourceLanguage;
+  /** The novel's notebook state: while UPDATING no chapter of the novel can start translating. */
+  notebookStatus: NotebookStatus;
+  /** The chapter the notebook is updating after (only while UPDATING). */
+  notebookChapterNo: number | null;
 }
 
 export interface GlossaryEntry {
@@ -159,6 +169,7 @@ export interface NotebookView {
   status: NotebookStatus;
   error: string | null;
   staleLaterVersions: boolean;
+  notebookPaused: boolean;
 }
 
 function json(method: string, body: unknown): RequestInit {
@@ -362,4 +373,9 @@ export async function fetchTranslateNext(novelId: number): Promise<ChapterDetail
 /** Fetches the chapter's original text from Wattpad again (Draft chapters only); the translation is untouched. */
 export async function reloadChapterOriginal(chapterId: number): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${chapterId}/reload-original`, { method: 'POST' })).json();
+}
+
+/** Turns "pause notebook updates" on or off; returns the latest notebook view. */
+export async function setNotebookPaused(novelId: number, paused: boolean): Promise<NotebookView> {
+  return (await send(`/api/novels/${novelId}/notebook/paused`, json('PUT', { paused }))).json();
 }

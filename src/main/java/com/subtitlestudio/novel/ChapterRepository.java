@@ -24,6 +24,8 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     List<Chapter> findByTranslationStatus(ChapterTranslationStatus status);
 
+    Optional<Chapter> findFirstByNovelIdAndTranslationStatusOrderByChapterNo(long novelId, ChapterTranslationStatus status);
+
     boolean existsByNovelIdAndTranslationStatus(long novelId, ChapterTranslationStatus status);
 
     /** The nearest earlier chapter (any status); callers check that its pages have text. */

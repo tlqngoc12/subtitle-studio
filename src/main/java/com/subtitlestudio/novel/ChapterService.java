@@ -416,6 +416,9 @@ public class ChapterService {
                 c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
-                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage());
+                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage(),
+                c.getNovel().getNotebookStatus(),
+                c.getNovel().getNotebookStatus() == NotebookStatus.UPDATING
+                        ? c.getNovel().getNotebookPendingChapterNo() : null);
     }
 }

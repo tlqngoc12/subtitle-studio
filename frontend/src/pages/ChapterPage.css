@@ -1,9 +1,4 @@
 /* ---------- Novels: chapter page ---------- */
-.chapter-head__nav {
-  display: inline-flex;
-  gap: var(--space-2);
-}
-
 .chapter-status {
   display: grid;
   gap: var(--space-2);
@@ -93,9 +88,19 @@
   list-style: none;
 }
 
-/* The whole chapter's Vietnamese text in one box. */
+/* The whole chapter's Vietnamese text in one box that grows with its text (useAutoGrow): only the page scrolls. */
+.chapter-text {
+  /* A comfortable line (about 72 characters), centred in the page; beside the original it fills its column. */
+  width: 100%;
+  max-width: 72ch;
+  margin-inline: auto;
+}
+
 .chapter-text textarea {
   min-height: 60vh;
+  overflow-y: hidden;
+  resize: none;
+  font-size: 1.0625rem;
   line-height: 1.7;
 }
 
@@ -103,13 +108,23 @@
   border-color: var(--brand-2-border);
 }
 
-/* Published chapter: what can still be changed (information = purple). */
+/* Published chapter: what can still be changed, as one quiet line under the counts. */
 .chapter-note {
-  margin: 0 0 var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--brand-2);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  margin: 0 0 var(--space-3);
+  font-size: var(--step--1);
+}
+
+/* Number, label, title and the translating model: closed on a phone so the text comes first. */
+.chapter-details {
+  margin-bottom: var(--space-4);
+}
+
+.chapter-details[open] > .chapter-details__summary {
+  margin-bottom: var(--space-2);
+}
+
+.chapter-details__model {
+  margin: 0;
 }
 
 .chapter-warning {
@@ -149,45 +164,43 @@
   white-space: pre-line;
 }
 
-/* A Wattpad chapter: the original text beside the Vietnamese chapter text (stacked on phones). */
+/* A Wattpad chapter: the original (OriginalPanel) above the editor, and beside it from 1024 px. */
 .chapter-columns {
   display: grid;
   gap: var(--space-4);
 }
 
-@media (min-width: 761px) {
+/* The sticky chapter bar's height: the original column sticks just under it. */
+.chapter-page {
+  --chapter-bar-h: 3.75rem;
+}
+
+@media (min-width: 1024px) {
   .chapter-columns {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
+    gap: var(--space-6);
+  }
+
+  .chapter-columns > .chapter-original {
+    width: 100%;
+    max-width: 72ch;
+    justify-self: end;
+  }
+
+  .chapter-columns > .chapter-text {
+    margin-inline: 0;
+    justify-self: start;
   }
 }
 
-.chapter-original {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
+/* Under the chapter bar: words, characters, paragraphs and the share of the original's paragraphs. */
+.chapter-count {
+  margin: 0 0 var(--space-3);
+  font-size: var(--step--1);
 }
 
-.chapter-original__head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
-}
-
-.chapter-original__text {
-  max-height: 32rem;
-  overflow-y: auto;
-  padding: var(--space-3);
-  border: 1px solid var(--field-border);
-  border-radius: 8px;
-  background: var(--surface);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.chapter-original__text:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+.chapter-count__warn {
+  color: var(--danger);
+  font-weight: 700;
 }

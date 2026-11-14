@@ -1,0 +1,44 @@
+/* The find and replace panel under the chapter bar. Phone first: fields stacked, buttons wrap. */
+.find-replace {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.find-replace__fields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.find-replace__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.find-replace__case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.find-replace__buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (min-width: 761px) {
+  .find-replace__fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .find-replace__buttons {
+    margin-left: auto;
+  }
+}

@@ -1,0 +1,55 @@
+/* The original text of a Wattpad chapter: a column beside the editor from 1024 px, a disclosure above it below. */
+.chapter-original {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.chapter-original--disclosure[open] > .disclosure__summary {
+  margin-bottom: var(--space-2);
+}
+
+.chapter-original__text {
+  max-height: 32rem;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+
+.chapter-original__text:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.chapter-original__p {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  white-space: pre-line;
+}
+
+.chapter-original__p:last-child {
+  margin-bottom: 0;
+}
+
+/* The paragraph that matches the one the caret is in (information = purple). */
+.chapter-original__p--active {
+  background: var(--hover);
+}
+
+@media (min-width: 1024px) {
+  /* Beside the editor: it stays on screen while the page scrolls and scrolls on its own. */
+  .chapter-original {
+    position: sticky;
+    top: var(--chapter-bar-h);
+    align-self: start;
+  }
+
+  /* The heading and the footer take about 4rem; the text scrolls inside what is left under the bar. */
+  .chapter-original__text {
+    max-height: calc(100vh - var(--chapter-bar-h) - 4rem);
+  }
+}

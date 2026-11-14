@@ -9,6 +9,7 @@ import {
   publishChapter,
   reorderPages,
   retryNotebook,
+  setNotebookPaused,
   rotatePage,
   rotatePages,
   translateChapter,
@@ -110,5 +111,18 @@ describe('novels API', () => {
     expect(JSON.parse(calls[0].body as string)).toEqual({ direction: 'RIGHT' });
     expect(calls[1].path).toBe('/api/chapters/1/pages/rotate');
     expect(JSON.parse(calls[1].body as string)).toEqual({ direction: 'LEFT' });
+  });
+});
+
+describe('notebook pause', () => {
+  it('PUTs the paused flag and returns the view', async () => {
+    const calls = fakeFetch([
+      { method: 'PUT', path: '/api/novels/3/notebook/paused', status: 200, body: { notebookPaused: true } },
+    ]);
+
+    const view = await setNotebookPaused(3, true);
+
+    expect(view.notebookPaused).toBe(true);
+    expect(JSON.parse(calls[0].body as string)).toEqual({ paused: true });
   });
 });

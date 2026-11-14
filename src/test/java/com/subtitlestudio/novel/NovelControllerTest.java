@@ -32,7 +32,7 @@ class NovelControllerTest {
     private static final Instant AT = Instant.parse("2026-11-05T10:00:00Z");
     static final NovelDetail DETAIL = new NovelDetail(3, "summer-love", "Tình Yêu Mùa Hạ", null, null, "ผู้เขียน",
             "Giới thiệu", List.of("romance"), NovelStatus.ONGOING, "Dịch: @byZenQN", null, "SummerLove",
-            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of(), NovelSourceType.SCREENSHOTS, "th", null);
+            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of(), NovelSourceType.SCREENSHOTS, "th", null, false, null);
     private static final String BODY = """
             {"slug":"summer-love","title":"Tình Yêu Mùa Hạ","tags":["romance"],"novelStatus":"ONGOING"}""";
 
@@ -57,7 +57,7 @@ class NovelControllerTest {
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
                 NovelStatus.ONGOING, null, null, null, null, NotebookStatus.IDLE, null, List.of(row),
-                NovelSourceType.SCREENSHOTS, "th", null));
+                NovelSourceType.SCREENSHOTS, "th", null, false, null));
 
         mvc.perform(put("/api/novels/3/chapters/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"chapterIds\":[11,10]}")).andExpect(status().isOk())
@@ -73,7 +73,7 @@ class NovelControllerTest {
     @Test
     void notebookViewAndRetry() throws Exception {
         when(notebook.view(3L, 5)).thenReturn(new NotebookView(5, NotebookContent.EMPTY, List.of(2, 5),
-                NotebookStatus.IDLE, null, true));
+                NotebookStatus.IDLE, null, true, false));
 
         mvc.perform(get("/api/novels/3/notebook").param("after", "5")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.afterChapterNo").value(5))
@@ -81,6 +81,36 @@ class NovelControllerTest {
                 .andExpect(jsonPath("$.staleLaterVersions").value(true));
         mvc.perform(post("/api/novels/3/notebook/retry")).andExpect(status().isAccepted());
         verify(notebook).retry(3L);
+    }
+
+    @Test
+    void pauseEndpointReturnsTheViewWithTheFlag() throws Exception {
+        when(notebook.setNotebookPaused(3L, true)).thenReturn(new NotebookView(5, NotebookContent.EMPTY,
+                List.of(5), NotebookStatus.IDLE, null, false, true));
+
+        mvc.perform(put("/api/novels/3/notebook/paused").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"paused\":true}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.notebookPaused").value(true));
+    }
+
+    @Test
+    void retryWhilePausedIs409() throws Exception {
+        doThrow(new NotebookPausedException()).when(notebook).retry(3L);
+
+        mvc.perform(post("/api/novels/3/notebook/retry")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOTEBOOK_PAUSED"))
+                .andExpect(jsonPath("$.detail").value("Notebook updates are paused."));
+    }
+
+    @Test
+    void detailCarriesThePauseFlagAndPendingChapter() throws Exception {
+        when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
+                NovelStatus.ONGOING, null, null, null, null, NotebookStatus.UPDATING, null, List.of(),
+                NovelSourceType.SCREENSHOTS, "th", null, true, 7));
+
+        mvc.perform(get("/api/novels/3")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.notebookPaused").value(true))
+                .andExpect(jsonPath("$.notebookChapterNo").value(7));
     }
 
     @Test
@@ -103,9 +133,19 @@ class NovelControllerTest {
     }
 
     @Test
+    void theListCarriesEachNovelsTags() throws Exception {
+        when(service.list()).thenReturn(List.of(new NovelSummary(3, "summer-love", "T", null,
+                NovelStatus.ONGOING, 1, 1, AT, null, false, AT, null, null, null, List.of("romance", "BL"))));
+
+        mvc.perform(get("/api/novels")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tags[0]").value("romance"))
+                .andExpect(jsonPath("$[0].tags[1]").value("BL"));
+    }
+
+    @Test
     void featuredEndpointReturnsTheSummary() throws Exception {
         when(service.setFeatured(3, true)).thenReturn(new NovelSummary(3, "summer-love", "T", null,
-                NovelStatus.ONGOING, 1, 1, AT, null, true, AT, AT, null, null));
+                NovelStatus.ONGOING, 1, 1, AT, null, true, AT, AT, null, null, List.of()));
 
         mvc.perform(put("/api/novels/3/featured").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"featured\":true}")).andExpect(status().isOk())
@@ -223,7 +263,7 @@ class NovelControllerTest {
     void fetchTranslateReturns202() throws Exception {
         when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
-                "", null, null, "text", "77", null, "en"));
+                "", null, null, "text", "77", null, "en", NotebookStatus.IDLE, null));
 
         mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"));
@@ -231,17 +271,32 @@ class NovelControllerTest {
 
     @Test
     void fetchTranslateBusyIs409() throws Exception {
-        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3));
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3,
+                NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING, 25));
 
         mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"));
+                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"))
+                .andExpect(jsonPath("$.reason").value("CHAPTER_TRANSLATING"))
+                .andExpect(jsonPath("$.chapterNo").value(25))
+                .andExpect(jsonPath("$.detail").value("Chapter 25 is still translating."));
+    }
+
+    @Test
+    void fetchTranslateBusyBecauseOfTheNotebookSaysSo() throws Exception {
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3,
+                NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING, 24));
+
+        mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.reason").value("NOTEBOOK_UPDATING"))
+                .andExpect(jsonPath("$.chapterNo").value(24))
+                .andExpect(jsonPath("$.detail").value("The notebook is still updating after chapter 24."));
     }
 
     @Test
     void fetchTranslateNextReturns202() throws Exception {
         when(wattpadNovels.fetchAndTranslateNext(3L)).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
-                "", null, null, "text", "77", null, "en"));
+                "", null, null, "text", "77", null, "en", NotebookStatus.IDLE, null));
 
         mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"))
@@ -252,7 +307,7 @@ class NovelControllerTest {
     void fetchTranslateNextErrorsKeepTheirCodes() throws Exception {
         when(wattpadNovels.fetchAndTranslateNext(3L))
                 .thenThrow(new com.subtitlestudio.novel.wattpad.WattpadNothingNextException())
-                .thenThrow(new NovelTranslationBusyException(3))
+                .thenThrow(new NovelTranslationBusyException(3, NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING, 24))
                 .thenThrow(new com.subtitlestudio.novel.NovelNotWattpadException(3));
 
         mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isConflict())

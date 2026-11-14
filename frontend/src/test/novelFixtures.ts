@@ -21,6 +21,7 @@ export function novelSummary(over: Partial<NovelSummary> = {}): NovelSummary {
     lastPublishedAt: null,
     originalAuthor: null,
     description: null,
+    tags: [],
     ...over,
   };
 }
@@ -61,6 +62,8 @@ export function novelDetail(over: Partial<NovelDetail> = {}): NovelDetail {
     wattpadStoryId: null,
     notebookStatus: 'IDLE',
     notebookError: null,
+    notebookPaused: false,
+    notebookChapterNo: null,
     chapters: [
       chapterSummary(),
       chapterSummary({ id: 10, chapterNo: 2, title: null, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' }),
@@ -94,6 +97,8 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     wattpadPartId: null,
     sourceFetchedAt: null,
     sourceLanguage: 'th',
+    notebookStatus: 'IDLE',
+    notebookChapterNo: null,
     ...over,
   };
 }
@@ -114,6 +119,7 @@ export function notebookView(over: Partial<NotebookView> = {}): NotebookView {
     status: 'IDLE',
     error: null,
     staleLaterVersions: false,
+    notebookPaused: false,
     ...over,
   };
 }

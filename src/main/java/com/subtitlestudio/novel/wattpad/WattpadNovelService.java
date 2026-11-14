@@ -271,9 +271,20 @@ public class WattpadNovelService {
     /** The novel, after the one-chapter-at-a-time and Gemini/profile checks, before Wattpad is called. */
     private Novel readyWattpadNovel(long novelId) {
         Novel novel = wattpadNovel(novelId);
-        if (chapters.existsByNovelIdAndTranslationStatus(novelId, ChapterTranslationStatus.TRANSLATING)
-                || novel.getNotebookStatus() == NotebookStatus.UPDATING) {
-            throw new NovelTranslationBusyException(novelId);
+        Chapter translating = chapters
+                .findFirstByNovelIdAndTranslationStatusOrderByChapterNo(novelId, ChapterTranslationStatus.TRANSLATING)
+                .orElse(null);
+        if (translating != null) {
+            throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING,
+                    translating.getChapterNo());
+        }
+        if (novel.getNotebookStatus() == NotebookStatus.UPDATING) {
+            Integer pending = novel.getNotebookPendingChapterNo();
+            int chapterNo = pending != null ? pending : chapters.findByNovelIdOrderByChapterNo(novelId).stream()
+                    .filter(c -> c.getPublishStatus() == com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED)
+                    .mapToInt(Chapter::getChapterNo).max().orElse(0);
+            throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING,
+                    chapterNo);
         }
         translation.requireReady(novel);
         return novel;

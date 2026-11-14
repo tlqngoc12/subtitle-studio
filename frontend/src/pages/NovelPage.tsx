@@ -1,6 +1,6 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { CloudDownload, Plus, Trash2 } from 'lucide-react';
+import { CloudDownload, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -20,6 +20,9 @@ import { NotebookView } from '../components/novel/NotebookView';
 import { NovelForm } from '../components/novel/NovelForm';
 import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
 import { useNovelPolling } from '../lib/useNovelPolling';
+import { busyTitle, novelBusy } from '../lib/novelBusy';
+import { BusyLine } from '../components/novel/BusyLine';
+import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError } from '../lib/toast';
@@ -30,6 +33,12 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Toolbar } from '../components/ui/Toolbar';
 import { Cover } from '../components/ui/Cover';
+
+/** The highest Published chapter number, or null when none is published. */
+function latestPublishedNo(chapters: NovelDetail['chapters']): number | null {
+  const numbers = chapters.filter((c) => c.publishStatus === 'PUBLISHED').map((c) => c.chapterNo);
+  return numbers.length > 0 ? Math.max(...numbers) : null;
+}
 
 /** Novels › one novel: Chapters | Details | Notebook. The novel is loaded once for every tab. */
 export default function NovelPage() {
@@ -60,7 +69,13 @@ export default function NovelPage() {
   // Poll the novel (never Wattpad) while a chapter translates or the notebook updates.
   useNovelPolling(novelId, novel !== null && novelIsBusy(novel), setNovel);
 
-  const onNotebook = useCallback((v: NotebookData) => setNotebook(v), []);
+  // The header badge follows the switch: keep the novel's flag in step with the notebook view.
+  const onNotebook = useCallback((v: NotebookData) => {
+    setNotebook(v);
+    setNovel((n) => (n && n.notebookPaused !== v.notebookPaused ? { ...n, notebookPaused: v.notebookPaused } : n));
+  }, []);
+
+  const busy = novel ? novelBusy(novel) : null;
 
   async function add() {
     setAdding(true);
@@ -135,8 +150,15 @@ export default function NovelPage() {
             breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]}
             title={novel.title}
             media={<Cover src={novel.coverUrl} />}
-            meta={<span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>}
+            meta={
+              <>
+                <span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>
+                {novel.notebookPaused && <span className="badge badge--info">Notebook paused</span>}
+              </>
+            }
           />
+
+          {busy && <BusyLine busy={busy} />}
 
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
             <Tabs.List className="tabs__list" aria-label="Novel sections">
@@ -162,11 +184,16 @@ export default function NovelPage() {
                 actions={
                   novel.sourceType === 'WATTPAD' ? (
                     // Wattpad chapters come from Wattpad: screenshot chapters would mix the two sources.
-                    <button className="button button--primary" type="button" onClick={() => void startNext()}
-                      disabled={adding}>
-                      <CloudDownload className="icon" aria-hidden="true" />
-                      {adding ? 'Starting…' : 'Fetch & translate next'}
-                    </button>
+                    // The reason shows before the click: a disabled button swallows hover, so the tip sits on a span.
+                    <Tip label={busy ? busyTitle(busy) : ''} disabled={!busy}>
+                      <span className="novel-busy__tip">
+                        <button className="button button--primary" type="button" onClick={() => void startNext()}
+                          disabled={adding || busy !== null}>
+                          <CloudDownload className="icon" aria-hidden="true" />
+                          {adding ? 'Starting…' : 'Fetch & translate next'}
+                        </button>
+                      </span>
+                    </Tip>
                   ) : (
                     <button className="button button--primary" type="button" onClick={add} disabled={adding}>
                       <Plus className="icon" aria-hidden="true" />
@@ -191,21 +218,17 @@ export default function NovelPage() {
                 initial={novel}
                 submitLabel="Save"
                 pendingLabel="Saving…"
+                onDelete={() => void remove()}
                 onSubmit={async (input) => {
                   setNovel(await updateNovel(novelId, input));
                   toast.success('Novel saved');
                 }}
               />
-              <div className="danger-zone">
-                <button className="button button--danger" type="button" onClick={remove}>
-                  <Trash2 className="icon" aria-hidden="true" />
-                  Delete novel
-                </button>
-              </div>
             </Tabs.Content>
 
             <Tabs.Content value="notebook" className="tabs__panel">
               <NotebookView novelId={novelId} view={notebook} onView={onNotebook}
+                latestPublishedNo={latestPublishedNo(novel.chapters)}
                 labels={Object.fromEntries(novel.chapters.map((c) => [c.chapterNo, c.label]))} />
             </Tabs.Content>
           </Tabs.Root>

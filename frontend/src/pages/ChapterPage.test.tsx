@@ -53,6 +53,36 @@ async function loaded() {
 
 const textBox = () => screen.getByLabelText('Chapter text');
 
+/** jsdom has no layout: say whether the window is 1024 px wide or more. */
+const stubWide = (wide: boolean) =>
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: wide && query.includes('1024px'),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+
+/** Opens the bar's ⋯ menu and returns the item with this name. */
+async function menuItem(name: string | RegExp) {
+  const trigger = screen.getByRole('button', { name: 'Chapter actions' });
+  if (trigger.getAttribute('aria-expanded') !== 'true') await userEvent.setup(vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : {}).click(trigger);
+  return screen.findByRole('button', { name });
+}
+
+/** Opens the menu and clicks the item. */
+async function chooseAction(name: string | RegExp) {
+  await userEvent.setup(vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : {}).click(await menuItem(name));
+}
+
+/** Names of the menu's items (it is closed again afterwards). */
+async function menuItemNames() {
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Chapter actions' }));
+  await waitFor(() => expect(document.querySelector('.member-menu__list')).not.toBeNull());
+  const names = [...document.querySelectorAll('.member-menu__item:not(.chapter-bar__menu-publish)')].map((b) => b.textContent);
+  await userEvent.setup().keyboard('{Escape}');
+  return names;
+}
+
 describe('ChapterPage', () => {
   beforeEach(() => vi.mocked(toast.success).mockClear());
   afterEach(() => vi.useRealTimers());
@@ -84,31 +114,97 @@ describe('ChapterPage', () => {
     expect(await screen.findByText('novel page')).toBeInTheDocument();
   });
 
-  it('puts Translate, Publish and Unpublish in the header at the standard size, one primary', async () => {
+  it('puts Save, Publish and the ⋯ menu in the sticky bar with the badges, and no other buttons in the header', async () => {
     renderPage([get()]);
     await loaded();
 
+    const bar = document.querySelector('.chapter-bar') as HTMLElement;
+    expect(within(bar).getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Publish' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Chapter actions' })).toBeInTheDocument();
+    expect(within(bar).getByText('Translated')).toBeInTheDocument();
     const header = screen.getByRole('heading', { level: 1 }).closest('header')!;
-    const translate = within(header).getByRole('button', { name: 'Translate again' });
-    const publish = within(header).getByRole('button', { name: 'Publish' });
-    expect(translate).not.toHaveClass('button--s', 'button--primary');
-    expect(publish).toHaveClass('button--primary');
-    expect(header.querySelectorAll('.button--primary')).toHaveLength(1);
-    expect(within(header).getByText('Translated')).toBeInTheDocument();
+    expect(within(header).queryByRole('button')).toBeNull();
   });
 
-  it('keeps Unpublish at the standard size', async () => {
+  it('has no bottom form bar: Save is not in a FormActions', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(document.querySelector('.form-actions')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save' }).closest('.chapter-bar')).not.toBeNull();
+  });
+
+  describe('one primary button', () => {
+    const primaries = () => [...document.querySelectorAll('.chapter-bar .button--primary')].map((b) => b.textContent);
+
+    it('is Publish on a clean Draft', async () => {
+      renderPage([get()]);
+      await loaded();
+
+      expect(primaries()).toEqual(['Publish']);
+    });
+
+    it('is Save on a dirty Draft, and Publish is disabled with "Save first"', async () => {
+      renderPage([get()]);
+      await loaded();
+
+      fireEvent.change(textBox(), { target: { value: 'đã sửa' } });
+
+      expect(primaries()).toEqual(['Save']);
+      const publish = screen.getByRole('button', { name: 'Publish' });
+      expect(publish).toBeDisabled();
+      await expectTooltip(publish.parentElement!, 'Save first');
+    });
+
+    it('is none on a clean Published chapter, and Save on a dirty one', async () => {
+      renderPage([get({ publishStatus: 'PUBLISHED' })]);
+      await loaded();
+      expect(primaries()).toEqual([]);
+
+      fireEvent.change(textBox(), { target: { value: 'đã sửa' } });
+
+      expect(primaries()).toEqual(['Save']);
+    });
+  });
+
+  describe('the ⋯ menu', () => {
+    it('lists Translate again (red), no Unpublish on a translated Draft', async () => {
+      renderPage([get()]);
+      await loaded();
+
+      expect(await menuItemNames()).toEqual(['Translate again']);
+      const again = await menuItem('Translate again');
+      expect(again).toHaveClass('member-menu__item--danger');
+    });
+
+    it('says plain Translate (not red) before the first translation', async () => {
+      renderPage([get({ translationStatus: 'NONE', text: '' })]);
+      await loaded();
+
+      expect(await menuItem('Translate')).not.toHaveClass('member-menu__item--danger');
+    });
+
+    it('lists Unpublish on a Published chapter, and no Translate', async () => {
+      renderPage([get({ publishStatus: 'PUBLISHED' })]);
+      await loaded();
+
+      expect(await menuItemNames()).toEqual(['Unpublish']);
+    });
+
+    it('lists Reload original on a Wattpad Draft', async () => {
+      renderPage([get({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', sourceLanguage: 'en' })]);
+      await loaded();
+
+      expect(await menuItemNames()).toEqual(['Translate again', 'Reload original']);
+    });
+  });
+
+  it('has no Publish button on a Published chapter', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    expect(screen.getByRole('button', { name: 'Unpublish' })).not.toHaveClass('button--s');
-  });
-
-  it('keeps Save in the sticky form bar', async () => {
-    renderPage([get()]);
-    await loaded();
-
-    expect(screen.getByRole('button', { name: 'Save' }).parentElement).toHaveClass('form-actions--sticky');
+    expect(document.querySelector('.chapter-bar__publish')).toBeNull();
   });
 
   it('has a text-only Save button', async () => {
@@ -257,7 +353,7 @@ describe('ChapterPage', () => {
     ]);
     await loaded();
 
-    await user().click(screen.getByRole('button', { name: 'Translate again' }));
+    await chooseAction('Translate again');
     await answerConfirm('Translate again', 'Translate this chapter again?');
 
     await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(true));
@@ -286,7 +382,7 @@ describe('ChapterPage', () => {
     await loaded();
 
     expect(screen.getByText('Gemini free quota is used up, try again later.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Translate again' })).toBeEnabled();
+    expect(await menuItem('Translate again')).toBeEnabled();
   });
 
   it('publishes, and explains when pages are missing a translation', async () => {
@@ -308,18 +404,19 @@ describe('ChapterPage', () => {
     routes[1] = { method: 'POST', path: '/api/chapters/9/publish', status: 200, body: chapterDetail({ publishStatus: 'PUBLISHED' }) };
     await user().click(screen.getByRole('button', { name: 'Publish' }));
 
-    expect(await screen.findByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
-    expect(within(screen.getByRole('heading', { level: 1 }).closest('header')!).getByText('Published')).toBeInTheDocument();
+    expect(await menuItem('Unpublish')).toBeInTheDocument();
+    expect(within(document.querySelector('.chapter-bar') as HTMLElement).getByText('Published')).toBeInTheDocument();
   });
 
   it('does not let Unpublish drop unsaved edits', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeEnabled();
+    expect(await menuItem('Unpublish')).toBeEnabled();
+    await user().keyboard('{Escape}');
 
     await user().type(textBox(), '!');
 
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeDisabled();
+    expect(await menuItem('Unpublish')).toBeDisabled();
   });
 
   it('shows only the text and title of a published chapter', async () => {
@@ -335,7 +432,7 @@ describe('ChapterPage', () => {
     expect(screen.queryByRole('list', { name: 'Pages' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Enlarge page 1' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
+    expect(await menuItem('Unpublish')).toBeInTheDocument();
   });
 
   it('saves a label shown instead of the chapter number', async () => {
@@ -368,7 +465,7 @@ describe('ChapterPage', () => {
     expect(screen.queryByText(/This chapter is published/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Number')).toBeEnabled();
     expect(screen.getByLabelText('Add page screenshots')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Translate again' })).toBeInTheDocument();
+    expect(await menuItem('Translate again')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Drag to reorder: page 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete page 1' })).toBeInTheDocument();
   });
@@ -427,7 +524,7 @@ describe('ChapterPage', () => {
       ]);
       await loaded();
 
-      await user().click(screen.getByRole('button', { name: 'Translate again' }));
+      await chooseAction('Translate again');
       const dialog = await screen.findByRole('alertdialog');
       expect(dialog).toHaveAccessibleName('Landscape pages');
       expect(dialog).toHaveTextContent('1 page(s) are landscape — Gemini reads sideways text poorly. Translate anyway?');
@@ -436,7 +533,7 @@ describe('ChapterPage', () => {
 
       expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(false);
 
-      await user().click(screen.getByRole('button', { name: 'Translate again' }));
+      await chooseAction('Translate again');
       await answerConfirm('Translate anyway', 'Landscape pages');
       await waitFor(() => expect(calls.some((c) => c.path === '/api/chapters/9/translate')).toBe(true));
     });
@@ -683,6 +780,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   });
 
   it('shows the original beside the chapter text and no page tools', async () => {
+    stubWide(true);
     renderPage([wattpad()]);
     await loaded();
 
@@ -698,6 +796,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   });
 
   it('labels a Thai original', async () => {
+    stubWide(true);
     renderPage([wattpad({ sourceLanguage: 'th' })]);
     await loaded();
 
@@ -712,7 +811,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     ]);
     await loaded();
 
-    const translate = screen.getByRole('button', { name: 'Translate' });
+    const translate = await menuItem('Translate');
     expect(translate).toBeEnabled();
     await userEvent.setup().click(translate);
 
@@ -727,7 +826,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     ]);
     await loaded();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Translate again' }));
+    await chooseAction('Translate again');
     await answerConfirm('Translate again', 'Translate this chapter again?');
 
     expect(await screen.findByText('Gemini is translating the chapter…')).toBeInTheDocument();
@@ -747,7 +846,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     const u = userEvent.setup();
     await u.type(textBox(), ' sửa');
 
-    await u.click(screen.getByRole('button', { name: 'Reload original' }));
+    await chooseAction('Reload original');
     await answerConfirm('Reload original', 'Reload the original text?');
 
     await waitFor(() => expect(screen.getByRole('region', { name: 'Original text' })).toHaveTextContent('Fresh original.'));
@@ -760,7 +859,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     const calls = renderPage([wattpad()]);
     await loaded();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Reload original' }));
+    await chooseAction('Reload original');
     await answerConfirm('Cancel');
 
     expect(calls.some((c) => c.path === '/api/chapters/9/reload-original')).toBe(false);
@@ -770,14 +869,12 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'Bản dịch' })]);
     await loaded();
 
-    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+    expect(await menuItemNames()).toEqual(['Unpublish']);
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /^Original/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
     expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
     expect(textBox()).toHaveValue('Bản dịch');
-    expect(screen.queryByRole('button', { name: /^Translate/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
   });
 
@@ -810,7 +907,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     await loaded();
 
     expect(screen.getByRole('region', { name: 'Original text' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reload original' })).toBeInTheDocument();
+    expect(await menuItem('Reload original')).toBeInTheDocument();
     expect(screen.getByRole('main').className).not.toContain('page--narrow');
   });
 
@@ -820,7 +917,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
       { method: 'POST', path: '/api/chapters/9/reload-original', status: 502, body: problem(502, 'WATTPAD_UNAVAILABLE', 'x') },
     ]);
     await loaded();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Reload original' }));
+    await chooseAction('Reload original');
     await answerConfirm('Reload original');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Wattpad did not answer. Try again later.');
@@ -831,7 +928,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     await loaded();
 
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+    expect(await menuItemNames()).toEqual(['Translate again']);
   });
 });
 
@@ -935,6 +1032,545 @@ describe('ChapterPage: Fetch & translate next', () => {
 
     const button = screen.getByRole('button', { name: NEXT });
     expect(button).toBeDisabled();
-    await expectTooltip(button.parentElement!, 'Wait until this chapter finishes translating.');
+    await expectTooltip(button.parentElement!, 'Chapter 1 is still translating');
+  });
+});
+
+describe('ChapterPage status line', () => {
+  afterEach(() => vi.useRealTimers());
+  const edit = (value: string) => fireEvent.change(textBox(), { target: { value } });
+  const line = () => screen.getByText(/ words? · /);
+
+  it('shows words, characters and paragraphs of the chapter text', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(line()).toHaveTextContent('4 words · 20 characters · 2 paragraphs');
+    expect(screen.queryByText(/of the original/)).not.toBeInTheDocument();
+  });
+
+  it('formats big numbers with separators', async () => {
+    renderPage([get({ text: Array.from({ length: 3412 }, () => 'w').join(' ') })]);
+    await loaded();
+
+    expect(line()).toHaveTextContent(/^3,412 words · 6,823 characters · 1 paragraph$/);
+  });
+
+  it('updates about 300 ms after typing, not on every key', async () => {
+    renderPage([get()]);
+    await loaded();
+    vi.useFakeTimers();
+
+    act(() => edit('one two three'));
+    expect(line()).toHaveTextContent('4 words');
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    expect(line()).toHaveTextContent('4 words');
+    act(() => {
+      vi.advanceTimersByTime(2);
+    });
+    expect(line()).toHaveTextContent('3 words · 13 characters · 1 paragraph');
+  });
+
+  describe('a text chapter (Wattpad)', () => {
+    const source = Array.from({ length: 10 }, (_, i) => `Source ${i}`).join('\n\n');
+    const paras = (n: number) => Array.from({ length: n }, (_, i) => `Dòng ${i}`).join('\n\n');
+    const wattpad = (text: string): FakeRoute =>
+      get({ pages: [], text, sourceText: source, wattpadPartId: '1', sourceLanguage: 'en' });
+
+    it('compares the paragraphs with the original', async () => {
+      renderPage([wattpad(paras(10))]);
+      await loaded();
+
+      const ratio = screen.getByText(/paragraphs of the original/);
+      expect(ratio).toHaveTextContent('· 10/10 paragraphs of the original');
+      expect(ratio).not.toHaveClass('chapter-count__warn');
+    });
+
+    it('turns the ratio red below 90 % and explains it in a tooltip', async () => {
+      renderPage([wattpad(paras(8))]);
+      await loaded();
+
+      const ratio = screen.getByText(/paragraphs of the original/);
+      expect(ratio).toHaveTextContent('· 8/10 paragraphs of the original');
+      expect(ratio).toHaveClass('chapter-count__warn');
+      await expectTooltip(ratio, 'The translation may be missing a part');
+    });
+
+    it('is not a warning at exactly 90 %', async () => {
+      renderPage([wattpad(paras(9))]);
+      await loaded();
+
+      expect(screen.getByText(/paragraphs of the original/)).not.toHaveClass('chapter-count__warn');
+    });
+
+    it('colours the warning with the danger token', () => {
+      expect(css).toMatch(/\.chapter-count__warn\s*\{[^}]*color:\s*var\(--danger\)/);
+    });
+  });
+});
+
+describe('ChapterPage editor and save state', () => {
+  const put: FakeRoute = { method: 'PUT', path: '/api/chapters/9', status: 200, body: chapterDetail({ text: 'x' }) };
+  const edit = (value = 'đã sửa') => fireEvent.change(textBox(), { target: { value } });
+  const state = () => document.querySelector('.chapter-bar__state') as HTMLElement;
+  afterEach(() => vi.useRealTimers());
+
+  it('grows with its text and has no scrollbar of its own', async () => {
+    // 100 px per character makes the heights easy to read; the window is 768 px high in jsdom, so the minimum is 460 px.
+    vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return this.value.length * 100;
+    });
+    renderPage([get()]);
+    await loaded();
+
+    await waitFor(() => expect(textBox().style.height).toBe('2000px'));
+    edit('x'.repeat(50));
+    await waitFor(() => expect(textBox().style.height).toBe('5000px'));
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow-y:\s*hidden/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*resize:\s*none/);
+  });
+
+  it('shows nothing before the first save, then Unsaved changes, Saving…, Saved HH:mm', async () => {
+    let finish!: () => void;
+    renderPage([get(), { ...put, delay: new Promise<void>((r) => (finish = r)) }]);
+    await loaded();
+    expect(state()).toHaveTextContent('');
+    expect(state()).toHaveAttribute('aria-live', 'polite');
+
+    edit();
+    expect(state()).toHaveTextContent('Unsaved changes');
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    expect(state()).toHaveTextContent('Saving…');
+    finish();
+
+    await waitFor(() => expect(state().textContent).toMatch(/^Saved \d\d:\d\d$/));
+  });
+
+  it('says Auto-saved HH:mm after the 15-minute timer', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    vi.useFakeTimers();
+    edit();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS));
+    vi.useRealTimers();
+
+    await waitFor(() => expect(state().textContent).toMatch(/^Auto-saved \d\d:\d\d$/));
+  });
+
+  it('goes back to Unsaved changes when typing after a save', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    edit();
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(state().textContent).toMatch(/^Saved /));
+
+    edit('another');
+
+    expect(state()).toHaveTextContent('Unsaved changes');
+  });
+
+  it('Save is a plain disabled button when clean and the one primary when dirty', async () => {
+    renderPage([get()]);
+    await loaded();
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save).toBeDisabled();
+    expect(save).not.toHaveClass('button--primary');
+
+    edit();
+
+    expect(save).toBeEnabled();
+    expect(save).toHaveClass('button--primary');
+  });
+
+  it('Publish is disabled while a translation runs, with the reason in a tooltip', async () => {
+    renderPage([get({ translationStatus: 'TRANSLATING' })]);
+    await loaded();
+    const publish = screen.getByRole('button', { name: 'Publish' });
+
+    expect(publish).toBeDisabled();
+    await expectTooltip(publish.parentElement!, 'Wait until this chapter finishes translating.');
+  });
+});
+
+describe('ChapterPage reading width and the aligned original', () => {
+  const source = 'One.\n\nTwo.\n\nThree.\n\nFour.';
+  const wattpad = (over: Partial<ChapterDetail> = {}): FakeRoute =>
+    get({ pages: [], text: 'Một\n\nHai\n\nBa\n\nBốn', sourceText: source, wattpadPartId: '1', sourceLanguage: 'en', ...over });
+  it('sets the editor to about 72 characters wide in 17 px type', () => {
+    expect(css).toMatch(/\.chapter-text\s*\{[^}]*max-width:\s*72ch/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*font-size:\s*1\.0625rem/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*line-height:\s*1\.7/);
+  });
+
+  it('puts the original beside the editor from 1024 px', () => {
+    expect(css).toMatch(/@media \(min-width: 1024px\)\s*\{\s*\.chapter-columns\s*\{[^}]*grid-template-columns/);
+  });
+
+  it('marks the original paragraph that matches the caret and scrolls only that into view', async () => {
+    stubWide(true);
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderPage([wattpad()]);
+    await loaded();
+    const box = textBox() as HTMLTextAreaElement;
+    scroll.mockClear();
+
+    // The caret in the third paragraph ("Ba"): "Một\n\nHai\n\nBa" → offset 11.
+    box.setSelectionRange(11, 11);
+    fireEvent.keyUp(box);
+
+    const region = screen.getByRole('region', { name: 'Original text' });
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('Three.'));
+    expect(region.querySelectorAll('[aria-current]')).toHaveLength(1);
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest' });
+    expect((scroll.mock.contexts.at(-1) as HTMLElement).textContent).toBe('Three.');
+
+    box.setSelectionRange(0, 0);
+    fireEvent.click(box);
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('One.'));
+
+    box.setSelectionRange(16, 16);
+    fireEvent.select(box);
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('Four.'));
+  });
+
+  it('shows the original as a closed disclosure below 1024 px', async () => {
+    stubWide(false);
+    renderPage([wattpad()]);
+    await loaded();
+
+    const details = document.querySelector('details.chapter-original') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(within(details).getByText('Original (English)')).toBeInTheDocument();
+  });
+
+  it('shows no original panel for a screenshot chapter, and no paragraph ratio', async () => {
+    stubWide(true);
+    renderPage([get()]);
+    await loaded();
+
+    expect(document.querySelector('.chapter-original')).toBeNull();
+    expect(screen.queryByText(/of the original/)).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Pages' })).toBeInTheDocument();
+  });
+});
+
+describe('ChapterPage: text first on a phone', () => {
+  const STORAGE_KEY = 'chapter-details-open';
+  const stubWidth = (min761: boolean) =>
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: min761 && query.includes('761px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  const details = () => document.querySelector('details.chapter-details') as HTMLDetailsElement;
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it('keeps the label, title and the translated-by line in a "Chapter details" disclosure', async () => {
+    stubWidth(true);
+    renderPage([get({ translationModel: 'gemini-2.5-pro' })]);
+    await loaded();
+
+    expect(within(details()).getByText('Chapter details')).toBeInTheDocument();
+    expect(within(details()).getByLabelText('Chapter label (optional)')).toBeInTheDocument();
+    expect(within(details()).getByLabelText('Chapter title (optional)')).toBeInTheDocument();
+    expect(within(details()).getByText('Translated by gemini-2.5-pro')).toBeInTheDocument();
+    expect(textBox().closest('details')).toBeNull();
+  });
+
+  it('is closed on a phone and open from 761 px', async () => {
+    stubWidth(false);
+    renderPage([get()]);
+    await loaded();
+    expect(details().open).toBe(false);
+    cleanup();
+
+    stubWidth(true);
+    renderPage([get()]);
+    await loaded();
+    expect(details().open).toBe(true);
+  });
+
+  it('remembers what the person chose, in localStorage', async () => {
+    stubWidth(false);
+    renderPage([get()]);
+    await loaded();
+
+    await user().click(within(details()).getByText('Chapter details'));
+    await waitFor(() => expect(details().open).toBe(true));
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('1');
+    cleanup();
+
+    renderPage([get()]);
+    await loaded();
+    expect(details().open).toBe(true);
+  });
+
+  it('a remembered "closed" wins over the wide default', async () => {
+    localStorage.setItem(STORAGE_KEY, '0');
+    stubWidth(true);
+    renderPage([get()]);
+    await loaded();
+
+    expect(details().open).toBe(false);
+  });
+
+  it('still renders when storage throws', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    stubWidth(false);
+    renderPage([get()]);
+    await loaded();
+
+    await user().click(within(details()).getByText('Chapter details'));
+    await waitFor(() => expect(details().open).toBe(true));
+    expect(textBox()).toBeInTheDocument();
+  });
+
+  it('shows the published note as one muted line, not an alert box', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+
+    const note = screen.getByText(/This chapter is published/);
+    expect(note.tagName).toBe('P');
+    expect(note).toHaveClass('muted');
+    expect(note.closest('.alert')).toBeNull();
+    expect(note).not.toHaveAttribute('role', 'alert');
+    expect(css).not.toMatch(/\.chapter-note\s*\{[^}]*(border-left|background)/);
+  });
+
+  it('puts the details after the counts and before the text', async () => {
+    stubWidth(true);
+    renderPage([get()]);
+    await loaded();
+
+    const count = document.querySelector('.chapter-count')!;
+    expect(count.compareDocumentPosition(details()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(details().compareDocumentPosition(textBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe('ChapterPage translator tools', () => {
+  const state = () => document.querySelector('.chapter-bar__state') as HTMLElement;
+  const ctrl = (key: string, init: KeyboardEventInit = {}) => {
+    const e = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true, ...init });
+    act(() => {
+      document.dispatchEvent(e);
+    });
+    return e;
+  };
+
+  it('opens find and replace from the bar button and closes it again', async () => {
+    renderPage([get()]);
+    await loaded();
+    expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Find and replace' });
+
+    await user().click(toggle);
+    expect(screen.getByRole('search', { name: 'Find and replace' })).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Find')).toHaveFocus();
+
+    await user().click(toggle);
+    expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+  });
+
+  it('opens with Ctrl+H and Cmd+H, preventing the browser history', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    const e = ctrl('h');
+    expect(e.defaultPrevented).toBe(true);
+    expect(await screen.findByRole('search', { name: 'Find and replace' })).toBeInTheDocument();
+    cleanup();
+
+    renderPage([get()]);
+    await loaded();
+    ctrl('h', { ctrlKey: false, metaKey: true });
+    expect(await screen.findByRole('search', { name: 'Find and replace' })).toBeInTheDocument();
+  });
+
+  it('Esc closes the panel and puts the focus back in the text', async () => {
+    renderPage([get()]);
+    await loaded();
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+
+    await user().keyboard('{Escape}');
+
+    expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+    expect(textBox()).toHaveFocus();
+  });
+
+  it('Replace all changes the text, leaves the chapter unsaved and Undo brings it back', async () => {
+    renderPage([get({ text: 'Mai và Mai' })]);
+    await loaded();
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+    await user().type(screen.getByLabelText('Find'), 'Mai');
+    await user().type(screen.getByLabelText('Replace with'), 'Lan');
+
+    await user().click(screen.getByRole('button', { name: 'Replace all' }));
+
+    expect(textBox()).toHaveValue('Lan và Lan');
+    expect(state()).toHaveTextContent('Unsaved changes');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('button--primary');
+    expect(toast.success).toHaveBeenCalledWith('Replaced 2', expect.objectContaining({ action: expect.anything() }));
+    act(() => (vi.mocked(toast.success).mock.calls.at(-1)![1]!.action as unknown as { onClick: () => void }).onClick());
+    expect(textBox()).toHaveValue('Mai và Mai');
+    expect(state()).toHaveTextContent('');
+  });
+
+  it('inserts a scene break at the caret with one blank line each side', async () => {
+    renderPage([get({ text: 'One\n\nTwo' })]);
+    await loaded();
+    const box = textBox() as HTMLTextAreaElement;
+    box.setSelectionRange(3, 3);
+
+    await user().click(screen.getByRole('button', { name: 'Insert scene break' }));
+
+    expect(box).toHaveValue('One\n\n***\n\nTwo');
+    expect(box.selectionStart).toBe('One\n\n***\n\n'.length);
+    expect(box).toHaveFocus();
+    expect(state()).toHaveTextContent('Unsaved changes');
+  });
+
+  it('has tooltips on the two icon buttons, and disables them while a translation runs', async () => {
+    renderPage([get()]);
+    await loaded();
+    await expectTooltip(screen.getByRole('button', { name: 'Find and replace' }), 'Find and replace');
+    await expectTooltip(screen.getByRole('button', { name: 'Insert scene break' }), 'Insert scene break');
+    cleanup();
+
+    renderPage([get({ translationStatus: 'TRANSLATING' })]);
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Find and replace' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Insert scene break' })).toBeDisabled();
+  });
+});
+
+describe('ChapterPage editor CSS cannot stop the textarea growing', () => {
+  it('sets no height or max-height on the editor textarea, and hides its overflow', () => {
+    const rules = [...css.matchAll(/([^{}]*\.chapter-text[^{}]*textarea[^{}]*)\{([^}]*)\}/g)];
+    expect(rules.length).toBeGreaterThan(0);
+    for (const [, selector, body] of rules) {
+      expect(body, selector.trim()).not.toMatch(/(^|[;\s])(max-height|height)\s*:/);
+    }
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow-y:\s*hidden/);
+  });
+});
+
+describe('ChapterPage bar title', () => {
+  it('shows a short label in the bar, not the long title the H1 already has', async () => {
+    renderPage([get({ chapterNo: 25, title: 'A very long chapter title that the H1 shows' })]);
+    await screen.findByRole('heading', { level: 1 });
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A very long chapter title');
+    const title = document.querySelector('.chapter-bar__title')!;
+    expect(title).toHaveTextContent(/^Chapter 25$/);
+  });
+
+  it('uses the custom label when there is one', async () => {
+    renderPage([get({ label: 'Ngoại truyện 1' })]);
+    await screen.findByRole('heading', { level: 1 });
+
+    expect(document.querySelector('.chapter-bar__title')).toHaveTextContent(/^Ngoại truyện 1$/);
+  });
+});
+
+describe('ChapterPage two columns', () => {
+  it('gives the original and the editor equal columns from 1024 px, each at most 72ch', () => {
+    const block = css.slice(css.indexOf('@media (min-width: 1024px)', css.indexOf('.chapter-columns')));
+    expect(block).toMatch(/\.chapter-columns\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/);
+    expect(css).toMatch(/\.chapter-columns > \.chapter-original\s*\{[^}]*max-width:\s*72ch/);
+    expect(css).toMatch(/\.chapter-text\s*\{[^}]*max-width:\s*72ch/);
+  });
+
+  it('keeps the original sticky just under the bar, scrolling on its own', () => {
+    expect(css).toMatch(/--chapter-bar-h:\s*[\d.]+rem/);
+    expect(css).toMatch(/\.chapter-original\s*\{[^}]*position:\s*sticky;[^}]*top:\s*var\(--chapter-bar-h\)/);
+    expect(css).toMatch(/\.chapter-original__text\s*\{[^}]*max-height:\s*calc\(100vh - var\(--chapter-bar-h\)/);
+  });
+
+  it('uses the wide page for a chapter with an original beside it', async () => {
+    renderPage([get({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', sourceLanguage: 'en' })]);
+    await loaded();
+
+    expect(screen.getByRole('main')).toHaveClass('page--wide');
+  });
+});
+
+describe('ChapterPage busy novel', () => {
+  const busyLine = () => document.querySelector('.novel-busy');
+  const notebook = (over: Partial<ChapterDetail> = {}) => get({ notebookStatus: 'UPDATING', notebookChapterNo: 24, ...over });
+  const getCalls = (calls: { method: string; path: string }[]) =>
+    calls.filter((c) => c.method === 'GET' && c.path === '/api/chapters/9').length;
+  afterEach(() => vi.useRealTimers());
+
+  it('shows the notebook line and disables Translate again with the reason in a tooltip', async () => {
+    renderPage([notebook()]);
+    await loaded();
+
+    expect(busyLine()).toHaveTextContent('Notebook updating after chapter 24…');
+    const item = await menuItem('Translate again');
+    expect(item).toBeDisabled();
+    await expectTooltip(item.parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('disables Fetch & translate next on the last Wattpad chapter, with the reason', async () => {
+    renderPage([notebook({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', nextChapterId: null })]);
+    await loaded();
+
+    const next = screen.getByRole('button', { name: 'Fetch & translate next' });
+    expect(next).toBeDisabled();
+    await expectTooltip(next.parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('a failed notebook shows no line and disables nothing', async () => {
+    renderPage([get({ notebookStatus: 'FAILED' })]);
+    await loaded();
+
+    expect(busyLine()).toBeNull();
+    expect(await menuItem('Translate again')).toBeEnabled();
+  });
+
+  it('polls the chapter while the notebook updates, keeps unsaved edits, and stops when it is done', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const routes: FakeRoute[] = [notebook()];
+    const calls = renderPage(routes);
+    await loaded();
+    fireEvent.change(textBox(), { target: { value: 'đang sửa' } });
+    const before = getCalls(calls);
+
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(getCalls(calls)).toBeGreaterThan(before);
+    expect(busyLine()).not.toBeNull();
+    expect(textBox()).toHaveValue('đang sửa');
+
+    routes[0] = get({ notebookStatus: 'IDLE' });
+    await vi.advanceTimersByTimeAsync(3500);
+    await waitFor(() => expect(busyLine()).toBeNull());
+    expect(textBox()).toHaveValue('đang sửa'); // the poll only touched the notebook fields
+    const after = getCalls(calls);
+
+    await vi.advanceTimersByTimeAsync(7000);
+    expect(getCalls(calls)).toBe(after);
+    expect(await menuItem('Translate again')).toBeEnabled();
+  });
+
+  it('does not poll a chapter when nothing is running', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const calls = renderPage([get()]);
+    await loaded();
+    const before = getCalls(calls);
+
+    await vi.advanceTimersByTimeAsync(7000);
+
+    expect(getCalls(calls)).toBe(before);
   });
 });

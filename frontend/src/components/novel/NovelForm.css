@@ -1,7 +1,34 @@
 .novel-form {
   display: grid;
+  gap: var(--space-8);
+  /* The same width on the New novel page and in the Details tab. */
+  max-width: 760px;
+}
+
+.form-section {
+  display: grid;
   gap: var(--space-4);
-  max-width: 640px;
+}
+
+.form-section__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.novel-form__basics,
+.novel-form__basics-fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Cover beside the main fields on wide screens; one column in the same order below. */
+@media (min-width: 1024px) {
+  .novel-form__basics {
+    grid-template-columns: 200px minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-6);
+  }
 }
 
 .novel-form__wattpad-cover {
@@ -14,4 +41,27 @@
   height: auto;
   border-radius: var(--radius-s, 8px);
   border: 1px solid var(--rule);
+}
+
+/* The tooltip trigger around a disabled submit button: a disabled button swallows pointer events. */
+.novel-form__submit {
+  display: inline-flex;
+}
+
+.form-actions--sticky > .novel-form__submit {
+  flex: 1;
+}
+
+.form-actions--sticky > .novel-form__submit .button {
+  flex: 1;
+}
+
+@media (min-width: 521px) {
+  .form-actions--sticky > .novel-form__submit {
+    flex: none;
+  }
+
+  .form-actions--sticky > .novel-form__submit .button {
+    flex: none;
+  }
 }

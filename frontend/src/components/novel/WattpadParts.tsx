@@ -12,6 +12,8 @@ import {
 import { formatInstant } from '../../lib/dates';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
 import { toastError } from '../../lib/toast';
+import { busyTitle, novelBusy } from '../../lib/novelBusy';
+import { Tip } from '../Tip';
 import { EmptyState } from '../EmptyState';
 import { Alert } from '../ui/Alert';
 import { LoadingText } from '../ui/LoadingText';
@@ -22,7 +24,7 @@ type RowState = 'NEW' | ChapterTranslationStatus;
 
 /** True while a chapter of the novel translates or its notebook updates: one translation at a time. */
 export function novelIsBusy(novel: NovelDetail): boolean {
-  return novel.chapters.some((c) => c.translationStatus === 'TRANSLATING') || novel.notebookStatus === 'UPDATING';
+  return novelBusy(novel) !== null;
 }
 
 /**
@@ -57,7 +59,8 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
     void load();
   }, [load]);
 
-  const busy = novelIsBusy(novel);
+  const busyWhy = novelBusy(novel);
+  const busy = busyWhy !== null;
   const locked = busy || pending;
 
   const stateOf = (p: WattpadPart): RowState => {
@@ -139,12 +142,17 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
                     </Link>
                   )}
                   {(state === 'NEW' || state === 'NONE' || state === 'FAILED') && !p.deleted && (
-                    <button type="button" disabled={locked}
-                      className={`button button--s${isNext ? ' button--primary' : ''}`}
-                      aria-label={`${state === 'NEW' ? 'Fetch & translate' : 'Translate'} ${p.title}`}
-                      onClick={() => void run(p, index)}>
-                      {state === 'NEW' ? 'Fetch & translate' : 'Translate'}
-                    </button>
+                    // The reason is shown before the click: a disabled button swallows hover, so the tip sits on a span.
+                    <Tip label={busyWhy ? busyTitle(busyWhy) : ''} disabled={!busyWhy}>
+                      <span className="wattpad-parts__tip">
+                        <button type="button" disabled={locked}
+                          className={`button button--s${isNext ? ' button--primary' : ''}`}
+                          aria-label={`${state === 'NEW' ? 'Fetch & translate' : 'Translate'} ${p.title}`}
+                          onClick={() => void run(p, index)}>
+                          {state === 'NEW' ? 'Fetch & translate' : 'Translate'}
+                        </button>
+                      </span>
+                    </Tip>
                   )}
                 </span>
               </li>

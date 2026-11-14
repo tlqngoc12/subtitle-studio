@@ -54,6 +54,11 @@ public class NovelController {
         notebook.retry(id);
     }
 
+    @PutMapping("/{id}/notebook/paused")
+    public NotebookView setNotebookPaused(@PathVariable long id, @RequestBody NotebookPausedRequest request) {
+        return notebook.setNotebookPaused(id, request.paused());
+    }
+
     @PostMapping("/wattpad/preview")
     public WattpadNovelPreview wattpadPreview(@RequestBody WattpadUrlRequest request) {
         return wattpadNovels.preview(request.url());

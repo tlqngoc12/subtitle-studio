@@ -6,15 +6,13 @@ import {
   CloudDownload,
   Copy,
   Info,
-  Languages,
-  RefreshCw,
+  Minus,
   RotateCcw,
   RotateCw,
-  Send,
+  Search,
   TriangleAlert,
-  Undo2,
 } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
@@ -40,24 +38,56 @@ import {
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
+import { countText, insertSceneBreak, paragraphIndexAt, paragraphs } from '../lib/chapterText';
+import { DisclosureSummary } from '../components/ui/DisclosureSummary';
+import { OriginalPanel } from '../components/novel/OriginalPanel';
+import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
+import { useAutoGrow } from '../lib/useAutoGrow';
+import { useMediaQuery } from '../lib/useMediaQuery';
 import { PageRow } from '../components/novel/PageRow';
 import { PageUploader } from '../components/novel/PageUploader';
 import { StatusBadges } from '../components/novel/StatusBadges';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
+import { busyTitle, chapterBusy } from '../lib/novelBusy';
+import { BusyLine } from '../components/novel/BusyLine';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError } from '../lib/toast';
 import { Alert } from '../components/ui/Alert';
-import { FormActions } from '../components/ui/FormActions';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
-import { IconLink } from '../components/ui/IconButton';
+import { IconButton, IconLink } from '../components/ui/IconButton';
+import { FindReplace } from '../components/novel/FindReplace';
 import './ChapterPage.css';
 
 /** Unsaved edits are saved by themselves this often (15 minutes). */
 export const AUTO_SAVE_MS = 900_000;
+const COUNT_DEBOUNCE_MS = 300;
+/** Below this share of the original's paragraphs the translation probably lost a part. */
+const MIN_PARAGRAPH_SHARE = 0.9;
+
+const DETAILS_KEY = 'chapter-details-open';
+
+function readDetailsChoice(): boolean | null {
+  try {
+    const stored = localStorage.getItem(DETAILS_KEY);
+    return stored === '1' ? true : stored === '0' ? false : null;
+  } catch {
+    return null; // storage blocked: the width decides
+  }
+}
+
+function writeDetailsChoice(open: boolean) {
+  try {
+    localStorage.setItem(DETAILS_KEY, open ? '1' : '0');
+  } catch {
+    // storage blocked: the choice lasts until the page closes
+  }
+}
+
+const plural = (n: number, noun: string) => `${n.toLocaleString('en')} ${noun}${n === 1 ? '' : 's'}`;
 
 /**
  * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
@@ -79,11 +109,56 @@ export default function ChapterPage() {
   const [uploading, setUploading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [enlarged, setEnlarged] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [lastSave, setLastSave] = useState<{ kind: 'saved' | 'autosaved'; at: Date } | null>(null);
+  // The details (number, label, title, translated by) start closed on a phone so the text comes first; the person's
+  // own choice is remembered.
+  const roomy = useMediaQuery('(min-width: 761px)');
+  const [detailsChoice, setDetailsChoice] = useState<boolean | null>(readDetailsChoice);
+  const detailsOpen = detailsChoice ?? roomy;
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(textRef, text);
+  const [finding, setFinding] = useState(false);
+  // Where the caret goes after a scene break is inserted (the text changes on the next render).
+  const caretAfterBreak = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const at = caretAfterBreak.current;
+    if (at === null) return;
+    caretAfterBreak.current = null;
+    textRef.current?.focus();
+    textRef.current?.setSelectionRange(at, at);
+  }, [text]);
+  function addSceneBreak() {
+    const el = textRef.current;
+    if (!el) return;
+    const result = insertSceneBreak(text, el.selectionStart);
+    caretAfterBreak.current = result.caret;
+    setText(result.text);
+  }
+  // The paragraph the caret is in (matched with the original's paragraph of the same number).
+  const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
+  function trackCaret(el: HTMLTextAreaElement) {
+    if (chapter?.sourceText == null) return; // only a chapter with an original has paragraphs to match
+    setActiveParagraph(paragraphIndexAt(el.value, el.selectionStart));
+  }
+
+  // The counts follow the text about 300 ms after the last key, so typing in a long chapter stays light.
+  const [counted, setCounted] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCounted(text), COUNT_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [text]);
+  const counts = useMemo(() => countText(counted), [counted]);
+  const originalParagraphs = useMemo(
+    () => (chapter?.sourceText != null ? paragraphs(chapter.sourceText).length : null),
+    [chapter?.sourceText],
+  );
 
   /** Takes the server's chapter as the new saved state (drops unsaved edits). */
   function load(c: ChapterDetail) {
     setChapter(c);
     setText(c.text);
+    setCounted(c.text);
     setNumber(String(c.chapterNo));
     setLabel(c.label ?? '');
     setTitle(c.title ?? '');
@@ -92,14 +167,22 @@ export default function ChapterPage() {
   useEffect(() => {
     setChapter(null);
     setStarting(false); // the page is reused for the chapter just opened
+    setLastSave(null);
     getChapter(chapterId)
       .then(load)
       .catch((e) => setError(errorMessage(e)));
   }, [chapterId]);
 
   const translating = chapter?.translationStatus === 'TRANSLATING';
-  useChapterPolling(translating ? chapterId : null, (c) => {
-    if (c.translationStatus !== 'TRANSLATING') {
+  const notebookUpdating = chapter?.notebookStatus === 'UPDATING';
+  // Poll while this chapter translates, and while the notebook updates (no other chapter can start then).
+  useChapterPolling(translating || notebookUpdating ? chapterId : null, (c) => {
+    if (!translating) {
+      // Only the notebook is running: take its state and keep every edit.
+      setChapter((prev) =>
+        prev ? { ...prev, notebookStatus: c.notebookStatus, notebookChapterNo: c.notebookChapterNo } : prev,
+      );
+    } else if (c.translationStatus !== 'TRANSLATING') {
       load(c);
     } else {
       // A fallback model took over: show it, keep the edits.
@@ -127,12 +210,19 @@ export default function ChapterPage() {
   const canSaveRef = useRef(canSave);
   canSaveRef.current = canSave;
 
-  // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog.
+  // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog; Ctrl+H / ⌘H opens find and replace
+  // instead of the browser's history.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 's') return;
-      e.preventDefault();
-      if (canSaveRef.current) void saveRef.current(false);
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === 'h') {
+        e.preventDefault();
+        setFinding(true);
+      } else if (key === 's') {
+        e.preventDefault();
+        if (canSaveRef.current) void saveRef.current(false);
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -260,17 +350,23 @@ export default function ChapterPage() {
 
   async function save(auto = false) {
     if (!chapter) return;
-    await run(async () => {
-      load(
-        await updateChapter(chapterId, {
-          chapterNo: Number(number),
-          label: label.trim(),
-          title: title.trim(),
-          text,
-        }),
-      );
-      toast.success(auto ? 'Chapter auto-saved' : 'Chapter saved');
-    });
+    setSaving(true);
+    try {
+      await run(async () => {
+        load(
+          await updateChapter(chapterId, {
+            chapterNo: Number(number),
+            label: label.trim(),
+            title: title.trim(),
+            text,
+          }),
+        );
+        setLastSave({ kind: auto ? 'autosaved' : 'saved', at: new Date() });
+        toast.success(auto ? 'Chapter auto-saved' : 'Chapter saved');
+      });
+    } finally {
+      setSaving(false);
+    }
   }
   saveRef.current = save;
 
@@ -338,8 +434,34 @@ export default function ChapterPage() {
     });
   }
 
+  const why = chapterBusy(chapter); // why no translation can start now (null = it can)
+  const saveState: SaveState = saving ? { kind: 'saving' } : dirty ? { kind: 'dirty' } : (lastSave ?? { kind: 'idle' });
+  const menuItems: ChapterMenuItem[] = [
+    ...(published
+      ? [
+          {
+            label: 'Unpublish',
+            // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
+            disabled: locked || dirty,
+            onSelect: () => void run(async () => load(await unpublishChapter(chapterId))),
+          },
+        ]
+      : [
+          {
+            label: chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again',
+            // Translating again replaces the text, edits included.
+            danger: chapter.translationStatus !== 'NONE',
+            disabled: locked || (!fromText && chapter.pages.length === 0),
+            // The notebook is updating: no chapter of this novel can translate until it is done.
+            disabledReason: why?.reason === 'NOTEBOOK_UPDATING' ? busyTitle(why) : undefined,
+            onSelect: () => void translate(),
+          },
+        ]),
+    ...(showOriginal ? [{ label: 'Reload original', disabled: locked, onSelect: () => void reloadOriginal() }] : []),
+  ];
+
   return (
-    <Page width={showOriginal ? 'default' : 'narrow'} className="chapter-page">
+    <Page width={showOriginal ? 'wide' : 'narrow'} className="chapter-page">
       {confirmDialog}
       <PageHeader
         breadcrumbs={[
@@ -349,58 +471,80 @@ export default function ChapterPage() {
         ]}
         onNavigate={(e, to) => void leave(e, to)}
         title={chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}
-        meta={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
-        actions={
+      />
+
+      <ChapterBar
+        nav={
           <>
-            <span className="chapter-head__nav">
-              {chapter.prevChapterId !== null && (
-                <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
-                  onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
-              )}
-              {chapter.nextChapterId !== null && (
-                <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
-                  onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
-              )}
-              {/* The last chapter of a Wattpad novel: start the next part from here instead of the Wattpad tab. */}
-              {chapter.wattpadPartId !== null && chapter.nextChapterId === null && (
-                <Tip label="Wait until this chapter finishes translating." disabled={!translating}>
-                  <span className="chapter-head__next">
-                    <button className="button" type="button" disabled={locked || starting}
-                      onClick={() => void startNext()}>
-                      <CloudDownload className="icon" aria-hidden="true" />
-                      {starting ? 'Starting…' : 'Fetch & translate next'}
-                    </button>
-                  </span>
-                </Tip>
-              )}
-            </span>
-            {!published && (
-              <button className="button" type="button" onClick={() => void translate()}
-                disabled={locked || (!fromText && chapter.pages.length === 0)}>
-                <Languages className="icon" aria-hidden="true" />
-                {chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again'}
-              </button>
+            {chapter.prevChapterId !== null && (
+              <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
+                onClick={(e) => void leave(e, chapterPath(chapter.prevChapterId!))} />
             )}
-            {published ? (
-              // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
-              <button className="button" type="button" disabled={locked || dirty}
-                onClick={() => void run(async () => load(await unpublishChapter(chapterId)))}>
-                <Undo2 className="icon" aria-hidden="true" />
-                Unpublish
-              </button>
-            ) : (
-              <button className="button button--primary" type="button" disabled={locked || dirty}
-                onClick={() => void run(async () => load(await publishChapter(chapterId)))}>
-                <Send className="icon" aria-hidden="true" />
-                Publish
-              </button>
+            {chapter.nextChapterId !== null && (
+              <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
+                onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
             )}
+            {/* The last chapter of a Wattpad novel: start the next part from here instead of the Wattpad tab. */}
+            {chapter.wattpadPartId !== null && chapter.nextChapterId === null && (
+              <Tip label={why ? busyTitle(why) : ''} disabled={!why}>
+                <span className="chapter-head__next">
+                  <button className="button" type="button" disabled={locked || starting || why !== null}
+                    onClick={() => void startNext()}>
+                    <CloudDownload className="icon" aria-hidden="true" />
+                    {starting ? 'Starting…' : 'Fetch & translate next'}
+                  </button>
+                </span>
+              </Tip>
+            )}
+          </>
+        }
+        // Short: the H1 above already shows the full title.
+        title={chapter.label?.trim() || `Chapter ${chapter.chapterNo}`}
+        badges={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
+        saveState={saveState}
+        canSave={canSave}
+        onSave={() => void save()}
+        publish={
+          published
+            ? undefined
+            : {
+                onPublish: () => void run(async () => load(await publishChapter(chapterId))),
+                disabledReason: translating
+                  ? 'Wait until this chapter finishes translating.'
+                  : busy
+                    ? 'Wait until the current action finishes.'
+                    : null,
+              }
+        }
+        menuItems={menuItems}
+        tools={
+          <>
+            <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
+              onClick={() => setFinding((f) => !f)} />
+            <IconButton label="Insert scene break" icon={Minus} disabled={locked} onClick={addSceneBreak} />
           </>
         }
       />
 
-      {(translating || (chapter.translationStatus === 'TRANSLATED' && chapter.translationModel) ||
-        (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
+      {finding && (
+        <FindReplace text={text} onChange={setText} textareaRef={textRef} onClose={() => setFinding(false)} />
+      )}
+
+      <p className="chapter-count muted">
+        {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}
+        {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
+      </p>
+
+      {published && (
+        <p className="chapter-note muted">
+          This chapter is published: only the text can be edited.{' '}
+          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
+        </p>
+      )}
+
+      {why?.reason === 'NOTEBOOK_UPDATING' && <BusyLine busy={why} />}
+
+      {(translating || (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
         <div className="chapter-status">
           {translating && (
             <p className="muted" aria-live="polite">
@@ -410,9 +554,6 @@ export default function ChapterPage() {
                   ? 'Gemini is translating the chapter…'
                   : 'Gemini is reading and translating the pages…'}
             </p>
-          )}
-          {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
-            <p className="muted">Translated by {chapter.translationModel}</p>
           )}
           {chapter.translationStatus === 'FAILED' && chapter.translationError && (
             <p className="field__error">{chapter.translationError}</p>
@@ -424,7 +565,19 @@ export default function ChapterPage() {
         <Alert title={error.title} hint={error.hint} />
       )}
 
-      <div className="chapter-meta">
+      <details
+        className="chapter-details"
+        open={detailsOpen}
+        onToggle={(e) => {
+          // React also fires toggle when it sets `open` itself; only a real change by the person is remembered.
+          const now = e.currentTarget.open;
+          if (now === detailsOpen) return;
+          setDetailsChoice(now);
+          writeDetailsChoice(now);
+        }}
+      >
+        <DisclosureSummary className="chapter-details__summary">Chapter details</DisclosureSummary>
+        <div className="chapter-meta">
         <div className="chapter-meta__row">
           {!published && (
             <div className="field chapter-meta__number">
@@ -459,15 +612,13 @@ export default function ChapterPage() {
               onChange={(e) => setTitle(e.target.value)} />
           </div>
         </div>
-      </div>
+        </div>
+        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+          <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
+        )}
+      </details>
 
-      {published ? (
-        <p className="chapter-note">
-          This chapter is published: only the text can be edited.{' '}
-          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
-        </p>
-      ) : (
-        !fromText && (
+      {!published && !fromText && (
         <section className="chapter-pages" aria-labelledby={`${ids}-pages`}>
           <h2 id={`${ids}-pages`} className="history__heading">Pages</h2>
           <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
@@ -501,7 +652,6 @@ export default function ChapterPage() {
             </SortableContext>
           </DndContext>
         </section>
-        )
       )}
 
       {suspectNumbers.length > 0 && (
@@ -523,37 +673,29 @@ export default function ChapterPage() {
 
       <div className={showOriginal ? 'chapter-columns' : undefined}>
         {showOriginal && (
-          <section className="chapter-original" aria-labelledby={`${ids}-original`}>
-            <div className="chapter-original__head">
-              <h2 id={`${ids}-original`} className="history__heading">
-                Original ({chapter.sourceLanguage === 'en' ? 'English' : 'Thai'})
-              </h2>
-              <button className="button button--s" type="button" disabled={locked} onClick={() => void reloadOriginal()}>
-                <RefreshCw className="icon" aria-hidden="true" />
-                Reload original
-              </button>
-            </div>
-            <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0}
-              lang={chapter.sourceLanguage}>
-              {chapter.sourceText}
-            </div>
-            {chapter.sourceFetchedAt && (
-              <p className="muted">Fetched from Wattpad {formatInstantWithTime(chapter.sourceFetchedAt)}</p>
-            )}
-          </section>
+          <OriginalPanel
+            language={chapter.sourceLanguage}
+            text={chapter.sourceText ?? ''}
+            activeIndex={activeParagraph}
+            footer={
+              chapter.sourceFetchedAt && (
+                <p className="muted">Fetched from Wattpad {formatInstantWithTime(chapter.sourceFetchedAt)}</p>
+              )
+            }
+          />
         )}
         <div className="field chapter-text">
           <label htmlFor={`${ids}-text`}>Chapter text</label>
-          <textarea id={`${ids}-text`} rows={24} value={text} disabled={locked}
-            onChange={(e) => setText(e.target.value)} />
+          <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
+            onChange={(e) => {
+              setText(e.target.value);
+              trackCaret(e.currentTarget);
+            }}
+            onSelect={(e) => trackCaret(e.currentTarget)}
+            onKeyUp={(e) => trackCaret(e.currentTarget)}
+            onClick={(e) => trackCaret(e.currentTarget)} />
         </div>
       </div>
-
-      <FormActions sticky start={dirty && <span className="muted form-actions__label">Unsaved changes</span>}>
-        <button className="button button--primary" type="button" onClick={() => void save()} disabled={locked || !dirty || !number}>
-          Save
-        </button>
-      </FormActions>
 
       <Lightbox
         open={enlarged !== null}
@@ -571,6 +713,21 @@ ${p.source}` : undefined,
         }))}
       />
     </Page>
+  );
+}
+
+/** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
+function ParagraphShare({ have, of }: { have: number; of: number }) {
+  const short = of > 0 && have < of * MIN_PARAGRAPH_SHARE;
+  const label = `· ${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
+  if (!short) return <span className="chapter-count__share"> {label}</span>;
+  return (
+    <Tip label="The translation may be missing a part">
+      <span className="chapter-count__share chapter-count__warn" tabIndex={0}>
+        {' '}
+        {label}
+      </span>
+    </Tip>
   );
 }
 

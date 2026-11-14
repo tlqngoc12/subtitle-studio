@@ -250,6 +250,7 @@ class NovelServiceTest {
             assertThat(s.chapterCount()).isZero();
             assertThat(s.publishedCount()).isZero();
             assertThat(s.coverUrl()).isNull();
+            assertThat(s.tags()).containsExactly("romance", "BL");
         });
     }
 

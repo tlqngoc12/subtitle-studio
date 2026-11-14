@@ -32,7 +32,8 @@ class ChapterControllerTest {
 
     static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu", null,
             ChapterTranslationStatus.NONE, null, null, null, false, ChapterPublishStatus.DRAFT,
-            List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null, null, null, null, "th");
+            List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null, null, null, null, "th",
+            NotebookStatus.UPDATING, 24);
 
     @Autowired
     private MockMvc mvc;
@@ -45,6 +46,15 @@ class ChapterControllerTest {
 
     @MockitoBean
     private com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
+
+    @Test
+    void theChapterJsonCarriesTheNotebookState() throws Exception {
+        when(service.get(9L)).thenReturn(DETAIL);
+
+        mvc.perform(get("/api/chapters/9")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.notebookStatus").value("UPDATING"))
+                .andExpect(jsonPath("$.notebookChapterNo").value(24));
+    }
 
     @Test
     void translatePublishUnpublish() throws Exception {

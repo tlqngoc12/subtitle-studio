@@ -1,4 +1,5 @@
 import { ApiError } from '../api/client';
+import { busyTitle } from './novelBusy';
 
 export interface ErrorMessage {
   title: string;
@@ -28,6 +29,23 @@ function publicErrorMessage(error: unknown): ErrorMessage {
     default:
       return { title: `Đã xảy ra lỗi (HTTP ${error.status}).` };
   }
+}
+
+/** NOVEL_TRANSLATION_BUSY: says whether a chapter or the notebook keeps the novel busy (older servers send no reason). */
+function busyMessage(reason: string | undefined, chapterNo: number | undefined): ErrorMessage {
+  if (reason === 'CHAPTER_TRANSLATING' || reason === 'NOTEBOOK_UPDATING') {
+    return {
+      title: busyTitle({ reason, chapterNo: chapterNo ?? null }),
+      hint:
+        reason === 'CHAPTER_TRANSLATING'
+          ? 'Wait for it to finish, then try again.'
+          : 'Gemini can take a few minutes when it is busy. Try again when it finishes.',
+    };
+  }
+  return {
+    title: 'Another chapter is still translating',
+    hint: 'Wait for it (and the notebook update) to finish.',
+  };
 }
 
 /** Turns an API error into user-facing English copy, keyed by the backend's ProblemDetail `code`. */
@@ -118,10 +136,7 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
     case 'CHAPTER_TEXT_SOURCE':
       return { title: 'This chapter comes from Wattpad text, so it has no pages.' };
     case 'NOVEL_TRANSLATION_BUSY':
-      return {
-        title: 'Another chapter is still translating',
-        hint: 'Wait for it (and the notebook update) to finish.',
-      };
+      return busyMessage(error.extra.reason, error.extra.chapterNo);
     case 'CHAPTER_ALREADY_TRANSLATED':
       return { title: 'This chapter is already translated.', hint: 'Use Translate again on the chapter page.' };
     case 'WATTPAD_PART_DELETED':
@@ -140,6 +155,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Every page needs a translation before publishing.' };
     case 'NOTEBOOK_UPDATE_IN_PROGRESS':
       return { title: 'The notebook is being updated.', hint: 'Try again when it is done.' };
+    case 'NOTEBOOK_PAUSED':
+      return { title: 'Notebook updates are paused.', hint: 'Turn the pause off to update the notebook.' };
     case 'PUBLISH_IN_PROGRESS':
       return { title: 'A publish is already running.' };
     case 'PUBLISH_NOT_CONFIGURED':
