@@ -580,7 +580,8 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     expect(puts(calls)).toHaveLength(0);
   });
 
-  it('auto-saves after 3 minutes of unsaved changes with an Auto-saved toast', async () => {
+  it('auto-saves after 15 minutes of unsaved changes with an Auto-saved toast', async () => {
+    expect(AUTO_SAVE_MS).toBe(900_000);
     const calls = renderPage([get(), put]);
     await loaded();
     vi.useFakeTimers();

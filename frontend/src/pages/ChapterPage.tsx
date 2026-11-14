@@ -56,8 +56,8 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { IconLink } from '../components/ui/IconButton';
 import './ChapterPage.css';
 
-/** Unsaved edits are saved by themselves this often (3 minutes). */
-export const AUTO_SAVE_MS = 180_000;
+/** Unsaved edits are saved by themselves this often (15 minutes). */
+export const AUTO_SAVE_MS = 900_000;
 
 /**
  * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
