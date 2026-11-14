@@ -1,0 +1,90 @@
+/* TagInput: chips and a borderless input inside one box that has the shared field look. */
+.tag-input {
+  width: 100%;
+}
+
+.tag-input__box {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control-m);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  cursor: text;
+}
+
+.tag-input__box:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 25%, transparent);
+}
+
+.tag-input__box[data-invalid] {
+  border-color: var(--danger);
+}
+
+.tag-input__chip {
+  border-color: var(--brand-2-border);
+  color: var(--ink);
+}
+
+.tag-input__remove {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: calc(var(--space-1) * -1);
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tag-input__remove:hover {
+  color: var(--ink);
+}
+
+.tag-input__remove:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+@media (pointer: coarse) {
+  .tag-input__remove::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* The base field rule also styles the input; strip the box so it blends into the wrapper. */
+.tag-input__input {
+  flex: 1 1 8ch;
+  min-width: 8ch;
+  height: var(--control-s);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tag-input__input:focus-visible {
+  box-shadow: none;
+}
+
+.tag-input__panel {
+  width: var(--radix-popover-trigger-width);
+  max-height: min(320px, var(--radix-popover-content-available-height));
+  overflow-y: auto;
+  padding: var(--space-1);
+}
