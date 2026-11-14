@@ -952,6 +952,11 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Form truyện: một form giống nhau ở Create và Edit (bốn mục, `FormActions sticky`, Delete ở `start`), tag là chip (`TagInput`), nhãn "(optional)" cho Trailer và Translation profile.
 - Lưu ý: gợi ý tag lấy từ `NovelSummary.tags` (trường tuỳ chọn); server chưa gửi trường này nên danh sách gợi ý hiện trống cho tới khi backend thêm `tags` vào `GET /api/novels`. Toast "Replaced n" giữ số trong tiêu đề theo spec (ghép chuỗi, không dùng template literal vì `toastFormat.test` chặn).
 
+### 2026-11-15: Lý do "bận" và vô hiệu hoá trước khi bấm; sửa auto-grow bị cắt chữ ✅
+- Spec [docs/superpowers/specs/2026-11-15-novel-busy-reason-design.md](docs/superpowers/specs/2026-11-15-novel-busy-reason-design.md), plan [docs/superpowers/plans/2026-11-15-novel-editor-ux.md](docs/superpowers/plans/2026-11-15-novel-editor-ux.md) (task 9-10).
+- Nguyên nhân gốc: Fetch & translate báo "Another chapter is still translating" trong khi thật ra sổ tay đang cập nhật (Gemini 503 rồi chậm). `NovelTranslationBusyException` giờ có `reason` + `chapterNo`; frontend nói đúng nguyên nhân, vô hiệu hoá các nút dịch kèm tooltip và hiện dòng "Notebook updating after chapter N…" / "Chapter N is translating…". Trang truyện lấy số chương của sổ tay từ chương Published mới nhất (`NovelDetail` chưa có `notebookChapterNo`).
+- Auto-grow: ngoài việc đo lại sau khi font tải xong, khi đổi bề ngang và mỗi lần nhập, chiều cao nay cộng cả viền (`scrollHeight` không tính viền nên luôn thiếu 2 px) và có lưới an toàn đo lại ở frame sau nếu vẫn `scrollHeight > clientHeight`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
