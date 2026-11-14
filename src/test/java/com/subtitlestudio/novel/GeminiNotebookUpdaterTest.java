@@ -46,6 +46,18 @@ class GeminiNotebookUpdaterTest {
     }
 
     @Test
+    void asksForShortNamesInTheRulesAndTheSchema() {
+        assertThat(GeminiNotebookUpdater.SYSTEM_RULES).contains("sourceName chỉ là tên nhân vật")
+                .contains("tối đa 60 ký tự");
+        server.replyText("{\"storySoFar\":\"x\",\"chapterSummary\":\"y\"}", "STOP");
+
+        updater().propose("p", null, 1, "Chương");
+
+        assertThat(server.lastBody()).containsPattern("\"maxLength\"\\s*:\\s*\"?120\"?")
+                .containsPattern("\"maxLength\"\\s*:\\s*\"?80\"?");
+    }
+
+    @Test
     void firstChapterSaysNotebookIsEmpty() {
         server.replyText("{\"storySoFar\":\"x\",\"chapterSummary\":\"y\"}", "STOP");
 

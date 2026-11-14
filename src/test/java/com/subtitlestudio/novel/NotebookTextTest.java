@@ -31,6 +31,18 @@ class NotebookTextTest {
     }
 
     @Test
+    void aLeakedSourceNameIsLeftOutAndDoesNotCrowdOutOtherCharacters() {
+        NotebookContent polluted = new NotebookContent(List.of(), List.of(), List.of(
+                new NotebookCharacter("Bonnie", "x".repeat(45_000), "hiền", "vui", 2),
+                new NotebookCharacter("Mai", "ใหม่", "nhút nhát", "buồn", 1)), "Tóm tắt", List.of());
+
+        String text = NotebookText.render(polluted, NotebookText.MAX_CHARS);
+
+        assertThat(text).contains("### Bonnie\n").contains("Mai (ใหม่)").contains("nhút nhát")
+                .doesNotContain("xxxx");
+    }
+
+    @Test
     void cutsOldestCharactersToFit() {
         int full = NotebookText.render(CONTENT, 12_000).length();
 
