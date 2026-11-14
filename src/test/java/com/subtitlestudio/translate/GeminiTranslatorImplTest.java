@@ -124,7 +124,7 @@ class GeminiTranslatorImplTest {
 
     @Test
     void quota429Fails() {
-        server.reply(429, "{\"error\":{\"code\":429,\"message\":\"Resource exhausted\",\"status\":\"RESOURCE_EXHAUSTED\"}}");
+        server.reply(429, quota429("m", "20h5m3s"));
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini free quota is used up, try again later."));
@@ -175,7 +175,9 @@ class GeminiTranslatorImplTest {
     private static String quota429(String model, String retry) {
         String message = "You exceeded your current quota, please check your plan and billing details.\\n"
                 + "* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, "
-                + "limit: 20, model: " + model + "\\nPlease retry in " + retry + ".";
+                + "limit: 20, model: " + model
+                + (retry.contains("h") ? ", description: Generate content requests per day limit exceeded on Free Tier."
+                        : "\\nPlease retry in " + retry + ".");
         return "{\"error\":{\"code\":429,\"message\":\"" + message + "\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
     }
 

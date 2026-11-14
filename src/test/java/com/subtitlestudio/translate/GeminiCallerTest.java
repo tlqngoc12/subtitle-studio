@@ -86,12 +86,72 @@ class GeminiCallerTest {
         return "{\"error\":{\"code\":429,\"message\":\"" + message + "\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
     }
 
+    private static String body429(String message) {
+        return "{\"error\":{\"code\":429,\"message\":\"" + message + "\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
+    }
+
+    /** A real free-tier daily 429: names the per-day limit and gives no retry hint. */
+    private static String daily429() {
+        return body429("You exceeded your current quota, please check your plan and billing details.\\n"
+                + "* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, "
+                + "limit: 20, model: gemini-3.6-flash, description: Generate content requests per day limit exceeded "
+                + "on Free Tier.");
+    }
+
+    @Test
+    void aMessageNamingThePerDayLimitIsDailyEvenWithoutAHint() {
+        server.replyForModel("m1", 429, daily429());
+        server.replyText("ok", "STOP");
+
+        trackedCaller("m2").generate(HI, NO_CONFIG);
+
+        assertThat(tracker.active()).extracting(GeminiQuotaTracker.QuotaEntry::kind)
+                .containsExactly(GeminiQuotaTracker.QuotaKind.DAILY);
+    }
+
+    @Test
+    void aPerMinuteMessageWithoutAHintIsMinuteAndTheModelIsStillAsked() {
+        server.replyForModel("m1", 429, body429("Generate content requests per minute limit exceeded"));
+        server.replyText("ok", "STOP");
+        GeminiCaller caller = trackedCaller("m2");
+        caller.generate(HI, NO_CONFIG);
+        List<String> tried = new ArrayList<>();
+
+        caller.generate(HI, NO_CONFIG, tried::add);
+
+        assertThat(tracker.active()).containsExactly(new GeminiQuotaTracker.QuotaEntry("m1",
+                GeminiQuotaTracker.QuotaKind.MINUTE, T0.plusSeconds(60)));
+        assertThat(tried).containsExactly("m1", "m2");
+    }
+
+    @Test
+    void anUnknownMessageIsMinuteForAMinuteNeverADay() {
+        server.replyForModel("m1", 429, body429("Resource exhausted"));
+        server.replyText("ok", "STOP");
+
+        trackedCaller("m2").generate(HI, NO_CONFIG);
+
+        assertThat(tracker.active()).containsExactly(new GeminiQuotaTracker.QuotaEntry("m1",
+                GeminiQuotaTracker.QuotaKind.MINUTE, T0.plusSeconds(60)));
+    }
+
+    @Test
+    void anUnknownMessageWithALongHintIsMinuteForThatLong() {
+        server.replyForModel("m1", 429, body429("Please retry in 120s."));
+        server.replyText("ok", "STOP");
+
+        trackedCaller("m2").generate(HI, NO_CONFIG);
+
+        assertThat(tracker.active()).containsExactly(new GeminiQuotaTracker.QuotaEntry("m1",
+                GeminiQuotaTracker.QuotaKind.MINUTE, T0.plusSeconds(120)));
+    }
+
     private static final List<Part> HI = List.of(Part.fromText("hi"));
     private static final GenerateContentConfig NO_CONFIG = GenerateContentConfig.builder().build();
 
     @Test
     void aDailyQuotaErrorIsRecordedUntilTheNextLosAngelesMidnight() {
-        server.replyForModel("m1", 429, quota429("20h5m3s"));
+        server.replyForModel("m1", 429, daily429());
         server.replyText("ok", "STOP");
 
         trackedCaller("m2").generate(HI, NO_CONFIG);
@@ -113,7 +173,7 @@ class GeminiCallerTest {
 
     @Test
     void aDailyExhaustedModelIsNotAskedAgain() {
-        server.replyForModel("m1", 429, quota429("20h5m3s"));
+        server.replyForModel("m1", 429, daily429());
         server.replyText("ok", "STOP");
         GeminiCaller caller = trackedCaller("m2");
         caller.generate(HI, NO_CONFIG);
@@ -143,7 +203,7 @@ class GeminiCallerTest {
 
     @Test
     void anExpiredEntryIsAskedAgain() {
-        server.replyForModel("m1", 429, quota429("20h5m3s"));
+        server.replyForModel("m1", 429, daily429());
         server.replyText("ok", "STOP");
         GeminiCaller caller = trackedCaller("m2");
         caller.generate(HI, NO_CONFIG);
@@ -160,8 +220,8 @@ class GeminiCallerTest {
 
     @Test
     void whenEveryModelIsSkippedTheErrorNamesTheResetTimeAndNothingIsAsked() {
-        server.replyForModel("m1", 429, quota429("20h5m3s"));
-        server.replyForModel("m2", 429, quota429("20h5m3s"));
+        server.replyForModel("m1", 429, daily429());
+        server.replyForModel("m2", 429, daily429());
         GeminiCaller caller = trackedCaller("m2");
         try {
             caller.generate(HI, NO_CONFIG);
@@ -177,7 +237,7 @@ class GeminiCallerTest {
 
     @Test
     void theFirstRunOutOfQuotaKeepsTheExistingMessage() {
-        server.reply(429, quota429("20h5m3s"));
+        server.reply(429, daily429());
 
         assertThatThrownBy(() -> trackedCaller().generate(HI, NO_CONFIG))
                 .hasMessage("Gemini free quota is used up, try again later.");
@@ -185,7 +245,7 @@ class GeminiCallerTest {
 
     @Test
     void quotaHandlingNeverLogsTheKeyOrThePrompt(CapturedOutput output) {
-        server.reply(429, quota429("20h5m3s"));
+        server.reply(429, daily429());
         GeminiCaller caller = trackedCaller("m2");
 
         assertThatThrownBy(() -> caller.generate(List.of(Part.fromText("SECRET PROMPT")), NO_CONFIG));

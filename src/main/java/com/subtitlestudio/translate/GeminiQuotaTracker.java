@@ -102,6 +102,23 @@ public class GeminiQuotaTracker {
         return now.atZone(RESET_ZONE).toLocalDate().plusDays(1).atStartOfDay(RESET_ZONE).toInstant();
     }
 
+    /** What a 429 means: which kind of limit, and how long a MINUTE limit lasts (unused for DAILY). */
+    public record Classification(QuotaKind kind, Duration delay) {}
+
+    /**
+     * Classifies a 429 message. DAILY only when it names a per-day limit ("per day", "PerDay"); a model is never
+     * skipped for a day on a guess. Everything else is MINUTE, lasting the retry delay the message states (60 s when it
+     * states none), whether it says "per minute", gives a short hint, or is unknown.
+     */
+    public static Classification classify(String message) {
+        String text = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
+        Duration delay = retryDelay(message);
+        if (text.contains("per day") || text.contains("perday")) {
+            return new Classification(QuotaKind.DAILY, delay);
+        }
+        return new Classification(QuotaKind.MINUTE, delay);
+    }
+
     /** The wait Gemini's message states ("retry in 12.3s"), or 60 seconds when it states none. */
     public static Duration retryDelay(String message) {
         if (message == null) {

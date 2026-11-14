@@ -84,6 +84,53 @@ class GeminiQuotaTrackerTest {
     }
 
     @Test
+    void theRealDailyMessageIsDaily() {
+        String message = "You exceeded your current quota, please check your plan and billing details.\n"
+                + "* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, "
+                + "limit: 20, model: gemini-3.6-flash, description: Generate content requests per day limit exceeded "
+                + "on Free Tier.";
+
+        assertThat(GeminiQuotaTracker.classify(message).kind()).isEqualTo(QuotaKind.DAILY);
+        assertThat(GeminiQuotaTracker.classify("quota id GenerateRequestsPerDayPerProjectPerModel").kind())
+                .isEqualTo(QuotaKind.DAILY);
+    }
+
+    @Test
+    void aPerMinuteMessageWithoutAHintIsMinute() {
+        var c = GeminiQuotaTracker.classify("Generate content requests per minute limit exceeded");
+
+        assertThat(c.kind()).isEqualTo(QuotaKind.MINUTE);
+        assertThat(c.delay()).isEqualTo(Duration.ofSeconds(60));
+        assertThat(GeminiQuotaTracker.classify("GenerateRequestsPerMinutePerProject").kind())
+                .isEqualTo(QuotaKind.MINUTE);
+    }
+
+    @Test
+    void aShortRetryHintIsMinuteWithThatDelay() {
+        var c = GeminiQuotaTracker.classify("Please retry in 12.3s.");
+
+        assertThat(c.kind()).isEqualTo(QuotaKind.MINUTE);
+        assertThat(c.delay()).isEqualTo(Duration.ofMillis(12_300));
+    }
+
+    @Test
+    void anUnknownMessageWithoutAHintIsMinuteForAMinute() {
+        for (String message : new String[] {"Resource exhausted", "", null}) {
+            var c = GeminiQuotaTracker.classify(message);
+            assertThat(c.kind()).isEqualTo(QuotaKind.MINUTE);
+            assertThat(c.delay()).isEqualTo(Duration.ofSeconds(60));
+        }
+    }
+
+    @Test
+    void anUnknownMessageWithALongHintIsMinuteWithThatDelay() {
+        var c = GeminiQuotaTracker.classify("Please retry in 120s.");
+
+        assertThat(c.kind()).isEqualTo(QuotaKind.MINUTE);
+        assertThat(c.delay()).isEqualTo(Duration.ofSeconds(120));
+    }
+
+    @Test
     void anEntryIsActiveUntilItsResetTimeThenGone() {
         var clock = new MutableClock(Instant.parse("2026-01-15T12:00:00Z"));
         var tracker = new GeminiQuotaTracker(clock);

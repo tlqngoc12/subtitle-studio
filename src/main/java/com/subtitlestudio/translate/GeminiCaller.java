@@ -117,13 +117,13 @@ public class GeminiCaller {
                         log.warn("Gemini model {} is overloaded (HTTP 503)", model);
                         busy = true;
                     } else if (e.code() == 429) {
-                        boolean perMinute = logQuota(model, e.message());
-                        onlyPerMinuteLimits &= perMinute;
+                        GeminiQuotaTracker.Classification kind = GeminiQuotaTracker.classify(e.message());
+                        logQuota(model, e.message(), kind.kind());
                         Instant now = quota.now();
-                        if (perMinute) {
-                            quota.record(model, GeminiQuotaTracker.QuotaKind.MINUTE,
-                                    now.plus(GeminiQuotaTracker.retryDelay(e.message())));
+                        if (kind.kind() == GeminiQuotaTracker.QuotaKind.MINUTE) {
+                            quota.record(model, GeminiQuotaTracker.QuotaKind.MINUTE, now.plus(kind.delay()));
                         } else {
+                            onlyPerMinuteLimits = false;
                             quota.record(model, GeminiQuotaTracker.QuotaKind.DAILY,
                                     GeminiQuotaTracker.nextDailyReset(now));
                         }
@@ -157,19 +157,15 @@ public class GeminiCaller {
         return new Answer(text, answeredBy);
     }
 
-    /**
-     * Logs which quota ran out (metric, limit, wait), never the rest of the message. Returns true when Gemini asks to
-     * wait less than a minute, i.e. a per-minute limit rather than the daily quota.
-     */
-    private static boolean logQuota(String model, String message) {
+    /** Logs which quota ran out (metric, limit, wait, kind), never the rest of the message. */
+    private static void logQuota(String model, String message, GeminiQuotaTracker.QuotaKind kind) {
         String text = message == null ? "" : message;
         Matcher metric = QUOTA_METRIC.matcher(text);
         Matcher retry = RETRY_SECONDS.matcher(text);
         Double seconds = retry.find() ? Double.valueOf(retry.group(1)) : null;
-        log.warn("Gemini model {} is out of quota (HTTP 429): {}{}", model,
+        log.warn("Gemini model {} is out of quota (HTTP 429): {}{}; treated as {}", model,
                 metric.find() ? metric.group(1).strip() : "quota not named",
-                seconds == null ? "" : ", retry in " + retry.group(1) + "s");
-        return seconds != null && seconds < 60;
+                seconds == null ? "" : ", retry in " + retry.group(1) + "s", kind);
     }
 
     private Client client() {
