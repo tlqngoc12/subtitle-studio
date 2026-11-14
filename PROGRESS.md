@@ -541,6 +541,8 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - Navbar căn giữa mục hiện tại bằng `scrollLeft` (sửa lỗi Safari/iPhone), vùng mờ 32 px. Cuối chương: chỉ **Chương sau** là nút chính. Thẻ truyện/fanfic: số liệu một hàng gọn trên điện thoại (có đơn vị), danh sách hai cột từ 1024 px, số chương công khai chỉ đếm chương đã Publish.
 - Trang truyện công khai: thêm "Số chương", "Cập nhật", ngày từng chương, huy hiệu **Mới** (7 ngày), tooltip nút tủ sách; backend thêm `publishedAt` vào `PublicChapterRef`. **Cần Publish lại để có ngày đăng chương** (file cũ vẫn hiển thị bình thường, chỉ thiếu ngày).
 - Admin: `POST /api/novels/{id}/wattpad/next/fetch-translate` + nút **Fetch & translate next** trên trang chương Wattpad cuối cùng và tab Chapters (truyện Wattpad không còn Add chapter); hết phần thì 409 `WATTPAD_NOTHING_NEXT`.
+- **Sổ tay:** Gemini từng rơi vào vòng lặp và ghi cả chữ tự kiểm tra vào trường `sourceName` (My Grumpy Vampire: 1 mục dài 8.831 ký tự; Be My Sugar: 2 mục dài 41.627 và 45.467 ký tự, cộng 5 mục 400–770 ký tự), làm chiếm chỗ nhân vật thật trong ngữ cảnh dịch. Giờ có giới hạn độ dài cho các trường tên/glossary/xưng hô (spec [docs/superpowers/specs/2026-11-14-notebook-field-limits-design.md](docs/superpowers/specs/2026-11-14-notebook-field-limits-design.md)), `maxLength` trong schema + một dòng trong `SYSTEM_RULES`, và nội dung đã lưu được làm sạch khi đọc (`NotebookMerger.sanitize`, không sửa DB). Sau khi deploy, tab Characters của hai truyện không còn chữ rò rỉ.
+- **Tự lưu chương mỗi 15 phút** (trước là 3 phút).
 
 ## 8. Quyết định và lưu ý kỹ thuật
 
