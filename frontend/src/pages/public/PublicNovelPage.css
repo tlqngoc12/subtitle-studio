@@ -50,6 +50,14 @@
   margin: 0;
 }
 
+/* A chapter's publish date: muted, at the right end of its row. */
+.chapter-list__date {
+  flex: none;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

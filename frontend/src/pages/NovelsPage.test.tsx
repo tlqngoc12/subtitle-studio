@@ -27,8 +27,9 @@ describe('NovelsPage', () => {
     const card = await within(region).findByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/3');
     expect(within(card).getByText('Ongoing')).toBeInTheDocument();
-    expect(within(card).getByText('Chapters').nextSibling).toHaveTextContent('12');
-    expect(within(card).getByText('Published').nextSibling).toHaveTextContent('8');
+    const value = (label: string) => within(card).getByText(label).closest('.fanfic-stat')?.querySelector('.fanfic-stat__value');
+    expect(value('Chapters')).toHaveTextContent('12');
+    expect(value('Published')).toHaveTextContent('8');
   });
 
   it('shows the total reads of each novel, or a dash when unavailable', async () => {

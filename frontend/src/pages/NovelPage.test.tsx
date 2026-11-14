@@ -10,7 +10,7 @@ import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../tes
 import { css } from '../test/css';
 import NovelPage from './NovelPage';
 
-vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 function ChapterStub() {
   const { chapterId } = useParams();
@@ -404,12 +404,14 @@ describe('NovelPage', () => {
     const getWattpad = { method: 'GET', path: '/api/novels/3', status: 200, body: wattpadNovel };
     const parts = { method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200, body: [] };
 
-    it('has no Wattpad tab for a screenshot novel', async () => {
+    it('has no Wattpad tab for a screenshot novel, which keeps Add chapter and has no Fetch & translate next', async () => {
       fakeFetch([getNovel]);
       renderPage();
 
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
       expect(screen.queryByRole('tab', { name: 'Wattpad' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add chapter' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Fetch & translate next' })).not.toBeInTheDocument();
     });
 
     it('shows the Wattpad tab and says Wattpad text instead of 0 pages', async () => {
@@ -420,6 +422,47 @@ describe('NovelPage', () => {
       expect(screen.getByRole('tab', { name: 'Wattpad' })).toBeInTheDocument();
       expect(screen.getByText('Wattpad text')).toBeInTheDocument();
       expect(screen.queryByText('0 pages')).not.toBeInTheDocument();
+    });
+
+    it('puts Fetch & translate next in the Chapters toolbar instead of Add chapter', async () => {
+      fakeFetch([getWattpad, parts]);
+      renderPage();
+
+      const next = await screen.findByRole('button', { name: 'Fetch & translate next' });
+      expect(next).toHaveClass('button--primary');
+      expect(next.closest('.toolbar')).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Add chapter' })).not.toBeInTheDocument();
+    });
+
+    it('starts the next part from the Chapters tab and opens the new chapter', async () => {
+      const calls = fakeFetch([
+        getWattpad,
+        parts,
+        { method: 'POST', path: '/api/novels/3/wattpad/next/fetch-translate', status: 202,
+          body: chapterDetail({ id: 61, title: 'Chương mới', translationStatus: 'TRANSLATING' }) },
+      ]);
+      renderPage();
+
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Fetch & translate next' }));
+
+      expect(await screen.findByText('chapter 61')).toBeInTheDocument();
+      expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+      expect(toast.info).toHaveBeenCalledWith('Translation started', { description: 'Chương mới' });
+    });
+
+    it('shows the error and stays when nothing is left to translate', async () => {
+      fakeFetch([
+        getWattpad,
+        parts,
+        { method: 'POST', path: '/api/novels/3/wattpad/next/fetch-translate', status: 409,
+          body: problem(409, 'WATTPAD_NOTHING_NEXT', 'x') },
+      ]);
+      renderPage();
+
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Fetch & translate next' }));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+      expect(screen.getByRole('button', { name: 'Fetch & translate next' })).toBeEnabled();
     });
 
     it('opens on the Wattpad tab with ?tab=wattpad and loads the parts', async () => {

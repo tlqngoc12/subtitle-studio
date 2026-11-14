@@ -254,7 +254,8 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
 
     private NotebookContent parse(String json) {
         try {
-            return mapper.readValue(json, NotebookContent.class);
+            // Stored versions may hold text a runaway answer leaked into name fields: always read them cleaned.
+            return NotebookMerger.sanitize(mapper.readValue(json, NotebookContent.class));
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Stored notebook is not valid JSON", e);
         }

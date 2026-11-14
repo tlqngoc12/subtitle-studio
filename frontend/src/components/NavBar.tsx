@@ -43,6 +43,16 @@ const ADMIN_SECTIONS: Section[] = [
   NOVELS,
 ];
 
+/** The scrollLeft that centres `item` in the nav, clamped so the row never scrolls past its ends. */
+export function centredScrollLeft(
+  item: { offsetLeft: number; offsetWidth: number },
+  nav: { clientWidth: number; scrollWidth: number },
+): number {
+  const max = Math.max(0, nav.scrollWidth - nav.clientWidth);
+  const wanted = item.offsetLeft + item.offsetWidth / 2 - nav.clientWidth / 2;
+  return Math.round(Math.min(Math.max(wanted, 0), max));
+}
+
 /**
  * Sticky top bar: app name (home link) and the main sections; the sections scroll sideways on narrow screens.
  * A page can replace those with its own controls through {@link useTopbarSlot} and slide the whole bar away.
@@ -69,7 +79,9 @@ export function NavBar() {
       nav.dataset.fadeEnd = String(nav.scrollLeft < nav.scrollWidth - nav.clientWidth - 1);
     };
     const centre = () => {
-      nav.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+      // Explicit scrollLeft: Safari does not honour scrollIntoView({ inline }) for a scroller inside a sticky header.
+      const current = nav.querySelector<HTMLElement>('[aria-current="page"]');
+      if (current) nav.scrollLeft = centredScrollLeft(current, nav);
       updateFades();
     };
     centre();
@@ -77,7 +89,7 @@ export function NavBar() {
     let live = true;
     void document.fonts?.ready.then(() => live && centre());
     nav.addEventListener('scroll', updateFades, { passive: true });
-    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateFades);
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(centre);
     resize?.observe(nav);
     return () => {
       live = false;

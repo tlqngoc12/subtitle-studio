@@ -10,9 +10,13 @@ import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
 import { chapterDetail } from '../test/novelFixtures';
 import ChapterPage, { AUTO_SAVE_MS } from './ChapterPage';
 import { css } from '../test/css';
+import { expectTooltip } from '../test/tooltip';
 
 
-vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('sonner', async (orig) => ({
+  ...(await orig<typeof import('sonner')>()),
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
 
 /** Chapter 9 is the page under test; any other id stands for "navigated to another chapter". */
 function ChapterRoute() {
@@ -576,7 +580,8 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     expect(puts(calls)).toHaveLength(0);
   });
 
-  it('auto-saves after 3 minutes of unsaved changes with an Auto-saved toast', async () => {
+  it('auto-saves after 15 minutes of unsaved changes with an Auto-saved toast', async () => {
+    expect(AUTO_SAVE_MS).toBe(900_000);
     const calls = renderPage([get(), put]);
     await loaded();
     vi.useFakeTimers();
@@ -827,5 +832,109 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
 
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ChapterPage: Fetch & translate next', () => {
+  const NEXT = 'Fetch & translate next';
+  const last = (over: Partial<ChapterDetail> = {}): FakeRoute => ({
+    method: 'GET',
+    path: '/api/chapters/9',
+    status: 200,
+    body: chapterDetail({ sourceText: 'Hello', wattpadPartId: '55', sourceLanguage: 'en', nextChapterId: null, ...over }),
+  });
+  const started = (over: Partial<ChapterDetail> = {}): FakeRoute => ({
+    method: 'POST',
+    path: '/api/novels/3/wattpad/next/fetch-translate',
+    status: 202,
+    body: chapterDetail({ id: 20, title: 'Chương mới', translationStatus: 'TRANSLATING', ...over }),
+  });
+  const posts = (calls: { method: string; path: string }[]) => calls.filter((c) => c.method === 'POST');
+
+  beforeEach(() => {
+    vi.mocked(toast.info).mockClear();
+    vi.mocked(toast.error).mockClear();
+  });
+
+  it('is shown for a Wattpad chapter that has no next chapter, in place of the next link', async () => {
+    renderPage([last()]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: NEXT })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Next chapter' })).not.toBeInTheDocument();
+  });
+
+  it('is hidden for a screenshot chapter and when a next chapter exists', async () => {
+    renderPage([get({ nextChapterId: null })]);
+    await loaded();
+    expect(screen.queryByRole('button', { name: NEXT })).not.toBeInTheDocument();
+    cleanup();
+
+    renderPage([last({ nextChapterId: 10 })]);
+    await loaded();
+    expect(screen.queryByRole('button', { name: NEXT })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Next chapter' })).toHaveAttribute('href', '/novels/3/chapters/10');
+  });
+
+  it('starts the next part once, says so, and opens the new chapter', async () => {
+    const calls = renderPage([last(), started()]);
+    await loaded();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: NEXT }));
+
+    expect(await screen.findByText('other chapter 20')).toBeInTheDocument();
+    expect(posts(calls)).toHaveLength(1);
+    expect(toast.info).toHaveBeenCalledWith('Translation started', { description: 'Chương mới' });
+  });
+
+  it('asks first when the text has unsaved edits: Cancel sends nothing', async () => {
+    const calls = renderPage([last(), started()]);
+    await loaded();
+
+    await user().type(textBox(), '!');
+    await user().click(screen.getByRole('button', { name: NEXT }));
+    await answerConfirm('Cancel', 'Leave without saving?');
+
+    expect(posts(calls)).toHaveLength(0);
+    expect(screen.queryByText('other chapter 20')).not.toBeInTheDocument();
+    expect(textBox()).toHaveValue('Trang một\n\nTrang hai!');
+  });
+
+  it('goes on after the confirmation when the edits are discarded', async () => {
+    const calls = renderPage([last(), started()]);
+    await loaded();
+
+    await user().type(textBox(), '!');
+    await user().click(screen.getByRole('button', { name: NEXT }));
+    await answerConfirm('Leave', 'Leave without saving?');
+
+    expect(await screen.findByText('other chapter 20')).toBeInTheDocument();
+    expect(posts(calls)).toHaveLength(1);
+  });
+
+  it('shows the error and stays on the page when another chapter is translating', async () => {
+    renderPage([
+      last(),
+      { method: 'POST', path: '/api/novels/3/wattpad/next/fetch-translate', status: 409,
+        body: problem(409, 'NOVEL_TRANSLATION_BUSY', 'x') },
+    ]);
+    await loaded();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: NEXT }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Another chapter is still translating', expect.anything()),
+    );
+    expect(screen.queryByText(/other chapter/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: NEXT })).toBeEnabled();
+  });
+
+  it('is disabled while this chapter translates, with a tooltip saying why', async () => {
+    renderPage([last({ translationStatus: 'TRANSLATING' })]);
+    await loaded();
+
+    const button = screen.getByRole('button', { name: NEXT });
+    expect(button).toBeDisabled();
+    await expectTooltip(button.parentElement!, 'Wait until this chapter finishes translating.');
   });
 });

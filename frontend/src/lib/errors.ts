@@ -130,6 +130,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Wattpad has no text for this part (locked, empty or removed).' };
     case 'WATTPAD_PART_NOT_FOUND':
       return { title: 'This part is not in the story.' };
+    case 'WATTPAD_NOTHING_NEXT':
+      return { title: 'Every Wattpad part is already translated.' };
     case 'NOVEL_NOT_WATTPAD':
       return { title: 'This novel does not come from Wattpad.' };
     case 'NOVEL_WATTPAD_EXISTS':

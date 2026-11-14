@@ -3,6 +3,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordi
 import {
   ChevronLeft,
   ChevronRight,
+  CloudDownload,
   Copy,
   Info,
   Languages,
@@ -22,6 +23,7 @@ import 'yet-another-react-lightbox/plugins/captions.css';
 import 'yet-another-react-lightbox/styles.css';
 import {
   deletePage,
+  fetchTranslateNext,
   getChapter,
   publishChapter,
   reloadChapterOriginal,
@@ -45,6 +47,7 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { toastError } from '../lib/toast';
 import { Alert } from '../components/ui/Alert';
 import { FormActions } from '../components/ui/FormActions';
 import { Page } from '../components/ui/Page';
@@ -53,8 +56,8 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { IconLink } from '../components/ui/IconButton';
 import './ChapterPage.css';
 
-/** Unsaved edits are saved by themselves this often (3 minutes). */
-export const AUTO_SAVE_MS = 180_000;
+/** Unsaved edits are saved by themselves this often (15 minutes). */
+export const AUTO_SAVE_MS = 900_000;
 
 /**
  * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
@@ -74,6 +77,7 @@ export default function ChapterPage() {
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [enlarged, setEnlarged] = useState<number | null>(null);
 
   /** Takes the server's chapter as the new saved state (drops unsaved edits). */
@@ -87,6 +91,7 @@ export default function ChapterPage() {
 
   useEffect(() => {
     setChapter(null);
+    setStarting(false); // the page is reused for the chapter just opened
     getChapter(chapterId)
       .then(load)
       .catch((e) => setError(errorMessage(e)));
@@ -213,6 +218,31 @@ export default function ChapterPage() {
     await run(async () => load(await translateChapter(chapterId)));
   }
 
+  /** Fetches and translates the next Wattpad part, then opens its chapter (it polls itself while translating). */
+  async function startNext() {
+    if (!chapter) return;
+    if (dirty) {
+      const ok = await confirm({
+        title: 'Leave without saving?',
+        description: 'Your changes to this chapter are not saved yet.',
+        confirmLabel: 'Leave',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    setStarting(true);
+    try {
+      const next = await fetchTranslateNext(chapter.novelId);
+      toast.info('Translation started', {
+        description: next.title ?? chapterLabel(next.chapterNo, next.title, next.label),
+      });
+      navigate(chapterPath(next.id));
+    } catch (e) {
+      toastError(errorMessage(e));
+      setStarting(false);
+    }
+  }
+
   async function reloadOriginal() {
     const ok = await confirm({
       title: 'Reload the original text?',
@@ -330,6 +360,18 @@ export default function ChapterPage() {
               {chapter.nextChapterId !== null && (
                 <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
                   onClick={(e) => void leave(e, chapterPath(chapter.nextChapterId!))} />
+              )}
+              {/* The last chapter of a Wattpad novel: start the next part from here instead of the Wattpad tab. */}
+              {chapter.wattpadPartId !== null && chapter.nextChapterId === null && (
+                <Tip label="Wait until this chapter finishes translating." disabled={!translating}>
+                  <span className="chapter-head__next">
+                    <button className="button" type="button" disabled={locked || starting}
+                      onClick={() => void startNext()}>
+                      <CloudDownload className="icon" aria-hidden="true" />
+                      {starting ? 'Starting…' : 'Fetch & translate next'}
+                    </button>
+                  </span>
+                </Tip>
               )}
             </span>
             {!published && (

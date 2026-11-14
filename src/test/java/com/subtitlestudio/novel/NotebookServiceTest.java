@@ -196,6 +196,27 @@ class NotebookServiceTest {
     }
 
     @Test
+    void viewDropsLeakedTextFromStoredContent() throws Exception {
+        NotebookContent polluted = new NotebookContent(
+                List.of(new NotebookContent.GlossaryEntry("a".repeat(121), "x", null),
+                        new NotebookContent.GlossaryEntry("Bonnie", "Bonnie", null)),
+                List.of(), List.of(new NotebookContent.NotebookCharacter("Bonnie", "z".repeat(8_831), "hiền", "vui", 1)),
+                "Tóm tắt", List.of());
+        String json = objectMapper.writeValueAsString(polluted);
+        tx.executeWithoutResult(s -> notebooks.save(new NovelNotebook(novel(), 1, json, NOW)));
+
+        NotebookContent shown = service.view(novelId, null).content();
+
+        assertThat(shown.characters()).singleElement().satisfies(c -> {
+            assertThat(c.name()).isEqualTo("Bonnie");
+            assertThat(c.sourceName()).isNull();
+            assertThat(c.profile()).isEqualTo("hiền");
+        });
+        assertThat(shown.glossary()).extracting(NotebookContent.GlossaryEntry::source).containsExactly("Bonnie");
+        assertThat(service.textBefore(novelId, 2)).doesNotContain("zzzz");
+    }
+
+    @Test
     void updateReadsTheWholeChapterText() {
         publishedChapter(1, "Trang một");
         tx.executeWithoutResult(st -> chapters.findByNovelIdAndChapterNo(novelId, 1).orElseThrow()

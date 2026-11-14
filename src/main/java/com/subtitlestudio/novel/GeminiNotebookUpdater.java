@@ -31,6 +31,8 @@ public class GeminiNotebookUpdater implements NotebookUpdater {
             - addressingUpserts: chỉ các cặp xưng hô MỚI hoặc ĐỔI (from gọi to thế nào, xưng gì).
             - characters: các nhân vật có mặt hoặc thay đổi trong chương; profile (tính cách, quan hệ) và \
             currentState (tâm lý hiện tại) mỗi mục tối đa 300 ký tự. Nhân vật không nhắc tới thì đừng liệt kê.
+            - name là tên nhân vật (tối đa 80 ký tự); sourceName chỉ là tên nhân vật bằng ngôn ngữ gốc, tối đa 60 ký tự, \
+            tuyệt đối không phải mô tả; mô tả để trong profile.
             - storySoFar: VIẾT LẠI tóm tắt toàn truyện tới hết chương này, tối đa 2500 ký tự; nén các chương cũ.
             - chapterSummary: tóm tắt chương này, tối đa 800 ký tự.
             - Chỉ trả về JSON theo schema, không giải thích.""";
@@ -69,16 +71,25 @@ public class GeminiNotebookUpdater implements NotebookUpdater {
         }
     }
 
+    /** A string that Gemini is asked to keep within {@code max} characters (the merger still checks it). */
+    private static Schema limited(int max) {
+        return Schema.builder().type(Type.Known.STRING).maxLength((long) max).build();
+    }
+
     private GenerateContentConfig config() {
         Schema string = Schema.builder().type(Type.Known.STRING).build();
+        Schema term = limited(NotebookMerger.MAX_TERM);
+        Schema note = limited(NotebookMerger.MAX_NOTE);
+        Schema person = limited(NotebookMerger.MAX_PERSON);
         Schema glossary = Schema.builder().type(Type.Known.OBJECT)
-                .properties(Map.of("source", string, "target", string, "note", string))
+                .properties(Map.of("source", term, "target", term, "note", note))
                 .required("source", "target").build();
         Schema addressing = Schema.builder().type(Type.Known.OBJECT)
-                .properties(Map.of("from", string, "to", string, "rule", string))
+                .properties(Map.of("from", person, "to", person, "rule", note))
                 .required("from", "to", "rule").build();
         Schema character = Schema.builder().type(Type.Known.OBJECT)
-                .properties(Map.of("name", string, "sourceName", string, "profile", string, "currentState", string))
+                .properties(Map.of("name", person, "sourceName", limited(NotebookMerger.MAX_SOURCE_NAME),
+                        "profile", string, "currentState", string))
                 .required("name").build();
         Schema root = Schema.builder().type(Type.Known.OBJECT)
                 .properties(Map.of(

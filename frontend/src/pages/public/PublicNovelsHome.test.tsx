@@ -98,7 +98,7 @@ describe('PublicNovelsPage (home)', () => {
     expect(cards.map((li) => within(li).getByRole('link').getAttribute('href'))).toEqual([
       '/novels/n8', '/novels/n7', '/novels/n6', '/novels/n5', '/novels/n4', '/novels/n3', '/novels/n2', '/novels/n1',
     ]);
-    expect(within(cards[0]).getByText('1/8')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Chương').closest('.fanfic-stat')?.querySelector('.fanfic-stat__value')).toHaveTextContent(/^1 chương$/);
     expect(within(cards[0]).getByText('Đang ra')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Mới cập nhật' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Xem tất cả' })).not.toBeInTheDocument();
@@ -188,7 +188,10 @@ describe('PublicNovelsPage (home)', () => {
     expect(cardsOf().map((li) => within(li).getByRole('link').getAttribute('href'))).toEqual([
       '/novels/n3', '/novels/n2', '/novels/n1',
     ]);
-    expect(within(screen.getByRole('list', { name: 'Danh sách truyện' })).getAllByText('1/1')).toHaveLength(3); // y falls back to the published count
+    const chapterValues = Array.from(document.querySelectorAll('.fanfic-stat'))
+      .filter((s) => s.querySelector('.fanfic-stat__name')?.textContent === 'Chương')
+      .map((s) => s.querySelector('.fanfic-stat__value')?.textContent);
+    expect(chapterValues).toEqual(['1 chương', '1 chương', '1 chương']); // published count only
     expect(screen.getByRole('region', { name: 'Truyện nổi bật' })).toBeInTheDocument(); // fallback banner
 
     // Every sort still works without createdAt.

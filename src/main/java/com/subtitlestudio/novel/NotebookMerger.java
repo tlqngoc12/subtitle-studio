@@ -21,12 +21,19 @@ final class NotebookMerger {
     static final int MAX_STORY = 2_500;
     static final int MAX_CHAPTER_SUMMARY = 800;
     static final int RECENT_CHAPTERS = 3;
+    /** Character name (Vietnamese), its original-language name, glossary source/target, notes and addressing. */
+    static final int MAX_NAME = 80;
+    static final int MAX_SOURCE_NAME = 120;
+    static final int MAX_TERM = 120;
+    static final int MAX_NOTE = 300;
+    static final int MAX_PERSON = 80;
 
     private NotebookMerger() {
     }
 
-    static NotebookContent merge(NotebookContent old, NotebookUpdate update, int chapterNo) {
+    static NotebookContent merge(NotebookContent stored, NotebookUpdate update, int chapterNo) {
         check(update);
+        NotebookContent old = sanitize(stored);
 
         Map<String, GlossaryEntry> glossary = new LinkedHashMap<>();
         old.glossary().forEach(g -> glossary.put(g.source(), g));
@@ -63,6 +70,29 @@ final class NotebookMerger {
                 update.storySoFar(), notes);
     }
 
+    /**
+     * Drops what a runaway Gemini answer left in stored content: a {@code sourceName} over its limit becomes null
+     * (the Vietnamese name stays), and glossary or addressing entries with an over-long field are removed. Pure and
+     * idempotent; applied whenever stored content is read.
+     */
+    static NotebookContent sanitize(NotebookContent content) {
+        List<GlossaryEntry> glossary = content.glossary().stream()
+                .filter(g -> fits(g.source(), MAX_TERM) && fits(g.target(), MAX_TERM) && fits(g.note(), MAX_NOTE))
+                .toList();
+        List<AddressingRule> addressing = content.addressing().stream()
+                .filter(a -> fits(a.from(), MAX_PERSON) && fits(a.to(), MAX_PERSON) && fits(a.rule(), MAX_NOTE))
+                .toList();
+        List<NotebookCharacter> characters = content.characters().stream()
+                .map(c -> fits(c.sourceName(), MAX_SOURCE_NAME) ? c : new NotebookCharacter(c.name(), null,
+                        c.profile(), c.currentState(), c.lastUpdatedChapter()))
+                .toList();
+        return new NotebookContent(glossary, addressing, characters, content.storySoFar(), content.recentChapters());
+    }
+
+    private static boolean fits(String value, int max) {
+        return value == null || value.length() <= max;
+    }
+
     private static void check(NotebookUpdate u) {
         if (u.storySoFar() == null || u.storySoFar().isBlank()) {
             throw new InvalidNotebookUpdateException("Gemini left out storySoFar.");
@@ -73,8 +103,20 @@ final class NotebookMerger {
         }
         tooLong("chapterSummary", u.chapterSummary(), MAX_CHAPTER_SUMMARY);
         for (NotebookCharacter c : list(u.characters())) {
+            tooLong("name", c.name(), MAX_NAME);
+            tooLong("sourceName", c.sourceName(), MAX_SOURCE_NAME);
             tooLong("profile", c.profile(), MAX_CHARACTER_FIELD);
             tooLong("currentState", c.currentState(), MAX_CHARACTER_FIELD);
+        }
+        for (GlossaryEntry g : list(u.glossaryUpserts())) {
+            tooLong("glossary source", g.source(), MAX_TERM);
+            tooLong("glossary target", g.target(), MAX_TERM);
+            tooLong("glossary note", g.note(), MAX_NOTE);
+        }
+        for (AddressingRule a : list(u.addressingUpserts())) {
+            tooLong("addressing from", a.from(), MAX_PERSON);
+            tooLong("addressing to", a.to(), MAX_PERSON);
+            tooLong("addressing rule", a.rule(), MAX_NOTE);
         }
     }
 

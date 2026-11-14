@@ -15,7 +15,7 @@ import {
   PUBLIC_STATUS_LABEL,
   latestUpdate,
   publicChapterName,
-  publicChapterProgress,
+  publicChapterCount,
 } from "./publicNames";
 import { formatInstant } from "../../lib/dates";
 import { readProgress } from "./readerPrefs";
@@ -98,7 +98,7 @@ export default function FeaturedNovels({
         <ul className="featured__facts" aria-label="Thông tin">
           <li>
             <span>Chương</span>
-            <span>{publicChapterProgress(novel)}</span>
+            <span>{publicChapterCount(novel)}</span>
           </li>
           {novel.originalAuthor && (
             <li>

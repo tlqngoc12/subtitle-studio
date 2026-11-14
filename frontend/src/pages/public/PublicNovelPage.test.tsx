@@ -1,7 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatInstant } from '../../lib/dates';
+import { expectTooltip } from '../../test/tooltip';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
 import PublicNovelPage from './PublicNovelPage';
@@ -87,7 +89,8 @@ describe('PublicNovelsPage', () => {
     const section = await screen.findByRole('list', { name: 'Danh sách truyện' });
     const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText('2/5')).toBeInTheDocument();
+    // Published chapters only: never "2/5".
+    expect(within(card).getByText('Chương').closest('.fanfic-stat')?.querySelector('.fanfic-stat__value')).toHaveTextContent(/^2 chương$/);
   });
 });
 
@@ -104,6 +107,16 @@ describe('PublicNovelPage', () => {
           <Route path="/novels/:slug" element={<PublicNovelPage source={s} />} />
         </Routes>
         <Where />
+      </MemoryRouter>,
+    );
+  }
+
+  function renderAndKeep() {
+    return render(
+      <MemoryRouter initialEntries={['/novels/summer']}>
+        <Routes>
+          <Route path="/novels/:slug" element={<PublicNovelPage source={source()} />} />
+        </Routes>
       </MemoryRouter>,
     );
   }
@@ -146,6 +159,84 @@ describe('PublicNovelPage', () => {
     expect(screen.getAllByRole('link', { name: 'Bắt đầu đọc' })).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: /tủ sách/ })).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Bắt đầu đọc' })).toHaveAttribute('href', '/novels/summer/1');
+  });
+
+  describe('chapter count, last update, dates and Mới', () => {
+    const DATED: PublicNovelDetail = {
+      ...DETAIL,
+      chapters: [
+        { chapterNo: 1, title: 'Mở đầu', publishedAt: '2026-11-01T03:00:00Z' },
+        { chapterNo: 3, title: null, label: 'Ngoại truyện 1', publishedAt: '2026-11-12T03:00:00Z' },
+      ],
+    };
+    const dated = () => source({ getNovel: async () => DATED });
+
+    beforeEach(() => {
+      // Only Date is faked: timers stay real so findBy/userEvent keep working.
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-14T05:00:00Z'));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    const fact = (name: string) => screen.queryByText(name, { selector: 'dt' })?.nextElementSibling ?? null;
+
+    it('shows Số chương and the date of the newest chapter as Cập nhật', async () => {
+      renderPage(dated());
+
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      expect(fact('Số chương')).toHaveTextContent('2');
+      expect(fact('Cập nhật')).toHaveTextContent(formatInstant('2026-11-12T03:00:00Z'));
+    });
+
+    it('shows each chapter its publish date, outside the link', async () => {
+      renderPage(dated());
+
+      const rows = within(await screen.findByRole('list', { name: 'Danh sách chương' })).getAllByRole('listitem');
+      expect(rows[0]).toHaveTextContent(formatInstant('2026-11-01T03:00:00Z'));
+      expect(rows[1]).toHaveTextContent(formatInstant('2026-11-12T03:00:00Z'));
+      expect(within(rows[0]).getByRole('link').textContent).toBe('Chương 1: Mở đầu');
+    });
+
+    it('marks only chapters published within 7 days with a Mới badge that has an icon', async () => {
+      renderPage(dated());
+
+      const rows = within(await screen.findByRole('list', { name: 'Danh sách chương' })).getAllByRole('listitem');
+      expect(within(rows[0]).queryByText('Mới')).not.toBeInTheDocument();
+      const badge = within(rows[1]).getByText('Mới');
+      expect(badge).toHaveClass('badge', 'badge--done');
+      expect(badge.querySelector('svg')).not.toBeNull();
+    });
+
+    it('copes with a file published before publishedAt existed: no dates, no Mới, no Cập nhật', async () => {
+      renderPage(); // DETAIL has no publishedAt
+
+      const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+      expect(fact('Số chương')).toHaveTextContent('2');
+      expect(fact('Cập nhật')).toBeNull();
+      expect(screen.queryByText('Mới')).not.toBeInTheDocument();
+      expect(list.querySelector('time')).toBeNull();
+      expect(list.textContent).not.toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    });
+
+    it('keeps the Giới thiệu tab', async () => {
+      renderPage(dated());
+
+      expect(await screen.findByRole('tab', { name: 'Giới thiệu' })).toBeInTheDocument();
+    });
+  });
+
+  it('explains the shelf button with a tooltip, and updates it once saved', async () => {
+    localStorage.clear();
+    const { unmount } = renderAndKeep();
+
+    await expectTooltip(await screen.findByRole('button', { name: 'Thêm vào tủ sách' }), 'Thêm vào tủ sách');
+    unmount();
+
+    // Already on the shelf: the tooltip says so.
+    localStorage.setItem('novel-shelf', JSON.stringify(['summer']));
+    renderPage();
+    await expectTooltip(await screen.findByRole('button', { name: 'Đã lưu vào tủ sách' }), 'Đã lưu vào tủ sách');
+    localStorage.clear();
   });
 
   it('uses Vietnamese labels and the novel title as the tab title', async () => {

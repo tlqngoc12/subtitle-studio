@@ -19,7 +19,8 @@ final class NotebookText {
     private NotebookText() {
     }
 
-    static String render(NotebookContent content, int maxChars) {
+    static String render(NotebookContent stored, int maxChars) {
+        NotebookContent content = NotebookMerger.sanitize(stored);
         List<NotebookCharacter> characters = new ArrayList<>(content.characters());
         String text = render(content, characters);
         while (text.length() > maxChars && !characters.isEmpty()) {

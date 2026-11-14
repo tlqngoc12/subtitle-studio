@@ -238,6 +238,33 @@ class NovelControllerTest {
     }
 
     @Test
+    void fetchTranslateNextReturns202() throws Exception {
+        when(wattpadNovels.fetchAndTranslateNext(3L)).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
+                ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
+                "", null, null, "text", "77", null, "en"));
+
+        mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"))
+                .andExpect(jsonPath("$.id").value(9));
+    }
+
+    @Test
+    void fetchTranslateNextErrorsKeepTheirCodes() throws Exception {
+        when(wattpadNovels.fetchAndTranslateNext(3L))
+                .thenThrow(new com.subtitlestudio.novel.wattpad.WattpadNothingNextException())
+                .thenThrow(new NovelTranslationBusyException(3))
+                .thenThrow(new com.subtitlestudio.novel.NovelNotWattpadException(3));
+
+        mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("WATTPAD_NOTHING_NEXT"))
+                .andExpect(jsonPath("$.detail").value("Every Wattpad part is already translated."));
+        mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"));
+        mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_NOT_WATTPAD"));
+    }
+
+    @Test
     void wattpadPreviewErrorsKeepTheirCodes() throws Exception {
         when(wattpadNovels.preview(any())).thenThrow(
                 new com.subtitlestudio.fanfic.InvalidFanficLinkException("Paste a Wattpad story link"));

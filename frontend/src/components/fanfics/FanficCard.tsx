@@ -6,14 +6,32 @@ import { formatCompact, formatReadingTime } from './format';
 import './FanficCard.css';
 import { useT } from '../../lib/i18n';
 
-export function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+/**
+ * One number of a card. From 521px: the label over the value. On a phone: one compact inline row (icon, value, unit);
+ * the label text stays in the DOM (visually hidden) so each stat keeps its full name for screen readers.
+ */
+export function Stat({
+  icon: Icon,
+  label,
+  value,
+  unit,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  /** Shown after the value on phones only ("chương", "chapters"); none for dates and reading time. */
+  unit?: string;
+}) {
   return (
     <span className="fanfic-stat">
       <span className="fanfic-stat__label">
         <Icon className="icon icon--sm" aria-hidden="true" />
-        {label}
+        <span className="fanfic-stat__name">{label}</span>
       </span>
-      <span className="fanfic-stat__value">{value}</span>
+      <span className="fanfic-stat__value">
+        {value}
+        {unit && <span className="fanfic-stat__unit"> {unit}</span>}
+      </span>
     </span>
   );
 }
@@ -36,9 +54,24 @@ export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactN
             {fanfic.completed ? t('Complete', 'Hoàn thành') : t('Ongoing', 'Đang ra')}
           </span>
           <span className="fanfic-card__stats">
-            <Stat icon={Library} label={t('Chapters', 'Chương')} value={formatCompact(fanfic.partCount)} />
-            <Stat icon={Eye} label={t('Reads', 'Lượt đọc')} value={formatCompact(fanfic.readCount)} />
-            <Stat icon={Star} label={t('Votes', 'Bình chọn')} value={formatCompact(fanfic.voteCount)} />
+            <Stat
+              icon={Library}
+              label={t('Chapters', 'Chương')}
+              value={formatCompact(fanfic.partCount)}
+              unit={t('chapters', 'chương')}
+            />
+            <Stat
+              icon={Eye}
+              label={t('Reads', 'Lượt đọc')}
+              value={formatCompact(fanfic.readCount)}
+              unit={t('reads', 'lượt đọc')}
+            />
+            <Stat
+              icon={Star}
+              label={t('Votes', 'Bình chọn')}
+              value={formatCompact(fanfic.voteCount)}
+              unit={t('votes', 'bình chọn')}
+            />
             <Stat icon={BookOpen} label={t('Time', 'Thời gian đọc')} value={formatReadingTime(fanfic.readingMinutes)} />
           </span>
           {fanfic.description && <span className="fanfic-card__desc">{fanfic.description}</span>}

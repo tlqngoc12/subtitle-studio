@@ -12,6 +12,13 @@
   list-style: none;
 }
 
+/* Two columns of cards from 1024px; below that one column. */
+@media (min-width: 1024px) {
+  .fanfic-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .fanfics__failures {
   margin: var(--space-2) 0 0;
   padding-left: var(--space-5);

@@ -52,7 +52,7 @@ describe('PublicShelfPage (/novels/shelf)', () => {
       '/novels/n5', '/novels/n1', '/novels/n3', '/novels/n2', '/novels/n4', '/novels/n6', '/novels/n7',
     ]);
     expect(within(cards[0]).getByText('Đang ra')).toBeInTheDocument();
-    expect(within(cards[0]).getByText('1/2')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Chương').closest('.fanfic-stat')?.querySelector('.fanfic-stat__value')).toHaveTextContent(/^1 chương$/);
     expect(document.title).toBe('Tủ sách');
   });
 

@@ -84,7 +84,8 @@ describe('FeaturedNovels', () => {
     expect(within(banner).getByText('Đang ra')).toBeInTheDocument();
     expect(within(banner).getByRole('heading', { name: 'Truyện a' })).toBeInTheDocument();
     const facts = within(banner).getByRole('list', { name: 'Thông tin' });
-    expect(facts).toHaveTextContent('Chương2/5');
+    // Published chapters only: never "2/5".
+    expect(within(facts).getByText('Chương').parentElement).toHaveTextContent(/^Chương2$/);
     expect(facts).toHaveTextContent('Tác giảผู้เขียน');
     expect(facts).toHaveTextContent('Cập nhật05/11/2026');
     expect(within(banner).getByRole('link', { name: 'Đọc từ đầu' })).toHaveAttribute('href', '/novels/a/1');

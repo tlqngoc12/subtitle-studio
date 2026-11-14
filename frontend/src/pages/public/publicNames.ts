@@ -17,13 +17,12 @@ export function publicChapterLabel(chapterNo: number, title: string | null, labe
 
 export const PUBLIC_STATUS_LABEL: Record<NovelStatus, string> = { ONGOING: 'Đang ra', COMPLETED: 'Hoàn thành' };
 
-export function publicChapterCount(count: number): string {
-  return `${count} chương`;
-}
-
-/** The "x/y" of a novel: published chapters over all chapters (older files without the total show x/x). */
-export function publicChapterProgress(n: { publishedCount: number; totalChapters?: number }): string {
-  return `${n.publishedCount}/${n.totalChapters ?? n.publishedCount}`;
+/**
+ * The chapter count a reader sees: published chapters only. The total added to the app (drafts included) is not the
+ * original's length, so "7/8" would mislead.
+ */
+export function publicChapterCount(n: { publishedCount: number }): string {
+  return String(n.publishedCount);
 }
 
 /** When a novel last got a chapter: the latest published chapter, else the novel's own update time. */

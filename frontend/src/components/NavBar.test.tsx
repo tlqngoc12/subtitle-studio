@@ -1,9 +1,9 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SiteProvider } from '../data/SiteContext';
 import { fakeSource, publicSite } from '../test/fakeSource';
-import { NavBar } from './NavBar';
+import { centredScrollLeft, NavBar } from './NavBar';
 import { css } from '../test/css';
 
 function currentAt(path: string) {
@@ -22,16 +22,62 @@ function currentAt(path: string) {
 describe('NavBar', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('scrolls the current section into view (phones show only part of the row)', () => {
-    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+  describe('centredScrollLeft', () => {
+    const nav = { clientWidth: 300, scrollWidth: 800 };
+    it('centres a middle item', () => {
+      expect(centredScrollLeft({ offsetLeft: 400, offsetWidth: 100 }, nav)).toBe(300);
+    });
+    it('clamps the first item to 0', () => {
+      expect(centredScrollLeft({ offsetLeft: 10, offsetWidth: 60 }, nav)).toBe(0);
+    });
+    it('clamps the last item to the maximum', () => {
+      expect(centredScrollLeft({ offsetLeft: 700, offsetWidth: 90 }, nav)).toBe(500);
+    });
+    it('rounds to whole pixels', () => {
+      expect(centredScrollLeft({ offsetLeft: 401, offsetWidth: 101 }, nav)).toBe(302);
+    });
+  });
+
+  it('centres the current section with scrollLeft, never scrollIntoView (Safari), and again once fonts load', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    let loaded: () => void = () => {};
+    const ready = new Promise<void>((resolve) => {
+      loaded = resolve;
+    });
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready } });
+    const restores: Array<() => unknown> = [];
+    const dims: Record<string, number> = { offsetLeft: 400, offsetWidth: 100, clientWidth: 300, scrollWidth: 800 };
+    for (const key of Object.keys(dims)) {
+      // jsdom has no layout: report the stubbed size for every element (restored with the other spies below).
+      const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, key) ?? Object.getOwnPropertyDescriptor(Element.prototype, key);
+      Object.defineProperty(HTMLElement.prototype, key, { configurable: true, get: () => dims[key] });
+      restores.push(() => (original ? Object.defineProperty(HTMLElement.prototype, key, original) : Reflect.deleteProperty(HTMLElement.prototype, key)));
+    }
     render(
       <MemoryRouter initialEntries={['/profiles/emi']}>
         <NavBar />
       </MemoryRouter>,
     );
+    const nav = screen.getByRole('navigation');
+    expect(nav.scrollLeft).toBe(300);
 
-    expect(scroll).toHaveBeenCalledWith({ inline: 'center', block: 'nearest' });
-    expect(scroll.mock.contexts[0]).toBe(screen.getByRole('link', { name: 'Profile' }));
+    // Widths change when the web font arrives.
+    dims.offsetLeft = 420;
+    loaded();
+    await act(async () => {
+      await ready;
+    });
+    expect(nav.scrollLeft).toBe(320);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    Reflect.deleteProperty(document, 'fonts');
+    restores.forEach((restore) => restore());
+  });
+
+  it('fades the row edges over 32px so a half-cut word does not look broken', () => {
+    expect(css).toMatch(/\.nav\[data-fade-end='true'\] \{[^}]*calc\(100% - 32px\)/);
+    expect(css).toMatch(/\.nav\[data-fade-start='true'\] \{[^}]*calc\(100% - 32px\)/);
+    expect(css).toMatch(/\.nav\[data-fade-start='true'\]\[data-fade-end='true'\] \{[^}]*#000 32px/);
   });
 
   it('centres the current section instead of snapping, so no hard-cut fragment is left', () => {
@@ -47,7 +93,6 @@ describe('NavBar', () => {
   });
 
   it('marks the row as fading at the right edge on mount (nothing is scrolled yet)', () => {
-    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
     render(
       <MemoryRouter initialEntries={['/']}>
         <NavBar />

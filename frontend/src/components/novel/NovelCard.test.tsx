@@ -35,6 +35,9 @@ describe('NovelCard (admin)', () => {
     expect(within(link).getByText('1.5K')).toBeInTheDocument();
     expect(within(link).getByText('10/11/2026')).toBeInTheDocument();
     expect(within(link).getByText('Một câu chuyện dài.')).toBeInTheDocument();
+    // Admin keeps Chapters and Published as separate stats, with units.
+    const units = Array.from(link.querySelectorAll('.fanfic-stat__unit')).map((u) => u.textContent?.trim());
+    expect(units).toEqual(['chapters', 'published', 'reads']);
   });
 
   it('shows a dash for unknown reads and no banner badge when not picked', () => {
@@ -78,7 +81,7 @@ describe('NovelCard (public)', () => {
     expect(screen.getByText('Đang ra').querySelector('svg')).toBeNull();
   });
 
-  it('uses Vietnamese labels, no admin badge and x/y chapters', () => {
+  it('uses Vietnamese labels, no admin badge and only the published chapter count', () => {
     renderCard(
       <NovelCard
         novel={{ ...BASE, featured: true, chapterCount: undefined, totalChapters: 12 }}
@@ -93,7 +96,12 @@ describe('NovelCard (public)', () => {
     for (const label of ['Chương', 'Lượt đọc', 'Cập nhật']) {
       expect(within(link).getByText(label)).toBeInTheDocument();
     }
-    expect(within(link).getByText('8/12')).toBeInTheDocument();
+    // 8 published of 12 added: the reader sees 8, never "8/12".
+    const chapters = within(link).getByText('Chương').closest('.fanfic-stat') as HTMLElement;
+    expect(chapters.querySelector('.fanfic-stat__value')?.textContent).toBe('8 chương');
+    expect(link).not.toHaveTextContent('8/12');
+    const reads = within(link).getByText('Lượt đọc').closest('.fanfic-stat') as HTMLElement;
+    expect(reads.querySelector('.fanfic-stat__unit')?.textContent?.trim()).toBe('lượt đọc');
     expect(screen.queryByText('Published')).not.toBeInTheDocument();
     expect(screen.queryByText('On banner')).not.toBeInTheDocument();
   });
