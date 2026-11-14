@@ -5,11 +5,7 @@
   min-width: 0;
 }
 
-.chapter-original--disclosure > summary {
-  cursor: pointer;
-}
-
-.chapter-original--disclosure[open] > summary {
+.chapter-original--disclosure[open] > .disclosure__summary {
   margin-bottom: var(--space-2);
 }
 

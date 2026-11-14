@@ -102,3 +102,14 @@ describe('OriginalPanel styles', () => {
     expect(css).toMatch(/\.chapter-original__p--active\s*\{[^}]*background:\s*var\(--hover\)/);
   });
 });
+
+describe('OriginalPanel disclosure summary', () => {
+  it('uses the shared chevron summary, like Chapter details', () => {
+    stubWidth(false);
+    render(<OriginalPanel language="en" text={TEXT} activeIndex={null} />);
+
+    const summary = document.querySelector('details > summary')!;
+    expect(summary).toHaveClass('disclosure__summary');
+    expect(summary.querySelector('svg.disclosure__chevron')).not.toBeNull();
+  });
+});

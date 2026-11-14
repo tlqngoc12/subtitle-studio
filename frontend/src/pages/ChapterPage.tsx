@@ -39,6 +39,7 @@ import {
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
 import { countText, insertSceneBreak, paragraphIndexAt, paragraphs } from '../lib/chapterText';
+import { DisclosureSummary } from '../components/ui/DisclosureSummary';
 import { OriginalPanel } from '../components/novel/OriginalPanel';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
 import { useAutoGrow } from '../lib/useAutoGrow';
@@ -561,7 +562,7 @@ export default function ChapterPage() {
           writeDetailsChoice(now);
         }}
       >
-        <summary className="chapter-details__summary">Chapter details</summary>
+        <DisclosureSummary className="chapter-details__summary">Chapter details</DisclosureSummary>
         <div className="chapter-meta">
         <div className="chapter-meta__row">
           {!published && (

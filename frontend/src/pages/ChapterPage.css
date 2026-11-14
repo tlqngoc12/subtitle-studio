@@ -119,14 +119,6 @@
   margin-bottom: var(--space-4);
 }
 
-.chapter-details__summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
 .chapter-details[open] > .chapter-details__summary {
   margin-bottom: var(--space-2);
 }

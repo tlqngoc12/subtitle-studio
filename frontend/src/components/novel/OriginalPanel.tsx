@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { paragraphs } from '../../lib/chapterText';
 import { useMediaQuery } from '../../lib/useMediaQuery';
+import { DisclosureSummary } from '../ui/DisclosureSummary';
 import './OriginalPanel.css';
 
 const WIDE = '(min-width: 1024px)';
@@ -63,7 +64,7 @@ export function OriginalPanel({
   }
   return (
     <details className="chapter-original chapter-original--disclosure">
-      <summary className="history__heading">{heading}</summary>
+      <DisclosureSummary>{heading}</DisclosureSummary>
       {body}
     </details>
   );
