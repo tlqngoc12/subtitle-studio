@@ -304,7 +304,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
             <div className="reader__end-nav">
               {prev !== null && (
                 <Link
-                  className="button button--primary reader__end-button"
+                  className="button reader__end-button"
                   to={to(prev)}
                 >
                   <ChevronLeft className="icon" aria-hidden="true" />

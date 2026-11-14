@@ -403,7 +403,7 @@ describe('ReaderPage', () => {
 
   // Hiding on scroll moved with the controls into the top bar: see ReaderTopbar.test.tsx.
 
-  it('ends a chapter with Chương trước and Chương sau as orange primary buttons in the two corners', async () => {
+  it('ends a chapter with Chương trước and Chương sau in the two corners, only Chương sau being primary', async () => {
     renderAt('/novels/summer/3');
 
     const end = await screen.findByRole('region', { name: 'Hết chương' });
@@ -411,9 +411,9 @@ describe('ReaderPage', () => {
     const next = within(end).getByRole('link', { name: /Chương sau/ });
     expect(prev).toHaveAttribute('href', '/novels/summer/1');
     expect(next).toHaveAttribute('href', '/novels/summer/4');
-    // Same style; only next carries its column modifier.
-    expect(prev.className).toBe(next.className.replace(' reader__end-button--next', ''));
-    expect(prev).toHaveClass('button', 'button--primary');
+    // One primary per screen: only next is filled; previous is the plain orange-outline button.
+    expect(prev).toHaveClass('button');
+    expect(prev).not.toHaveClass('button--primary');
     expect(next).toHaveClass('button', 'button--primary');
     expect(ruleBody('.reader__end')).toContain('max-width: var(--reader-width');
     expect(ruleBody('.reader__end-nav .reader__end-button')).toContain('justify-self: start');
