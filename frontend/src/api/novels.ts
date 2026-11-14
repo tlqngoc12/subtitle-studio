@@ -50,8 +50,8 @@ export interface NovelSummary {
   lastPublishedAt: string | null;
   originalAuthor: string | null;
   description: string | null;
-  /** Not sent by the server yet; the novel form uses it, when present, to suggest tags. */
-  tags?: string[];
+  /** The same tags as the detail; the novel form suggests them. */
+  tags: string[];
 }
 
 export interface ChapterSummary {

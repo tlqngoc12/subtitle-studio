@@ -117,7 +117,7 @@ export function NovelForm({
     listNovels()
       .then((novels) => {
         const seen = new Map<string, string>();
-        for (const n of novels) for (const t of n.tags ?? []) if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
+        for (const n of novels) for (const t of n.tags) if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
         setTagSuggestions([...seen.values()].sort((a, b) => a.localeCompare(b)));
       })
       .catch(() => setTagSuggestions([]));

@@ -21,6 +21,7 @@ export function novelSummary(over: Partial<NovelSummary> = {}): NovelSummary {
     lastPublishedAt: null,
     originalAuthor: null,
     description: null,
+    tags: [],
     ...over,
   };
 }

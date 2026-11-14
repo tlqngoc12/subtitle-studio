@@ -66,7 +66,7 @@ public class NovelService {
                 .max(Comparator.naturalOrder()).orElse(null);
         return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(), cs.size(),
                 published.size(), n.getUpdatedAt(), n.getWattpadStoryId(), n.isFeatured(), n.getCreatedAt(),
-                lastPublishedAt, n.getOriginalAuthor(), n.getDescription());
+                lastPublishedAt, n.getOriginalAuthor(), n.getDescription(), tags(n));
     }
 
     /** Picks or unpicks a novel for the public banner (at most 5). Does not touch updatedAt. */

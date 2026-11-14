@@ -103,9 +103,19 @@ class NovelControllerTest {
     }
 
     @Test
+    void theListCarriesEachNovelsTags() throws Exception {
+        when(service.list()).thenReturn(List.of(new NovelSummary(3, "summer-love", "T", null,
+                NovelStatus.ONGOING, 1, 1, AT, null, false, AT, null, null, null, List.of("romance", "BL"))));
+
+        mvc.perform(get("/api/novels")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tags[0]").value("romance"))
+                .andExpect(jsonPath("$[0].tags[1]").value("BL"));
+    }
+
+    @Test
     void featuredEndpointReturnsTheSummary() throws Exception {
         when(service.setFeatured(3, true)).thenReturn(new NovelSummary(3, "summer-love", "T", null,
-                NovelStatus.ONGOING, 1, 1, AT, null, true, AT, AT, null, null));
+                NovelStatus.ONGOING, 1, 1, AT, null, true, AT, AT, null, null, List.of()));
 
         mvc.perform(put("/api/novels/3/featured").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"featured\":true}")).andExpect(status().isOk())
