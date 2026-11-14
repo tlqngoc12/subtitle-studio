@@ -53,6 +53,15 @@ async function loaded() {
 
 const textBox = () => screen.getByLabelText('Chapter text');
 
+/** jsdom has no layout: say whether the window is 1024 px wide or more. */
+const stubWide = (wide: boolean) =>
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: wide && query.includes('1024px'),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+
 /** Opens the bar's ⋯ menu and returns the item with this name. */
 async function menuItem(name: string | RegExp) {
   const trigger = screen.getByRole('button', { name: 'Chapter actions' });
@@ -771,6 +780,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   });
 
   it('shows the original beside the chapter text and no page tools', async () => {
+    stubWide(true);
     renderPage([wattpad()]);
     await loaded();
 
@@ -786,6 +796,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   });
 
   it('labels a Thai original', async () => {
+    stubWide(true);
     renderPage([wattpad({ sourceLanguage: 'th' })]);
     await loaded();
 
@@ -1180,5 +1191,67 @@ describe('ChapterPage editor and save state', () => {
 
     expect(publish).toBeDisabled();
     await expectTooltip(publish.parentElement!, 'Wait until this chapter finishes translating.');
+  });
+});
+
+describe('ChapterPage reading width and the aligned original', () => {
+  const source = 'One.\n\nTwo.\n\nThree.\n\nFour.';
+  const wattpad = (over: Partial<ChapterDetail> = {}): FakeRoute =>
+    get({ pages: [], text: 'Một\n\nHai\n\nBa\n\nBốn', sourceText: source, wattpadPartId: '1', sourceLanguage: 'en', ...over });
+  it('sets the editor to about 72 characters wide in 17 px type', () => {
+    expect(css).toMatch(/\.chapter-text\s*\{[^}]*max-width:\s*72ch/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*font-size:\s*1\.0625rem/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*line-height:\s*1\.7/);
+  });
+
+  it('puts the original beside the editor from 1024 px', () => {
+    expect(css).toMatch(/@media \(min-width: 1024px\)\s*\{\s*\.chapter-columns\s*\{[^}]*grid-template-columns/);
+  });
+
+  it('marks the original paragraph that matches the caret and scrolls only that into view', async () => {
+    stubWide(true);
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderPage([wattpad()]);
+    await loaded();
+    const box = textBox() as HTMLTextAreaElement;
+    scroll.mockClear();
+
+    // The caret in the third paragraph ("Ba"): "Một\n\nHai\n\nBa" → offset 11.
+    box.setSelectionRange(11, 11);
+    fireEvent.keyUp(box);
+
+    const region = screen.getByRole('region', { name: 'Original text' });
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('Three.'));
+    expect(region.querySelectorAll('[aria-current]')).toHaveLength(1);
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest' });
+    expect((scroll.mock.contexts.at(-1) as HTMLElement).textContent).toBe('Three.');
+
+    box.setSelectionRange(0, 0);
+    fireEvent.click(box);
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('One.'));
+
+    box.setSelectionRange(16, 16);
+    fireEvent.select(box);
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('Four.'));
+  });
+
+  it('shows the original as a closed disclosure below 1024 px', async () => {
+    stubWide(false);
+    renderPage([wattpad()]);
+    await loaded();
+
+    const details = document.querySelector('details.chapter-original') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(within(details).getByText('Original (English)')).toBeInTheDocument();
+  });
+
+  it('shows no original panel for a screenshot chapter, and no paragraph ratio', async () => {
+    stubWide(true);
+    renderPage([get()]);
+    await loaded();
+
+    expect(document.querySelector('.chapter-original')).toBeNull();
+    expect(screen.queryByText(/of the original/)).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Pages' })).toBeInTheDocument();
   });
 });

@@ -36,7 +36,8 @@ import {
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
-import { countText, paragraphs } from '../lib/chapterText';
+import { countText, paragraphIndexAt, paragraphs } from '../lib/chapterText';
+import { OriginalPanel } from '../components/novel/OriginalPanel';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
 import { useAutoGrow } from '../lib/useAutoGrow';
 import { PageRow } from '../components/novel/PageRow';
@@ -86,6 +87,12 @@ export default function ChapterPage() {
   const [lastSave, setLastSave] = useState<{ kind: 'saved' | 'autosaved'; at: Date } | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(textRef, text);
+  // The paragraph the caret is in (matched with the original's paragraph of the same number).
+  const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
+  function trackCaret(el: HTMLTextAreaElement) {
+    if (chapter?.sourceText == null) return; // only a chapter with an original has paragraphs to match
+    setActiveParagraph(paragraphIndexAt(el.value, el.selectionStart));
+  }
 
   // The counts follow the text about 300 ms after the last key, so typing in a long chapter stays light.
   const [counted, setCounted] = useState('');
@@ -575,25 +582,27 @@ export default function ChapterPage() {
 
       <div className={showOriginal ? 'chapter-columns' : undefined}>
         {showOriginal && (
-          <section className="chapter-original" aria-labelledby={`${ids}-original`}>
-            <div className="chapter-original__head">
-              <h2 id={`${ids}-original`} className="history__heading">
-                Original ({chapter.sourceLanguage === 'en' ? 'English' : 'Thai'})
-              </h2>
-            </div>
-            <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0}
-              lang={chapter.sourceLanguage}>
-              {chapter.sourceText}
-            </div>
-            {chapter.sourceFetchedAt && (
-              <p className="muted">Fetched from Wattpad {formatInstantWithTime(chapter.sourceFetchedAt)}</p>
-            )}
-          </section>
+          <OriginalPanel
+            language={chapter.sourceLanguage}
+            text={chapter.sourceText ?? ''}
+            activeIndex={activeParagraph}
+            footer={
+              chapter.sourceFetchedAt && (
+                <p className="muted">Fetched from Wattpad {formatInstantWithTime(chapter.sourceFetchedAt)}</p>
+              )
+            }
+          />
         )}
         <div className="field chapter-text">
           <label htmlFor={`${ids}-text`}>Chapter text</label>
           <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
-            onChange={(e) => setText(e.target.value)} />
+            onChange={(e) => {
+              setText(e.target.value);
+              trackCaret(e.currentTarget);
+            }}
+            onSelect={(e) => trackCaret(e.currentTarget)}
+            onKeyUp={(e) => trackCaret(e.currentTarget)}
+            onClick={(e) => trackCaret(e.currentTarget)} />
         </div>
       </div>
 
