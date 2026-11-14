@@ -77,23 +77,27 @@
   color: var(--on-brand);
 }
 
+/* Phone: one wrapping inline row, "icon value unit · icon value unit". A stat never breaks inside itself
+   (nowrap), so "12.3M lượt đọc" wraps between items, not in the middle. */
 .fanfic-card__stats {
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  row-gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: var(--space-1);
   margin-block: var(--space-1);
 }
 
 .fanfic-stat {
-  display: grid;
-  gap: var(--space-0-5);
-  padding-inline: var(--space-4);
-  border-left: 1px solid var(--rule);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
 }
 
-.fanfic-stat:first-child {
-  padding-left: 0;
-  border-left: 0;
+.fanfic-stat:not(:last-child)::after {
+  content: '·';
+  margin-inline: var(--space-2);
+  color: var(--muted);
 }
 
 .fanfic-stat__label {
@@ -108,9 +112,25 @@
   color: var(--brand-ink);
 }
 
+/* The label text stays for screen readers; the icon (the label's other child) is the visible cue. */
+.fanfic-stat__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .fanfic-stat__value {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
+}
+
+.fanfic-stat__unit {
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .fanfic-card__desc {
@@ -134,12 +154,6 @@
   right: var(--space-2);
 }
 
-/* Two columns of stats on a phone: the first of each row has no divider. */
-.fanfic-stat:nth-child(odd) {
-  padding-left: 0;
-  border-left: 0;
-}
-
 @media (min-width: 521px) {
   .fanfic-card__link {
     gap: var(--space-4);
@@ -155,20 +169,48 @@
   }
 
   .fanfic-card__stats {
-    display: flex;
-    flex-wrap: wrap;
     align-items: stretch;
-    grid-template-columns: none;
     row-gap: var(--space-2);
   }
 
-  .fanfic-stat:nth-child(odd) {
-    padding-left: var(--space-4);
+  /* Label over value, with dividers; the unit is only for the compact phone row. */
+  .fanfic-stat {
+    display: grid;
+    gap: var(--space-0-5);
+    padding-inline: var(--space-4);
     border-left: 1px solid var(--rule);
+  }
+
+  .fanfic-stat:not(:last-child)::after {
+    content: none;
   }
 
   .fanfic-stat:first-child {
     padding-left: 0;
     border-left: 0;
+  }
+
+  .fanfic-stat__name {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+  }
+
+  .fanfic-stat__value {
+    font-size: 1rem;
+  }
+
+  .fanfic-stat__unit {
+    display: none;
+  }
+}
+
+/* Two columns of full-width cards when there is room. */
+@media (min-width: 1024px) {
+  .fanfic-card {
+    max-width: none;
   }
 }

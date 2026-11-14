@@ -87,7 +87,8 @@ describe('PublicNovelsPage', () => {
     const section = await screen.findByRole('list', { name: 'Danh sách truyện' });
     const card = within(section).getByRole('link', { name: /Tình Yêu Mùa Hạ/ });
     expect(card).toHaveAttribute('href', '/novels/summer');
-    expect(within(card).getByText('2/5')).toBeInTheDocument();
+    // Published chapters only: never "2/5".
+    expect(within(card).getByText('Chương').closest('.fanfic-stat')?.querySelector('.fanfic-stat__value')).toHaveTextContent(/^2 chương$/);
   });
 });
 

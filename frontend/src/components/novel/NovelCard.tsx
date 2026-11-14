@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { formatInstant } from '../../lib/dates';
 import type { NovelListItem } from '../../lib/novelList';
 import { Cover } from '../ui/Cover';
+import { publicChapterCount } from '../../pages/public/publicNames';
 import { Stat } from '../fanfics/FanficCard';
 import { formatCompact } from '../fanfics/format';
 import '../fanfics/FanficCard.css';
@@ -44,20 +45,17 @@ export function NovelCard({
   const completed = novel.novelStatus === 'COMPLETED';
   const updated = formatInstant(novel.lastPublishedAt ?? novel.updatedAt);
   const readsText = reads === undefined ? '–' : formatCompact(reads);
-  const stats: { icon: LucideIcon; label: string; value: string }[] = admin
+  const stats: { icon: LucideIcon; label: string; value: string; unit?: string }[] = admin
     ? [
-        { icon: Library, label: 'Chapters', value: String(novel.chapterCount ?? novel.publishedCount) },
-        { icon: BookOpen, label: 'Published', value: String(novel.publishedCount) },
-        { icon: Eye, label: 'Reads', value: readsText },
+        { icon: Library, label: 'Chapters', value: String(novel.chapterCount ?? novel.publishedCount), unit: 'chapters' },
+        { icon: BookOpen, label: 'Published', value: String(novel.publishedCount), unit: 'published' },
+        { icon: Eye, label: 'Reads', value: readsText, unit: 'reads' },
         { icon: CalendarClock, label: 'Updated', value: updated },
       ]
     : [
-        {
-          icon: Library,
-          label: 'Chương',
-          value: `${novel.publishedCount}/${novel.totalChapters ?? novel.publishedCount}`,
-        },
-        { icon: Eye, label: 'Lượt đọc', value: readsText },
+        // Published chapters only: the total added to the app (drafts too) means nothing to a reader.
+        { icon: Library, label: 'Chương', value: publicChapterCount(novel), unit: 'chương' },
+        { icon: Eye, label: 'Lượt đọc', value: readsText, unit: 'lượt đọc' },
         { icon: CalendarClock, label: 'Cập nhật', value: updated },
       ];
   const notOnSite = admin && novel.featured && novel.publishedCount === 0;
@@ -76,7 +74,7 @@ export function NovelCard({
           </span>
           <span className="fanfic-card__stats">
             {stats.map((s) => (
-              <Stat key={s.label} icon={s.icon} label={s.label} value={s.value} />
+              <Stat key={s.label} icon={s.icon} label={s.label} value={s.value} unit={s.unit} />
             ))}
           </span>
           {notOnSite && <span className="novel-card2__hint">Not on the site until a chapter is published</span>}

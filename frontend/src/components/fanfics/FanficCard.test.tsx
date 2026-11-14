@@ -43,6 +43,25 @@ describe('FanficCard', () => {
     expect(labels).toEqual(['Chương', 'Lượt đọc', 'Bình chọn', 'Thời gian đọc']);
   });
 
+  it('adds a unit to the counts (chapters, reads, votes) but not to the reading time', () => {
+    render(<FanficCard fanfic={fanfic()} />);
+
+    const units = Array.from(document.querySelectorAll('.fanfic-stat__unit')).map((u) => u.textContent?.trim());
+    expect(units).toEqual(['chapters', 'reads', 'votes']);
+    expect(document.querySelector('.fanfic-stat__value')?.textContent).toBe('28 chapters');
+  });
+
+  it('adds Vietnamese units on the public site', () => {
+    render(
+      <SiteProvider value={{ source: fakeSource({}), readOnly: true, homePath: '/' }}>
+        <FanficCard fanfic={fanfic()} />
+      </SiteProvider>,
+    );
+
+    const units = Array.from(document.querySelectorAll('.fanfic-stat__unit')).map((u) => u.textContent?.trim());
+    expect(units).toEqual(['chương', 'lượt đọc', 'bình chọn']);
+  });
+
   it('puts a check icon on the Complete badge but not on Ongoing', () => {
     const { unmount } = render(<FanficCard fanfic={fanfic({ completed: true })} />);
     expect(screen.getByText('Complete').querySelector('svg')).not.toBeNull();

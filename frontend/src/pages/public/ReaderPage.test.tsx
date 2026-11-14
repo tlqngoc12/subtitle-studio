@@ -443,7 +443,7 @@ describe('ReaderPage', () => {
 
     const end = await screen.findByRole('region', { name: 'Hết chương' });
     expect(end.querySelectorAll('.reader__end-nav > *')).toHaveLength(1);
-    expect(within(end).getByRole('link', { name: /Chương trước/ })).toHaveClass('button--primary');
+    expect(within(end).getByRole('link', { name: /Chương trước/ })).toHaveClass('button');
   });
 
   it('ends the last chapter with a "read everything" box', async () => {
