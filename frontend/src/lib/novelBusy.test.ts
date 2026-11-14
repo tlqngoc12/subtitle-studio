@@ -17,21 +17,21 @@ describe('novelBusy', () => {
     expect(novelBusy(novel)).toEqual({ reason: 'CHAPTER_TRANSLATING', chapterNo: 25 });
   });
 
-  it('names the latest published chapter while the notebook updates', () => {
+  it('names the chapter the running update is for, not the latest published one', () => {
     const novel = novelDetail({
       notebookStatus: 'UPDATING',
+      notebookChapterNo: 12,
       chapters: [
         chapterSummary({ id: 1, chapterNo: 7, publishStatus: 'PUBLISHED' }),
         chapterSummary({ id: 2, chapterNo: 24, publishStatus: 'PUBLISHED' }),
-        chapterSummary({ id: 3, chapterNo: 25, publishStatus: 'DRAFT' }),
       ],
     });
 
-    expect(novelBusy(novel)).toEqual({ reason: 'NOTEBOOK_UPDATING', chapterNo: 24 });
+    expect(novelBusy(novel)).toEqual({ reason: 'NOTEBOOK_UPDATING', chapterNo: 12 });
   });
 
-  it('has no chapter number when nothing is published yet', () => {
-    expect(novelBusy(novelDetail({ notebookStatus: 'UPDATING', chapters: [] }))?.chapterNo).toBeNull();
+  it('has no chapter number when the server sent none', () => {
+    expect(novelBusy(novelDetail({ notebookStatus: 'UPDATING', notebookChapterNo: null, chapters: [] }))?.chapterNo).toBeNull();
   });
 });
 

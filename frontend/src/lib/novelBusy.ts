@@ -1,13 +1,13 @@
-import type { ChapterSummary, NotebookStatus, NovelDetail } from '../api/novels';
+import type { NotebookStatus, NovelDetail } from '../api/novels';
 
 /** Why a novel cannot start another translation now: one Gemini job per novel at a time. */
 export type NovelBusy = { reason: 'CHAPTER_TRANSLATING' | 'NOTEBOOK_UPDATING'; chapterNo: number | null };
 
-/** The chapter that is translating, else the notebook update (the chapter it follows), else null. A FAILED notebook is not busy. */
-export function novelBusy(novel: Pick<NovelDetail, 'notebookStatus' | 'chapters'>): NovelBusy | null {
+/** The chapter that is translating, else the notebook update (the chapter it is for), else null. A FAILED notebook is not busy. */
+export function novelBusy(novel: Pick<NovelDetail, 'notebookStatus' | 'chapters' | 'notebookChapterNo'>): NovelBusy | null {
   const translating = novel.chapters.find((c) => c.translationStatus === 'TRANSLATING');
   if (translating) return { reason: 'CHAPTER_TRANSLATING', chapterNo: translating.chapterNo };
-  if (novel.notebookStatus === 'UPDATING') return { reason: 'NOTEBOOK_UPDATING', chapterNo: latestPublished(novel.chapters) };
+  if (novel.notebookStatus === 'UPDATING') return { reason: 'NOTEBOOK_UPDATING', chapterNo: novel.notebookChapterNo ?? null };
   return null;
 }
 
@@ -21,11 +21,6 @@ export function chapterBusy(chapter: {
   if (chapter.translationStatus === 'TRANSLATING') return { reason: 'CHAPTER_TRANSLATING', chapterNo: chapter.chapterNo };
   if (chapter.notebookStatus === 'UPDATING') return { reason: 'NOTEBOOK_UPDATING', chapterNo: chapter.notebookChapterNo };
   return null;
-}
-
-function latestPublished(chapters: ChapterSummary[]): number | null {
-  const numbers = chapters.filter((c) => c.publishStatus === 'PUBLISHED').map((c) => c.chapterNo);
-  return numbers.length > 0 ? Math.max(...numbers) : null;
 }
 
 /** The tooltip and error title: "Chapter 25 is still translating" / "The notebook is still updating after chapter 24". */

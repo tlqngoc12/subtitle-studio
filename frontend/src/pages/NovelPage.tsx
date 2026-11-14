@@ -34,6 +34,12 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { Toolbar } from '../components/ui/Toolbar';
 import { Cover } from '../components/ui/Cover';
 
+/** The highest Published chapter number, or null when none is published. */
+function latestPublishedNo(chapters: NovelDetail['chapters']): number | null {
+  const numbers = chapters.filter((c) => c.publishStatus === 'PUBLISHED').map((c) => c.chapterNo);
+  return numbers.length > 0 ? Math.max(...numbers) : null;
+}
+
 /** Novels › one novel: Chapters | Details | Notebook. The novel is loaded once for every tab. */
 export default function NovelPage() {
   const { id } = useParams();
@@ -63,7 +69,11 @@ export default function NovelPage() {
   // Poll the novel (never Wattpad) while a chapter translates or the notebook updates.
   useNovelPolling(novelId, novel !== null && novelIsBusy(novel), setNovel);
 
-  const onNotebook = useCallback((v: NotebookData) => setNotebook(v), []);
+  // The header badge follows the switch: keep the novel's flag in step with the notebook view.
+  const onNotebook = useCallback((v: NotebookData) => {
+    setNotebook(v);
+    setNovel((n) => (n && n.notebookPaused !== v.notebookPaused ? { ...n, notebookPaused: v.notebookPaused } : n));
+  }, []);
 
   const busy = novel ? novelBusy(novel) : null;
 
@@ -140,7 +150,12 @@ export default function NovelPage() {
             breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]}
             title={novel.title}
             media={<Cover src={novel.coverUrl} />}
-            meta={<span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>}
+            meta={
+              <>
+                <span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>
+                {novel.notebookPaused && <span className="badge badge--info">Notebook paused</span>}
+              </>
+            }
           />
 
           {busy && <BusyLine busy={busy} />}
@@ -213,6 +228,7 @@ export default function NovelPage() {
 
             <Tabs.Content value="notebook" className="tabs__panel">
               <NotebookView novelId={novelId} view={notebook} onView={onNotebook}
+                latestPublishedNo={latestPublishedNo(novel.chapters)}
                 labels={Object.fromEntries(novel.chapters.map((c) => [c.chapterNo, c.label]))} />
             </Tabs.Content>
           </Tabs.Root>

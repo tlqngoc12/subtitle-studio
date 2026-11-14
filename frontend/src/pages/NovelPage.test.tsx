@@ -566,7 +566,7 @@ describe('NovelPage busy novel', () => {
   const line = () => screen.queryByText(/Notebook updating|is translating…/, { selector: '.novel-busy' });
 
   it('shows the notebook line and disables Fetch & translate next, with the reason in a tooltip', async () => {
-    fakeFetch([route(wattpad({ notebookStatus: 'UPDATING' })), parts]);
+    fakeFetch([route(wattpad({ notebookStatus: 'UPDATING', notebookChapterNo: 24 })), parts]);
     renderPage();
     await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
 
@@ -622,5 +622,125 @@ describe('NovelPage busy novel', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('NovelPage notebook pause', () => {
+  const notebookRoute = (over = {}) => ({
+    method: 'GET',
+    path: '/api/novels/3/notebook',
+    status: 200,
+    body: notebookView(over),
+  });
+  const pausePut = { method: 'PUT', path: '/api/novels/3/notebook/paused', status: 200 };
+  const published = (chapterNo: number, id = chapterNo) =>
+    chapterSummary({ id, chapterNo, publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED' });
+
+  async function openNotebook() {
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    await user.click(screen.getByRole('tab', { name: 'Notebook' }));
+    return user;
+  }
+
+  it('the switch calls the PUT, shows the header badge and keeps the version on screen', async () => {
+    const calls = fakeFetch([
+      getNovel,
+      notebookRoute(),
+      { ...pausePut, body: notebookView({ notebookPaused: true, afterChapterNo: 9 }) },
+    ]);
+    const user = await openNotebook();
+    const toggle = await screen.findByRole('switch', { name: 'Pause notebook updates' });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText('Notebook paused')).toBeNull();
+
+    await user.click(toggle);
+
+    expect(toggle).toBeChecked();
+    expect(screen.getByText('Notebook paused')).toBeInTheDocument();
+    const put = calls.find((c) => c.method === 'PUT')!;
+    expect(JSON.parse(put.body as string)).toEqual({ paused: true });
+    expect(screen.getByText('Mai gặp Nam.')).toBeInTheDocument();
+  });
+
+  it('rolls the switch back and shows an error toast when saving fails', async () => {
+    fakeFetch([getNovel, notebookRoute(), { ...pausePut, status: 500, body: problem(500, 'X', 'boom') }]);
+    const user = await openNotebook();
+    const toggle = await screen.findByRole('switch', { name: 'Pause notebook updates' });
+
+    await user.click(toggle);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText('Notebook paused')).toBeNull();
+  });
+
+  it('shows the badge from the novel and checks the switch', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ notebookPaused: true }) }, notebookRoute({ notebookPaused: true })]);
+    await openNotebook();
+
+    expect(screen.getByText('Notebook paused')).toBeInTheDocument();
+    expect(await screen.findByRole('switch', { name: 'Pause notebook updates' })).toBeChecked();
+    expect(screen.getByText(/Publishing will not update the notebook/)).toBeInTheDocument();
+  });
+
+  it('disables Retry with its reason while paused', async () => {
+    fakeFetch([
+      { ...getNovel, body: novelDetail({ notebookPaused: true }) },
+      notebookRoute({ status: 'FAILED', error: 'x', notebookPaused: true }),
+    ]);
+    await openNotebook();
+
+    const retry = await screen.findByRole('button', { name: 'Retry notebook update' });
+    expect(retry).toBeDisabled();
+    await expectTooltip(retry.parentElement!, 'Notebook updates are paused');
+  });
+
+  it('says how far behind the notebook is after resuming and updates on demand', async () => {
+    const calls = fakeFetch([
+      { ...getNovel, body: novelDetail({ chapters: [published(5), published(8)] }) },
+      notebookRoute({ versions: [2, 5] }),
+      { method: 'POST', path: '/api/novels/3/notebook/retry', status: 202 },
+    ]);
+    const user = await openNotebook();
+
+    expect(
+      await screen.findByText('The notebook was last updated after chapter 5; chapters 6–8 were published since.'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Update now' }));
+
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/novels/3/notebook/retry')).toBe(true));
+    expect(await screen.findByText('Updating notebook…')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull();
+  });
+
+  it('words a single missing chapter in the singular', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [published(6)] }) }, notebookRoute({ versions: [2, 5] })]);
+    await openNotebook();
+
+    expect(
+      await screen.findByText('The notebook was last updated after chapter 5; chapter 6 was published since.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows neither the line nor Update now when the notebook is up to date', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [published(5)] }) }, notebookRoute({ versions: [2, 5] })]);
+    await openNotebook();
+
+    await screen.findByRole('switch', { name: 'Pause notebook updates' });
+    expect(screen.queryByText(/were published since|was published since/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull();
+  });
+
+  it('shows neither the line nor Update now while paused', async () => {
+    fakeFetch([
+      { ...getNovel, body: novelDetail({ notebookPaused: true, chapters: [published(8)] }) },
+      notebookRoute({ versions: [2, 5], notebookPaused: true }),
+    ]);
+    await openNotebook();
+
+    await screen.findByRole('switch', { name: 'Pause notebook updates' });
+    expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull();
   });
 });

@@ -62,6 +62,8 @@ export function novelDetail(over: Partial<NovelDetail> = {}): NovelDetail {
     wattpadStoryId: null,
     notebookStatus: 'IDLE',
     notebookError: null,
+    notebookPaused: false,
+    notebookChapterNo: null,
     chapters: [
       chapterSummary(),
       chapterSummary({ id: 10, chapterNo: 2, title: null, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' }),
@@ -117,6 +119,7 @@ export function notebookView(over: Partial<NotebookView> = {}): NotebookView {
     status: 'IDLE',
     error: null,
     staleLaterVersions: false,
+    notebookPaused: false,
     ...over,
   };
 }

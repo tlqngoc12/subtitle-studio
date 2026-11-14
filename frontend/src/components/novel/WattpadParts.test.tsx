@@ -129,10 +129,11 @@ describe('WattpadParts', () => {
     expect(action('Chapter 2: Three Seconds')).toBeDisabled();
   });
 
-  it('says why in a tooltip: the notebook is updating after the latest published chapter', async () => {
+  it('says why in a tooltip: the notebook is updating after the chapter the server names', async () => {
     fakeFetch([getParts()]);
     const novel = {
       ...novelWith('TRANSLATED', 'UPDATING'),
+      notebookChapterNo: 24,
       chapters: [{ id: 77, chapterNo: 24, translationStatus: 'TRANSLATED', publishStatus: 'PUBLISHED' }],
     } as unknown as NovelDetail;
     renderParts(novel);

@@ -155,6 +155,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Every page needs a translation before publishing.' };
     case 'NOTEBOOK_UPDATE_IN_PROGRESS':
       return { title: 'The notebook is being updated.', hint: 'Try again when it is done.' };
+    case 'NOTEBOOK_PAUSED':
+      return { title: 'Notebook updates are paused.', hint: 'Turn the pause off to update the notebook.' };
     case 'PUBLISH_IN_PROGRESS':
       return { title: 'A publish is already running.' };
     case 'PUBLISH_NOT_CONFIGURED':
