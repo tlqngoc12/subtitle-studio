@@ -40,6 +40,7 @@ import { countText, paragraphIndexAt, paragraphs } from '../lib/chapterText';
 import { OriginalPanel } from '../components/novel/OriginalPanel';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
 import { useAutoGrow } from '../lib/useAutoGrow';
+import { useMediaQuery } from '../lib/useMediaQuery';
 import { PageRow } from '../components/novel/PageRow';
 import { PageUploader } from '../components/novel/PageUploader';
 import { StatusBadges } from '../components/novel/StatusBadges';
@@ -60,6 +61,25 @@ export const AUTO_SAVE_MS = 900_000;
 const COUNT_DEBOUNCE_MS = 300;
 /** Below this share of the original's paragraphs the translation probably lost a part. */
 const MIN_PARAGRAPH_SHARE = 0.9;
+
+const DETAILS_KEY = 'chapter-details-open';
+
+function readDetailsChoice(): boolean | null {
+  try {
+    const stored = localStorage.getItem(DETAILS_KEY);
+    return stored === '1' ? true : stored === '0' ? false : null;
+  } catch {
+    return null; // storage blocked: the width decides
+  }
+}
+
+function writeDetailsChoice(open: boolean) {
+  try {
+    localStorage.setItem(DETAILS_KEY, open ? '1' : '0');
+  } catch {
+    // storage blocked: the choice lasts until the page closes
+  }
+}
 
 const plural = (n: number, noun: string) => `${n.toLocaleString('en')} ${noun}${n === 1 ? '' : 's'}`;
 
@@ -85,6 +105,11 @@ export default function ChapterPage() {
   const [enlarged, setEnlarged] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastSave, setLastSave] = useState<{ kind: 'saved' | 'autosaved'; at: Date } | null>(null);
+  // The details (number, label, title, translated by) start closed on a phone so the text comes first; the person's
+  // own choice is remembered.
+  const roomy = useMediaQuery('(min-width: 761px)');
+  const [detailsChoice, setDetailsChoice] = useState<boolean | null>(readDetailsChoice);
+  const detailsOpen = detailsChoice ?? roomy;
   const textRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(textRef, text);
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
@@ -458,8 +483,14 @@ export default function ChapterPage() {
         {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
       </p>
 
-      {(translating || (chapter.translationStatus === 'TRANSLATED' && chapter.translationModel) ||
-        (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
+      {published && (
+        <p className="chapter-note muted">
+          This chapter is published: only the text can be edited.{' '}
+          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
+        </p>
+      )}
+
+      {(translating || (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
         <div className="chapter-status">
           {translating && (
             <p className="muted" aria-live="polite">
@@ -469,9 +500,6 @@ export default function ChapterPage() {
                   ? 'Gemini is translating the chapter…'
                   : 'Gemini is reading and translating the pages…'}
             </p>
-          )}
-          {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
-            <p className="muted">Translated by {chapter.translationModel}</p>
           )}
           {chapter.translationStatus === 'FAILED' && chapter.translationError && (
             <p className="field__error">{chapter.translationError}</p>
@@ -483,7 +511,19 @@ export default function ChapterPage() {
         <Alert title={error.title} hint={error.hint} />
       )}
 
-      <div className="chapter-meta">
+      <details
+        className="chapter-details"
+        open={detailsOpen}
+        onToggle={(e) => {
+          // React also fires toggle when it sets `open` itself; only a real change by the person is remembered.
+          const now = e.currentTarget.open;
+          if (now === detailsOpen) return;
+          setDetailsChoice(now);
+          writeDetailsChoice(now);
+        }}
+      >
+        <summary className="chapter-details__summary">Chapter details</summary>
+        <div className="chapter-meta">
         <div className="chapter-meta__row">
           {!published && (
             <div className="field chapter-meta__number">
@@ -518,15 +558,13 @@ export default function ChapterPage() {
               onChange={(e) => setTitle(e.target.value)} />
           </div>
         </div>
-      </div>
+        </div>
+        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+          <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
+        )}
+      </details>
 
-      {published ? (
-        <p className="chapter-note">
-          This chapter is published: only the text can be edited.{' '}
-          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
-        </p>
-      ) : (
-        !fromText && (
+      {!published && !fromText && (
         <section className="chapter-pages" aria-labelledby={`${ids}-pages`}>
           <h2 id={`${ids}-pages`} className="history__heading">Pages</h2>
           <PageUploader disabled={translating} busy={uploading} onFiles={(files) => void upload(files)} />
@@ -560,7 +598,6 @@ export default function ChapterPage() {
             </SortableContext>
           </DndContext>
         </section>
-        )
       )}
 
       {suspectNumbers.length > 0 && (

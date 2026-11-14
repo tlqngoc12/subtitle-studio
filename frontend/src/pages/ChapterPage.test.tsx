@@ -1255,3 +1255,104 @@ describe('ChapterPage reading width and the aligned original', () => {
     expect(screen.getByRole('list', { name: 'Pages' })).toBeInTheDocument();
   });
 });
+
+describe('ChapterPage: text first on a phone', () => {
+  const STORAGE_KEY = 'chapter-details-open';
+  const stubWidth = (min761: boolean) =>
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: min761 && query.includes('761px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  const details = () => document.querySelector('details.chapter-details') as HTMLDetailsElement;
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it('keeps the label, title and the translated-by line in a "Chapter details" disclosure', async () => {
+    stubWidth(true);
+    renderPage([get({ translationModel: 'gemini-2.5-pro' })]);
+    await loaded();
+
+    expect(within(details()).getByText('Chapter details')).toBeInTheDocument();
+    expect(within(details()).getByLabelText('Chapter label (optional)')).toBeInTheDocument();
+    expect(within(details()).getByLabelText('Chapter title (optional)')).toBeInTheDocument();
+    expect(within(details()).getByText('Translated by gemini-2.5-pro')).toBeInTheDocument();
+    expect(textBox().closest('details')).toBeNull();
+  });
+
+  it('is closed on a phone and open from 761 px', async () => {
+    stubWidth(false);
+    renderPage([get()]);
+    await loaded();
+    expect(details().open).toBe(false);
+    cleanup();
+
+    stubWidth(true);
+    renderPage([get()]);
+    await loaded();
+    expect(details().open).toBe(true);
+  });
+
+  it('remembers what the person chose, in localStorage', async () => {
+    stubWidth(false);
+    renderPage([get()]);
+    await loaded();
+
+    await user().click(within(details()).getByText('Chapter details'));
+    await waitFor(() => expect(details().open).toBe(true));
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('1');
+    cleanup();
+
+    renderPage([get()]);
+    await loaded();
+    expect(details().open).toBe(true);
+  });
+
+  it('a remembered "closed" wins over the wide default', async () => {
+    localStorage.setItem(STORAGE_KEY, '0');
+    stubWidth(true);
+    renderPage([get()]);
+    await loaded();
+
+    expect(details().open).toBe(false);
+  });
+
+  it('still renders when storage throws', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    stubWidth(false);
+    renderPage([get()]);
+    await loaded();
+
+    await user().click(within(details()).getByText('Chapter details'));
+    await waitFor(() => expect(details().open).toBe(true));
+    expect(textBox()).toBeInTheDocument();
+  });
+
+  it('shows the published note as one muted line, not an alert box', async () => {
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+
+    const note = screen.getByText(/This chapter is published/);
+    expect(note.tagName).toBe('P');
+    expect(note).toHaveClass('muted');
+    expect(note.closest('.alert')).toBeNull();
+    expect(note).not.toHaveAttribute('role', 'alert');
+    expect(css).not.toMatch(/\.chapter-note\s*\{[^}]*(border-left|background)/);
+  });
+
+  it('puts the details after the counts and before the text', async () => {
+    stubWidth(true);
+    renderPage([get()]);
+    await loaded();
+
+    const count = document.querySelector('.chapter-count')!;
+    expect(count.compareDocumentPosition(details()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(details().compareDocumentPosition(textBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

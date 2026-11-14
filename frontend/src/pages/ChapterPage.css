@@ -108,13 +108,31 @@
   border-color: var(--brand-2-border);
 }
 
-/* Published chapter: what can still be changed (information = purple). */
+/* Published chapter: what can still be changed, as one quiet line under the counts. */
 .chapter-note {
-  margin: 0 0 var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--brand-2);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  margin: 0 0 var(--space-3);
+  font-size: var(--step--1);
+}
+
+/* Number, label, title and the translating model: closed on a phone so the text comes first. */
+.chapter-details {
+  margin-bottom: var(--space-4);
+}
+
+.chapter-details__summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chapter-details[open] > .chapter-details__summary {
+  margin-bottom: var(--space-2);
+}
+
+.chapter-details__model {
+  margin: 0;
 }
 
 .chapter-warning {
