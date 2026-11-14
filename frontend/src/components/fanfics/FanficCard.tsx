@@ -1,4 +1,4 @@
-import { BookOpen, Eye, Library, Star, type LucideIcon } from 'lucide-react';
+import { BookOpen, CircleCheck, Eye, Library, Star, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { FanficBase } from '../../api/fanfics';
 import { Cover } from '../ui/Cover';
@@ -32,6 +32,7 @@ export function FanficCard({ fanfic, menu }: { fanfic: FanficBase; menu?: ReactN
         <span className="fanfic-card__body">
           <span className="fanfic-card__title">{fanfic.title}</span>
           <span className={fanfic.completed ? 'fanfic-card__badge fanfic-card__badge--complete' : 'fanfic-card__badge'}>
+            {fanfic.completed && <CircleCheck className="icon icon--sm" aria-hidden="true" />}
             {fanfic.completed ? t('Complete', 'Hoàn thành') : t('Ongoing', 'Đang ra')}
           </span>
           <span className="fanfic-card__stats">

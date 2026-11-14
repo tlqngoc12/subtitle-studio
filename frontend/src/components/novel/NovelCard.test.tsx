@@ -67,6 +67,17 @@ describe('NovelCard (admin)', () => {
 });
 
 describe('NovelCard (public)', () => {
+  it('puts a check icon on the Hoàn thành badge but not on Đang ra', () => {
+    const { unmount } = renderCard(
+      <NovelCard novel={{ ...BASE, novelStatus: 'COMPLETED' }} href="/novels/3" />,
+      true,
+    );
+    expect(screen.getByText('Hoàn thành').querySelector('svg')).not.toBeNull();
+    unmount();
+    renderCard(<NovelCard novel={{ ...BASE, novelStatus: 'ONGOING' }} href="/novels/3" />, true);
+    expect(screen.getByText('Đang ra').querySelector('svg')).toBeNull();
+  });
+
   it('uses Vietnamese labels, no admin badge and x/y chapters', () => {
     renderCard(
       <NovelCard
