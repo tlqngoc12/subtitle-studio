@@ -1,6 +1,6 @@
 # Text chapters: catch short translations; Gemini quota toasts — design
 
-Date: 2026-11-14. Branch: `fix/translation-completeness`. Size: small-to-medium (backend checks, one in-memory tracker, one endpoint, one frontend hook).
+Date: 2026-11-14. Branch: `fix/translation-completeness`. Size: small-to-medium (backend checks, one in-memory tracker, one endpoint, a frontend check called on translate actions; no periodic polling).
 
 ## Why
 
@@ -59,22 +59,35 @@ Tests (`GeminiTextChapterTranslatorTest`, fake Gemini server), written first:
 ### Frontend (admin only; the public app has no Gemini)
 
 - `api/gemini.ts`: `getGeminiQuota(): Promise<{ exhausted: { model: string; kind: 'DAILY' | 'MINUTE'; resetAt: string }[]; nowUsing: string | null }>`.
-- `lib/useGeminiQuotaToasts.ts`, mounted once in `App` (not in `PublicApp`):
-  - It polls `getGeminiQuota()` every **30 s**, only while `document.visibilityState === 'visible'`, and once when the page becomes visible again.
+- `lib/geminiQuota.ts` exports `checkGeminiQuota(): Promise<void>`. It calls `getGeminiQuota()` once and toasts new entries. **No timer or interval anywhere** (user, 2026-11-14: ask only when a translation is started). It is called at two moments:
+  1. **Right after the user starts a translation**, when the start request has returned, success or error:
+     - chapter Translate and Translate again (`ChapterPage`);
+     - Fetch & translate (Wattpad tab);
+     - Fetch & translate next (chapter page and Chapters tab);
+     - Vietsub Translate and Translate again;
+     - notebook Retry;
+     - Vietsub › Profiles Analyze.
+  2. **During a translation the page already polls**, when that poll shows the model changed, or the run ended `FAILED`:
+     - `useChapterPolling`: `translationModel` changed;
+     - `useNovelPolling`;
+     - the Vietsub video polling (`activeModel` changed).
+
+     This is one extra request per change, and it catches a quota that runs out mid-run.
   - For each `DAILY` entry not toasted yet, it shows one toast. The key is `model|resetAt`, remembered in `sessionStorage` behind try/catch, with an in-memory fallback.
     - Title: `toast.warning('<model> is out of quota')`.
     - Description: `Daily quota resets at <formatInstantWithTime(resetAt)> (Vietnam time). Now using <nowUsing>.` When `nowUsing` is null, the description ends with `No model left until then.` instead.
     - Duration 10 s, closable.
   - `MINUTE` entries do not toast (they clear in seconds).
-  - Errors are ignored silently, so a failed poll never shows an error toast.
+  - Errors are ignored silently, so a failed check never shows an error toast.
   - This follows the toast rules in `CLAUDE.md`: short title with no period, specifics in the description, `warning` for a partial problem.
-- Tests (Vitest, fake timers, `fakeFetch`):
-  - One toast per new daily entry, none again on the next poll.
-  - No toast for `MINUTE`.
-  - No polling while hidden.
-  - The description has the formatted time and `nowUsing`.
-  - The "no model left" wording.
-  - Not mounted in `PublicApp`.
+- Tests (Vitest, `fakeFetch`):
+  - `checkGeminiQuota`: one toast per new daily entry, none on a second call; no toast for `MINUTE`.
+  - The description has the formatted time and `nowUsing`; the "no model left" wording.
+  - A failed request shows no toast.
+  - Each start action calls `GET /api/gemini/quota` exactly once after its request.
+  - A polling hook calls it when the model changes, and not on polls where nothing changed.
+  - No quota request when nothing is translating: render the admin `App`, advance fake timers by 5 minutes, and expect 0 calls.
+  - Public pages never call it.
 
 ## Non-goals
 
