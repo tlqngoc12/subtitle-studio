@@ -110,3 +110,30 @@
   - chapter 1: its stored original repeats 75 of 170 paragraphs, and the translation is complete.
 - [ ] Run all three suites; report the real counts.
 - [ ] Commit `docs: translation completeness and quota toasts`.
+
+---
+
+## Added 2026-11-14 (user request after tasks 1–4)
+
+**Spec:** `docs/superpowers/specs/2026-11-14-chapter-list-date-and-reader-end-design.md`
+
+### Task 5: Newest-chapter-only date and "Mới"; none for Completed
+
+**Files:** `frontend/src/pages/public/PublicNovelPage.tsx`, `PublicNovelPage.test.tsx`.
+
+**Interfaces — Produces:** a pure helper in that file (exported for tests), `newestChapterNo(chapters: { chapterNo: number; publishedAt?: string | null }[]): number | null`. It returns the chapter with the greatest `publishedAt`, the higher `chapterNo` on a tie, or null when no chapter has a date.
+
+- [ ] Write the tests from spec §1 (fixed clock). Run them and see them FAIL. Implement: the date and "Mới" render only for `newestChapterNo` when `novelStatus !== 'COMPLETED'`, with "Mới" still subject to the 7-day rule. Run them green.
+- [ ] Commit `fix: chapter list shows the date and Moi on the newest chapter only, none when completed`.
+
+### Task 6: Reader end buttons use the reader ink
+
+**Files:** `frontend/src/pages/public/readerThemes.css`, plus a CSS test next to it (e.g. `readerThemes.css.test.ts`).
+
+- [ ] Write the tests from spec §2 and see them FAIL. Add `html[data-reader-theme] .reader__end` to the selector list that maps `--ink`/`--muted` to the reader colours. Run them green.
+- [ ] Commit `fix: end-of-chapter buttons follow the reader theme ink (dark OS + light paper)`.
+
+### Task 7: Docs
+
+- [ ] `CLAUDE.md`: add the chapter-list rule (newest chapter only, Completed none) and "text on the reader paper, including `.reader__end`, uses `--reader-ink`". `PROGRESS.md`: add both to this branch's log entry.
+- [ ] Run all three suites, each under a timeout, and report the real counts. Commit `docs: chapter list dates and reader end ink`.
