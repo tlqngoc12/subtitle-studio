@@ -338,6 +338,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(status, e.code(), e.getMessage());
     }
 
+    @ExceptionHandler(com.subtitlestudio.novel.wattpad.WattpadNothingNextException.class)
+    ProblemDetail wattpadNothingNext(com.subtitlestudio.novel.wattpad.WattpadNothingNextException e) {
+        return problem(HttpStatus.CONFLICT, com.subtitlestudio.novel.wattpad.WattpadNothingNextException.CODE,
+                e.getMessage());
+    }
+
     @ExceptionHandler(NovelNotWattpadException.class)
     ProblemDetail novelNotWattpad(NovelNotWattpadException e) {
         return problem(HttpStatus.CONFLICT, "NOVEL_NOT_WATTPAD", e.getMessage());

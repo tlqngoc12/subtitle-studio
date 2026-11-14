@@ -226,12 +226,7 @@ public class WattpadNovelService {
      * chapter is kept (status NONE) so a retry only translates.
      */
     public ChapterDetail fetchAndTranslate(long novelId, String partId) {
-        Novel novel = wattpadNovel(novelId);
-        if (chapters.existsByNovelIdAndTranslationStatus(novelId, ChapterTranslationStatus.TRANSLATING)
-                || novel.getNotebookStatus() == NotebookStatus.UPDATING) {
-            throw new NovelTranslationBusyException(novelId);
-        }
-        translation.requireReady(novel);
+        Novel novel = readyWattpadNovel(novelId);
         Chapter existing = chapters.findByNovelIdAndWattpadPartId(novelId, partId).orElse(null);
         if (existing != null) {
             if (existing.getTranslationStatus() == ChapterTranslationStatus.TRANSLATED) {
@@ -246,6 +241,46 @@ public class WattpadNovelService {
             throw new WattpadPartProblemException(WattpadPartProblemException.DELETED,
                     "This part was deleted on Wattpad.");
         }
+        return fetchAndStart(novelId, part);
+    }
+
+    /**
+     * Starts the next part: the first, in Wattpad order, that is not deleted and whose chapter is missing or not yet
+     * translated (NONE/FAILED), the same rule as the Next badge of the Wattpad tab. Calls Wattpad once for the part
+     * list, and once more for the text when the part is new; never inside a transaction.
+     *
+     * @throws WattpadNothingNextException when every part is deleted or translated (nothing is created)
+     */
+    public ChapterDetail fetchAndTranslateNext(long novelId) {
+        Novel novel = readyWattpadNovel(novelId);
+        for (WattpadPart part : wattpad.storyWithParts(novel.getWattpadStoryId()).parts()) {
+            if (part.deleted()) {
+                continue;
+            }
+            Chapter existing = chapters.findByNovelIdAndWattpadPartId(novelId, part.id()).orElse(null);
+            if (existing == null) {
+                return fetchAndStart(novelId, part);
+            }
+            if (existing.getTranslationStatus() != ChapterTranslationStatus.TRANSLATED) {
+                return translation.start(existing.getId());
+            }
+        }
+        throw new WattpadNothingNextException();
+    }
+
+    /** The novel, after the one-chapter-at-a-time and Gemini/profile checks, before Wattpad is called. */
+    private Novel readyWattpadNovel(long novelId) {
+        Novel novel = wattpadNovel(novelId);
+        if (chapters.existsByNovelIdAndTranslationStatus(novelId, ChapterTranslationStatus.TRANSLATING)
+                || novel.getNotebookStatus() == NotebookStatus.UPDATING) {
+            throw new NovelTranslationBusyException(novelId);
+        }
+        translation.requireReady(novel);
+        return novel;
+    }
+
+    /** Fetches a part that is not a chapter yet, saves it as one and starts translating it. */
+    private ChapterDetail fetchAndStart(long novelId, WattpadPart part) {
         String text = WattpadText.toPlain(wattpad.partText(part.id()));
         if (text.isEmpty()) {
             throw new WattpadPartProblemException(WattpadPartProblemException.EMPTY, NO_TEXT);

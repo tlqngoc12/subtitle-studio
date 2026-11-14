@@ -539,6 +539,130 @@ class WattpadNovelServiceTest {
         verify(chapterService, org.mockito.Mockito.times(1)).addFromSource(3L, "One", "Hello", "2", NOW);
     }
 
+    // ---- fetch & translate the next part ----
+
+    /** Gives part {@code partId} a chapter with this status (what the Wattpad tab's Next badge looks at). */
+    private void chapterFor(Novel n, String partId, long chapterId,
+            com.subtitlestudio.novel.ChapterTranslationStatus status) {
+        com.subtitlestudio.novel.Chapter c = new com.subtitlestudio.novel.Chapter(n, 1, "T" + partId, NOW);
+        ReflectionTestUtils.setField(c, "id", chapterId);
+        c.setTranslationStatus(status);
+        when(chapters.findByNovelIdAndWattpadPartId(3L, partId)).thenReturn(Optional.of(c));
+    }
+
+    @Test
+    void nextFetchesTheFirstPartWithoutAChapterAndStartsIt() {
+        Novel n = wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "One", false), part("3", "Two", false));
+        chapterFor(n, "1", 51, com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATED);
+        when(wattpad.partText("2")).thenReturn("<p>Hello</p>");
+        when(chapterService.addFromSource(3L, "One", "Hello", "2", NOW)).thenReturn(77L);
+        when(translation.start(77L)).thenReturn(started);
+
+        assertThat(service.fetchAndTranslateNext(3)).isSameAs(started);
+
+        verify(wattpad, org.mockito.Mockito.times(1)).storyWithParts("396487502");
+        verify(wattpad, org.mockito.Mockito.times(1)).partText("2");
+        verify(translation).requireReady(any());
+    }
+
+    @Test
+    void nextPrefersAnEarlierFailedChapterAndDoesNotFetchItsText() {
+        Novel n = wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "One", false), part("3", "Two", false));
+        chapterFor(n, "1", 51, com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATED);
+        chapterFor(n, "2", 52, com.subtitlestudio.novel.ChapterTranslationStatus.FAILED);
+        when(translation.start(52L)).thenReturn(started);
+
+        assertThat(service.fetchAndTranslateNext(3)).isSameAs(started);
+
+        verify(wattpad, never()).partText(anyString());
+        verify(chapterService, never()).addFromSource(anyLong(), anyString(), anyString(), anyString(), any());
+        verify(wattpad, org.mockito.Mockito.times(1)).storyWithParts("396487502");
+    }
+
+    @Test
+    void nextSkipsDeletedPartsAndTranslatedChapters() {
+        Novel n = wattpadNovel(3);
+        storyParts(part("1", "Gone", true), part("2", "One", false), part("3", "Two", false));
+        chapterFor(n, "2", 52, com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATED);
+        when(wattpad.partText("3")).thenReturn("<p>Hi</p>");
+        when(chapterService.addFromSource(3L, "Two", "Hi", "3", NOW)).thenReturn(78L);
+        when(translation.start(78L)).thenReturn(started);
+
+        assertThat(service.fetchAndTranslateNext(3)).isSameAs(started);
+
+        verify(wattpad, never()).partText("1");
+    }
+
+    @Test
+    void nextWithNothingLeftIs409AndCreatesNothing() {
+        Novel n = wattpadNovel(3);
+        storyParts(part("1", "Prologue", false), part("2", "Gone", true));
+        chapterFor(n, "1", 51, com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATED);
+
+        assertThatThrownBy(() -> service.fetchAndTranslateNext(3))
+                .isInstanceOf(WattpadNothingNextException.class)
+                .hasMessage("Every Wattpad part is already translated.");
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void nextWithOnlyDeletedPartsLeftIsNothingNext() {
+        wattpadNovel(3);
+        storyParts(part("1", "Gone", true));
+
+        assertThatThrownBy(() -> service.fetchAndTranslateNext(3)).isInstanceOf(WattpadNothingNextException.class);
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void nextIsRefusedWhileBusyBeforeAnyWattpadCall() {
+        wattpadNovel(3);
+        when(chapters.existsByNovelIdAndTranslationStatus(3L,
+                com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.fetchAndTranslateNext(3))
+                .isInstanceOf(com.subtitlestudio.novel.NovelTranslationBusyException.class);
+        verify(wattpad, never()).storyWithParts(anyString());
+        verifyNothingFetchedOrStarted();
+    }
+
+    @Test
+    void nextChecksReadinessBeforeCallingWattpad() {
+        wattpadNovel(3);
+        org.mockito.Mockito.doThrow(new com.subtitlestudio.translate.GeminiNotConfiguredException("x"))
+                .when(translation).requireReady(any());
+
+        assertThatThrownBy(() -> service.fetchAndTranslateNext(3))
+                .isInstanceOf(com.subtitlestudio.translate.GeminiNotConfiguredException.class);
+        verify(wattpad, never()).storyWithParts(anyString());
+    }
+
+    @Test
+    void nextOnANovelThatIsNotFromWattpadIsRefused() {
+        Novel n = new Novel("plain", "Plain", NovelStatus.ONGOING, NOW);
+        ReflectionTestUtils.setField(n, "id", 4L);
+        when(novels.findById(4L)).thenReturn(Optional.of(n));
+
+        assertThatThrownBy(() -> service.fetchAndTranslateNext(4))
+                .isInstanceOf(com.subtitlestudio.novel.NovelNotWattpadException.class);
+        verify(wattpad, never()).storyWithParts(anyString());
+    }
+
+    @Test
+    void nextKeepsTheSavedChapterWhenStartFails() {
+        wattpadNovel(3);
+        storyParts(part("1", "One", false));
+        when(wattpad.partText("1")).thenReturn("<p>Hello</p>");
+        when(chapterService.addFromSource(3L, "One", "Hello", "1", NOW)).thenReturn(77L);
+        when(translation.start(77L)).thenThrow(new IllegalStateException("boom"));
+
+        assertThatThrownBy(() -> service.fetchAndTranslateNext(3)).isInstanceOf(IllegalStateException.class);
+
+        verify(chapterService, org.mockito.Mockito.times(1)).addFromSource(3L, "One", "Hello", "1", NOW);
+    }
+
     // ---- automatic translation profile ----
 
     private static NovelRequest profileRequest(String title, String profile, String language) {

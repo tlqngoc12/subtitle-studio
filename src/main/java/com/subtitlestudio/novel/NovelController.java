@@ -75,6 +75,13 @@ public class NovelController {
         return wattpadNovels.fetchAndTranslate(id, partId);
     }
 
+    /** Starts the next untranslated Wattpad part (the one the Wattpad tab marks Next), fetching it first if needed. */
+    @PostMapping("/{id}/wattpad/next/fetch-translate")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ChapterDetail wattpadFetchTranslateNext(@PathVariable long id) {
+        return wattpadNovels.fetchAndTranslateNext(id);
+    }
+
     @GetMapping
     public List<NovelSummary> list() {
         return service.list();
