@@ -32,7 +32,7 @@ class NovelControllerTest {
     private static final Instant AT = Instant.parse("2026-11-05T10:00:00Z");
     static final NovelDetail DETAIL = new NovelDetail(3, "summer-love", "Tình Yêu Mùa Hạ", null, null, "ผู้เขียน",
             "Giới thiệu", List.of("romance"), NovelStatus.ONGOING, "Dịch: @byZenQN", null, "SummerLove",
-            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of(), NovelSourceType.SCREENSHOTS, "th", null);
+            "dQw4w9WgXcQ", NotebookStatus.IDLE, null, List.of(), NovelSourceType.SCREENSHOTS, "th", null, false, null);
     private static final String BODY = """
             {"slug":"summer-love","title":"Tình Yêu Mùa Hạ","tags":["romance"],"novelStatus":"ONGOING"}""";
 
@@ -57,7 +57,7 @@ class NovelControllerTest {
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
                 NovelStatus.ONGOING, null, null, null, null, NotebookStatus.IDLE, null, List.of(row),
-                NovelSourceType.SCREENSHOTS, "th", null));
+                NovelSourceType.SCREENSHOTS, "th", null, false, null));
 
         mvc.perform(put("/api/novels/3/chapters/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"chapterIds\":[11,10]}")).andExpect(status().isOk())
@@ -73,7 +73,7 @@ class NovelControllerTest {
     @Test
     void notebookViewAndRetry() throws Exception {
         when(notebook.view(3L, 5)).thenReturn(new NotebookView(5, NotebookContent.EMPTY, List.of(2, 5),
-                NotebookStatus.IDLE, null, true));
+                NotebookStatus.IDLE, null, true, false));
 
         mvc.perform(get("/api/novels/3/notebook").param("after", "5")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.afterChapterNo").value(5))
@@ -81,6 +81,36 @@ class NovelControllerTest {
                 .andExpect(jsonPath("$.staleLaterVersions").value(true));
         mvc.perform(post("/api/novels/3/notebook/retry")).andExpect(status().isAccepted());
         verify(notebook).retry(3L);
+    }
+
+    @Test
+    void pauseEndpointReturnsTheViewWithTheFlag() throws Exception {
+        when(notebook.setNotebookPaused(3L, true)).thenReturn(new NotebookView(5, NotebookContent.EMPTY,
+                List.of(5), NotebookStatus.IDLE, null, false, true));
+
+        mvc.perform(put("/api/novels/3/notebook/paused").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"paused\":true}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.notebookPaused").value(true));
+    }
+
+    @Test
+    void retryWhilePausedIs409() throws Exception {
+        doThrow(new NotebookPausedException()).when(notebook).retry(3L);
+
+        mvc.perform(post("/api/novels/3/notebook/retry")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOTEBOOK_PAUSED"))
+                .andExpect(jsonPath("$.detail").value("Notebook updates are paused."));
+    }
+
+    @Test
+    void detailCarriesThePauseFlagAndPendingChapter() throws Exception {
+        when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
+                NovelStatus.ONGOING, null, null, null, null, NotebookStatus.UPDATING, null, List.of(),
+                NovelSourceType.SCREENSHOTS, "th", null, true, 7));
+
+        mvc.perform(get("/api/novels/3")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.notebookPaused").value(true))
+                .andExpect(jsonPath("$.notebookChapterNo").value(7));
     }
 
     @Test

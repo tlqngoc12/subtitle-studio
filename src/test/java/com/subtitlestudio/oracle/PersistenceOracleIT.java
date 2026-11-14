@@ -123,6 +123,9 @@ class PersistenceOracleIT {
     @Autowired
     private com.subtitlestudio.fanfic.FanficRepository fanficRepository;
 
+    @Autowired
+    private com.subtitlestudio.novel.NovelRepository novelRepository;
+
     @AfterEach
     void cleanUp() {
         fanficRepository.deleteAll();
@@ -255,6 +258,26 @@ class PersistenceOracleIT {
 
         assertThatThrownBy(() -> jdbc.update("update video set vi_source = 'X' where id = ?", ID))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void storesTheNotebookPausedFlagAsYesNoOnOracle() {
+        com.subtitlestudio.novel.Novel n = new com.subtitlestudio.novel.Novel("pause-it", "Pause",
+                com.subtitlestudio.novel.NovelStatus.ONGOING, java.time.Instant.parse("2026-11-15T10:00:00Z"));
+        n = novelRepository.save(n);
+        try {
+            assertThat(jdbc.queryForObject("select notebook_paused from t_novel where id = ?", String.class,
+                    n.getId())).isEqualTo("N");
+
+            n.setNotebookPaused(true);
+            novelRepository.save(n);
+
+            assertThat(jdbc.queryForObject("select notebook_paused from t_novel where id = ?", String.class,
+                    n.getId())).isEqualTo("Y");
+            assertThat(novelRepository.findById(n.getId()).orElseThrow().isNotebookPaused()).isTrue();
+        } finally {
+            novelRepository.deleteById(n.getId());
+        }
     }
 
     @Test

@@ -89,6 +89,11 @@ public class Novel {
     @Column(name = "notebook_pending_chapter_no")
     private Integer notebookPendingChapterNo;
 
+    /** While true, publishing a chapter does not start a notebook update. */
+    @Convert(converter = YesNoConverter.class)
+    @Column(name = "notebook_paused", length = 1, nullable = false)
+    private boolean notebookPaused;
+
     /** Picked for the public Novels page banner (at most 5 novels; the service enforces it). */
     @Convert(converter = YesNoConverter.class)
     @Column(name = "featured", length = 1, nullable = false)
@@ -250,6 +255,14 @@ public class Novel {
 
     public void setNotebookPendingChapterNo(Integer notebookPendingChapterNo) {
         this.notebookPendingChapterNo = notebookPendingChapterNo;
+    }
+
+    public boolean isNotebookPaused() {
+        return notebookPaused;
+    }
+
+    public void setNotebookPaused(boolean notebookPaused) {
+        this.notebookPaused = notebookPaused;
     }
 
     public boolean isFeatured() {

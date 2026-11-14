@@ -299,6 +299,88 @@ class NotebookServiceTest {
     }
 
     @Test
+    void pausedNovelSchedulesNothingAndKeepsThePendingChapter() {
+        publishedChapter(1, "Một");
+        service.setNotebookPaused(novelId, true);
+
+        service.scheduleUpdate(novelId, 1);
+
+        assertThat(updater.calls).isEmpty();
+        assertThat(novel().getNotebookStatus()).isEqualTo(NotebookStatus.IDLE);
+        assertThat(novel().getNotebookPendingChapterNo()).isNull();
+    }
+
+    @Test
+    void notPausedSchedulesAsBefore() {
+        publishedChapter(1, "Một");
+        service.setNotebookPaused(novelId, true);
+        service.setNotebookPaused(novelId, false);
+
+        service.scheduleUpdate(novelId, 1);
+
+        assertThat(updater.calls).containsExactly("1:Một");
+    }
+
+    @Test
+    void pausingDuringARunningUpdateLetsItFinish() {
+        publishedChapter(1, "Một");
+        updater.during = no -> service.setNotebookPaused(novelId, true);
+
+        service.scheduleUpdate(novelId, 1);
+
+        assertThat(service.view(novelId, null).versions()).containsExactly(1);
+        assertThat(novel().getNotebookStatus()).isEqualTo(NotebookStatus.IDLE);
+        assertThat(novel().isNotebookPaused()).isTrue();
+    }
+
+    @Test
+    void retryWithoutAFailedUpdateRunsTheLatestPublishedChapter() {
+        publishedChapter(1, "Một");
+        publishedChapter(2, "Hai");
+        service.setNotebookPaused(novelId, true);
+        service.setNotebookPaused(novelId, false);
+
+        service.retry(novelId);
+
+        assertThat(updater.calls).containsExactly("2:Hai");
+        assertThat(novel().getNotebookStatus()).isEqualTo(NotebookStatus.IDLE);
+    }
+
+    @Test
+    void retryWithoutAnyPublishedChapterDoesNothing() {
+        service.retry(novelId);
+
+        assertThat(updater.calls).isEmpty();
+    }
+
+    @Test
+    void retryWhilePausedIsRejected() {
+        publishedChapter(4, "Bốn");
+        updater.failure = new TranslationFailedException("busy");
+        service.scheduleUpdate(novelId, 4);
+        updater.failure = null;
+        updater.calls.clear();
+        service.setNotebookPaused(novelId, true);
+
+        assertThatThrownBy(() -> service.retry(novelId)).isInstanceOf(NotebookPausedException.class)
+                .hasMessage("Notebook updates are paused.");
+        assertThat(updater.calls).isEmpty();
+    }
+
+    @Test
+    void resumingSchedulesNothingAndTheViewCarriesTheFlag() {
+        publishedChapter(1, "Một");
+        assertThat(service.setNotebookPaused(novelId, true).notebookPaused()).isTrue();
+        assertThat(service.view(novelId, null).notebookPaused()).isTrue();
+
+        NotebookView view = service.setNotebookPaused(novelId, false);
+
+        assertThat(view.notebookPaused()).isFalse();
+        assertThat(updater.calls).isEmpty();
+        assertThat(novel().getUpdatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
     void queuedWhileRunning() {
         publishedChapter(5, "Năm");
         publishedChapter(6, "Sáu");

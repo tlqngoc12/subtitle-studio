@@ -367,6 +367,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "NOTEBOOK_UPDATE_IN_PROGRESS", e.getMessage());
     }
 
+    @ExceptionHandler(com.subtitlestudio.novel.NotebookPausedException.class)
+    ProblemDetail notebookPaused(com.subtitlestudio.novel.NotebookPausedException e) {
+        return problem(HttpStatus.CONFLICT, "NOTEBOOK_PAUSED", e.getMessage());
+    }
+
     @ExceptionHandler(PlaylistNotFoundException.class)
     ProblemDetail playlistNotFound(PlaylistNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "PLAYLIST_NOT_FOUND", e.getMessage());

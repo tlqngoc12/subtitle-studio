@@ -191,7 +191,8 @@ public class NovelService {
                 n.getDescription(), tags(n), n.getNovelStatus(), n.getTranslatorCredit(), n.getSourceUrl(),
                 n.getPromptProfile(), n.getTrailerVideoId(),
                 n.getNotebookStatus(), n.getNotebookError(), list, n.getSourceType(), n.getSourceLanguage(),
-                n.getWattpadStoryId());
+                n.getWattpadStoryId(), n.isNotebookPaused(),
+                n.getNotebookStatus() == NotebookStatus.UPDATING ? n.getNotebookPendingChapterNo() : null);
     }
 
     static List<String> tags(Novel n) {

@@ -74,6 +74,10 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
         if (!gemini.configured()) {
             return;
         }
+        // A paused novel queues nothing and leaves notebook_pending_chapter_no alone.
+        if (novels.findById(novelId).map(Novel::isNotebookPaused).orElse(false)) {
+            return;
+        }
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -104,23 +108,42 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
                     : all.stream().filter(n -> n.getAfterChapterNo() == after).findFirst().orElse(null);
             if (selected == null) {
                 return new NotebookView(null, null, versions, novel.getNotebookStatus(), novel.getNotebookError(),
-                        false);
+                        false, novel.isNotebookPaused());
             }
             boolean stale = all.stream().anyMatch(n -> n.getAfterChapterNo() > selected.getAfterChapterNo()
                     && n.getCreatedAt().isBefore(selected.getCreatedAt()));
             return new NotebookView(selected.getAfterChapterNo(), parse(selected.getContentJson()), versions,
-                    novel.getNotebookStatus(), novel.getNotebookError(), stale);
+                    novel.getNotebookStatus(), novel.getNotebookError(), stale, novel.isNotebookPaused());
         });
     }
 
-    /** Runs the last failed update again. */
+    /**
+     * Turns "pause notebook updates" on or off. A running update is left alone and resuming starts nothing; the
+     * novel's updatedAt does not change.
+     */
+    public NotebookView setNotebookPaused(long novelId, boolean paused) {
+        tx.executeWithoutResult(status -> novels.findById(novelId)
+                .orElseThrow(() -> new NovelNotFoundException(novelId)).setNotebookPaused(paused));
+        return view(novelId, null);
+    }
+
+    /** Runs the last failed update again; with none pending, updates from the latest published chapter. */
     public void retry(long novelId) {
         Integer chapterNo = tx.execute(status -> {
             Novel novel = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
+            if (novel.isNotebookPaused()) {
+                throw new NotebookPausedException();
+            }
             if (novel.getNotebookStatus() == NotebookStatus.UPDATING) {
                 throw new NotebookUpdateInProgressException(novelId);
             }
-            return novel.getNotebookPendingChapterNo();
+            if (novel.getNotebookPendingChapterNo() != null) {
+                return novel.getNotebookPendingChapterNo();
+            }
+            // Nothing failed (e.g. updates were paused): update from the latest published chapter.
+            return chapters.findByNovelIdOrderByChapterNo(novelId).stream()
+                    .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED)
+                    .map(Chapter::getChapterNo).reduce((first, second) -> second).orElse(null);
         });
         if (chapterNo != null) {
             scheduleUpdate(novelId, chapterNo);
