@@ -48,19 +48,17 @@ desktop, new
 ┌────────┐  My Grumpy Vampire [EmiBonnie]
 │ cover  │  Tác giả  Bukanemiamily     Trạng thái  Đang ra
 │        │  Số chương  7                Cập nhật  14/11/2026
-│        │  Emi là một ma cà rồng đã sống qua hàng thế kỷ, kiêu ngạo, khó
-│        │  tính và cực kỳ cáu kỉnh. Thế nhưng, kể từ khi bị tước đi đôi…
-└────────┘  Xem thêm ▾
-            👁 2 lượt đọc
+│        │  👁 2 lượt đọc
+└────────┘
             [ Bắt đầu đọc ] [🔖]      ← tooltip "Thêm vào tủ sách"
             [↗ Truyện gốc]
 
-Danh sách chương ─────────────────────────────── (orange heading bar)
+[ Giới thiệu | Danh sách chương | Trailer ]   (tabs unchanged)
 Chương 7: Nụ cười hiếm hoi            [✦ Mới]        14/11/2026
 Chương 6: Hai kẻ xa lạ dưới mái nhà dột               12/11/2026
 ```
 
-- **Description in the hero**, clamped to 3 lines with a **Xem thêm / Thu gọn** toggle (`aria-expanded`, shown only when the text is actually clamped: compare `scrollHeight` > `clientHeight`; in tests, stub them). The **Giới thiệu** tab is removed. Tabs remain only when there is a trailer (`Danh sách chương | Trailer`); without a trailer the chapter list is a plain section headed by `<h2 className="history__heading">Danh sách chương</h2>`.
+- **Description and tabs stay as they are** (user, 2026-11-14): the **Giới thiệu** tab is kept, and the description is not repeated in the hero.
 - **Facts** add **Số chương** (count of published chapters, i.e. `novel.chapters.length`) and **Cập nhật** (`formatInstant` of the newest chapter `publishedAt`; row hidden when no chapter has a date).
 - **Shelf button**: no visible text; wrap it in `<Tip label=…>` with the same text as its `aria-label` ("Thêm vào tủ sách" / "Đã lưu vào tủ sách"). Test with `expectTooltip`.
 - **Chapter list**: each row shows its publish date (`formatInstant`, muted, right) and a **Mới** badge for chapters published in the last 7 days (`badge badge--done` with a `Sparkles` icon, per the badge-icon rule). Dates and badge are omitted when `publishedAt` is missing (files published before this change).
