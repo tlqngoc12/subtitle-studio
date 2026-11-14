@@ -6,7 +6,7 @@ import { formatInstant } from '../../lib/dates';
 import { expectTooltip } from '../../test/tooltip';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelDetail, PublicNovelSummary } from '../../data/novelTypes';
-import PublicNovelPage from './PublicNovelPage';
+import PublicNovelPage, { newestChapterNo } from './PublicNovelPage';
 import PublicNovelsPage from './PublicNovelsPage';
 import { css } from '../../test/css';
 
@@ -164,6 +164,7 @@ describe('PublicNovelPage', () => {
   describe('chapter count, last update, dates and Mới', () => {
     const DATED: PublicNovelDetail = {
       ...DETAIL,
+      novelStatus: 'ONGOING',
       chapters: [
         { chapterNo: 1, title: 'Mở đầu', publishedAt: '2026-11-01T03:00:00Z' },
         { chapterNo: 3, title: null, label: 'Ngoại truyện 1', publishedAt: '2026-11-12T03:00:00Z' },
@@ -188,16 +189,19 @@ describe('PublicNovelPage', () => {
       expect(fact('Cập nhật')).toHaveTextContent(formatInstant('2026-11-12T03:00:00Z'));
     });
 
-    it('shows each chapter its publish date, outside the link', async () => {
+    it('ongoing: only the newest chapter shows its publish date, outside the link', async () => {
       renderPage(dated());
 
-      const rows = within(await screen.findByRole('list', { name: 'Danh sách chương' })).getAllByRole('listitem');
-      expect(rows[0]).toHaveTextContent(formatInstant('2026-11-01T03:00:00Z'));
+      const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+      const rows = within(list).getAllByRole('listitem');
+      expect(list.querySelectorAll('time')).toHaveLength(1);
+      expect(rows[0].querySelector('time')).toBeNull();
+      expect(rows[0]).not.toHaveTextContent(formatInstant('2026-11-01T03:00:00Z'));
       expect(rows[1]).toHaveTextContent(formatInstant('2026-11-12T03:00:00Z'));
       expect(within(rows[0]).getByRole('link').textContent).toBe('Chương 1: Mở đầu');
     });
 
-    it('marks only chapters published within 7 days with a Mới badge that has an icon', async () => {
+    it('ongoing: only the newest chapter gets a Mới badge (with an icon) when it is within 7 days', async () => {
       renderPage(dated());
 
       const rows = within(await screen.findByRole('list', { name: 'Danh sách chương' })).getAllByRole('listitem');
@@ -205,6 +209,45 @@ describe('PublicNovelPage', () => {
       const badge = within(rows[1]).getByText('Mới');
       expect(badge).toHaveClass('badge', 'badge--done');
       expect(badge.querySelector('svg')).not.toBeNull();
+    });
+
+    it('ongoing: a newest chapter older than 7 days keeps its date but has no Mới', async () => {
+      vi.setSystemTime(new Date('2026-12-01T05:00:00Z'));
+      renderPage(dated());
+
+      const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+      const rows = within(list).getAllByRole('listitem');
+      expect(list.querySelectorAll('time')).toHaveLength(1);
+      expect(rows[1]).toHaveTextContent(formatInstant('2026-11-12T03:00:00Z'));
+      expect(screen.queryByText('Mới')).not.toBeInTheDocument();
+    });
+
+    it('completed: no date and no Mới in the list, but Cập nhật stays in the hero', async () => {
+      renderPage(source({ getNovel: async () => ({ ...DATED, novelStatus: 'COMPLETED' }) }));
+
+      const list = await screen.findByRole('list', { name: 'Danh sách chương' });
+      expect(list.querySelector('time')).toBeNull();
+      expect(screen.queryByText('Mới')).not.toBeInTheDocument();
+      expect(fact('Cập nhật')).toHaveTextContent(formatInstant('2026-11-12T03:00:00Z'));
+    });
+
+    it('newestChapterNo: the greatest publishedAt wins, the higher chapterNo on a tie, null with no dates', () => {
+      expect(newestChapterNo([])).toBeNull();
+      expect(newestChapterNo([{ chapterNo: 1 }, { chapterNo: 2, publishedAt: null }])).toBeNull();
+      expect(
+        newestChapterNo([
+          { chapterNo: 1, publishedAt: '2026-11-01T03:00:00Z' },
+          { chapterNo: 2, publishedAt: '2026-11-12T03:00:00Z' },
+          { chapterNo: 3, publishedAt: '2026-11-05T03:00:00Z' },
+        ]),
+      ).toBe(2);
+      expect(
+        newestChapterNo([
+          { chapterNo: 4, publishedAt: '2026-11-12T03:00:00Z' },
+          { chapterNo: 7, publishedAt: '2026-11-12T03:00:00Z' },
+          { chapterNo: 5, publishedAt: '2026-11-12T03:00:00Z' },
+        ]),
+      ).toBe(7);
     });
 
     it('copes with a file published before publishedAt existed: no dates, no Mới, no Cập nhật', async () => {
