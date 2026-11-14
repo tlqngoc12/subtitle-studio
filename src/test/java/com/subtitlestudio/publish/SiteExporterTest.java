@@ -718,6 +718,22 @@ class SiteExporterTest {
     }
 
     @Test
+    void chapterRefsCarryThePublishDateAndNothingInternal() throws IOException {
+        novel("summer", null, 2, 1, 2);
+
+        exporter.export(out, NOW);
+
+        JsonNode chapterRefs = readJson("data/novels/summer.json").get("chapters");
+        assertThat(java.time.Instant.parse(chapterRefs.get(0).get("publishedAt").asText()))
+                .isEqualTo(NOW.plusSeconds(60));
+        assertThat(java.time.Instant.parse(chapterRefs.get(1).get("publishedAt").asText()))
+                .isEqualTo(NOW.plusSeconds(120));
+        var names = new java.util.TreeSet<String>();
+        chapterRefs.get(0).fieldNames().forEachRemaining(names::add);
+        assertThat(names).containsExactlyInAnyOrder("chapterNo", "title", "label", "publishedAt");
+    }
+
+    @Test
     void chapterListOnlyPublished() throws IOException {
         novel("summer", null, 3, 1, 3);
 

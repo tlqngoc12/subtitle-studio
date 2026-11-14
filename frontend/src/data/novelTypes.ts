@@ -27,6 +27,8 @@ export interface PublicChapterRef {
   title: string | null;
   /** Missing in files published before labels existed. */
   label?: string | null;
+  /** ISO instant the chapter was published; missing in files published before this field existed. */
+  publishedAt?: string | null;
 }
 
 export interface PublicNovelDetail {
