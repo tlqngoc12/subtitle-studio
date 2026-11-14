@@ -938,3 +938,78 @@ describe('ChapterPage: Fetch & translate next', () => {
     await expectTooltip(button.parentElement!, 'Wait until this chapter finishes translating.');
   });
 });
+
+describe('ChapterPage status line', () => {
+  afterEach(() => vi.useRealTimers());
+  const edit = (value: string) => fireEvent.change(textBox(), { target: { value } });
+  const line = () => screen.getByText(/ words? · /);
+
+  it('shows words, characters and paragraphs of the chapter text', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(line()).toHaveTextContent('4 words · 20 characters · 2 paragraphs');
+    expect(screen.queryByText(/of the original/)).not.toBeInTheDocument();
+  });
+
+  it('formats big numbers with separators', async () => {
+    renderPage([get({ text: Array.from({ length: 3412 }, () => 'w').join(' ') })]);
+    await loaded();
+
+    expect(line()).toHaveTextContent(/^3,412 words · 6,823 characters · 1 paragraph$/);
+  });
+
+  it('updates about 300 ms after typing, not on every key', async () => {
+    renderPage([get()]);
+    await loaded();
+    vi.useFakeTimers();
+
+    act(() => edit('one two three'));
+    expect(line()).toHaveTextContent('4 words');
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    expect(line()).toHaveTextContent('4 words');
+    act(() => {
+      vi.advanceTimersByTime(2);
+    });
+    expect(line()).toHaveTextContent('3 words · 13 characters · 1 paragraph');
+  });
+
+  describe('a text chapter (Wattpad)', () => {
+    const source = Array.from({ length: 10 }, (_, i) => `Source ${i}`).join('\n\n');
+    const paras = (n: number) => Array.from({ length: n }, (_, i) => `Dòng ${i}`).join('\n\n');
+    const wattpad = (text: string): FakeRoute =>
+      get({ pages: [], text, sourceText: source, wattpadPartId: '1', sourceLanguage: 'en' });
+
+    it('compares the paragraphs with the original', async () => {
+      renderPage([wattpad(paras(10))]);
+      await loaded();
+
+      const ratio = screen.getByText(/paragraphs of the original/);
+      expect(ratio).toHaveTextContent('· 10/10 paragraphs of the original');
+      expect(ratio).not.toHaveClass('chapter-count__warn');
+    });
+
+    it('turns the ratio red below 90 % and explains it in a tooltip', async () => {
+      renderPage([wattpad(paras(8))]);
+      await loaded();
+
+      const ratio = screen.getByText(/paragraphs of the original/);
+      expect(ratio).toHaveTextContent('· 8/10 paragraphs of the original');
+      expect(ratio).toHaveClass('chapter-count__warn');
+      await expectTooltip(ratio, 'The translation may be missing a part');
+    });
+
+    it('is not a warning at exactly 90 %', async () => {
+      renderPage([wattpad(paras(9))]);
+      await loaded();
+
+      expect(screen.getByText(/paragraphs of the original/)).not.toHaveClass('chapter-count__warn');
+    });
+
+    it('colours the warning with the danger token', () => {
+      expect(css).toMatch(/\.chapter-count__warn\s*\{[^}]*color:\s*var\(--danger\)/);
+    });
+  });
+});

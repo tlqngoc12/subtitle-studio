@@ -14,7 +14,7 @@ import {
   TriangleAlert,
   Undo2,
 } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
@@ -40,6 +40,7 @@ import {
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
+import { countText, paragraphs } from '../lib/chapterText';
 import { PageRow } from '../components/novel/PageRow';
 import { PageUploader } from '../components/novel/PageUploader';
 import { StatusBadges } from '../components/novel/StatusBadges';
@@ -58,6 +59,11 @@ import './ChapterPage.css';
 
 /** Unsaved edits are saved by themselves this often (15 minutes). */
 export const AUTO_SAVE_MS = 900_000;
+const COUNT_DEBOUNCE_MS = 300;
+/** Below this share of the original's paragraphs the translation probably lost a part. */
+const MIN_PARAGRAPH_SHARE = 0.9;
+
+const plural = (n: number, noun: string) => `${n.toLocaleString('en')} ${noun}${n === 1 ? '' : 's'}`;
 
 /**
  * Novels › chapter. Draft: page screenshots (upload, order, delete), Translate, Publish, and the whole chapter's text
@@ -80,10 +86,23 @@ export default function ChapterPage() {
   const [starting, setStarting] = useState(false);
   const [enlarged, setEnlarged] = useState<number | null>(null);
 
+  // The counts follow the text about 300 ms after the last key, so typing in a long chapter stays light.
+  const [counted, setCounted] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCounted(text), COUNT_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [text]);
+  const counts = useMemo(() => countText(counted), [counted]);
+  const originalParagraphs = useMemo(
+    () => (chapter?.sourceText != null ? paragraphs(chapter.sourceText).length : null),
+    [chapter?.sourceText],
+  );
+
   /** Takes the server's chapter as the new saved state (drops unsaved edits). */
   function load(c: ChapterDetail) {
     setChapter(c);
     setText(c.text);
+    setCounted(c.text);
     setNumber(String(c.chapterNo));
     setLabel(c.label ?? '');
     setTitle(c.title ?? '');
@@ -399,6 +418,11 @@ export default function ChapterPage() {
         }
       />
 
+      <p className="chapter-count muted">
+        {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}
+        {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
+      </p>
+
       {(translating || (chapter.translationStatus === 'TRANSLATED' && chapter.translationModel) ||
         (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
         <div className="chapter-status">
@@ -571,6 +595,21 @@ ${p.source}` : undefined,
         }))}
       />
     </Page>
+  );
+}
+
+/** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
+function ParagraphShare({ have, of }: { have: number; of: number }) {
+  const short = of > 0 && have < of * MIN_PARAGRAPH_SHARE;
+  const label = `· ${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
+  if (!short) return <span className="chapter-count__share"> {label}</span>;
+  return (
+    <Tip label="The translation may be missing a part">
+      <span className="chapter-count__share chapter-count__warn" tabIndex={0}>
+        {' '}
+        {label}
+      </span>
+    </Tip>
   );
 }
 
