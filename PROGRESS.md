@@ -544,12 +544,6 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - **Sổ tay:** Gemini từng rơi vào vòng lặp và ghi cả chữ tự kiểm tra vào trường `sourceName` (My Grumpy Vampire: 1 mục dài 8.831 ký tự; Be My Sugar: 2 mục dài 41.627 và 45.467 ký tự, cộng 5 mục 400–770 ký tự), làm chiếm chỗ nhân vật thật trong ngữ cảnh dịch. Giờ có giới hạn độ dài cho các trường tên/glossary/xưng hô (spec [docs/superpowers/specs/2026-11-14-notebook-field-limits-design.md](docs/superpowers/specs/2026-11-14-notebook-field-limits-design.md)), `maxLength` trong schema + một dòng trong `SYSTEM_RULES`, và nội dung đã lưu được làm sạch khi đọc (`NotebookMerger.sanitize`, không sửa DB). Sau khi deploy, tab Characters của hai truyện không còn chữ rò rỉ.
 - **Tự lưu chương mỗi 15 phút** (trước là 3 phút).
 
-### 2026-11-14: Chặn bản dịch chương bị cụt và toast hết quota Gemini ✅
-- Spec [docs/superpowers/specs/2026-11-14-translation-completeness-and-quota-design.md](docs/superpowers/specs/2026-11-14-translation-completeness-and-quota-design.md), plan [docs/superpowers/plans/2026-11-14-translation-completeness-and-quota.md](docs/superpowers/plans/2026-11-14-translation-completeness-and-quota.md).
-- Nguyên nhân: chương 19 của *My Grumpy Vampire* mất 26% cuối (13.675 ký tự gốc chỉ ra 6.550). Gemini dừng sớm nhưng đóng JSON đúng, còn `GeminiTextChapterTranslator` chỉ từ chối khi ít hơn 40% số đoạn. User đã tự dịch tay phần thiếu. Chương 1: bản gốc đã lưu lặp 75/170 đoạn (lỗi phân trang Wattpad cũ), bản dịch vẫn đủ.
-- Thêm hai kiểm tra: tỉ lệ độ dài < 0,7 và đoạn cuối bản dịch không kết câu trong khi bản gốc có; vào đường chia đôi cũ.
-- `GeminiQuotaTracker` (trong bộ nhớ) + `GeminiCaller` bỏ qua model hết quota ngày đến lúc reset + `GET /api/gemini/quota`. Frontend toast cảnh báo, chỉ kiểm tra sau các hành động bắt đầu dịch và khi polling thấy đổi model/FAILED, không có timer.
-
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
@@ -943,6 +937,13 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Hai token mới `--brand-border` (#CF6F1A) và `--brand-2-border` (#A86EA8) cho viền 1 px của nút phụ, pill, chip, hover (sáng: ≥ 3:1 trên `--paper`/`--surface`; tối: bằng `--brand`/`--brand-2`). `--brand`/`--brand-2` chỉ còn cho nền; test quét `contrast.test.ts` chặn `border`/`border-color` dùng `var(--brand)`/`var(--brand-2)` trừ khi cùng quy tắc tô nền bằng đúng màu đó.
 - Badge cam "xong" và tím "đang chạy" luôn có icon (Published `CircleCheck`, Translating/Updating `LoaderCircle`, Landscape `RectangleHorizontal`, May be incomplete/số trang nghi ngờ `TriangleAlert`, Deleted `Trash2`); `styles/badgeIcons.test.ts` chặn badge mới thiếu icon.
 - Toast: tiêu đề ngắn không dấu chấm cuối, chi tiết (tên, số lượng) trong `description`, loại theo nghĩa (success = xong, info = bắt đầu, warning = một phần/không làm gì, error); mọi toast lỗi qua `toastError` (`lib/toast.ts`); màu toast theo token của app (`AppToaster.css`: `--normal-bg/-text/-border` từ `--surface/--ink/--rule`), nên `data-theme` ép buộc cũng được tôn trọng. `styles/toastFormat.test.ts` chặn `toast()`/`toast.message()`, tiêu đề kết thúc bằng `.`/`…`, tiêu đề success dạng template literal có giá trị.
+
+### 2026-11-14: Chặn bản dịch chương bị cụt và toast hết quota Gemini ✅
+- Spec [docs/superpowers/specs/2026-11-14-translation-completeness-and-quota-design.md](docs/superpowers/specs/2026-11-14-translation-completeness-and-quota-design.md), plan [docs/superpowers/plans/2026-11-14-translation-completeness-and-quota.md](docs/superpowers/plans/2026-11-14-translation-completeness-and-quota.md).
+- Nguyên nhân: chương 19 của *My Grumpy Vampire* mất 26% cuối (13.675 ký tự gốc chỉ ra 6.550). Gemini dừng sớm nhưng đóng JSON đúng, còn `GeminiTextChapterTranslator` chỉ từ chối khi ít hơn 40% số đoạn. User đã tự dịch tay phần thiếu. Chương 1: bản gốc đã lưu lặp 75/170 đoạn (lỗi phân trang Wattpad cũ), bản dịch vẫn đủ.
+- Thêm hai kiểm tra: tỉ lệ độ dài < 0,7 và đoạn cuối bản dịch không kết câu trong khi bản gốc có; vào đường chia đôi cũ.
+- `GeminiQuotaTracker` (trong bộ nhớ) + `GeminiCaller` bỏ qua model hết quota ngày đến lúc reset + `GET /api/gemini/quota`. Frontend toast cảnh báo, chỉ kiểm tra sau các hành động bắt đầu dịch và khi polling thấy đổi model/FAILED, không có timer.
+- Sửa sau review: (1) 429 chỉ là `DAILY` khi thông báo nói "per day"/"PerDay" (thông báo thật không có gợi ý retry); "per minute", gợi ý < 60 giây hoặc không rõ thì là `MINUTE` (chờ theo gợi ý, mặc định 60 giây), nên không bao giờ bỏ qua một model cả ngày vì đoán sai. (2) Get Engsub kèm hồ sơ dịch (`fetchVideo` có `profile`) cũng gọi kiểm tra quota sau khi bắt đầu dịch.
 
 ## 9. Rủi ro đang theo dõi
 
