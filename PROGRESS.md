@@ -920,6 +920,12 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - `FilterPills` dùng nút M 40 px ở mọi cỡ màn hình (trước là `button--s` 32 px, chỉ điện thoại 40 px), cao bằng ô tìm và ô sort cạnh nó; bỏ quy tắc `max-width: 520px` cũ. Áp dụng mọi trang có pill (Works, Fanfics, Vietsub, Novels).
 - Chưa kiểm tra bằng trình duyệt thật (máy không có Chrome cho Playwright); cần xem lại trên Safari iPhone sau khi deploy + Publish.
 
+### 2026-11-14: Viền thương hiệu đạt 3:1, icon trên badge xong/đang chạy, toast một định dạng ✅ (nhánh `fix/public-novel-polish`)
+- Spec [docs/superpowers/specs/2026-11-14-border-contrast-and-toasts-design.md](docs/superpowers/specs/2026-11-14-border-contrast-and-toasts-design.md), plan [docs/superpowers/plans/2026-11-14-border-contrast-and-toasts.md](docs/superpowers/plans/2026-11-14-border-contrast-and-toasts.md).
+- Hai token mới `--brand-border` (#CF6F1A) và `--brand-2-border` (#A86EA8) cho viền 1 px của nút phụ, pill, chip, hover (sáng: ≥ 3:1 trên `--paper`/`--surface`; tối: bằng `--brand`/`--brand-2`). `--brand`/`--brand-2` chỉ còn cho nền; test quét `contrast.test.ts` chặn `border`/`border-color` dùng `var(--brand)`/`var(--brand-2)` trừ khi cùng quy tắc tô nền bằng đúng màu đó.
+- Badge cam "xong" và tím "đang chạy" luôn có icon (Published `CircleCheck`, Translating/Updating `LoaderCircle`, Landscape `RectangleHorizontal`, May be incomplete/số trang nghi ngờ `TriangleAlert`, Deleted `Trash2`); `styles/badgeIcons.test.ts` chặn badge mới thiếu icon.
+- Toast: tiêu đề ngắn không dấu chấm cuối, chi tiết (tên, số lượng) trong `description`, loại theo nghĩa (success = xong, info = bắt đầu, warning = một phần/không làm gì, error); mọi toast lỗi qua `toastError` (`lib/toast.ts`); màu toast theo token của app (`AppToaster.css`: `--normal-bg/-text/-border` từ `--surface/--ink/--rule`), nên `data-theme` ép buộc cũng được tôn trọng. `styles/toastFormat.test.ts` chặn `toast()`/`toast.message()`, tiêu đề kết thúc bằng `.`/`…`, tiêu đề success dạng template literal có giá trị.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
