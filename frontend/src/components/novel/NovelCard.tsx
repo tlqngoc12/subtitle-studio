@@ -1,4 +1,4 @@
-import { BookOpen, CalendarClock, Eye, Library, type LucideIcon } from 'lucide-react';
+import { BookOpen, CalendarClock, CircleCheck, Eye, Library, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { formatInstant } from '../../lib/dates';
@@ -69,6 +69,7 @@ export function NovelCard({
           <span className="fanfic-card__title">{novel.title}</span>
           <span className="novel-card2__badges">
             <span className={completed ? 'fanfic-card__badge fanfic-card__badge--complete' : 'fanfic-card__badge'}>
+              {completed && <CircleCheck className="icon icon--sm" aria-hidden="true" />}
               {admin ? (completed ? 'Completed' : 'Ongoing') : completed ? 'Hoàn thành' : 'Đang ra'}
             </span>
             {admin && novel.featured && <span className="novel-card2__banner">On banner</span>}

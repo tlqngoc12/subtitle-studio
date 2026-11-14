@@ -4,6 +4,17 @@
   font-size: var(--step-1);
 }
 
+/* Short orange accent bar under every section heading (decorative). */
+.history__heading::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 3px;
+  margin-top: var(--space-1);
+  border-radius: 2px;
+  background: var(--brand);
+}
+
 .history__list {
   margin: 0;
   padding: 0;

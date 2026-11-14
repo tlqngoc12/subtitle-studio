@@ -43,6 +43,14 @@ describe('FanficCard', () => {
     expect(labels).toEqual(['Chương', 'Lượt đọc', 'Bình chọn', 'Thời gian đọc']);
   });
 
+  it('puts a check icon on the Complete badge but not on Ongoing', () => {
+    const { unmount } = render(<FanficCard fanfic={fanfic({ completed: true })} />);
+    expect(screen.getByText('Complete').querySelector('svg')).not.toBeNull();
+    unmount();
+    render(<FanficCard fanfic={fanfic({ completed: false })} />);
+    expect(screen.getByText('Ongoing').querySelector('svg')).toBeNull();
+  });
+
   it('says Ongoing for a story that is not finished', () => {
     render(<FanficCard fanfic={fanfic({ completed: false })} />);
 

@@ -532,6 +532,10 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - **Lưu ý:** các chương đã nhập trước bản sửa này có thể có đoạn bị lặp; sửa bằng **Reload original** (chỉ chương Draft).
 - **Giao diện:** chương Wattpad đã Published giờ giống hệt chương ảnh đã Published (trang `ChapterPage`): không còn cột Original / nút Reload original, chỉ còn ô Chapter text, cùng độ rộng trang (`narrow`) và dòng ghi chú "This chapter is published…" (chương Wattpad kết thúc bằng "Unpublish to translate again.", chương ảnh bằng "Unpublish to change pages or translate again."). Chương Draft giữ hai cột; Unpublish đưa chương về Draft nên cột Original hiện lại. Chỉ sửa frontend.
 
+### 2026-11-14: Thêm màu cam (huy hiệu Complete, icon số liệu, gạch dưới tiêu đề) ✅
+- Giữ nguyên vai trò màu (cam = hành động/nhấn/xong, tím = đang chọn/thông tin); chỉ thêm cam ở chỗ là điểm nhấn hoặc "xong" mà đang trung tính hoặc tím. Spec [docs/superpowers/specs/2026-11-14-orange-emphasis-design.md](docs/superpowers/specs/2026-11-14-orange-emphasis-design.md), plan [docs/superpowers/plans/2026-11-14-orange-emphasis.md](docs/superpowers/plans/2026-11-14-orange-emphasis.md).
+- Huy hiệu "Complete"/"Hoàn thành" trên `FanficCard` và `NovelCard` nền cam `--brand` + icon `CircleCheck` (Ongoing vẫn trung tính); icon số liệu của thẻ (`.fanfic-stat__label .icon`) màu `--brand-ink`; mọi `.history__heading` có thanh cam 24×3 px bên dưới (`::after`). Không đổi token.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
