@@ -323,7 +323,10 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(NovelTranslationBusyException.class)
     ProblemDetail novelTranslationBusy(NovelTranslationBusyException e) {
-        return problem(HttpStatus.CONFLICT, "NOVEL_TRANSLATION_BUSY", e.getMessage());
+        ProblemDetail pd = problem(HttpStatus.CONFLICT, "NOVEL_TRANSLATION_BUSY", e.getMessage());
+        pd.setProperty("reason", e.reason().name());
+        pd.setProperty("chapterNo", e.chapterNo());
+        return pd;
     }
 
     @ExceptionHandler(ChapterAlreadyTranslatedException.class)

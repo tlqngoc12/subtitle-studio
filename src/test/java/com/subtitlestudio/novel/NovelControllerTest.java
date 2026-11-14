@@ -233,7 +233,7 @@ class NovelControllerTest {
     void fetchTranslateReturns202() throws Exception {
         when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
-                "", null, null, "text", "77", null, "en"));
+                "", null, null, "text", "77", null, "en", NotebookStatus.IDLE, null));
 
         mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"));
@@ -241,17 +241,32 @@ class NovelControllerTest {
 
     @Test
     void fetchTranslateBusyIs409() throws Exception {
-        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3));
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3,
+                NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING, 25));
 
         mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"));
+                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"))
+                .andExpect(jsonPath("$.reason").value("CHAPTER_TRANSLATING"))
+                .andExpect(jsonPath("$.chapterNo").value(25))
+                .andExpect(jsonPath("$.detail").value("Chapter 25 is still translating."));
+    }
+
+    @Test
+    void fetchTranslateBusyBecauseOfTheNotebookSaysSo() throws Exception {
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3,
+                NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING, 24));
+
+        mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.reason").value("NOTEBOOK_UPDATING"))
+                .andExpect(jsonPath("$.chapterNo").value(24))
+                .andExpect(jsonPath("$.detail").value("The notebook is still updating after chapter 24."));
     }
 
     @Test
     void fetchTranslateNextReturns202() throws Exception {
         when(wattpadNovels.fetchAndTranslateNext(3L)).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
-                "", null, null, "text", "77", null, "en"));
+                "", null, null, "text", "77", null, "en", NotebookStatus.IDLE, null));
 
         mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.translationStatus").value("TRANSLATING"))
@@ -262,7 +277,7 @@ class NovelControllerTest {
     void fetchTranslateNextErrorsKeepTheirCodes() throws Exception {
         when(wattpadNovels.fetchAndTranslateNext(3L))
                 .thenThrow(new com.subtitlestudio.novel.wattpad.WattpadNothingNextException())
-                .thenThrow(new NovelTranslationBusyException(3))
+                .thenThrow(new NovelTranslationBusyException(3, NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING, 24))
                 .thenThrow(new com.subtitlestudio.novel.NovelNotWattpadException(3));
 
         mvc.perform(post("/api/novels/3/wattpad/next/fetch-translate")).andExpect(status().isConflict())
