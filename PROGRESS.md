@@ -536,6 +536,12 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - Giữ nguyên vai trò màu (cam = hành động/nhấn/xong, tím = đang chọn/thông tin); chỉ thêm cam ở chỗ là điểm nhấn hoặc "xong" mà đang trung tính hoặc tím. Spec [docs/superpowers/specs/2026-11-14-orange-emphasis-design.md](docs/superpowers/specs/2026-11-14-orange-emphasis-design.md), plan [docs/superpowers/plans/2026-11-14-orange-emphasis.md](docs/superpowers/plans/2026-11-14-orange-emphasis.md).
 - Huy hiệu "Complete"/"Hoàn thành" trên `FanficCard` và `NovelCard` nền cam `--brand` + icon `CircleCheck` (Ongoing vẫn trung tính); icon số liệu của thẻ (`.fanfic-stat__label .icon`) màu `--brand-ink`; mọi `.history__heading` có thanh cam 24×3 px bên dưới (`::after`). Không đổi token.
 
+### 2026-11-14: Rà soát giao diện Novels (lô 1) và "Fetch & translate next" ✅
+- Spec [docs/superpowers/specs/2026-11-14-novels-ui-review-design.md](docs/superpowers/specs/2026-11-14-novels-ui-review-design.md) và [docs/superpowers/specs/2026-11-14-wattpad-translate-next-design.md](docs/superpowers/specs/2026-11-14-wattpad-translate-next-design.md), plan [docs/superpowers/plans/2026-11-14-novels-ui-review-and-translate-next.md](docs/superpowers/plans/2026-11-14-novels-ui-review-and-translate-next.md).
+- Navbar căn giữa mục hiện tại bằng `scrollLeft` (sửa lỗi Safari/iPhone), vùng mờ 32 px. Cuối chương: chỉ **Chương sau** là nút chính. Thẻ truyện/fanfic: số liệu một hàng gọn trên điện thoại (có đơn vị), danh sách hai cột từ 1024 px, số chương công khai chỉ đếm chương đã Publish.
+- Trang truyện công khai: thêm "Số chương", "Cập nhật", ngày từng chương, huy hiệu **Mới** (7 ngày), tooltip nút tủ sách; backend thêm `publishedAt` vào `PublicChapterRef`. **Cần Publish lại để có ngày đăng chương** (file cũ vẫn hiển thị bình thường, chỉ thiếu ngày).
+- Admin: `POST /api/novels/{id}/wattpad/next/fetch-translate` + nút **Fetch & translate next** trên trang chương Wattpad cuối cùng và tab Chapters (truyện Wattpad không còn Add chapter); hết phần thì 409 `WATTPAD_NOTHING_NEXT`.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
