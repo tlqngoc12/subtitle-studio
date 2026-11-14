@@ -2,7 +2,7 @@ import { render, renderHook } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
-import { translateVideo } from '../api/client';
+import { fetchVideo, translateVideo } from '../api/client';
 import {
   fetchAndTranslateWattpadPart,
   fetchTranslateNext,
@@ -26,7 +26,21 @@ const quotaCalls = (calls: { path: string }[]) => calls.filter((c) => c.path ===
 beforeEach(() => forgetShownQuotaToasts());
 afterEach(() => vi.useRealTimers());
 
-describe('the six translate-start API functions check the quota once, after their own request', () => {
+describe('Get Engsub without a profile starts no translation, so it checks no quota', () => {
+  it('fetchVideo without a profile', async () => {
+    const calls = fakeFetch([
+      { method: 'POST', path: '/api/videos', status: 201, body: {} },
+      { method: 'GET', path: QUOTA, status: 200, body: NO_QUOTA },
+    ]);
+
+    await fetchVideo('https://youtu.be/abcdefghijk');
+    await Promise.resolve();
+
+    expect(quotaCalls(calls)).toBe(0);
+  });
+});
+
+describe('the translate-start API functions check the quota once, after their own request', () => {
   const cases: [string, () => Promise<unknown>, string, string][] = [
     ['translateChapter', () => translateChapter(5), 'POST', '/api/chapters/5/translate'],
     ['fetchAndTranslateWattpadPart', () => fetchAndTranslateWattpadPart(3, '77'), 'POST', '/api/novels/3/wattpad/parts/77/fetch-translate'],
@@ -34,6 +48,7 @@ describe('the six translate-start API functions check the quota once, after thei
     ['retryNotebook', () => retryNotebook(3), 'POST', '/api/novels/3/notebook/retry'],
     ['translateVideo', () => translateVideo('abcdefghijk', 'Moonshadow'), 'POST', '/api/videos/abcdefghijk/translate'],
     ['analyzeProfile', () => analyzeProfile('Moonshadow'), 'POST', '/api/prompt-profiles/Moonshadow/analyze'],
+    ['fetchVideo with a profile (Get Engsub)', () => fetchVideo('https://youtu.be/abcdefghijk', 'Moonshadow'), 'POST', '/api/videos'],
   ];
 
   it.each(cases)('%s on success', async (_name, call, method, path) => {

@@ -110,11 +110,13 @@ export async function fetchVideo(
   url: string,
   profile?: string,
 ): Promise<{ video: VideoDto; created: boolean; skipReason: SkipReason | null }> {
-  const res = await send('/api/videos', {
+  const request = send('/api/videos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profile ? { url, profile } : { url }),
   });
+  // with a profile the backend may also start a Gemini translation, so check the quota afterwards
+  const res = await (profile ? afterTranslateStart(request) : request);
   const { skipReason, ...video } = await res.json();
   return { video: video as VideoDto, created: res.status === 201, skipReason: skipReason ?? null };
 }
