@@ -346,6 +346,14 @@ export async function fetchAndTranslateWattpadPart(novelId: number, partId: stri
   ).json();
 }
 
+/**
+ * Starts the next untranslated Wattpad part (the one the Wattpad tab marks Next), fetching it first if it is not a
+ * chapter yet. Resolves to the chapter that is now translating.
+ */
+export async function fetchTranslateNext(novelId: number): Promise<ChapterDetail> {
+  return (await send(`/api/novels/${novelId}/wattpad/next/fetch-translate`, { method: 'POST' })).json();
+}
+
 /** Fetches the chapter's original text from Wattpad again (Draft chapters only); the translation is untouched. */
 export async function reloadChapterOriginal(chapterId: number): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${chapterId}/reload-original`, { method: 'POST' })).json();

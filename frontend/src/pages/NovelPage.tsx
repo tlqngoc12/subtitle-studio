@@ -1,12 +1,13 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { Plus, Trash2 } from 'lucide-react';
+import { CloudDownload, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   addChapter,
   deleteNovel,
+  fetchTranslateNext,
   getNovel,
   reorderChapters,
   updateNovel,
@@ -21,6 +22,7 @@ import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
 import { useNovelPolling } from '../lib/useNovelPolling';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { toastError } from '../lib/toast';
 import { STATUS_LABEL } from './NovelsPage';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
@@ -68,6 +70,19 @@ export default function NovelPage() {
       navigate(`/novels/${novelId}/chapters/${created.id}`);
     } catch (e) {
       setError(errorMessage(e));
+      setAdding(false);
+    }
+  }
+
+  /** Starts the next Wattpad part (fetching it if needed) and opens its chapter, which polls while it translates. */
+  async function startNext() {
+    setAdding(true);
+    try {
+      const started = await fetchTranslateNext(novelId);
+      toast.info('Translation started', { description: started.title ?? undefined });
+      navigate(`/novels/${novelId}/chapters/${started.id}`);
+    } catch (e) {
+      toastError(errorMessage(e));
       setAdding(false);
     }
   }
@@ -145,10 +160,19 @@ export default function NovelPage() {
               <Toolbar
                 className="toolbar--above-list"
                 actions={
-                  <button className="button button--primary" type="button" onClick={add} disabled={adding}>
-                    <Plus className="icon" aria-hidden="true" />
-                    Add chapter
-                  </button>
+                  novel.sourceType === 'WATTPAD' ? (
+                    // Wattpad chapters come from Wattpad: screenshot chapters would mix the two sources.
+                    <button className="button button--primary" type="button" onClick={() => void startNext()}
+                      disabled={adding}>
+                      <CloudDownload className="icon" aria-hidden="true" />
+                      {adding ? 'Starting…' : 'Fetch & translate next'}
+                    </button>
+                  ) : (
+                    <button className="button button--primary" type="button" onClick={add} disabled={adding}>
+                      <Plus className="icon" aria-hidden="true" />
+                      Add chapter
+                    </button>
+                  )
                 }
               />
               <ChapterList novelId={novelId} chapters={novel.chapters} fromText={novel.sourceType === 'WATTPAD'}
