@@ -141,13 +141,13 @@ describe('NovelPage', () => {
     it('shows the stored trailer as a youtu.be link', async () => {
       await openDetails([withTrailer, profiles]);
 
-      expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ');
+      expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ');
     });
 
     it('is empty without a trailer', async () => {
       await openDetails([getNovel, profiles]);
 
-      expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('');
+      expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue('');
     });
 
     it('clears the trailer when the field is emptied (sent as null)', async () => {
@@ -161,12 +161,12 @@ describe('NovelPage', () => {
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
       await user.click(screen.getByRole('tab', { name: 'Details' }));
 
-      await user.clear(screen.getByLabelText('Trailer (YouTube link)'));
+      await user.clear(screen.getByLabelText('Trailer (YouTube link, optional)'));
       await user.click(screen.getByRole('button', { name: 'Save' }));
 
       await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).trailerUrl).toBeNull();
-      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue(''));
+      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue(''));
     });
 
     it('shows the saved trailer as a youtu.be link after pasting another form of it', async () => {
@@ -180,14 +180,28 @@ describe('NovelPage', () => {
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
       await user.click(screen.getByRole('tab', { name: 'Details' }));
 
-      await user.type(screen.getByLabelText('Trailer (YouTube link)'), 'https://www.youtube.com/shorts/dQw4w9WgXcQ');
+      await user.type(screen.getByLabelText('Trailer (YouTube link, optional)'), 'https://www.youtube.com/shorts/dQw4w9WgXcQ');
       await user.click(screen.getByRole('button', { name: 'Save' }));
 
-      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ'));
+      await waitFor(() => expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toHaveValue('https://youtu.be/dQw4w9WgXcQ'));
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string).trailerUrl).toBe(
         'https://www.youtube.com/shorts/dQw4w9WgXcQ',
       );
     });
+  });
+
+  it('Details has one sticky bar with Delete novel at its start and no separate delete block', async () => {
+    fakeFetch([getNovel, profiles]);
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    await user.click(screen.getByRole('tab', { name: 'Details' }));
+
+    const bar = screen.getByRole('button', { name: 'Save' }).closest('.form-actions')!;
+    expect(bar).toHaveClass('form-actions--sticky');
+    expect(bar.querySelector('.form-actions__start')).toContainElement(screen.getByRole('button', { name: 'Delete novel' }));
+    expect(document.querySelector('.danger-zone')).toBeNull();
   });
 
   it('deletes the novel after confirming', async () => {

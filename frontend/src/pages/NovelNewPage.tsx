@@ -36,7 +36,7 @@ export default function NovelNewPage() {
       />
       {source === 'screenshots' ? (
         <NovelForm
-          stickyActions
+          cancelTo="/novels"
           submitLabel="Create novel"
           pendingLabel="Creating…"
           onSubmit={async (input) => {
@@ -58,7 +58,7 @@ export default function NovelNewPage() {
             <NovelForm
               key={preview.storyId}
               wattpad={preview}
-              stickyActions
+              cancelTo="/novels"
               submitLabel="Create novel"
               pendingLabel="Creating…"
               onSubmit={async (input) => {

@@ -37,7 +37,7 @@ export default function App() {
         <BackToTop
           hideOn={[/^\/novels\/[^/]+\/chapters\/[^/]+$/]}
           // Form pages with a sticky FormActions bar (the chapter page hides the button instead).
-          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/]}
+          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/, /^\/novels\/\d+$/]}
         />
         <Routes>
           <Route path="/" element={<HomePage />} />

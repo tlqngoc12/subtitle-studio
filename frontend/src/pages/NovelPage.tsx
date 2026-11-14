@@ -1,6 +1,6 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { CloudDownload, Plus, Trash2 } from 'lucide-react';
+import { CloudDownload, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -191,17 +191,12 @@ export default function NovelPage() {
                 initial={novel}
                 submitLabel="Save"
                 pendingLabel="Saving…"
+                onDelete={() => void remove()}
                 onSubmit={async (input) => {
                   setNovel(await updateNovel(novelId, input));
                   toast.success('Novel saved');
                 }}
               />
-              <div className="danger-zone">
-                <button className="button button--danger" type="button" onClick={remove}>
-                  <Trash2 className="icon" aria-hidden="true" />
-                  Delete novel
-                </button>
-              </div>
             </Tabs.Content>
 
             <Tabs.Content value="notebook" className="tabs__panel">

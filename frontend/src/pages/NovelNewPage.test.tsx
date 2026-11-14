@@ -41,7 +41,8 @@ describe('NovelNewPage', () => {
     expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
     expect(within(nav).getByText('New novel')).toHaveAttribute('aria-current', 'page');
     expect(document.querySelector('.back-link')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Create novel' }).parentElement).toHaveClass('form-actions--sticky');
+    expect(screen.getByRole('button', { name: 'Create novel' }).closest('.form-actions')).toHaveClass('form-actions--sticky');
+    expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/novels');
     expect(screen.getByRole('main')).toHaveClass('page--narrow');
   });
 
@@ -71,8 +72,8 @@ describe('NovelNewPage', () => {
 
     await user.type(screen.getByLabelText('Title'), 'Tình Yêu Mùa Hạ');
     await user.type(screen.getByLabelText('Original author (optional)'), 'ผู้เขียน');
-    await user.type(screen.getByLabelText('Tags (optional)'), 'romance, BL');
-    await pickOption(user, await screen.findByLabelText('Translation profile'), 'SummerLove');
+    await user.type(screen.getByLabelText('Tags (optional)'), 'romance,BL,');
+    await pickOption(user, await screen.findByLabelText('Translation profile (optional)'), 'SummerLove');
     await pickOption(user, screen.getByLabelText('Status'), 'Completed');
     await user.click(screen.getByRole('button', { name: 'Create novel' }));
 
@@ -97,7 +98,7 @@ describe('NovelNewPage', () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText('Title'), 'X');
-    await user.type(screen.getByLabelText('Trailer (YouTube link)'), '  https://www.youtube.com/watch?v=dQw4w9WgXcQ ');
+    await user.type(screen.getByLabelText('Trailer (YouTube link, optional)'), '  https://www.youtube.com/watch?v=dQw4w9WgXcQ ');
     await user.click(screen.getByRole('button', { name: 'Create novel' }));
 
     await screen.findByText('novel 3');
@@ -123,10 +124,10 @@ describe('NovelNewPage', () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText('Title'), 'X');
-    await user.type(screen.getByLabelText('Trailer (YouTube link)'), 'https://vimeo.com/1');
+    await user.type(screen.getByLabelText('Trailer (YouTube link, optional)'), 'https://vimeo.com/1');
     await user.click(screen.getByRole('button', { name: 'Create novel' }));
 
-    const trailer = screen.getByLabelText('Trailer (YouTube link)');
+    const trailer = screen.getByLabelText('Trailer (YouTube link, optional)');
     await waitFor(() => expect(trailer).toHaveAttribute('aria-invalid', 'true'));
     expect(document.getElementById(trailer.getAttribute('aria-describedby')!)).toHaveTextContent(
       'Use a YouTube link (youtube.com or youtu.be).',
@@ -167,7 +168,7 @@ describe('NovelNewPage', () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText('Title'), 'Tình Yêu Mùa Hạ');
-    const select = await screen.findByLabelText('Translation profile');
+    const select = await screen.findByLabelText('Translation profile (optional)');
     await pickOption(user, select, 'SummerLove');
     expect(select).toHaveTextContent('SummerLove');
     await pickOption(user, select, 'None (Translate is off)');
@@ -182,7 +183,7 @@ describe('NovelNewPage', () => {
   it('shows no create-a-profile hint on the Screenshots form', async () => {
     fakeFetch([profiles]);
     renderPage();
-    await screen.findByLabelText('Translation profile');
+    await screen.findByLabelText('Translation profile (optional)');
 
     expect(screen.queryByText(/Leave empty to create/)).not.toBeInTheDocument();
   });
@@ -191,7 +192,7 @@ describe('NovelNewPage', () => {
     fakeFetch([{ ...profiles, body: { configured: false, profiles: [] } }]);
     renderPage();
 
-    const select = await screen.findByLabelText('Translation profile');
+    const select = await screen.findByLabelText('Translation profile (optional)');
     expect(select).toHaveTextContent('None (Translate is off)');
     expect(await optionNames(userEvent.setup(), select)).toEqual(['None (Translate is off)']);
   });
@@ -247,7 +248,9 @@ describe('NovelNewPage', () => {
       expect(screen.getByLabelText('Slug')).toHaveValue('the-way-she-warmed-me');
       expect(screen.getByLabelText('Original author (optional)')).toHaveValue('emibonnie');
       expect(screen.getByLabelText('Description (optional)')).toHaveValue(preview.description);
-      expect(screen.getByLabelText('Tags (optional)')).toHaveValue('gl, fluff');
+      const tagBox = screen.getByLabelText('Tags (optional)').parentElement!;
+      expect(within(tagBox).getByRole('button', { name: 'Remove tag gl' })).toBeInTheDocument();
+      expect(within(tagBox).getByRole('button', { name: 'Remove tag fluff' })).toBeInTheDocument();
       expect(screen.getByLabelText('Status')).toHaveTextContent('Completed');
       expect(screen.getByLabelText('Original book link (optional)')).toHaveValue('https://www.wattpad.com/story/396487502');
       expect(screen.getByLabelText('Source language')).toHaveTextContent('English');
@@ -268,7 +271,7 @@ describe('NovelNewPage', () => {
 
       await fetchPreview(user);
 
-      const select = screen.getByLabelText('Translation profile');
+      const select = screen.getByLabelText('Translation profile (optional)');
       expect(document.getElementById(select.getAttribute('aria-describedby')!)).toHaveTextContent(
         'Leave empty to create TheWaySheWarmedMe.md from the Wattpad details.',
       );
@@ -280,7 +283,7 @@ describe('NovelNewPage', () => {
       const user = userEvent.setup();
       await fetchPreview(user);
 
-      await pickOption(user, screen.getByLabelText('Translation profile'), 'SummerLove');
+      await pickOption(user, screen.getByLabelText('Translation profile (optional)'), 'SummerLove');
 
       expect(screen.queryByText(/Leave empty to create/)).not.toBeInTheDocument();
     });
