@@ -48,11 +48,12 @@
   /* Beside the editor: it stays on screen while the page scrolls and scrolls on its own. */
   .chapter-original {
     position: sticky;
-    top: 4.5rem;
+    top: var(--chapter-bar-h);
     align-self: start;
   }
 
+  /* The heading and the footer take about 4rem; the text scrolls inside what is left under the bar. */
   .chapter-original__text {
-    max-height: calc(100vh - 8rem);
+    max-height: calc(100vh - var(--chapter-bar-h) - 4rem);
   }
 }

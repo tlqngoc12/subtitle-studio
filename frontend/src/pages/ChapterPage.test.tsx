@@ -1482,3 +1482,25 @@ describe('ChapterPage bar title', () => {
     expect(document.querySelector('.chapter-bar__title')).toHaveTextContent(/^Ngoại truyện 1$/);
   });
 });
+
+describe('ChapterPage two columns', () => {
+  it('gives the original and the editor equal columns from 1024 px, each at most 72ch', () => {
+    const block = css.slice(css.indexOf('@media (min-width: 1024px)', css.indexOf('.chapter-columns')));
+    expect(block).toMatch(/\.chapter-columns\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/);
+    expect(css).toMatch(/\.chapter-columns > \.chapter-original\s*\{[^}]*max-width:\s*72ch/);
+    expect(css).toMatch(/\.chapter-text\s*\{[^}]*max-width:\s*72ch/);
+  });
+
+  it('keeps the original sticky just under the bar, scrolling on its own', () => {
+    expect(css).toMatch(/--chapter-bar-h:\s*[\d.]+rem/);
+    expect(css).toMatch(/\.chapter-original\s*\{[^}]*position:\s*sticky;[^}]*top:\s*var\(--chapter-bar-h\)/);
+    expect(css).toMatch(/\.chapter-original__text\s*\{[^}]*max-height:\s*calc\(100vh - var\(--chapter-bar-h\)/);
+  });
+
+  it('uses the wide page for a chapter with an original beside it', async () => {
+    renderPage([get({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', sourceLanguage: 'en' })]);
+    await loaded();
+
+    expect(screen.getByRole('main')).toHaveClass('page--wide');
+  });
+});

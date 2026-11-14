@@ -178,10 +178,27 @@
   gap: var(--space-4);
 }
 
+/* The sticky chapter bar's height: the original column sticks just under it. */
+.chapter-page {
+  --chapter-bar-h: 3.75rem;
+}
+
 @media (min-width: 1024px) {
   .chapter-columns {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 72ch);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
+    gap: var(--space-6);
+  }
+
+  .chapter-columns > .chapter-original {
+    width: 100%;
+    max-width: 72ch;
+    justify-self: end;
+  }
+
+  .chapter-columns > .chapter-text {
+    margin-inline: 0;
+    justify-self: start;
   }
 }
 

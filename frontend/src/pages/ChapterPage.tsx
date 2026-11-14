@@ -448,7 +448,7 @@ export default function ChapterPage() {
   ];
 
   return (
-    <Page width={showOriginal ? 'default' : 'narrow'} className="chapter-page">
+    <Page width={showOriginal ? 'wide' : 'narrow'} className="chapter-page">
       {confirmDialog}
       <PageHeader
         breadcrumbs={[
