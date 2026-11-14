@@ -119,7 +119,7 @@ body:has(.novel-cta) {
 
 .novel-cta__shelf[aria-pressed="true"] {
   color: var(--brand);
-  border-color: var(--brand);
+  border-color: var(--brand-border);
 }
 
 @media (min-width: 768px) {

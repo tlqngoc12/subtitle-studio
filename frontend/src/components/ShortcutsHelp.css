@@ -75,7 +75,7 @@
 }
 
 .shortcuts__option:hover {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .shortcuts__option:focus-visible {
@@ -84,6 +84,6 @@
 }
 
 .shortcuts__option[aria-checked='true'] {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
   background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
 }

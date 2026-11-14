@@ -36,7 +36,7 @@
 }
 
 .banner-thumb:focus-within {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .banner-thumb--dragging {

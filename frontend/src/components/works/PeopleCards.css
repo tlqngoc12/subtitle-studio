@@ -45,7 +45,7 @@
 
 .pcard__role {
   padding: 1px var(--space-2);
-  border: 1px solid var(--brand-2);
+  border: 1px solid var(--brand-2-border);
   border-radius: 999px;
   font-size: var(--step--1);
 }

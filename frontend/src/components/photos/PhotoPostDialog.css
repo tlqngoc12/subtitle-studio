@@ -77,7 +77,7 @@
 }
 
 .pdialog__toggle[aria-pressed='true'] {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
   background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
   font-weight: 700;
 }

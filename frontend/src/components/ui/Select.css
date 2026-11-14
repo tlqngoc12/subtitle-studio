@@ -10,7 +10,7 @@
 }
 
 .select__trigger:hover:not(:disabled) {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .select__trigger[aria-invalid='true'] {

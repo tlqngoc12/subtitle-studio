@@ -91,7 +91,7 @@ a:not([class]):hover {
   gap: var(--space-2);
   height: var(--control-m);
   padding: 0 var(--space-4);
-  border: 1px solid var(--brand);
+  border: 1px solid var(--brand-border);
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--ink);
@@ -110,7 +110,7 @@ a:not([class]):hover {
 }
 
 .button:hover:not(:disabled) {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .button:active:not(:disabled) {
@@ -449,7 +449,7 @@ label.button:has(input:focus-visible) {
 
 .badge--info,
 .badge--draft {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
   color: var(--ink);
 }
 
@@ -507,7 +507,7 @@ label.button:has(input:focus-visible) {
 }
 
 .reader-settings .button[aria-pressed='true'] {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .reader-settings__size .button {

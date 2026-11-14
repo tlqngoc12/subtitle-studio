@@ -49,6 +49,11 @@ describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens)
     ['--on-brand', '--brand-hover', 4.5],
     ['--field-border', '--paper', 3],
     ['--field-border', '--surface', 3],
+    // Borders of brand-coloured components (WCAG 1.4.11); --brand and --brand-2 stay fills.
+    ['--brand-border', '--paper', 3],
+    ['--brand-border', '--surface', 3],
+    ['--brand-2-border', '--paper', 3],
+    ['--brand-2-border', '--surface', 3],
     // Delete buttons keep a red border at rest; --danger is also used as text.
     ['--danger', '--paper', 4.5],
     ['--danger', '--surface', 4.5],
@@ -65,6 +70,20 @@ describe.each(Object.entries(themes))('WCAG contrast, %s theme', (_name, tokens)
   ])('%s on %s is at least %s:1', (fg, bg, min) => {
     expect(ratio(tokens, fg, bg)).toBeGreaterThanOrEqual(min);
   });
+});
+
+it('draws component borders with the 3:1 border tokens, never the light brand fills', () => {
+  const offenders: string[] = [];
+  for (const rule of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const body = rule[2];
+    for (const decl of body.matchAll(/(?:^|;|\n)\s*(border|border-color)\s*:\s*([^;]*var\((--brand(?:-2)?)\)[^;]*);/g)) {
+      const token = decl[3];
+      // A border in the same colour as the fill is invisible, so it may keep the fill token.
+      if (new RegExp(`background(-color)?\\s*:\\s*var\\(${token}\\)\\s*;`).test(body)) continue;
+      offenders.push(`${rule[1].trim().split('\n').pop()} { ${decl[1]}: ${decl[2].trim()} }`);
+    }
+  }
+  expect(offenders).toEqual([]);
 });
 
 it('no stylesheet hard-codes a focus outline colour', () => {

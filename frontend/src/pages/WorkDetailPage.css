@@ -53,7 +53,7 @@
 }
 
 .work__chip--category {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
   background: color-mix(in srgb, var(--brand-2) 22%, transparent);
 }
 

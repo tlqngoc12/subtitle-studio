@@ -19,13 +19,13 @@ describe('colour roles in CSS', () => {
   it.each(['.button', '.pager__link'])(
     '%s has an orange border at rest',
     (selector) => {
-      expect(rule(selector === '.pager__link' ? '.pager__link,' + String.fromCharCode(10) + '.pager__break' : selector)).toMatch(/border(-color)?:[^;]*var\(--brand\)/);
+      expect(rule(selector === '.pager__link' ? '.pager__link,' + String.fromCharCode(10) + '.pager__break' : selector)).toMatch(/border(-color)?:[^;]*var\(--brand-border\)/);
     },
   );
 
   it('hover borders are orchid', () => {
-    expect(rule('.button:hover:not(:disabled)')).toContain('var(--brand-2)');
-    expect(rule('.pager__link:hover')).toContain('var(--brand-2)');
+    expect(rule('.button:hover:not(:disabled)')).toContain('var(--brand-2-border)');
+    expect(rule('.pager__link:hover')).toContain('var(--brand-2-border)');
   });
 
   it('disabled secondary buttons keep the neutral rule border', () => {
