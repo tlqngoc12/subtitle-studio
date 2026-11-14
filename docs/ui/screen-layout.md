@@ -79,6 +79,7 @@ Vietsub editor) · `narrow` 760 px (form một cột). Reader giữ khổ đọc
 - Dialog có form: `<FormActions>` (không sticky) ở cuối dialog.
 - Label bằng `Field`; form trong portal phải `e.stopPropagation()` khi submit (xem CLAUDE.md).
 - Trang có `FormActions sticky` phải khai báo trong `BackToTop liftOn`.
+- **Ngoại lệ: trình sửa chương** (`ChapterPage`) là trang công cụ nên dùng **thanh hành động dính ở đầu** (`ChapterBar`: Save, Publish, `⋯`) thay cho `FormActions` dính đáy; header chỉ còn breadcrumbs và H1. Vẫn tối đa một nút primary, và trang không cần khai báo `BackToTop barOn`.
 
 ## 5. Chữ
 
