@@ -27,6 +27,10 @@ describe('useAutoGrow', () => {
     vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
       return this.value.length * 10;
     });
+    // jsdom has no layout: the box is as tall as it was set, so the text always fits and no retry is needed.
+    vi.spyOn(HTMLTextAreaElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return Number.parseFloat(this.style.height) || 0;
+    });
   });
 
   afterEach(() => {
@@ -118,5 +122,117 @@ describe('useAutoGrow in a real page', () => {
     flush();
 
     expect(getByLabelText('late').style.height).toBe('2000px');
+  });
+});
+
+describe('useAutoGrow never clips text', () => {
+  const BORDER = 2;
+  let width = 400;
+  let resize: (() => void) | null = null;
+
+  beforeEach(() => {
+    frames = [];
+    width = 400;
+    resize = null;
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: () => void) {
+          resize = cb;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true });
+    // The border is 2 px: offsetHeight is the set height, clientHeight is that minus the border.
+    const heightOf = (el: HTMLTextAreaElement) => (Number.parseFloat(el.style.height) || 100);
+    vi.spyOn(HTMLTextAreaElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return heightOf(this);
+    });
+    vi.spyOn(HTMLTextAreaElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return heightOf(this) - BORDER;
+    });
+    vi.spyOn(HTMLTextAreaElement.prototype, 'clientWidth', 'get').mockImplementation(() => width);
+    // Narrower means more lines: 10 px per character per 400 px of width.
+    vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return Math.round((this.value.length * 10 * 400) / width);
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(document, 'fonts');
+  });
+
+  const clip = (el: HTMLElement) => el.scrollHeight - el.clientHeight;
+
+  it('adds the border to the height, so scrollHeight never exceeds clientHeight', () => {
+    const { getByLabelText } = render(<Box value={'x'.repeat(250)} />);
+    flush();
+
+    const el = getByLabelText('box');
+    expect(el.style.height).toBe(`${2500 + BORDER}px`);
+    expect(clip(el)).toBeLessThanOrEqual(0);
+  });
+
+  it('measures again after the web fonts have loaded', async () => {
+    let loaded!: () => void;
+    Object.defineProperty(document, 'fonts', {
+      configurable: true,
+      value: { ready: new Promise<void>((r) => (loaded = r)), addEventListener: () => {}, removeEventListener: () => {} },
+    });
+    const { getByLabelText } = render(<Box value={'x'.repeat(250)} />);
+    flush();
+    const el = getByLabelText('box');
+    expect(el.style.height).toBe('2502px');
+
+    // The font arrives and the same text wraps into more lines.
+    width = 300;
+    await act(async () => {
+      loaded();
+      await Promise.resolve();
+    });
+    flush();
+
+    expect(el.style.height).toBe(`${Math.round((250 * 10 * 400) / 300) + BORDER}px`);
+    expect(clip(el)).toBeLessThanOrEqual(0);
+  });
+
+  it('measures again when the width changes', () => {
+    const { getByLabelText } = render(<Box value={'x'.repeat(250)} />);
+    flush();
+    const el = getByLabelText('box');
+
+    width = 200;
+    act(() => resize?.());
+    flush();
+
+    expect(el.style.height).toBe(`${5000 + BORDER}px`);
+  });
+
+  it('tries once more on the next frame when the text still does not fit', () => {
+    const { getByLabelText } = render(<Box value={'x'.repeat(250)} />);
+    flush();
+    const el = getByLabelText('box');
+
+    // Something re-wraps the text between the measure and the check (a late font): the guard measures again.
+    let reads = 0;
+    vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockImplementation(() => {
+      reads += 1;
+      return reads === 1 ? 2500 : 2700; // the first read, then the text turns out taller
+    });
+    width = 399; // any width change that the observer reports
+    act(() => resize?.());
+    flush();
+    expect(clip(el)).toBeGreaterThan(0); // the first pass came out short...
+    expect(frames).toHaveLength(1); // ...so the guard asked for another frame
+    flush();
+
+    expect(el.style.height).toBe(`${2700 + BORDER}px`);
+    expect(clip(el)).toBeLessThanOrEqual(0);
+    expect(frames).toHaveLength(0);
   });
 });
