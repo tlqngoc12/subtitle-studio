@@ -1,6 +1,8 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { TabTrigger } from "../../components/ui/TabTrigger";
-import { BookmarkCheck, BookmarkPlus, Check, ExternalLink } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, Check, ExternalLink, Sparkles } from "lucide-react";
+import { Tip } from "../../components/Tip";
+import { formatInstant } from "../../lib/dates";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link, useParams, useSearchParams } from "react-router";
@@ -25,6 +27,15 @@ import '../../components/novel/ChapterList.css';
 
 /** The 11-character YouTube video id; anything else is never put in an iframe. */
 const TRAILER_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/** A chapter counts as new for a week after it was published. */
+const NEW_DAYS = 7;
+
+function isNew(publishedAt: string | null | undefined): boolean {
+  if (!publishedAt) return false;
+  const age = Date.now() - Date.parse(publishedAt);
+  return age >= 0 && age < NEW_DAYS * 86_400_000;
+}
 
 /** A novel's public page: cover, the eight fields (description as plain text), its published chapters and an optional trailer tab. */
 export default function PublicNovelPage({ source }: { source: NovelSource }) {
@@ -92,6 +103,11 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   function changeTab(value: string) {
     setParams(value === "intro" || value === "trailer" ? { tab: value } : {});
   }
+  // Files published before chapters carried a date have none: no dates, no "Mới", no "Cập nhật" row.
+  const newest = novel.chapters.reduce<string | null>(
+    (latest, c) => (c.publishedAt && (!latest || Date.parse(c.publishedAt) > Date.parse(latest)) ? c.publishedAt : latest),
+    null,
+  );
   const chapterClass =
     novel.chapters.length > 12
       ? "chapter-list chapter-list--public chapter-list--columns"
@@ -119,12 +135,23 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
               {c.chapterNo === stored && (
                 <span className="badge badge--info">Đang đọc</span>
               )}
+              {isNew(c.publishedAt) && (
+                <span className="badge badge--done">
+                  <Sparkles className="icon icon--sm" aria-hidden="true" />
+                  Mới
+                </span>
+              )}
               {isRead && (
                 <Check
                   className="icon chapter-list__check"
                   role="img"
                   aria-label="Đã đọc"
                 />
+              )}
+              {c.publishedAt && (
+                <time className="chapter-list__date" dateTime={c.publishedAt}>
+                  {formatInstant(c.publishedAt)}
+                </time>
               )}
             </div>
           </li>
@@ -152,6 +179,16 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                   <dt>Trạng thái</dt>
                   <dd>{PUBLIC_STATUS_LABEL[novel.novelStatus]}</dd>
                 </div>
+                <div>
+                  <dt>Số chương</dt>
+                  <dd>{novel.chapters.length}</dd>
+                </div>
+                {newest && (
+                  <div>
+                    <dt>Cập nhật</dt>
+                    <dd>{formatInstant(newest)}</dd>
+                  </div>
+                )}
                 {novel.translatorCredit && (
                   <div>
                     <dt>Bản dịch</dt>
@@ -192,19 +229,21 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                       </Link>
                     )
                   )}
-                  <button
-                    type="button"
-                    className="button button--icon button--l novel-cta__shelf"
-                    aria-pressed={onShelf}
-                    aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
-                    onClick={flipShelf}
-                  >
-                    {onShelf ? (
-                      <BookmarkCheck className="icon" aria-hidden="true" />
-                    ) : (
-                      <BookmarkPlus className="icon" aria-hidden="true" />
-                    )}
-                  </button>
+                  <Tip label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}>
+                    <button
+                      type="button"
+                      className="button button--icon button--l novel-cta__shelf"
+                      aria-pressed={onShelf}
+                      aria-label={onShelf ? "Đã lưu vào tủ sách" : "Thêm vào tủ sách"}
+                      onClick={flipShelf}
+                    >
+                      {onShelf ? (
+                        <BookmarkCheck className="icon" aria-hidden="true" />
+                      ) : (
+                        <BookmarkPlus className="icon" aria-hidden="true" />
+                      )}
+                    </button>
+                  </Tip>
                 </div>
                 {(resume || novel.sourceUrl) && (
                   <div className="novel-cta__more">
