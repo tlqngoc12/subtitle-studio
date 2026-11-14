@@ -6,11 +6,13 @@ import {
   CloudDownload,
   Copy,
   Info,
+  Minus,
   RotateCcw,
   RotateCw,
+  Search,
   TriangleAlert,
 } from 'lucide-react';
-import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
@@ -36,7 +38,7 @@ import {
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
-import { countText, paragraphIndexAt, paragraphs } from '../lib/chapterText';
+import { countText, insertSceneBreak, paragraphIndexAt, paragraphs } from '../lib/chapterText';
 import { OriginalPanel } from '../components/novel/OriginalPanel';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
 import { useAutoGrow } from '../lib/useAutoGrow';
@@ -53,7 +55,8 @@ import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
-import { IconLink } from '../components/ui/IconButton';
+import { IconButton, IconLink } from '../components/ui/IconButton';
+import { FindReplace } from '../components/novel/FindReplace';
 import './ChapterPage.css';
 
 /** Unsaved edits are saved by themselves this often (15 minutes). */
@@ -112,6 +115,23 @@ export default function ChapterPage() {
   const detailsOpen = detailsChoice ?? roomy;
   const textRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(textRef, text);
+  const [finding, setFinding] = useState(false);
+  // Where the caret goes after a scene break is inserted (the text changes on the next render).
+  const caretAfterBreak = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const at = caretAfterBreak.current;
+    if (at === null) return;
+    caretAfterBreak.current = null;
+    textRef.current?.focus();
+    textRef.current?.setSelectionRange(at, at);
+  }, [text]);
+  function addSceneBreak() {
+    const el = textRef.current;
+    if (!el) return;
+    const result = insertSceneBreak(text, el.selectionStart);
+    caretAfterBreak.current = result.caret;
+    setText(result.text);
+  }
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   function trackCaret(el: HTMLTextAreaElement) {
@@ -180,12 +200,19 @@ export default function ChapterPage() {
   const canSaveRef = useRef(canSave);
   canSaveRef.current = canSave;
 
-  // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog.
+  // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog; Ctrl+H / ⌘H opens find and replace
+  // instead of the browser's history.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 's') return;
-      e.preventDefault();
-      if (canSaveRef.current) void saveRef.current(false);
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === 'h') {
+        e.preventDefault();
+        setFinding(true);
+      } else if (key === 's') {
+        e.preventDefault();
+        if (canSaveRef.current) void saveRef.current(false);
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -476,7 +503,18 @@ export default function ChapterPage() {
               }
         }
         menuItems={menuItems}
+        tools={
+          <>
+            <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
+              onClick={() => setFinding((f) => !f)} />
+            <IconButton label="Insert scene break" icon={Minus} disabled={locked} onClick={addSceneBreak} />
+          </>
+        }
       />
+
+      {finding && (
+        <FindReplace text={text} onChange={setText} textareaRef={textRef} onClose={() => setFinding(false)} />
+      )}
 
       <p className="chapter-count muted">
         {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}

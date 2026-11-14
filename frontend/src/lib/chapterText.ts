@@ -51,3 +51,14 @@ export function findMatches(text: string, query: string, matchCase: boolean): { 
   }
   return found;
 }
+
+/**
+ * Puts a `***` scene break at the caret as its own paragraph: one blank line before and one after, never more (blank
+ * space around the caret is folded into those). Returns the new text and the caret just after the break.
+ */
+export function insertSceneBreak(text: string, caret: number): { text: string; caret: number } {
+  const before = text.slice(0, caret).replace(/\s+$/, '');
+  const after = text.slice(caret).replace(/^\s+/, '');
+  const head = `${before}${before ? '\n\n' : ''}***\n\n`;
+  return { text: head + after, caret: head.length };
+}

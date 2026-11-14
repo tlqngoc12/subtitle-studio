@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countText, findMatches, paragraphIndexAt, paragraphs } from './chapterText';
+import { countText, findMatches, insertSceneBreak, paragraphIndexAt, paragraphs } from './chapterText';
 
 describe('paragraphs', () => {
   it('splits on blank lines, trims and drops empty ones', () => {
@@ -77,5 +77,28 @@ describe('findMatches', () => {
   it('gives nothing for an empty query or no match', () => {
     expect(findMatches('abc', '', false)).toEqual([]);
     expect(findMatches('abc', 'z', false)).toEqual([]);
+  });
+});
+
+describe('insertSceneBreak', () => {
+  it('puts the break between two paragraphs with one blank line each side', () => {
+    const r = insertSceneBreak('One\n\nTwo', 5);
+    expect(r.text).toBe('One\n\n***\n\nTwo');
+    expect(r.caret).toBe('One\n\n***\n\n'.length);
+  });
+
+  it('does not duplicate blank lines that were already there', () => {
+    expect(insertSceneBreak('One\n\n\n\nTwo', 4).text).toBe('One\n\n***\n\nTwo');
+    expect(insertSceneBreak('One\n\nTwo', 3).text).toBe('One\n\n***\n\nTwo');
+  });
+
+  it('splits a paragraph at the caret', () => {
+    expect(insertSceneBreak('Hello world', 5).text).toBe('Hello\n\n***\n\nworld');
+  });
+
+  it('works at the start and at the end', () => {
+    expect(insertSceneBreak('One', 0)).toEqual({ text: '***\n\nOne', caret: 5 });
+    expect(insertSceneBreak('One', 3)).toEqual({ text: 'One\n\n***\n\n', caret: 10 });
+    expect(insertSceneBreak('', 0)).toEqual({ text: '***\n\n', caret: 5 });
   });
 });

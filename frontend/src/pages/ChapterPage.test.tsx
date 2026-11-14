@@ -1356,3 +1356,100 @@ describe('ChapterPage: text first on a phone', () => {
     expect(details().compareDocumentPosition(textBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+describe('ChapterPage translator tools', () => {
+  const state = () => document.querySelector('.chapter-bar__state') as HTMLElement;
+  const ctrl = (key: string, init: KeyboardEventInit = {}) => {
+    const e = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true, ...init });
+    act(() => {
+      document.dispatchEvent(e);
+    });
+    return e;
+  };
+
+  it('opens find and replace from the bar button and closes it again', async () => {
+    renderPage([get()]);
+    await loaded();
+    expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Find and replace' });
+
+    await user().click(toggle);
+    expect(screen.getByRole('search', { name: 'Find and replace' })).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Find')).toHaveFocus();
+
+    await user().click(toggle);
+    expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+  });
+
+  it('opens with Ctrl+H and Cmd+H, preventing the browser history', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    const e = ctrl('h');
+    expect(e.defaultPrevented).toBe(true);
+    expect(await screen.findByRole('search', { name: 'Find and replace' })).toBeInTheDocument();
+    cleanup();
+
+    renderPage([get()]);
+    await loaded();
+    ctrl('h', { ctrlKey: false, metaKey: true });
+    expect(await screen.findByRole('search', { name: 'Find and replace' })).toBeInTheDocument();
+  });
+
+  it('Esc closes the panel and puts the focus back in the text', async () => {
+    renderPage([get()]);
+    await loaded();
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+
+    await user().keyboard('{Escape}');
+
+    expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+    expect(textBox()).toHaveFocus();
+  });
+
+  it('Replace all changes the text, leaves the chapter unsaved and Undo brings it back', async () => {
+    renderPage([get({ text: 'Mai và Mai' })]);
+    await loaded();
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+    await user().type(screen.getByLabelText('Find'), 'Mai');
+    await user().type(screen.getByLabelText('Replace with'), 'Lan');
+
+    await user().click(screen.getByRole('button', { name: 'Replace all' }));
+
+    expect(textBox()).toHaveValue('Lan và Lan');
+    expect(state()).toHaveTextContent('Unsaved changes');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('button--primary');
+    expect(toast.success).toHaveBeenCalledWith('Replaced 2', expect.objectContaining({ action: expect.anything() }));
+    act(() => (vi.mocked(toast.success).mock.calls.at(-1)![1]!.action as unknown as { onClick: () => void }).onClick());
+    expect(textBox()).toHaveValue('Mai và Mai');
+    expect(state()).toHaveTextContent('');
+  });
+
+  it('inserts a scene break at the caret with one blank line each side', async () => {
+    renderPage([get({ text: 'One\n\nTwo' })]);
+    await loaded();
+    const box = textBox() as HTMLTextAreaElement;
+    box.setSelectionRange(3, 3);
+
+    await user().click(screen.getByRole('button', { name: 'Insert scene break' }));
+
+    expect(box).toHaveValue('One\n\n***\n\nTwo');
+    expect(box.selectionStart).toBe('One\n\n***\n\n'.length);
+    expect(box).toHaveFocus();
+    expect(state()).toHaveTextContent('Unsaved changes');
+  });
+
+  it('has tooltips on the two icon buttons, and disables them while a translation runs', async () => {
+    renderPage([get()]);
+    await loaded();
+    await expectTooltip(screen.getByRole('button', { name: 'Find and replace' }), 'Find and replace');
+    await expectTooltip(screen.getByRole('button', { name: 'Insert scene break' }), 'Insert scene break');
+    cleanup();
+
+    renderPage([get({ translationStatus: 'TRANSLATING' })]);
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Find and replace' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Insert scene break' })).toBeDisabled();
+  });
+});
