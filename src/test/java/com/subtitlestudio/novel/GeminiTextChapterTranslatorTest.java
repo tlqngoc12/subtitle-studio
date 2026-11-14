@@ -14,9 +14,12 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 class GeminiTextChapterTranslatorTest {
 
     private static final String SOURCE = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph.";
+    /** A complete answer for {@link #SOURCE}: 43 chars of 53, ends with a full stop. */
+    private static final String GOOD = "Đoạn thứ nhất.\n\nĐoạn thứ hai.\n\nĐoạn thứ ba.";
 
     private final FakeGeminiServer server = new FakeGeminiServer();
 
@@ -42,12 +45,12 @@ class GeminiTextChapterTranslatorTest {
 
     @Test
     void sendsTheWholeChapterInOneRequestWithTheContext() {
-        server.replyText(answer("Một.\n\nHai.\n\nBa."), "STOP");
+        server.replyText(answer(GOOD), "STOP");
 
         TextAnswer got = translator(List.of()).translate(prompt("en", null, null), m -> {});
 
         assertThat(server.requests()).isEqualTo(1);
-        assertThat(got.text()).isEqualTo("Một.\n\nHai.\n\nBa.");
+        assertThat(got.text()).isEqualTo(GOOD);
         assertThat(got.model()).isEqualTo("gemini-test-flash");
         String body = server.lastBody();
         assertThat(body).contains("systemInstruction").contains("tiếng Anh").contains("responseSchema");
@@ -62,10 +65,10 @@ class GeminiTextChapterTranslatorTest {
 
     @Test
     void thaiRulesAreOnlySentForThai() {
-        server.replyText(answer("Một.\n\nHai.\n\nBa."), "STOP");
+        server.replyText(answer(GOOD), "STOP");
         translator(List.of()).translate(prompt("th", null, null), m -> {});
         String thai = server.lastBody();
-        server.replyText(answer("Một.\n\nHai.\n\nBa."), "STOP");
+        server.replyText(answer(GOOD), "STOP");
         translator(List.of()).translate(prompt("en", null, null), m -> {});
         String english = server.lastBody();
 
@@ -75,7 +78,7 @@ class GeminiTextChapterTranslatorTest {
 
     @Test
     void laterPartsCarryTheEndOfThePreviousPart() {
-        server.replyText(answer("Một.\n\nHai.\n\nBa."), "STOP");
+        server.replyText(answer(GOOD), "STOP");
 
         translator(List.of()).translate(prompt("en", "the old source end", "đoạn dịch cũ"), m -> {});
 
@@ -86,7 +89,7 @@ class GeminiTextChapterTranslatorTest {
     @Test
     void reportsEachModelItTries() {
         server.replyForModel("gemini-test-flash", 503, "{\"error\":{\"code\":503,\"message\":\"busy\"}}");
-        server.replyText(answer("Một.\n\nHai.\n\nBa."), "STOP");
+        server.replyText(answer(GOOD), "STOP");
         List<String> tried = new ArrayList<>();
 
         TextAnswer got = translator(List.of("gemini-fallback")).translate(prompt("en", null, null), tried::add);
@@ -114,7 +117,7 @@ class GeminiTextChapterTranslatorTest {
     @Test
     void anAnswerWithFarFewerParagraphsMeansIncomplete() {
         String source = String.join("\n\n", java.util.Collections.nCopies(10, "A paragraph."));
-        server.replyText(answer("Một.\n\nHai.\n\nBa."), "STOP");
+        server.replyText(answer(GOOD), "STOP");
         var prompt = new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source);
 
         assertThatThrownBy(() -> translator(List.of()).translate(prompt, m -> {}))
@@ -124,10 +127,88 @@ class GeminiTextChapterTranslatorTest {
     @Test
     void anAnswerAboveTheThresholdIsAccepted() {
         String source = String.join("\n\n", java.util.Collections.nCopies(10, "A paragraph."));
-        server.replyText(answer("Một.\n\nHai.\n\nBa.\n\nBốn."), "STOP");
+        server.replyText(answer("Đoạn một của chương này khá dài.\n\nĐoạn hai của chương này khá dài.\n\n"
+                + "Đoạn ba của chương này khá dài.\n\nĐoạn bốn của chương này khá dài."), "STOP");
         var prompt = new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source);
 
-        assertThat(translator(List.of()).translate(prompt, m -> {}).text()).startsWith("Một.");
+        assertThat(translator(List.of()).translate(prompt, m -> {}).text()).startsWith("Đoạn một");
+    }
+
+    private static TextChapterPrompt promptFor(String source) {
+        return new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source);
+    }
+
+    /** A source of one paragraph with exactly {@code length} chars, ending with {@code ending}. */
+    private static String sourceOf(int length, String ending) {
+        return "a".repeat(length - ending.length()) + ending;
+    }
+
+    private static String answerOf(int length, String ending) {
+        return "b".repeat(length - ending.length()) + ending;
+    }
+
+    @Test
+    void anAnswerJustUnderTheLengthRatioIsRejectedAndJustAtItAccepted() {
+        String source = sourceOf(1000, ".");
+        server.replyText(answer(answerOf(699, ".")), "STOP");
+        assertThatThrownBy(() -> translator(List.of()).translate(promptFor(source), m -> {}))
+                .isInstanceOf(TextIncompleteException.class).hasMessageContaining("shorter");
+
+        server.replyText(answer(answerOf(700, ".")), "STOP");
+        assertThat(translator(List.of()).translate(promptFor(source), m -> {}).text()).hasSize(700);
+    }
+
+    @Test
+    void anAnswerThatStopsMidSentenceIsRejectedAfterAFullStopOrAQuote() {
+        for (String ending : List.of(".", "\"")) {
+            server.replyText(answer(answerOf(1000, "của")), "STOP");
+            assertThatThrownBy(() -> translator(List.of()).translate(promptFor(sourceOf(1000, ending)), m -> {}))
+                    .isInstanceOf(TextIncompleteException.class).hasMessageContaining("mid-sentence");
+        }
+    }
+
+    @Test
+    void theCutEndingCheckIsSkippedWhenTheSourceEndsWithASceneBreakOrNoPunctuation() {
+        server.replyText(answer(answerOf(1000, "của")), "STOP");
+        assertThat(translator(List.of()).translate(promptFor(sourceOf(1000, "\n\n***")), m -> {}).text())
+                .endsWith("của");
+        server.replyText(answer(answerOf(1000, "của")), "STOP");
+        assertThat(translator(List.of()).translate(promptFor(sourceOf(1000, "~")), m -> {}).text()).endsWith("của");
+        server.replyText(answer(answerOf(1000, "của")), "STOP");
+        assertThat(translator(List.of()).translate(promptFor(sourceOf(1000, "Bye")), m -> {}).text())
+                .endsWith("của");
+    }
+
+    @Test
+    void endsMidSentenceLooksOnlyAtTheLastParagraphIgnoringTrailingSpaces() {
+        assertThat(GeminiTextChapterTranslator.endsMidSentence("One.\n\nTwo!  ", "Một.\n\nHai của")).isTrue();
+        assertThat(GeminiTextChapterTranslator.endsMidSentence("One.\n\nTwo!  ", "Một.\n\nHai!  ")).isFalse();
+        assertThat(GeminiTextChapterTranslator.endsMidSentence("One.\n\n***", "Một.\n\nHai của")).isFalse();
+        assertThat(GeminiTextChapterTranslator.endsMidSentence("Say “hi”", "Nói “xin chào")).isTrue();
+    }
+
+    @Test
+    void theChapterNineteenShapeIsRejected() {
+        // 13,675 source chars in 100 paragraphs came back as 6,550 chars in 50 paragraphs: enough paragraphs for the
+        // 40 % rule, far too little text
+        String source = String.join("\n\n", java.util.Collections.nCopies(100, "a".repeat(134) + "."));
+        String shortAnswer = String.join("\n\n", java.util.Collections.nCopies(50, "b".repeat(129) + "."));
+        assertThat((double) shortAnswer.length() / source.length()).isBetween(0.47, 0.49);
+        server.replyText(answer(shortAnswer), "STOP");
+
+        assertThatThrownBy(() -> translator(List.of()).translate(promptFor(source), m -> {}))
+                .isInstanceOf(TextIncompleteException.class).hasMessageContaining("shorter");
+    }
+
+    @Test
+    void theLogNamesTheCheckAndTheLengthsButNeverTheText(org.springframework.boot.test.system.CapturedOutput out) {
+        server.replyText(answer(answerOf(300, "SECRETTAIL")), "STOP");
+
+        assertThatThrownBy(() -> translator(List.of()).translate(promptFor(sourceOf(1000, ".")), m -> {}))
+                .isInstanceOf(TextIncompleteException.class);
+
+        assertThat(out.getAll()).contains("1000").contains("300").doesNotContain("SECRETTAIL").doesNotContain("aaaaa")
+                .doesNotContain("bbbbb");
     }
 
     @Test
