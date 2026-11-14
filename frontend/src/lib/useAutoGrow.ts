@@ -49,8 +49,12 @@ export function useAutoGrow(ref: RefObject<HTMLTextAreaElement | null>, value: s
 
   useEffect(
     () => () => {
+      // Reset both: StrictMode (dev) runs this cleanup and then the effects again on the same refs. A frame id left
+      // behind would make measure() think a frame is still pending, so the textarea would never grow.
       watched.current?.observer.disconnect();
+      watched.current = null;
       if (frame.current) window.cancelAnimationFrame(frame.current);
+      frame.current = 0;
     },
     [],
   );

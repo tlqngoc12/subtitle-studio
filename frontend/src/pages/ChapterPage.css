@@ -98,7 +98,7 @@
 
 .chapter-text textarea {
   min-height: 60vh;
-  overflow: hidden;
+  overflow-y: hidden;
   resize: none;
   font-size: 1.0625rem;
   line-height: 1.7;

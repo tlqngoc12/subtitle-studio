@@ -1128,7 +1128,7 @@ describe('ChapterPage editor and save state', () => {
     await waitFor(() => expect(textBox().style.height).toBe('2000px'));
     edit('x'.repeat(50));
     await waitFor(() => expect(textBox().style.height).toBe('5000px'));
-    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow-y:\s*hidden/);
     expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*resize:\s*none/);
   });
 
@@ -1451,5 +1451,16 @@ describe('ChapterPage translator tools', () => {
     await loaded();
     expect(screen.getByRole('button', { name: 'Find and replace' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Insert scene break' })).toBeDisabled();
+  });
+});
+
+describe('ChapterPage editor CSS cannot stop the textarea growing', () => {
+  it('sets no height or max-height on the editor textarea, and hides its overflow', () => {
+    const rules = [...css.matchAll(/([^{}]*\.chapter-text[^{}]*textarea[^{}]*)\{([^}]*)\}/g)];
+    expect(rules.length).toBeGreaterThan(0);
+    for (const [, selector, body] of rules) {
+      expect(body, selector.trim()).not.toMatch(/(^|[;\s])(max-height|height)\s*:/);
+    }
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow-y:\s*hidden/);
   });
 });

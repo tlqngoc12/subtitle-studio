@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react';
-import { useRef } from 'react';
+import { StrictMode, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAutoGrow } from './useAutoGrow';
 
@@ -70,5 +70,53 @@ describe('useAutoGrow', () => {
     expect(frames).toHaveLength(1);
     flush();
     expect(frames).toHaveLength(0);
+  });
+});
+
+describe('useAutoGrow in a real page', () => {
+  beforeEach(() => {
+    frames = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+    // A real cancel: the callback never runs.
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      frames[id - 1] = () => {};
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true });
+    vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLTextAreaElement) {
+      return this.value.length * 10;
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('still grows under StrictMode, which mounts, unmounts and mounts the effects again', () => {
+    const { getByLabelText, rerender } = render(
+      <StrictMode>
+        <Box value={'x'.repeat(250)} />
+      </StrictMode>,
+    );
+    flush();
+    expect(getByLabelText('box').style.height).toBe('2500px');
+
+    rerender(
+      <StrictMode>
+        <Box value={'x'.repeat(300)} />
+      </StrictMode>,
+    );
+    flush();
+    expect(getByLabelText('box').style.height).toBe('3000px');
+  });
+
+  it('measures a textarea that mounts after the first render, with a value that arrives later', () => {
+    function Late({ value, ready }: { value: string; ready: boolean }) {
+      const ref = useRef<HTMLTextAreaElement>(null);
+      useAutoGrow(ref, value);
+      return ready ? <textarea ref={ref} aria-label="late" value={value} readOnly /> : <p>loading</p>;
+    }
+    const { getByLabelText, rerender } = render(<Late value="" ready={false} />);
+    rerender(<Late value={'y'.repeat(200)} ready />);
+    flush();
+
+    expect(getByLabelText('late').style.height).toBe('2000px');
   });
 });
