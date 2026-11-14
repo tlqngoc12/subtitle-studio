@@ -106,17 +106,18 @@
 }
 
 /* Only part of the row fits on a phone: fade an edge only while more items are hidden behind it (NavBar sets the
-   data attributes on scroll and resize). The fade is 14px, so the centred current item is never under it. */
+   data attributes on scroll and resize). The fade is 32px so a half-cut neighbour fades out instead of looking
+   broken; the current item is centred, so it is never under it. */
 .nav[data-fade-end='true'] {
-  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
 }
 
 .nav[data-fade-start='true'] {
-  mask-image: linear-gradient(to left, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent);
 }
 
 .nav[data-fade-start='true'][data-fade-end='true'] {
-  mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
 }
 
 @media (min-width: 761px) {
