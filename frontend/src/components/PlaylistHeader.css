@@ -65,7 +65,7 @@
 }
 
 .plcard--link:hover {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .plcard--link:has(.plcard__name a:focus-visible) {

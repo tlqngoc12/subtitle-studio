@@ -65,7 +65,7 @@ describe('PublishButton', () => {
     await answerConfirm('Publish', 'Publish the public site now?');
 
     expect(posts).toEqual(['POST']);
-    expect(await screen.findByText('Publishing…')).toBeInTheDocument();
+    expect(await screen.findByText('Publishing started')).toBeInTheDocument();
   });
 
   it('spinsAndPollsUntilDone', async () => {
@@ -80,7 +80,7 @@ describe('PublishButton', () => {
 
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('aria-busy', 'true');
-    expect(await screen.findByText('Published')).toBeInTheDocument();
+    expect(await screen.findByText('Site published')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open site' })).toHaveAttribute('href', URL_);
     await waitFor(() => expect(button).toBeEnabled());
   });
@@ -95,6 +95,8 @@ describe('PublishButton', () => {
     await userEvent.setup().click(button);
     await answerConfirm('Publish');
 
+    // Short title, the server's text as the description.
+    expect(await screen.findByText('Publishing failed')).toBeInTheDocument();
     expect(await screen.findByText('Cloudflare rejected the API token.')).toBeInTheDocument();
   });
 
@@ -107,7 +109,7 @@ describe('PublishButton', () => {
     await userEvent.setup().click(button);
     await answerConfirm('Publish');
 
-    expect(await screen.findByText('A publish is already running.')).toBeInTheDocument();
+    expect(await screen.findByText('A publish is already running')).toBeInTheDocument();
   });
 
   it('tooltipShowsLastPublish', async () => {

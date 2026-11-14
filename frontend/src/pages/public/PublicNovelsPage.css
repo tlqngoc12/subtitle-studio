@@ -5,3 +5,8 @@
   justify-content: space-between;
   gap: var(--space-3);
 }
+
+/* "Tất cả truyện" above the list toolbar: the section's grid gap already spaces it from the search, so no extra margin below. */
+.fanfics > .history__heading {
+  margin-bottom: 0;
+}

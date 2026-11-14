@@ -1,15 +1,38 @@
-/* Toasts (sonner): app font and corner radius; colours follow sonner's light/dark theme. */
+/* Toasts (sonner): app font, corner radius and colours. Every colour comes from the app tokens, so a forced
+   data-theme is honoured as well as the OS theme (sonner's own light/dark palettes are overridden below). */
 .toast {
   font-family: var(--font);
   border-radius: var(--radius-control);
 }
 
-/* Brand colours (CLAUDE.md): success in orange, everything informative in orchid; errors keep red. */
+/* Brand colours (CLAUDE.md): success in orange, everything informative in orchid; errors keep red.
+   Sonner reads --normal-* from its toaster; setting them on the toast itself wins by proximity. */
 [data-sonner-toast].toast {
+  --normal-bg: var(--surface);
+  --normal-text: var(--ink);
+  --normal-border: var(--rule);
   border-left: 4px solid var(--brand-2);
 }
 
+[data-sonner-toast][data-styled='true'].toast {
+  box-shadow: var(--shadow-overlay);
+}
+
 [data-sonner-toast].toast [data-icon] {
+  color: var(--brand-2-ink);
+}
+
+/* The description carries the specifics (a name, a count, an error hint); a long name wraps inside the toast. */
+[data-sonner-toast][data-styled='true'].toast [data-description] {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.toast [data-description] a {
+  color: var(--brand-ink);
+}
+
+.toast [data-description] a:hover {
   color: var(--brand-2-ink);
 }
 
@@ -28,6 +51,9 @@
   left: auto;
   top: 0;
   transform: translate(35%, -35%);
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--rule);
 }
 
 [data-sonner-toast][data-type='success'].toast {

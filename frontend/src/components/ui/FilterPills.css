@@ -21,10 +21,3 @@
   color: var(--on-brand);
   font-weight: 700;
 }
-
-/* Phones: a 40 px touch target. */
-@media (max-width: 520px) {
-  .filter-pills__pill {
-    height: var(--control-m);
-  }
-}

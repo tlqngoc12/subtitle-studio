@@ -15,6 +15,7 @@ import { formatInstant } from '../../lib/dates';
 import { normalizeForSearch } from '../../lib/search';
 import { EmptyState } from '../EmptyState';
 import { useConfirmDialog } from '../useConfirmDialog';
+import { IconButton } from '../ui/IconButton';
 import { Alert } from '../ui/Alert';
 import { Reveal } from '../ui/Reveal';
 import { ListToolbar } from '../ui/ListToolbar';
@@ -150,7 +151,7 @@ export function FanficsTab() {
     setActionError(null);
     try {
       replace(await refreshFanfic(f.id));
-      toast.success('Story refreshed');
+      toast.success('Fanfic refreshed');
     } catch (e) {
       setActionError(errorMessage(e));
     } finally {
@@ -165,8 +166,8 @@ export function FanficsTab() {
     try {
       const result = await refreshAllFanfics();
       const text = `Updated ${result.updated} · Failed ${result.failed.length}`;
-      if (result.failed.length === 0) toast.success(text);
-      else toast.message(text);
+      if (result.failed.length === 0) toast.success('Fanfics refreshed', { description: `Updated ${result.updated}` });
+      else toast.warning('Some fanfics failed to refresh', { description: text });
       setFailures(result.failed);
       setFanfics(await source.listFanfics());
     } catch (e) {
@@ -208,10 +209,12 @@ export function FanficsTab() {
         actions={
           !readOnly && (
             <>
-              <button type="button" className="button" disabled={refreshingAll} onClick={() => void refreshAll()}>
-                <RefreshCw className="icon" aria-hidden="true" />
-                {refreshingAll ? 'Refreshing…' : 'Refresh all'}
-              </button>
+              <IconButton
+                icon={RefreshCw}
+                label={refreshingAll ? 'Refreshing…' : 'Refresh all'}
+                disabled={refreshingAll}
+                onClick={() => void refreshAll()}
+              />
               <button type="button" className="button button--primary" onClick={() => setAdding(true)}>
                 <Plus className="icon" aria-hidden="true" />
                 Add fanfic

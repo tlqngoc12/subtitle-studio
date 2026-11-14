@@ -115,7 +115,7 @@ export default function PlaylistEditPage() {
     if (!ok) return;
     try {
       await deletePlaylist(id);
-      toast.success(`Playlist deleted: ${playlist.name}`);
+      toast.success('Playlist deleted', { description: playlist.name });
       navigate('/vietsub/playlists');
     } catch (e) {
       setError(errorMessage(e));

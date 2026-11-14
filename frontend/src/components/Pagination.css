@@ -18,7 +18,7 @@
   height: var(--control-s);
   padding: 0 var(--space-2);
   font-size: var(--fs-caption);
-  border: 1px solid var(--brand);
+  border: 1px solid var(--brand-border);
   border-radius: var(--radius-control);
   color: var(--ink);
   font-weight: 600;
@@ -38,7 +38,7 @@
 }
 
 .pager__link:hover {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .pager__item:not(.pager__item--disabled) .pager__link:active {

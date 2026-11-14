@@ -1,7 +1,7 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowDown, ArrowUp, FileText, GripVertical } from 'lucide-react';
+import { ArrowDown, ArrowUp, FileText, GripVertical, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router';
 import { Tip } from '../Tip';
 import type { ChapterSummary } from '../../api/novels';
@@ -122,7 +122,8 @@ function ChapterRow({
               <Tip label={`${c.suspectPages} page(s) may be incomplete`}>
                 <span className="badge badge--progress" tabIndex={0}
                   aria-label={`${c.suspectPages} page(s) may be incomplete`}>
-                  ⚠ {c.suspectPages}
+                  <TriangleAlert className="icon icon--sm" aria-hidden="true" />
+                  {c.suspectPages}
                 </span>
               </Tip>
             )}

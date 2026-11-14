@@ -113,7 +113,7 @@ export default function ProfilePage() {
     void run(async () => {
       await deleteMember(member.slug);
       setMembers((ms) => ms.filter((m) => m.slug !== member.slug));
-      toast.success(`${member.displayName} deleted`);
+      toast.success('Member deleted', { description: member.displayName });
     });
   };
 

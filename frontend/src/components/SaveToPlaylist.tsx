@@ -57,10 +57,10 @@ export function SaveToPlaylist({ video }: { video: VideoDto }) {
     try {
       if (add) {
         await addToPlaylist(p.id, video.id);
-        toast.success(`Saved to ${p.name}`);
+        toast.success('Added to playlist', { description: p.name });
       } else {
         await removeFromPlaylist(p.id, video.id);
-        toast.success(`Removed from ${p.name}`);
+        toast.success('Removed from playlist', { description: p.name });
       }
     } catch (e) {
       setContains(p.id, !add);
@@ -91,7 +91,7 @@ export function SaveToPlaylist({ video }: { video: VideoDto }) {
         },
       ]);
       setNewName('');
-      toast.success(`Saved to ${withVideo.name}`);
+      toast.success('Added to playlist', { description: withVideo.name });
     } catch (e) {
       setError(errorMessage(e));
     } finally {

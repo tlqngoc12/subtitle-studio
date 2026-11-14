@@ -143,7 +143,7 @@ describe('Select', () => {
   it('uses only theme tokens for colours, brand purple for hover and the selected item', () => {
     const rule = (selector: string) =>
       new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^{]*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
-    expect(rule('.select__trigger:hover:not(:disabled)')).toMatch(/border-color:\s*var\(--brand-2\)/);
+    expect(rule('.select__trigger:hover:not(:disabled)')).toMatch(/border-color:\s*var\(--brand-2-border\)/);
     expect(rule('.select__content')).toMatch(/background:\s*var\(--surface\)/);
     expect(rule('.select__content')).toMatch(/box-shadow:\s*var\(--shadow-overlay\)/);
     expect(rule('.select__item[data-highlighted]')).toMatch(/var\(--brand-2\)/);

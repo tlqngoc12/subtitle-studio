@@ -1,5 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { SiteProvider } from '../../data/SiteContext';
+import { fakeSource } from '../../test/fakeSource';
 import { fanfic } from '../../test/fanficFixtures';
 import { FanficCard } from './FanficCard';
 
@@ -12,12 +14,15 @@ describe('FanficCard', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
     expect(within(link).getByText('Complete')).toBeInTheDocument();
+    // Same order as a translated novel's card: Chapters first, then Reads.
     const expected: [string, string][] = [
+      ['Chapters', '28'],
       ['Reads', '51K'],
       ['Votes', '2.1K'],
-      ['Parts', '28'],
       ['Time', '1h 8m'],
     ];
+    const stats = Array.from(link.querySelectorAll<HTMLElement>('.fanfic-stat'));
+    expect(stats.map((s) => s.querySelector('.fanfic-stat__label')?.textContent)).toEqual(expected.map(([l]) => l));
     for (const [label, value] of expected) {
       const stat = within(link).getByText(label).closest('.fanfic-stat') as HTMLElement;
       expect(within(stat).getByText(value)).toBeInTheDocument();
@@ -25,6 +30,17 @@ describe('FanficCard', () => {
     const description = within(link).getByText(/Emi never expected/);
     expect(description).toHaveClass('fanfic-card__desc');
     expect(link.querySelector('img')).toHaveAttribute('src', '/api/media/9');
+  });
+
+  it('labels the stats in Vietnamese on the public site, like the translated novel cards', () => {
+    render(
+      <SiteProvider value={{ source: fakeSource({}), readOnly: true, homePath: '/' }}>
+        <FanficCard fanfic={fanfic()} />
+      </SiteProvider>,
+    );
+
+    const labels = Array.from(document.querySelectorAll('.fanfic-stat__label')).map((l) => l.textContent);
+    expect(labels).toEqual(['Chương', 'Lượt đọc', 'Bình chọn', 'Thời gian đọc']);
   });
 
   it('says Ongoing for a story that is not finished', () => {

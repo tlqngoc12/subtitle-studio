@@ -1,4 +1,4 @@
-import { ListChecks } from 'lucide-react';
+import { ListChecks, Trash2 } from 'lucide-react';
 import type { WattpadPreviewPart } from '../../api/novels';
 import { formatInstant } from '../../lib/dates';
 import { EmptyState } from '../EmptyState';
@@ -22,7 +22,12 @@ export function WattpadPreviewParts({ parts }: { parts: WattpadPreviewPart[] }) 
               <span className="wattpad-preview__meta">
                 <span className="meta">{p.wordCount.toLocaleString('en-US')} words</span>
                 {p.modifiedAt && <span className="meta">{formatInstant(p.modifiedAt)}</span>}
-                {p.deleted && <span className="badge badge--progress">Deleted</span>}
+                {p.deleted && (
+                  <span className="badge badge--progress">
+                    <Trash2 className="icon icon--sm" aria-hidden="true" />
+                    Deleted
+                  </span>
+                )}
               </span>
             </li>
           ))}

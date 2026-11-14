@@ -35,7 +35,7 @@
 
 @media (hover: hover) {
   .shelf-row__link:hover {
-    border-color: var(--brand-2);
+    border-color: var(--brand-2-border);
   }
 }
 

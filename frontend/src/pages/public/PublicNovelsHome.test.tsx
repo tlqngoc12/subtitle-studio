@@ -133,6 +133,18 @@ describe('PublicNovelsPage (home)', () => {
     expect(screen.getByText('Không tìm thấy truyện nào.')).toBeInTheDocument();
   });
 
+  it('heads the full list Tất cả truyện, above the search, after Tủ sách', async () => {
+    localStorage.setItem('novel-shelf', JSON.stringify(['n2']));
+    renderHome();
+
+    const all = await screen.findByRole('region', { name: 'Tất cả truyện' });
+    const heading = within(all).getByRole('heading', { level: 2, name: 'Tất cả truyện' });
+    const search = within(all).getByRole('searchbox', { name: 'Tìm truyện' });
+    expect(heading.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const shelf = screen.getByRole('region', { name: 'Tủ sách' });
+    expect(shelf.compareDocumentPosition(all) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('shows Tủ sách only with shelved novels', async () => {
     const { unmount } = renderHome();
     await screen.findByRole('list', { name: 'Danh sách truyện' });

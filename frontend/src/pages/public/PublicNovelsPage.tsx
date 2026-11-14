@@ -87,7 +87,11 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
               <>
                 <FeaturedNovels novels={featured} source={source} />
                 <ShelfRow novels={shelved} />
-                <section className="fanfics" aria-label="Truyện dịch">
+                <section className="fanfics" aria-labelledby="all-novels-heading">
+                  {/* Its own heading, like Tủ sách above, so the search reads as part of this list, not the shelf. */}
+                  <h2 className="history__heading" id="all-novels-heading">
+                    Tất cả truyện
+                  </h2>
                   <ListToolbar
                     searchLabel="Tìm truyện"
                     searchPlaceholder="Tìm theo tên, tác giả, thẻ…"

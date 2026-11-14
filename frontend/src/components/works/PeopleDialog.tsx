@@ -1,11 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { ImagePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { toast } from 'sonner';
 import { ApiError } from '../../api/client';
 import { ImageDropzone } from '../ui/ImageDropzone';
 import { deletePerson, listPeople, updatePerson, type Person } from '../../api/works';
 import { errorMessage } from '../../lib/errors';
+import { toastError } from '../../lib/toast';
 import { Alert } from '../ui/Alert';
 import { IconButton } from '../ui/IconButton';
 import { LoadingText } from '../ui/LoadingText';
@@ -43,8 +43,8 @@ export function PeopleDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       await deletePerson(person.id);
       setPeople((all) => (all ?? []).filter((p) => p.id !== person.id));
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'PERSON_IN_USE') toast.error(e.detail);
-      else toast.error(errorMessage(e).title);
+      if (e instanceof ApiError && e.code === 'PERSON_IN_USE') toastError({ title: 'Person is in use', hint: e.detail });
+      else toastError(errorMessage(e));
     }
   }
 

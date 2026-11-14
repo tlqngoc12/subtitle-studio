@@ -586,7 +586,7 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     await act(() => vi.advanceTimersByTimeAsync(1000));
     vi.useRealTimers();
     await waitFor(() => expect(puts(calls)).toHaveLength(1));
-    expect(toast.success).toHaveBeenCalledWith('Auto-saved');
+    expect(toast.success).toHaveBeenCalledWith('Chapter auto-saved');
     expect(toast.success).not.toHaveBeenCalledWith('Chapter saved');
   });
 

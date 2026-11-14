@@ -11,7 +11,7 @@
 
 /* A chosen category is state, so it is purple. */
 .cat-toggle__item[aria-pressed='true'] {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
   background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
   font-weight: 700;
 }

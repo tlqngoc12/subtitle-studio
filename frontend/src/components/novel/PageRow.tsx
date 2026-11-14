@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
+import { GripVertical, RectangleHorizontal, RotateCcw, RotateCw, Trash2, TriangleAlert } from 'lucide-react';
 import type { PageDto, RotateDirection } from '../../api/novels';
 import { Tip } from '../Tip';
 import './PageRow.css';
@@ -39,8 +39,18 @@ export function PageRow({
       </button>
       {(page.landscape || page.suspect) && (
         <span className="page-thumb__badges">
-          {page.landscape && <span className="badge badge--done">Landscape</span>}
-          {page.suspect && <span className="badge badge--progress">May be incomplete</span>}
+          {page.landscape && (
+            <span className="badge badge--done">
+              <RectangleHorizontal className="icon icon--sm" aria-hidden="true" />
+              Landscape
+            </span>
+          )}
+          {page.suspect && (
+            <span className="badge badge--progress">
+              <TriangleAlert className="icon icon--sm" aria-hidden="true" />
+              May be incomplete
+            </span>
+          )}
         </span>
       )}
       <span className="page-thumb__bar">

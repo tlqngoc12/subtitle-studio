@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { setNovelFeatured, type NovelSummary } from '../../api/novels';
 import { errorMessage } from '../../lib/errors';
+import { toastError } from '../../lib/toast';
 import { useConfirmDialog } from '../useConfirmDialog';
 import { PopoverPanel } from '../ui/PopoverPanel';
 import '../profile/MemberMenu.css';
@@ -44,10 +45,9 @@ export function NovelMenu({
     setBusy(true);
     try {
       onChange(await setNovelFeatured(novel.id, next));
-      toast.success(next ? 'Added to banner' : 'Removed from banner');
+      toast.success(next ? 'Novel added to banner' : 'Novel removed from banner');
     } catch (e) {
-      const m = errorMessage(e);
-      toast.error(m.hint ? `${m.title} ${m.hint}` : m.title);
+      toastError(errorMessage(e));
     } finally {
       setBusy(false);
     }

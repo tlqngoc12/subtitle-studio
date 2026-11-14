@@ -18,6 +18,15 @@ describe('FilterPills', () => {
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('uses the standard 40 px button (not the 32 px small one), so it lines up with the search box and sort', () => {
+    render(<FilterPills label="Filter things" options={OPTIONS} value="a" onChange={() => undefined} />);
+
+    for (const pill of screen.getAllByRole('button')) {
+      expect(pill).toHaveClass('button');
+      expect(pill).not.toHaveClass('button--s');
+    }
+  });
+
   it('presses All for null and reports the clicked value', async () => {
     const onChange = vi.fn();
     render(<FilterPills label="Filter things" options={OPTIONS} value={null} onChange={onChange} />);

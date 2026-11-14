@@ -8,15 +8,16 @@ import { SiteProvider } from '../../data/SiteContext';
 import { answerConfirm } from '../../test/confirm';
 import { fakeFetch, problem, type Route as FakeRoute } from '../../test/fakeFetch';
 import { fakeSource, publicSite } from '../../test/fakeSource';
+import { expectTooltip } from '../../test/tooltip';
 import { fanfic } from '../../test/fanficFixtures';
 import { optionNames, pickOption } from '../../test/select';
 import { FanficsTab } from './FanficsTab';
 
-vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }));
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 beforeEach(() => {
   vi.mocked(toast.success).mockClear();
-  vi.mocked(toast.message).mockClear();
+  vi.mocked(toast.warning).mockClear();
 });
 
 const STORIES: Fanfic[] = [
@@ -202,6 +203,17 @@ describe('FanficsTab (admin)', () => {
     expect(screen.getAllByRole('button', { name: /^Menu for/ })).toHaveLength(3);
   });
 
+  it('shows Refresh all as an icon button with a tooltip, no visible text', async () => {
+    fakeFetch([GET]);
+    renderAdmin();
+
+    await screen.findByRole('link', { name: /Second Spring/ });
+    const refresh = screen.getByRole('button', { name: 'Refresh all' });
+    expect(refresh).toHaveClass('button--icon');
+    expect(refresh).toHaveTextContent('');
+    await expectTooltip(refresh, 'Refresh all');
+  });
+
   it('orders the toolbar search, status pills, sort, Refresh all, Add fanfic', async () => {
     fakeFetch([GET]);
     renderAdmin();
@@ -321,7 +333,7 @@ describe('FanficsTab (admin)', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Refresh all' }));
 
-    await waitFor(() => expect(vi.mocked(toast.message)).toHaveBeenCalledWith('Updated 2 · Failed 1'));
+    await waitFor(() => expect(vi.mocked(toast.warning)).toHaveBeenCalledWith('Some fanfics failed to refresh', { description: 'Updated 2 · Failed 1' }));
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Third Winter');
     expect(alert).toHaveTextContent('Story not found or not public.');
@@ -335,7 +347,7 @@ describe('FanficsTab (admin)', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Refresh all' }));
 
-    await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Updated 3 · Failed 0'));
+    await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Fanfics refreshed', { description: 'Updated 3' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 

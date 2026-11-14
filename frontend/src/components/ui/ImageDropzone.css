@@ -19,7 +19,7 @@
 }
 
 .dropzone--active {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
   background: var(--hover);
 }
 

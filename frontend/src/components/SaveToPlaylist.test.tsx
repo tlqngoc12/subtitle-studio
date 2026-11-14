@@ -54,7 +54,7 @@ describe('SaveToPlaylist', () => {
 
     await user.click(within(dialog).getByRole('checkbox', { name: 'VLOG' }));
 
-    expect(await screen.findByText('Saved to VLOG')).toBeInTheDocument();
+    expect((await screen.findByText('Added to playlist')).closest('li')).toHaveTextContent('VLOG');
     expect(within(dialog).getByRole('checkbox', { name: 'VLOG' })).toBeChecked();
     const post = calls.find((c) => c.method === 'POST');
     expect(JSON.parse(String(post?.body))).toEqual({ videoId: VIDEO.id });
@@ -70,7 +70,7 @@ describe('SaveToPlaylist', () => {
 
     await user.click(within(dialog).getByRole('checkbox', { name: 'VLOG' }));
 
-    expect(await screen.findByText('Removed from VLOG')).toBeInTheDocument();
+    expect((await screen.findByText('Removed from playlist')).closest('li')).toHaveTextContent('VLOG');
     expect(within(dialog).getByRole('checkbox', { name: 'VLOG' })).not.toBeChecked();
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
   });
@@ -108,7 +108,7 @@ describe('SaveToPlaylist', () => {
     await user.type(within(dialog).getByLabelText('New playlist name'), 'Trips{Enter}');
 
     expect(await within(dialog).findByRole('checkbox', { name: 'Trips' })).toBeChecked();
-    expect(await screen.findByText('Saved to Trips')).toBeInTheDocument();
+    expect((await screen.findByText('Added to playlist')).closest('li')).toHaveTextContent('Trips');
     expect(calls.filter((c) => c.method === 'POST').map((c) => c.path)).toEqual([
       '/api/playlists',
       '/api/playlists/9/videos',

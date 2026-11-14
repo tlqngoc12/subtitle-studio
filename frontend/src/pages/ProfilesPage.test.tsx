@@ -227,7 +227,7 @@ describe('ProfilesPage', () => {
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Changes to the profile' })).not.toBeInTheDocument());
     const put = calls.find((c) => c.method === 'PUT');
     expect(JSON.parse(String(put?.body))).toEqual({ text: PROPOSED, baseSha: 'sha-1' });
-    await waitFor(() => expect(success).toHaveBeenCalledWith('Saved EmiBonnie.md (backup kept)'));
+    await waitFor(() => expect(success).toHaveBeenCalledWith('Profile saved', { description: 'EmiBonnie.md · previous version kept in history' }));
   });
 
   it('saves the edited text', async () => {

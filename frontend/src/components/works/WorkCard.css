@@ -103,7 +103,7 @@
 }
 
 .work-card__chip--category {
-  border-color: var(--brand-2);
+  border-color: var(--brand-2-border);
 }
 
 .work-card__edit {

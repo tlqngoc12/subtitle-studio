@@ -81,7 +81,7 @@
   inset: auto 0 0 0;
   z-index: var(--z-fixed-bar);
   display: grid;
-  grid-template-columns: 1fr 48px;
+  grid-template-columns: minmax(0, 1fr) 48px;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) calc(var(--space-4) + env(safe-area-inset-right)) calc(var(--space-3) + env(safe-area-inset-bottom))
@@ -90,9 +90,25 @@
   border-top: 1px solid var(--rule);
 }
 
-/* Keep the end of the page clear of the fixed bar (48px button + its vertical padding). */
 .novel-page {
+  padding-bottom: var(--space-16);
+}
+
+/* Keep the end of the document (the site footer sits outside the page) clear of the fixed bar: 48px button + its vertical padding. */
+body:has(.novel-cta) {
   padding-bottom: calc(48px + var(--space-3) * 2 + env(safe-area-inset-bottom));
+}
+
+/* The read link may shrink below its text (the grid column is minmax(0, 1fr)); a long chapter name ends in an ellipsis. */
+.novel-cta__read {
+  min-width: 0;
+}
+
+.novel-cta__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .novel-cta__shelf {
@@ -103,7 +119,7 @@
 
 .novel-cta__shelf[aria-pressed="true"] {
   color: var(--brand);
-  border-color: var(--brand);
+  border-color: var(--brand-border);
 }
 
 @media (min-width: 768px) {
@@ -118,7 +134,7 @@
     border-top: 0;
   }
 
-  .novel-page {
-    padding-bottom: var(--space-16);
+  body:has(.novel-cta) {
+    padding-bottom: 0;
   }
 }

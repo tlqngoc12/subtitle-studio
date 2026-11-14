@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { getPublishStatus, startPublish, type PublishStatus } from '../api/publish';
 import { formatInstantWithTime } from '../lib/dates';
 import { errorMessage } from '../lib/errors';
+import { toastError } from '../lib/toast';
 import { Tip } from './Tip';
 import { useConfirmDialog } from './useConfirmDialog';
 import './PublishButton.css';
@@ -46,7 +47,7 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
         .then((next) => {
           setState(next);
           if (next.status === 'DONE') {
-            toast.success('Published', {
+            toast.success('Site published', {
               description: next.url ? (
                 <a href={next.url} target="_blank" rel="noopener noreferrer">
                   Open site
@@ -54,7 +55,7 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
               ) : undefined,
             });
           } else if (next.status === 'FAILED') {
-            toast.error(next.error ?? 'Publishing failed.');
+            toastError({ title: 'Publishing failed', hint: next.error ?? undefined });
           }
         })
         .catch(() => {
@@ -69,9 +70,9 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
     if (!(await confirm({ title: 'Publish the public site now?', confirmLabel: 'Publish' }))) return;
     try {
       setState(await startPublish());
-      toast('Publishing…');
+      toast.info('Publishing started');
     } catch (e) {
-      toast.error(errorMessage(e).title);
+      toastError(errorMessage(e));
     }
   }
 

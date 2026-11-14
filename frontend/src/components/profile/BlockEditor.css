@@ -4,7 +4,7 @@
   min-width: 0;
   padding: var(--space-5);
   background: var(--surface);
-  border: 2px solid var(--brand-2);
+  border: 2px solid var(--brand-2-border);
   border-radius: var(--radius-frame);
 }
 

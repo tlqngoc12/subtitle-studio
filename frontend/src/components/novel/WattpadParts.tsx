@@ -1,4 +1,4 @@
-import { ListChecks, RefreshCw } from 'lucide-react';
+import { ListChecks, RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import {
 } from '../../api/novels';
 import { formatInstant } from '../../lib/dates';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
+import { toastError } from '../../lib/toast';
 import { EmptyState } from '../EmptyState';
 import { Alert } from '../ui/Alert';
 import { LoadingText } from '../ui/LoadingText';
@@ -82,9 +83,9 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
       setPending(true);
       try {
         await fetchAndTranslateWattpadPart(novelId, p.partId);
-        toast.success(`Translating ${p.title}…`);
+        toast.info('Translation started', { description: p.title });
       } catch (e) {
-        toast.error(errorMessage(e).title);
+        toastError(errorMessage(e));
       }
       await onChanged();
       await load();
@@ -120,7 +121,12 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
                 <span className="wattpad-parts__meta">
                   <span className="meta">{p.wordCount.toLocaleString('en-US')} words</span>
                   {p.modifiedAt && <span className="meta">{formatInstant(p.modifiedAt)}</span>}
-                  {p.deleted && <span className="badge badge--progress">Deleted</span>}
+                  {p.deleted && (
+                    <span className="badge badge--progress">
+                      <Trash2 className="icon icon--sm" aria-hidden="true" />
+                      Deleted
+                    </span>
+                  )}
                   {isNext && <span className="badge badge--info">Next</span>}
                   {state === 'FAILED' && <span className="badge badge--failed">Failed</span>}
                 </span>

@@ -33,6 +33,10 @@
      (--brand itself stays a background: orange on white is only about 2:1). Checked by contrast.test.ts. */
   --brand-ink: #a35509;
   --brand-2-ink: #8e4f8e;
+  /* Borders of brand-coloured components: --brand and --brand-2 are only about 2:1 on the light surfaces, these reach
+     3:1 (WCAG 1.4.11). Use them for 1 px borders; --brand and --brand-2 stay for fills. */
+  --brand-border: #cf6f1a;
+  --brand-2-border: #a86ea8;
   /* Border of inputs, selects and the search box (>= 3:1 on --surface and --paper); --rule stays for decoration. */
   --field-border: #8b8178;
   /* The video frame stays dark in both themes: it represents the video, not the page. */
@@ -141,6 +145,8 @@
     --focus: var(--brand-2);
     --brand-ink: var(--brand);
     --brand-2-ink: var(--brand-2);
+    --brand-border: var(--brand);
+    --brand-2-border: var(--brand-2);
     --field-border: #776d84;
     --hover: color-mix(in srgb, var(--brand-2) 16%, transparent);
     --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
@@ -163,6 +169,8 @@
   --focus: var(--brand-2);
   --brand-ink: var(--brand);
   --brand-2-ink: var(--brand-2);
+  --brand-border: var(--brand);
+  --brand-2-border: var(--brand-2);
   --field-border: #776d84;
   --hover: color-mix(in srgb, var(--brand-2) 16%, transparent);
   --shadow-overlay: 0 4px 16px rgb(0 0 0 / 0.45);
