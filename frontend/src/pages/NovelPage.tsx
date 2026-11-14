@@ -20,6 +20,9 @@ import { NotebookView } from '../components/novel/NotebookView';
 import { NovelForm } from '../components/novel/NovelForm';
 import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
 import { useNovelPolling } from '../lib/useNovelPolling';
+import { busyTitle, novelBusy } from '../lib/novelBusy';
+import { BusyLine } from '../components/novel/BusyLine';
+import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError } from '../lib/toast';
@@ -61,6 +64,8 @@ export default function NovelPage() {
   useNovelPolling(novelId, novel !== null && novelIsBusy(novel), setNovel);
 
   const onNotebook = useCallback((v: NotebookData) => setNotebook(v), []);
+
+  const busy = novel ? novelBusy(novel) : null;
 
   async function add() {
     setAdding(true);
@@ -138,6 +143,8 @@ export default function NovelPage() {
             meta={<span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>}
           />
 
+          {busy && <BusyLine busy={busy} />}
+
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
             <Tabs.List className="tabs__list" aria-label="Novel sections">
               <TabTrigger className="tabs__tab" value="chapters">
@@ -162,11 +169,16 @@ export default function NovelPage() {
                 actions={
                   novel.sourceType === 'WATTPAD' ? (
                     // Wattpad chapters come from Wattpad: screenshot chapters would mix the two sources.
-                    <button className="button button--primary" type="button" onClick={() => void startNext()}
-                      disabled={adding}>
-                      <CloudDownload className="icon" aria-hidden="true" />
-                      {adding ? 'Starting…' : 'Fetch & translate next'}
-                    </button>
+                    // The reason shows before the click: a disabled button swallows hover, so the tip sits on a span.
+                    <Tip label={busy ? busyTitle(busy) : ''} disabled={!busy}>
+                      <span className="novel-busy__tip">
+                        <button className="button button--primary" type="button" onClick={() => void startNext()}
+                          disabled={adding || busy !== null}>
+                          <CloudDownload className="icon" aria-hidden="true" />
+                          {adding ? 'Starting…' : 'Fetch & translate next'}
+                        </button>
+                      </span>
+                    </Tip>
                   ) : (
                     <button className="button button--primary" type="button" onClick={add} disabled={adding}>
                       <Plus className="icon" aria-hidden="true" />

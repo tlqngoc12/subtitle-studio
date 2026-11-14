@@ -124,6 +124,10 @@ export interface ChapterDetail {
   sourceFetchedAt: string | null;
   /** Language of the original text of the novel (th or en). */
   sourceLanguage: SourceLanguage;
+  /** The novel's notebook state: while UPDATING no chapter of the novel can start translating. */
+  notebookStatus: NotebookStatus;
+  /** The chapter the notebook is updating after (only while UPDATING). */
+  notebookChapterNo: number | null;
 }
 
 export interface GlossaryEntry {

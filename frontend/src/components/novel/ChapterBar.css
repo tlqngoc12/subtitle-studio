@@ -100,3 +100,12 @@
     display: block;
   }
 }
+
+/* Menu item wrapper: the tooltip trigger for a disabled item. */
+.chapter-bar__item {
+  display: block;
+}
+
+.chapter-bar__item > .member-menu__item {
+  width: 100%;
+}

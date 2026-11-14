@@ -19,6 +19,8 @@ export interface ChapterMenuItem {
   /** Red: it overwrites work (Translate again). */
   danger?: boolean;
   disabled?: boolean;
+  /** Disabled, and why: shown in a tooltip before the click. */
+  disabledReason?: string;
 }
 
 export function saveStateText(state: SaveState): string {
@@ -134,15 +136,19 @@ export function ChapterBar({
                 </button>
               )}
               {menuItems.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className={item.danger ? 'member-menu__item member-menu__item--danger' : 'member-menu__item'}
-                  disabled={item.disabled}
-                  onClick={() => choose(item.onSelect)}
-                >
-                  {item.label}
-                </button>
+                // A disabled button swallows hover, so the reason's tooltip sits on a span around it.
+                <Tip key={item.label} label={item.disabledReason ?? ''} disabled={!item.disabledReason}>
+                  <span className="chapter-bar__item">
+                    <button
+                      type="button"
+                      className={item.danger ? 'member-menu__item member-menu__item--danger' : 'member-menu__item'}
+                      disabled={item.disabled || Boolean(item.disabledReason)}
+                      onClick={() => choose(item.onSelect)}
+                    >
+                      {item.label}
+                    </button>
+                  </span>
+                </Tip>
               ))}
             </div>
           </PopoverPanel>

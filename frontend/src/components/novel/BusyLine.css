@@ -1,0 +1,28 @@
+.novel-busy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.novel-busy__icon {
+  flex: none;
+  animation: novel-busy-spin 1s linear infinite;
+}
+
+@keyframes novel-busy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novel-busy__icon {
+    animation: none;
+  }
+}
+
+/* The tooltip trigger around a disabled button: a disabled button swallows pointer events. */
+.novel-busy__tip {
+  display: inline-flex;
+}

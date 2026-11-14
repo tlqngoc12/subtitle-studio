@@ -8,6 +8,7 @@ import { pickOption } from '../test/select';
 import { fakeFetch, problem } from '../test/fakeFetch';
 import { chapterDetail, chapterSummary, notebookView, novelDetail } from '../test/novelFixtures';
 import { css } from '../test/css';
+import { expectTooltip } from '../test/tooltip';
 import NovelPage from './NovelPage';
 
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -547,5 +548,79 @@ describe('NovelPage', () => {
         vi.useRealTimers();
       }
     });
+  });
+});
+
+describe('NovelPage busy novel', () => {
+  const wattpad = (over: Partial<ReturnType<typeof novelDetail>> = {}) =>
+    novelDetail({
+      sourceType: 'WATTPAD',
+      sourceLanguage: 'en',
+      wattpadStoryId: '1',
+      chapters: [chapterSummary({ id: 9, chapterNo: 24, pageCount: 0, publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED' })],
+      ...over,
+    });
+  const route = (body: unknown) => ({ method: 'GET', path: '/api/novels/3', status: 200, body });
+  const parts = { method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200, body: [] };
+  const next = () => screen.getByRole('button', { name: 'Fetch & translate next' });
+  const line = () => screen.queryByText(/Notebook updating|is translating…/, { selector: '.novel-busy' });
+
+  it('shows the notebook line and disables Fetch & translate next, with the reason in a tooltip', async () => {
+    fakeFetch([route(wattpad({ notebookStatus: 'UPDATING' })), parts]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    expect(line()).toHaveTextContent('Notebook updating after chapter 24…');
+    expect(next()).toBeDisabled();
+    await expectTooltip(next().parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('shows the translating chapter and the reason when a chapter translates', async () => {
+    const busy = wattpad({
+      chapters: [chapterSummary({ id: 10, chapterNo: 25, pageCount: 0, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' })],
+    });
+    fakeFetch([route(busy), parts]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    expect(line()).toHaveTextContent('Chapter 25 is translating…');
+    expect(next()).toBeDisabled();
+    await expectTooltip(next().parentElement!, 'Chapter 25 is still translating');
+  });
+
+  it('a failed notebook shows no line and disables nothing', async () => {
+    fakeFetch([route(wattpad({ notebookStatus: 'FAILED', notebookError: 'x' })), parts]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+    expect(line()).toBeNull();
+    expect(next()).toBeEnabled();
+  });
+
+  it('polls while the notebook updates, then drops the line and re-enables the button', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const routes = [route(wattpad({ notebookStatus: 'UPDATING' })), parts];
+      const calls = fakeFetch(routes);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      expect(line()).not.toBeNull();
+      const before = calls.filter((c) => c.path === '/api/novels/3').length;
+
+      await vi.advanceTimersByTimeAsync(3500);
+      expect(calls.filter((c) => c.path === '/api/novels/3').length).toBeGreaterThan(before);
+      expect(line()).not.toBeNull();
+
+      routes[0] = route(wattpad({ notebookStatus: 'IDLE' }));
+      await vi.advanceTimersByTimeAsync(3500);
+
+      await waitFor(() => expect(line()).toBeNull());
+      expect(next()).toBeEnabled();
+      const after = calls.filter((c) => c.path === '/api/novels/3').length;
+      await vi.advanceTimersByTimeAsync(7000);
+      expect(calls.filter((c) => c.path === '/api/novels/3').length).toBe(after); // idle: polling stopped
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

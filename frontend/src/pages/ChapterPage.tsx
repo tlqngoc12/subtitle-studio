@@ -50,6 +50,8 @@ import { StatusBadges } from '../components/novel/StatusBadges';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useChapterPolling } from '../lib/useChapterPolling';
+import { busyTitle, chapterBusy } from '../lib/novelBusy';
+import { BusyLine } from '../components/novel/BusyLine';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError } from '../lib/toast';
 import { Alert } from '../components/ui/Alert';
@@ -172,8 +174,15 @@ export default function ChapterPage() {
   }, [chapterId]);
 
   const translating = chapter?.translationStatus === 'TRANSLATING';
-  useChapterPolling(translating ? chapterId : null, (c) => {
-    if (c.translationStatus !== 'TRANSLATING') {
+  const notebookUpdating = chapter?.notebookStatus === 'UPDATING';
+  // Poll while this chapter translates, and while the notebook updates (no other chapter can start then).
+  useChapterPolling(translating || notebookUpdating ? chapterId : null, (c) => {
+    if (!translating) {
+      // Only the notebook is running: take its state and keep every edit.
+      setChapter((prev) =>
+        prev ? { ...prev, notebookStatus: c.notebookStatus, notebookChapterNo: c.notebookChapterNo } : prev,
+      );
+    } else if (c.translationStatus !== 'TRANSLATING') {
       load(c);
     } else {
       // A fallback model took over: show it, keep the edits.
@@ -425,6 +434,7 @@ export default function ChapterPage() {
     });
   }
 
+  const why = chapterBusy(chapter); // why no translation can start now (null = it can)
   const saveState: SaveState = saving ? { kind: 'saving' } : dirty ? { kind: 'dirty' } : (lastSave ?? { kind: 'idle' });
   const menuItems: ChapterMenuItem[] = [
     ...(published
@@ -442,6 +452,8 @@ export default function ChapterPage() {
             // Translating again replaces the text, edits included.
             danger: chapter.translationStatus !== 'NONE',
             disabled: locked || (!fromText && chapter.pages.length === 0),
+            // The notebook is updating: no chapter of this novel can translate until it is done.
+            disabledReason: why?.reason === 'NOTEBOOK_UPDATING' ? busyTitle(why) : undefined,
             onSelect: () => void translate(),
           },
         ]),
@@ -474,9 +486,9 @@ export default function ChapterPage() {
             )}
             {/* The last chapter of a Wattpad novel: start the next part from here instead of the Wattpad tab. */}
             {chapter.wattpadPartId !== null && chapter.nextChapterId === null && (
-              <Tip label="Wait until this chapter finishes translating." disabled={!translating}>
+              <Tip label={why ? busyTitle(why) : ''} disabled={!why}>
                 <span className="chapter-head__next">
-                  <button className="button" type="button" disabled={locked || starting}
+                  <button className="button" type="button" disabled={locked || starting || why !== null}
                     onClick={() => void startNext()}>
                     <CloudDownload className="icon" aria-hidden="true" />
                     {starting ? 'Starting…' : 'Fetch & translate next'}
@@ -529,6 +541,8 @@ export default function ChapterPage() {
           {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
         </p>
       )}
+
+      {why?.reason === 'NOTEBOOK_UPDATING' && <BusyLine busy={why} />}
 
       {(translating || (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
         <div className="chapter-status">

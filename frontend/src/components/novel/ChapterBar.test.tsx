@@ -110,7 +110,7 @@ describe('ChapterBar menu', () => {
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
-    const list = (await screen.findByRole('button', { name: 'Translate again' })).parentElement!;
+    const list = (await screen.findByRole('button', { name: 'Translate again' })).closest('.member-menu__list') as HTMLElement;
     const first = within(list).getAllByRole('button')[0];
 
     expect(first).toHaveTextContent('Publish');

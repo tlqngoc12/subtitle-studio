@@ -105,3 +105,26 @@ describe('errorMessage', () => {
     expect(errorMessage(new Error('boom')).title).toContain('Something went wrong');
   });
 });
+
+describe('errorMessage for NOVEL_TRANSLATION_BUSY', () => {
+  const busy = (extra: { reason?: string; chapterNo?: number }) =>
+    errorMessage(new ApiError(409, 'NOVEL_TRANSLATION_BUSY', 'x', [], extra));
+
+  it('names the translating chapter', () => {
+    expect(busy({ reason: 'CHAPTER_TRANSLATING', chapterNo: 25 })).toEqual({
+      title: 'Chapter 25 is still translating',
+      hint: 'Wait for it to finish, then try again.',
+    });
+  });
+
+  it('names the chapter the notebook is updating after', () => {
+    expect(busy({ reason: 'NOTEBOOK_UPDATING', chapterNo: 24 })).toEqual({
+      title: 'The notebook is still updating after chapter 24',
+      hint: 'Gemini can take a few minutes when it is busy. Try again when it finishes.',
+    });
+  });
+
+  it('falls back to the general text when an older backend sends no reason', () => {
+    expect(busy({}).title).toBe('Another chapter is still translating');
+  });
+});

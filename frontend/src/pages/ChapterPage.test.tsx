@@ -1032,7 +1032,7 @@ describe('ChapterPage: Fetch & translate next', () => {
 
     const button = screen.getByRole('button', { name: NEXT });
     expect(button).toBeDisabled();
-    await expectTooltip(button.parentElement!, 'Wait until this chapter finishes translating.');
+    await expectTooltip(button.parentElement!, 'Chapter 1 is still translating');
   });
 });
 
@@ -1502,5 +1502,75 @@ describe('ChapterPage two columns', () => {
     await loaded();
 
     expect(screen.getByRole('main')).toHaveClass('page--wide');
+  });
+});
+
+describe('ChapterPage busy novel', () => {
+  const busyLine = () => document.querySelector('.novel-busy');
+  const notebook = (over: Partial<ChapterDetail> = {}) => get({ notebookStatus: 'UPDATING', notebookChapterNo: 24, ...over });
+  const getCalls = (calls: { method: string; path: string }[]) =>
+    calls.filter((c) => c.method === 'GET' && c.path === '/api/chapters/9').length;
+  afterEach(() => vi.useRealTimers());
+
+  it('shows the notebook line and disables Translate again with the reason in a tooltip', async () => {
+    renderPage([notebook()]);
+    await loaded();
+
+    expect(busyLine()).toHaveTextContent('Notebook updating after chapter 24…');
+    const item = await menuItem('Translate again');
+    expect(item).toBeDisabled();
+    await expectTooltip(item.parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('disables Fetch & translate next on the last Wattpad chapter, with the reason', async () => {
+    renderPage([notebook({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', nextChapterId: null })]);
+    await loaded();
+
+    const next = screen.getByRole('button', { name: 'Fetch & translate next' });
+    expect(next).toBeDisabled();
+    await expectTooltip(next.parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('a failed notebook shows no line and disables nothing', async () => {
+    renderPage([get({ notebookStatus: 'FAILED' })]);
+    await loaded();
+
+    expect(busyLine()).toBeNull();
+    expect(await menuItem('Translate again')).toBeEnabled();
+  });
+
+  it('polls the chapter while the notebook updates, keeps unsaved edits, and stops when it is done', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const routes: FakeRoute[] = [notebook()];
+    const calls = renderPage(routes);
+    await loaded();
+    fireEvent.change(textBox(), { target: { value: 'đang sửa' } });
+    const before = getCalls(calls);
+
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(getCalls(calls)).toBeGreaterThan(before);
+    expect(busyLine()).not.toBeNull();
+    expect(textBox()).toHaveValue('đang sửa');
+
+    routes[0] = get({ notebookStatus: 'IDLE' });
+    await vi.advanceTimersByTimeAsync(3500);
+    await waitFor(() => expect(busyLine()).toBeNull());
+    expect(textBox()).toHaveValue('đang sửa'); // the poll only touched the notebook fields
+    const after = getCalls(calls);
+
+    await vi.advanceTimersByTimeAsync(7000);
+    expect(getCalls(calls)).toBe(after);
+    expect(await menuItem('Translate again')).toBeEnabled();
+  });
+
+  it('does not poll a chapter when nothing is running', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const calls = renderPage([get()]);
+    await loaded();
+    const before = getCalls(calls);
+
+    await vi.advanceTimersByTimeAsync(7000);
+
+    expect(getCalls(calls)).toBe(before);
   });
 });

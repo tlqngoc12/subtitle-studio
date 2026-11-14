@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterTranslationStatus, NovelDetail, WattpadPart } from '../../api/novels';
 import { fakeFetch, problem } from '../../test/fakeFetch';
+import { expectTooltip } from '../../test/tooltip';
 import { WattpadParts } from './WattpadParts';
 
 vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() } }));
@@ -126,6 +127,27 @@ describe('WattpadParts', () => {
 
     expect(action('PROLOGUE')).toBeDisabled();
     expect(action('Chapter 2: Three Seconds')).toBeDisabled();
+  });
+
+  it('says why in a tooltip: the notebook is updating after the latest published chapter', async () => {
+    fakeFetch([getParts()]);
+    const novel = {
+      ...novelWith('TRANSLATED', 'UPDATING'),
+      chapters: [{ id: 77, chapterNo: 24, translationStatus: 'TRANSLATED', publishStatus: 'PUBLISHED' }],
+    } as unknown as NovelDetail;
+    renderParts(novel);
+    await screen.findByText('PROLOGUE');
+
+    expect(action('PROLOGUE')).toBeDisabled();
+    await expectTooltip(action('PROLOGUE').parentElement!, 'The notebook is still updating after chapter 24');
+  });
+
+  it('says why in a tooltip: another chapter is translating', async () => {
+    fakeFetch([getParts()]);
+    renderParts(novelWith('TRANSLATING'));
+    await screen.findByText('PROLOGUE');
+
+    await expectTooltip(action('Chapter 2: Three Seconds').parentElement!, 'Chapter 1 is still translating');
   });
 
   it('does not treat a failed notebook as busy', async () => {

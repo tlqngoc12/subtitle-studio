@@ -95,6 +95,8 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     wattpadPartId: null,
     sourceFetchedAt: null,
     sourceLanguage: 'th',
+    notebookStatus: 'IDLE',
+    notebookChapterNo: null,
     ...over,
   };
 }
