@@ -944,6 +944,7 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Thêm hai kiểm tra: tỉ lệ độ dài < 0,7 và đoạn cuối bản dịch không kết câu trong khi bản gốc có; vào đường chia đôi cũ.
 - `GeminiQuotaTracker` (trong bộ nhớ) + `GeminiCaller` bỏ qua model hết quota ngày đến lúc reset + `GET /api/gemini/quota`. Frontend toast cảnh báo, chỉ kiểm tra sau các hành động bắt đầu dịch và khi polling thấy đổi model/FAILED, không có timer.
 - Sửa sau review: (1) 429 chỉ là `DAILY` khi thông báo nói "per day"/"PerDay" (thông báo thật không có gợi ý retry); "per minute", gợi ý < 60 giây hoặc không rõ thì là `MINUTE` (chờ theo gợi ý, mặc định 60 giây), nên không bao giờ bỏ qua một model cả ngày vì đoán sai. (2) Get Engsub kèm hồ sơ dịch (`fetchVideo` có `profile`) cũng gọi kiểm tra quota sau khi bắt đầu dịch.
+- Thêm sau (spec [docs/superpowers/specs/2026-11-14-chapter-list-date-and-reader-end-design.md](docs/superpowers/specs/2026-11-14-chapter-list-date-and-reader-end-design.md)): (1) danh sách chương public chỉ hiện ngày và huy hiệu **Mới** ở chương mới nhất (`newestChapterNo`: `publishedAt` lớn nhất, hoà thì `chapterNo` cao hơn; Mới vẫn chỉ trong 7 ngày) khi truyện Ongoing, truyện Completed không hiện ngày hay Mới (dòng "Cập nhật" ở phần đầu giữ nguyên). (2) "Chương trước" biến mất ở cuối chương khi điện thoại ở chế độ tối mà theme đọc là Sáng/Giấy: `html[data-reader-theme] .reader__end` được thêm vào danh sách phần tử trên giấy dùng `--reader-ink`/`--reader-muted` (`readerThemes.css`). Cần Publish lại để trang public nhận.
 
 ## 9. Rủi ro đang theo dõi
 
