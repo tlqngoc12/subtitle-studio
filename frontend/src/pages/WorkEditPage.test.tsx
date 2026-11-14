@@ -329,7 +329,7 @@ describe('WorkEditPage: Badge adds People', () => {
 
     expect(await screen.findByLabelText('Role of Emi')).toHaveValue('');
     expect(screen.getByLabelText('Character of Emi')).toHaveValue('');
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added Emi to People');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added to People', { description: 'Emi' });
   });
 
   it('adds every member for the group badge', async () => {
@@ -342,7 +342,7 @@ describe('WorkEditPage: Badge adds People', () => {
 
     expect(await screen.findByLabelText('Role of Emi')).toBeInTheDocument();
     expect(screen.getByLabelText('Role of Bonnie')).toBeInTheDocument();
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added Emi, Bonnie to People');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added to People', { description: 'Emi, Bonnie' });
   });
 
   it('matches the full name ignoring case and accents, and skips people already credited', async () => {
@@ -357,7 +357,7 @@ describe('WorkEditPage: Badge adds People', () => {
 
     await screen.findByLabelText('Role of Bonnie');
     expect(screen.getAllByLabelText('Role of NGUYEN EMI')).toHaveLength(1);
-    expect(vi.mocked(toast.success)).toHaveBeenLastCalledWith('Added Bonnie to People');
+    expect(vi.mocked(toast.success)).toHaveBeenLastCalledWith('Added to People', { description: 'Bonnie' });
   });
 
   it('says nothing when everyone is already credited', async () => {
@@ -392,7 +392,7 @@ describe('WorkEditPage: Badge adds People', () => {
     expect(screen.getByLabelText('Role of Bonnie')).toBeInTheDocument();
     const create = calls.find((c) => c.method === 'POST' && c.path === '/api/people');
     expect(JSON.parse(String(create?.body))).toEqual({ name: 'Emi', avatarMediaId: 31 });
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added Emi, Bonnie to People');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Added to People', { description: 'Emi, Bonnie' });
   });
 
   it('leaves the credits unchanged and toasts an error when the directory call fails', async () => {

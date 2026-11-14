@@ -224,7 +224,7 @@ export default function ChapterPage() {
       const fresh = await reloadChapterOriginal(chapterId);
       // Only the original changes: edits in the boxes below stay.
       setChapter((c) => (c ? { ...c, sourceText: fresh.sourceText, sourceFetchedAt: fresh.sourceFetchedAt } : c));
-      toast.success('Original reloaded');
+      toast.success('Original text reloaded');
     });
   }
 
@@ -239,7 +239,7 @@ export default function ChapterPage() {
           text,
         }),
       );
-      toast.success(auto ? 'Auto-saved' : 'Chapter saved');
+      toast.success(auto ? 'Chapter auto-saved' : 'Chapter saved');
     });
   }
   saveRef.current = save;

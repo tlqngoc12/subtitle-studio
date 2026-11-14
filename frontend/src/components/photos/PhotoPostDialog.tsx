@@ -118,9 +118,8 @@ function PhotoPostForm({
         else setTakenOn(got.takenOn);
       }
       toast.success(
-        skipped.length > 0
-          ? `Fetched from X. Kept your ${skipped.join(' and ').toLowerCase()}`
-          : 'Fetched from X',
+        'Post fetched from X',
+        skipped.length > 0 ? { description: `Kept your ${skipped.join(' and ').toLowerCase()}` } : undefined,
       );
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.length > 0) setFetchError(err.fieldErrors[0].message);

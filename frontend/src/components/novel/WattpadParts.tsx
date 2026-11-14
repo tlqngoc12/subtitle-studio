@@ -11,6 +11,7 @@ import {
 } from '../../api/novels';
 import { formatInstant } from '../../lib/dates';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
+import { toastError } from '../../lib/toast';
 import { EmptyState } from '../EmptyState';
 import { Alert } from '../ui/Alert';
 import { LoadingText } from '../ui/LoadingText';
@@ -82,9 +83,9 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
       setPending(true);
       try {
         await fetchAndTranslateWattpadPart(novelId, p.partId);
-        toast.success(`Translating ${p.title}…`);
+        toast.info('Translation started', { description: p.title });
       } catch (e) {
-        toast.error(errorMessage(e).title);
+        toastError(errorMessage(e));
       }
       await onChanged();
       await load();

@@ -280,7 +280,7 @@ function Editor({
       try {
         const updated = await setEditStatus(video.id, status);
         setVideo(updated);
-        toast.success(status === 'DONE' ? 'Marked as done' : 'Reopened');
+        toast.success(status === 'DONE' ? 'Vietsub marked as done' : 'Vietsub reopened');
       } catch (e) {
         setSaveError({ message: errorMessage(e), reload: e instanceof ApiError && e.status === 409 });
       } finally {

@@ -334,7 +334,8 @@ describe('VietsubPage', () => {
 
     await userEvent.setup().upload(within(list).getByLabelText('Replace Vietsub: Học Spring Boot'), srtFile());
 
-    const toast = (await screen.findByText('Vietsub replaced: Học Spring Boot (9 lines)')).closest('li')!;
+    const toast = (await screen.findByText('Vietsub replaced')).closest('li')!;
+    expect(toast).toHaveTextContent('Học Spring Boot · 9 lines');
     expect(within(toast).getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 

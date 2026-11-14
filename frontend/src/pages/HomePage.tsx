@@ -132,7 +132,7 @@ export default function HomePage() {
     setError(null);
     try {
       const { video, created, skipReason: skipped } = await fetchVideo(url, profiles.configured && profile ? profile : undefined);
-      if (!created) toast.warning(`Already fetched: ${video.title}`); // the stored copy is shown, YouTube was not called
+      if (!created) toast.warning('Already fetched', { description: video.title }); // the stored copy is shown, YouTube was not called
       setSkipReason(skipped);
       setVideos((list) => upsert(list, video));
       setHighlightId(video.id);

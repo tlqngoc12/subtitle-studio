@@ -7,7 +7,7 @@ import type { ChapterTranslationStatus, NovelDetail, WattpadPart } from '../../a
 import { fakeFetch, problem } from '../../test/fakeFetch';
 import { WattpadParts } from './WattpadParts';
 
-vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }));
+vi.mock('sonner', async (orig) => ({ ...(await orig<typeof import('sonner')>()), toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() } }));
 
 const part = (over: Partial<WattpadPart> = {}): WattpadPart => ({
   partId: '1',
@@ -59,7 +59,7 @@ const action = (title: string) => within(row(title)).getByRole('button');
 
 describe('WattpadParts', () => {
   beforeEach(() => {
-    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.info).mockClear();
     vi.mocked(toast.error).mockClear();
   });
 
@@ -103,7 +103,7 @@ describe('WattpadParts', () => {
 
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Translating PROLOGUE…');
+    expect(vi.mocked(toast.info)).toHaveBeenCalledWith('Translation started', { description: 'PROLOGUE' });
     await waitFor(() => expect(calls.filter((c) => c.method === 'GET')).toHaveLength(2));
   });
 
@@ -177,7 +177,7 @@ describe('WattpadParts', () => {
 
     await userEvent.click(action('PROLOGUE'));
 
-    await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Another chapter is still translating'));
+    await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Another chapter is still translating', expect.anything()));
     expect(onChanged).toHaveBeenCalled();
     await waitFor(() => expect(action('PROLOGUE')).toBeEnabled());
     expect(within(row('Chapter 1: Cold Brew')).getByRole('button', { name: /^Translate / })).toBeEnabled();

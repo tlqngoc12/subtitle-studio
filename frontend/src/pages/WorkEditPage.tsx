@@ -33,6 +33,7 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { peopleForBadge } from '../lib/badgePeople';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
+import { toastError } from '../lib/toast';
 import './WorkEditPage.css';
 
 const blankToNull = (s: string) => (s.trim() === '' ? null : s.trim());
@@ -136,9 +137,9 @@ export default function WorkEditPage() {
         const have = new Set(rows.map((r) => r.person.id));
         return [...rows, ...toAdd.filter((p) => !have.has(p.id)).map((person) => ({ key: newKey(), person, role: '', characterName: '' }))];
       });
-      toast.success(`Added ${toAdd.map((p) => p.name).join(', ')} to People`);
+      toast.success('Added to People', { description: toAdd.map((p) => p.name).join(', ') });
     } catch (e) {
-      if (run === badgeRun.current) toast.error(`Could not add the Badge's people: ${errorMessage(e).title}`);
+      if (run === badgeRun.current) toastError({ title: "Could not add the Badge's people", hint: errorMessage(e).title });
     }
   }
   const input = (): WorkInput => ({

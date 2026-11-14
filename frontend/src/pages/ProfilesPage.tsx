@@ -146,7 +146,7 @@ export default function ProfilesPage() {
     try {
       await saveProfile(details.name, editing ? draft : analysis.proposed, details.sha);
       if (!alive.current) return;
-      toast.success(`Saved ${details.name}.md (backup kept)`);
+      toast.success('Profile saved', { description: `${details.name}.md · previous version kept in history` });
       setAnalysis(null);
       setEditing(false);
       loadDetails(details.name);

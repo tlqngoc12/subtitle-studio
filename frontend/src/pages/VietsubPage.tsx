@@ -71,7 +71,7 @@ export default function VietsubPage() {
       setVideos((list) => withVietsub([updated, ...(list ?? []).filter((v) => v.id !== updated.id)]));
       setHighlightId(updated.id);
       pager.setPage(1, { replace: true }); // the replaced video is now the most recent one
-      toast.success(`Vietsub replaced: ${updated.title} (${updated.viCueCount} lines)`);
+      toast.success('Vietsub replaced', { description: `${updated.title} · ${updated.viCueCount} lines` });
     } catch (e) {
       setError(errorMessage(e));
     } finally {

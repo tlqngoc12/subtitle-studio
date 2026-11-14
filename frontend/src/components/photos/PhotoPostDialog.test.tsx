@@ -262,7 +262,7 @@ describe('PhotoPostDialog: Fetch from X', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('Fan meeting');
     await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('11/11/2026'));
     expect(JSON.parse(String(calls[0].body))).toEqual({ url: X_URL });
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Fetched from X');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Post fetched from X', undefined);
   });
 
   it('keeps a title and a date the user already typed and says so', async () => {
@@ -280,7 +280,7 @@ describe('PhotoPostDialog: Fetch from X', () => {
     await screen.findByRole('img', { name: 'Selected image' });
     expect(screen.getByLabelText('Title')).toHaveValue('My own title');
     expect(screen.getByLabelText('Date')).toHaveValue('05/11/2026');
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Fetched from X. Kept your title and date');
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Post fetched from X', { description: 'Kept your title and date' });
   });
 
   it.each([

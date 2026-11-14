@@ -34,7 +34,7 @@ describe('NovelMenu', () => {
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ featured: true })));
     expect(calls[0].body).toBe(JSON.stringify({ featured: true }));
-    expect(toast.success).toHaveBeenCalledWith('Added to banner');
+    expect(toast.success).toHaveBeenCalledWith('Novel added to banner');
   });
 
   it('removes a picked novel from the banner, even when 5 are picked', async () => {
@@ -49,7 +49,7 @@ describe('NovelMenu', () => {
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ featured: false })));
     expect(calls[0].body).toBe(JSON.stringify({ featured: false }));
-    expect(toast.success).toHaveBeenCalledWith('Removed from banner');
+    expect(toast.success).toHaveBeenCalledWith('Novel removed from banner');
   });
 
   it('shows an alert and calls no API when 5 novels are already picked', async () => {
@@ -83,7 +83,7 @@ describe('NovelMenu', () => {
     await openMenu();
     await userEvent.click(screen.getByRole('button', { name: 'Add to banner' }));
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('banner already has 5')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('The banner already has 5 novels', { description: 'Remove one from the banner first.' }));
     expect(onChange).not.toHaveBeenCalled();
   });
 });

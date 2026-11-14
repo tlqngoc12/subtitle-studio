@@ -304,8 +304,9 @@ describe('HomePage', () => {
 
     await submit(`https://youtu.be/${ID}`);
 
-    const toast = (await screen.findByText('Already fetched: Học Spring Boot')).closest('li')!;
+    const toast = (await screen.findByText('Already fetched')).closest('li')!;
     expect(toast).toHaveAttribute('data-type', 'warning');
+    expect(toast).toHaveTextContent('Học Spring Boot');
     expect(await screen.findByRole('region', { name: 'Result' })).toBeInTheDocument();
   });
 

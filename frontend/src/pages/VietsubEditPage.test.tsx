@@ -748,7 +748,7 @@ describe('VietsubEditPage', () => {
 
       await user.click(markDone());
 
-      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Marked as done'));
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Vietsub marked as done'));
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string)).toEqual({ status: 'DONE' });
       expect(screen.queryByRole('button', { name: 'Mark as done' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Reopen (back to In progress)' })).toBeInTheDocument();
@@ -764,7 +764,7 @@ describe('VietsubEditPage', () => {
 
       await user.click(screen.getByRole('button', { name: 'Reopen (back to In progress)' }));
 
-      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Reopened'));
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Vietsub reopened'));
       expect(JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string)).toEqual({ status: 'IN_PROGRESS' });
       expect(markDone()).toBeEnabled();
     });

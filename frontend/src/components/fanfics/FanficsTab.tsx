@@ -151,7 +151,7 @@ export function FanficsTab() {
     setActionError(null);
     try {
       replace(await refreshFanfic(f.id));
-      toast.success('Story refreshed');
+      toast.success('Fanfic refreshed');
     } catch (e) {
       setActionError(errorMessage(e));
     } finally {
@@ -166,8 +166,8 @@ export function FanficsTab() {
     try {
       const result = await refreshAllFanfics();
       const text = `Updated ${result.updated} · Failed ${result.failed.length}`;
-      if (result.failed.length === 0) toast.success(text);
-      else toast.message(text);
+      if (result.failed.length === 0) toast.success('Fanfics refreshed', { description: `Updated ${result.updated}` });
+      else toast.warning('Some fanfics failed to refresh', { description: text });
       setFailures(result.failed);
       setFanfics(await source.listFanfics());
     } catch (e) {
