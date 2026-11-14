@@ -1,3 +1,5 @@
+import { afterTranslateStart } from '../lib/geminiQuota';
+
 /** Typed client for the backend REST API (PLAN section 6). */
 
 export type SourceType = 'MANUAL' | 'AUTO';
@@ -108,11 +110,13 @@ export async function fetchVideo(
   url: string,
   profile?: string,
 ): Promise<{ video: VideoDto; created: boolean; skipReason: SkipReason | null }> {
-  const res = await send('/api/videos', {
+  const request = send('/api/videos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profile ? { url, profile } : { url }),
   });
+  // with a profile the backend may also start a Gemini translation, so check the quota afterwards
+  const res = await (profile ? afterTranslateStart(request) : request);
   const { skipReason, ...video } = await res.json();
   return { video: video as VideoDto, created: res.status === 201, skipReason: skipReason ?? null };
 }
@@ -124,11 +128,13 @@ export async function getPromptProfiles(): Promise<PromptProfiles> {
 /** "Dịch lại bằng Gemini": returns the video, now TRANSLATING. */
 export async function translateVideo(id: string, profile: string): Promise<VideoDto> {
   return (
-    await send(`/api/videos/${encodeURIComponent(id)}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile }),
-    })
+    await afterTranslateStart(
+      send(`/api/videos/${encodeURIComponent(id)}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile }),
+      }),
+    )
   ).json();
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getNovel, type NovelDetail } from '../api/novels';
+import { createQuotaWatcher } from './geminiQuota';
 import { POLL_INTERVAL_MS } from './useTranslationPolling';
 
 /**
@@ -12,9 +13,16 @@ export function useNovelPolling(novelId: number, active: boolean, onUpdate: (nov
 
   useEffect(() => {
     if (!active) return;
+    const watch = createQuotaWatcher(); // a model change or a failure may mean a quota ran out
     const timer = setInterval(() => {
       getNovel(novelId)
-        .then((n) => callback.current(n))
+        .then((n) => {
+          const translating = n.chapters.filter((c) => c.translationStatus === 'TRANSLATING');
+          const model = translating.map((c) => c.translationModel ?? '').join('|') || null;
+          const failed = n.notebookStatus === 'FAILED' || n.chapters.some((c) => c.translationStatus === 'FAILED');
+          watch(model, failed);
+          callback.current(n);
+        })
         .catch(() => {});
     }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);

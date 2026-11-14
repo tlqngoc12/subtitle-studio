@@ -29,6 +29,11 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
     /** Fewer paragraphs than this share of the original means the answer dropped part of the chapter. */
     static final double MIN_PARAGRAPH_SHARE = 0.4;
 
+    /** Vietnamese comes out 1.04-1.23 times as long as English or Thai; below this share the answer lost text. */
+    static final double MIN_LENGTH_RATIO = 0.7;
+
+    private static final String SENTENCE_END = ".!?…\"”’')»";
+
     static final String SYSTEM_RULES = """
             Bạn là người dịch tiểu thuyết sang tiếng Việt.
             - Bạn nhận văn bản gốc của một chương truyện (%s) dưới dạng chữ, các đoạn cách nhau bằng một dòng trống. \
@@ -94,9 +99,38 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                     sourceParagraphs, prompt.chapterNo());
             throw new TextIncompleteException("Gemini's answer is much shorter than the original.");
         }
+        int sourceChars = prompt.sourceText().length();
+        if (sourceChars > 0 && (double) text.length() / sourceChars < MIN_LENGTH_RATIO) {
+            log.warn("Gemini {} answered {} chars for {} source chars in chapter {} (length ratio check)",
+                    answer.model(), text.length(), sourceChars, prompt.chapterNo());
+            throw new TextIncompleteException("Gemini's answer is much shorter than the original.");
+        }
+        if (endsMidSentence(prompt.sourceText(), text)) {
+            log.warn("Gemini {} answer for chapter {} stops mid-sentence (ending check, {} to {} chars)",
+                    answer.model(), prompt.chapterNo(), sourceChars, text.length());
+            throw new TextIncompleteException("Gemini's answer stops mid-sentence.");
+        }
         log.info("Gemini {} translated chapter {} ({} chars to {})", answer.model(), prompt.chapterNo(),
                 prompt.sourceText().length(), text.length());
         return new TextAnswer(text, answer.model());
+    }
+
+    /**
+     * True when the original's last paragraph ends with sentence-final punctuation but the translation's last paragraph
+     * does not, i.e. the answer was cut off mid-sentence. Sources ending otherwise ({@code ***}, {@code ~}) are skipped.
+     */
+    static boolean endsMidSentence(String source, String translated) {
+        return endsSentence(lastParagraph(source)) && !endsSentence(lastParagraph(translated));
+    }
+
+    private static String lastParagraph(String text) {
+        List<String> paragraphs = TextSplitter.paragraphs(text);
+        return paragraphs.isEmpty() ? "" : paragraphs.getLast();
+    }
+
+    private static boolean endsSentence(String paragraph) {
+        String s = paragraph.stripTrailing();
+        return !s.isEmpty() && SENTENCE_END.indexOf(s.charAt(s.length() - 1)) >= 0;
     }
 
     private static String context(TextChapterPrompt p) {

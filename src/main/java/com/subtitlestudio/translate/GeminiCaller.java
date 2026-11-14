@@ -12,6 +12,7 @@ import com.google.genai.types.HttpOptions;
 import com.google.genai.types.HttpRetryOptions;
 import com.google.genai.types.Part;
 import java.io.InterruptedIOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -44,20 +45,36 @@ public class GeminiCaller {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiCaller.class);
     private static final Pattern QUOTA_METRIC = Pattern.compile("Quota exceeded for metric: ([^\\n]+)");
+    private static final java.time.format.DateTimeFormatter RESET_FORMAT = java.time.format.DateTimeFormatter
+            .ofPattern("HH:mm", java.util.Locale.ROOT).withZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
     private static final Pattern RETRY_SECONDS = Pattern.compile("retry in (\\d+(?:\\.\\d+)?)s\\b");
 
     private final SubtitleStudioProperties.Gemini settings;
     private final String baseUrl;
+    private final GeminiQuotaTracker quota;
 
     @Autowired
-    public GeminiCaller(SubtitleStudioProperties properties) {
-        this(properties.gemini(), null);
+    public GeminiCaller(SubtitleStudioProperties properties, GeminiQuotaTracker quota) {
+        this(properties.gemini(), null, quota);
     }
 
     /** {@code baseUrl} points the SDK at a fake server in tests; null means the real Gemini API. */
     public GeminiCaller(SubtitleStudioProperties.Gemini settings, String baseUrl) {
+        this(settings, baseUrl, new GeminiQuotaTracker(java.time.Clock.systemUTC()));
+    }
+
+    public GeminiCaller(SubtitleStudioProperties.Gemini settings, String baseUrl, GeminiQuotaTracker quota) {
         this.settings = settings;
         this.baseUrl = baseUrl;
+        this.quota = quota;
+    }
+
+    /** The configured models in the order they are tried: the main model, then the fallbacks. */
+    public static List<String> modelOrder(SubtitleStudioProperties.Gemini settings) {
+        List<String> models = new ArrayList<>();
+        models.add(settings.model());
+        models.addAll(settings.fallbackModels());
+        return models;
     }
 
     public Answer generate(List<Part> parts, GenerateContentConfig config) {
@@ -81,9 +98,14 @@ public class GeminiCaller {
         boolean busy = false;
         boolean onlyPerMinuteLimits = true;
         try (Client client = client()) {
-            List<String> models = new ArrayList<>();
-            models.add(settings.model());
-            models.addAll(settings.fallbackModels());
+            List<String> all = modelOrder(settings);
+            List<String> models = all.stream().filter(m -> !quota.isDailyExhausted(m)).toList();
+            if (models.isEmpty()) {
+                Instant reset = quota.earliestDailyReset(all);
+                throw new TranslationFailedException(reset == null
+                        ? "Gemini free quota is used up, try again later."
+                        : "Gemini free quota is used up until " + RESET_FORMAT.format(reset) + " (Vietnam time).");
+            }
             for (String model : models) {
                 onTrying.accept(model);
                 try {
@@ -95,7 +117,16 @@ public class GeminiCaller {
                         log.warn("Gemini model {} is overloaded (HTTP 503)", model);
                         busy = true;
                     } else if (e.code() == 429) {
-                        onlyPerMinuteLimits &= logQuota(model, e.message());
+                        GeminiQuotaTracker.Classification kind = GeminiQuotaTracker.classify(e.message());
+                        logQuota(model, e.message(), kind.kind());
+                        Instant now = quota.now();
+                        if (kind.kind() == GeminiQuotaTracker.QuotaKind.MINUTE) {
+                            quota.record(model, GeminiQuotaTracker.QuotaKind.MINUTE, now.plus(kind.delay()));
+                        } else {
+                            onlyPerMinuteLimits = false;
+                            quota.record(model, GeminiQuotaTracker.QuotaKind.DAILY,
+                                    GeminiQuotaTracker.nextDailyReset(now));
+                        }
                     } else {
                         throw fromApi(e);
                     }
@@ -126,19 +157,15 @@ public class GeminiCaller {
         return new Answer(text, answeredBy);
     }
 
-    /**
-     * Logs which quota ran out (metric, limit, wait), never the rest of the message. Returns true when Gemini asks to
-     * wait less than a minute, i.e. a per-minute limit rather than the daily quota.
-     */
-    private static boolean logQuota(String model, String message) {
+    /** Logs which quota ran out (metric, limit, wait, kind), never the rest of the message. */
+    private static void logQuota(String model, String message, GeminiQuotaTracker.QuotaKind kind) {
         String text = message == null ? "" : message;
         Matcher metric = QUOTA_METRIC.matcher(text);
         Matcher retry = RETRY_SECONDS.matcher(text);
         Double seconds = retry.find() ? Double.valueOf(retry.group(1)) : null;
-        log.warn("Gemini model {} is out of quota (HTTP 429): {}{}", model,
+        log.warn("Gemini model {} is out of quota (HTTP 429): {}{}; treated as {}", model,
                 metric.find() ? metric.group(1).strip() : "quota not named",
-                seconds == null ? "" : ", retry in " + retry.group(1) + "s");
-        return seconds != null && seconds < 60;
+                seconds == null ? "" : ", retry in " + retry.group(1) + "s", kind);
     }
 
     private Client client() {

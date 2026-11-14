@@ -104,7 +104,9 @@ describe('WattpadParts', () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
     expect(vi.mocked(toast.info)).toHaveBeenCalledWith('Translation started', { description: 'PROLOGUE' });
-    await waitFor(() => expect(calls.filter((c) => c.method === 'GET')).toHaveLength(2));
+    await waitFor(() =>
+      expect(calls.filter((c) => c.method === 'GET' && c.path !== '/api/gemini/quota')).toHaveLength(2),
+    );
   });
 
   it('disables every button while a chapter translates', async () => {

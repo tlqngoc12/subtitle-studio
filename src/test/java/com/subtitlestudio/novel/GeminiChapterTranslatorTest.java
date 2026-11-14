@@ -21,6 +21,12 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 @ExtendWith(OutputCaptureExtension.class)
 class GeminiChapterTranslatorTest {
 
+    /** A real free-tier daily-quota 429: names the per-day limit, no retry hint. */
+    private static final String DAILY_429 = "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota.\\n"
+            + "* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, "
+            + "limit: 20, description: Generate content requests per day limit exceeded on Free Tier.\","
+            + "\"status\":\"RESOURCE_EXHAUSTED\"}}";
+
     private static final String GOOD = "{\"pages\":[{\"page\":2,\"text\":\"Hai\"},{\"page\":1,\"text\":\"Một\"}]}";
     private static final byte[] IMG1 = "jpeg-one".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] IMG2 = "jpeg-two".getBytes(StandardCharsets.US_ASCII);
@@ -123,7 +129,7 @@ class GeminiChapterTranslatorTest {
 
     @Test
     void quotaErrorOnEveryModelFails() {
-        server.reply(429, "{}");
+        server.reply(429, DAILY_429);
 
         assertThatThrownBy(() -> translator(List.of("gemini-lite")).translate(prompt(null, null, null)))
                 .isInstanceOfSatisfying(TranslationFailedException.class,
@@ -170,7 +176,7 @@ class GeminiChapterTranslatorTest {
     @Test
     void keepsTheGoodPagesWhenAskingAgainFails() {
         server.queueText("{\"pages\":[{\"page\":1,\"text\":\"Một\"},{\"page\":2,\"text\":\"Hai\"}]}");
-        server.reply(429, "{}");
+        server.reply(429, DAILY_429);
 
         assertThatThrownBy(() -> translator(List.of()).translate(threePages()))
                 .isInstanceOfSatisfying(ChapterPartlyTranslatedException.class, e -> {

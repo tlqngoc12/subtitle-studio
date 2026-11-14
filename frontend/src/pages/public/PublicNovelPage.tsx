@@ -37,6 +37,20 @@ function isNew(publishedAt: string | null | undefined): boolean {
   return age >= 0 && age < NEW_DAYS * 86_400_000;
 }
 
+/** The chapter with the greatest `publishedAt` (the higher chapterNo on a tie), or null when no chapter has a date. */
+export function newestChapterNo(chapters: { chapterNo: number; publishedAt?: string | null }[]): number | null {
+  let best: { chapterNo: number; time: number } | null = null;
+  for (const c of chapters) {
+    if (!c.publishedAt) continue;
+    const time = Date.parse(c.publishedAt);
+    if (Number.isNaN(time)) continue;
+    if (!best || time > best.time || (time === best.time && c.chapterNo > best.chapterNo)) {
+      best = { chapterNo: c.chapterNo, time };
+    }
+  }
+  return best ? best.chapterNo : null;
+}
+
 /** A novel's public page: cover, the eight fields (description as plain text), its published chapters and an optional trailer tab. */
 export default function PublicNovelPage({ source }: { source: NovelSource }) {
   const { slug = "" } = useParams();
@@ -108,6 +122,8 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
     (latest, c) => (c.publishedAt && (!latest || Date.parse(c.publishedAt) > Date.parse(latest)) ? c.publishedAt : latest),
     null,
   );
+  // Ongoing novels show the date (and "Mới") on the newest chapter only; Completed novels show neither.
+  const datedChapterNo = novel.novelStatus === "COMPLETED" ? null : newestChapterNo(novel.chapters);
   const chapterClass =
     novel.chapters.length > 12
       ? "chapter-list chapter-list--public chapter-list--columns"
@@ -135,7 +151,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
               {c.chapterNo === stored && (
                 <span className="badge badge--info">Đang đọc</span>
               )}
-              {isNew(c.publishedAt) && (
+              {c.chapterNo === datedChapterNo && isNew(c.publishedAt) && (
                 <span className="badge badge--done">
                   <Sparkles className="icon icon--sm" aria-hidden="true" />
                   Mới
@@ -148,7 +164,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                   aria-label="Đã đọc"
                 />
               )}
-              {c.publishedAt && (
+              {c.chapterNo === datedChapterNo && c.publishedAt && (
                 <time className="chapter-list__date" dateTime={c.publishedAt}>
                   {formatInstant(c.publishedAt)}
                 </time>
