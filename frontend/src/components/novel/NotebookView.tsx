@@ -1,4 +1,4 @@
-import { NotebookPen, RotateCcw } from 'lucide-react';
+import { LoaderCircle, NotebookPen, RotateCcw } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { getNotebook, retryNotebook, type NotebookView as View } from '../../api/novels';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
@@ -65,7 +65,12 @@ export function NotebookView({
 
   const status = (
     <>
-      {view.status === 'UPDATING' && <p className="badge badge--progress">Updating notebook…</p>}
+      {view.status === 'UPDATING' && (
+        <p className="badge badge--progress">
+          <LoaderCircle className="icon icon--sm" aria-hidden="true" />
+          Updating notebook…
+        </p>
+      )}
       {view.status === 'FAILED' && (
         <Alert title="The last notebook update failed." hint={view.error}>
           <button className="button button--s" type="button" onClick={retry} disabled={retrying}>

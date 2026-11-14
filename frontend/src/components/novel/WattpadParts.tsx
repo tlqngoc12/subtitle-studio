@@ -1,4 +1,4 @@
-import { ListChecks, RefreshCw } from 'lucide-react';
+import { ListChecks, RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -120,7 +120,12 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
                 <span className="wattpad-parts__meta">
                   <span className="meta">{p.wordCount.toLocaleString('en-US')} words</span>
                   {p.modifiedAt && <span className="meta">{formatInstant(p.modifiedAt)}</span>}
-                  {p.deleted && <span className="badge badge--progress">Deleted</span>}
+                  {p.deleted && (
+                    <span className="badge badge--progress">
+                      <Trash2 className="icon icon--sm" aria-hidden="true" />
+                      Deleted
+                    </span>
+                  )}
                   {isNext && <span className="badge badge--info">Next</span>}
                   {state === 'FAILED' && <span className="badge badge--failed">Failed</span>}
                 </span>

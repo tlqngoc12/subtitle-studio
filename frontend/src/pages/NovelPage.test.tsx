@@ -284,7 +284,7 @@ describe('NovelPage', () => {
     expect(await screen.findByText('The notebook fills in after you publish the first chapter.')).toBeInTheDocument();
   });
 
-  it('chapter list shows ⚠ 2 for suspectPages 2', async () => {
+  it('chapter list shows a warning icon and 2 for suspectPages 2', async () => {
     fakeFetch([
       {
         ...getNovel,
@@ -294,8 +294,10 @@ describe('NovelPage', () => {
     renderPage();
 
     const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
-    expect(within(rows[0]).getByText('⚠ 2')).toHaveAccessibleName('2 page(s) may be incomplete');
-    expect(within(rows[1]).queryByText(/⚠/)).not.toBeInTheDocument();
+    const badge = within(rows[0]).getByLabelText('2 page(s) may be incomplete');
+    expect(badge).toHaveTextContent('2');
+    expect(badge.querySelector('svg')).not.toBeNull();
+    expect(within(rows[1]).queryByLabelText(/may be incomplete/)).not.toBeInTheDocument();
   });
 
   it('shows the translating model as a tooltip on the Translated badge', async () => {
