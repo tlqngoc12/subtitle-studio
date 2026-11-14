@@ -169,3 +169,35 @@
 - [ ] `PROGRESS.md`: a Vietnamese entry at the end of section 7 (before `## 9.`) linking the spec and this plan.
 - [ ] Run full vitest, tsc, and `timeout 600 mvn -q test -Dskip.npm`; report the real counts.
 - [ ] Commit `docs: novel editor UX`.
+
+---
+
+## Added 2026-11-15 (user-approved after the visual review)
+
+### Task 9: Auto-grow must never clip text (phone)
+
+In Edge at 390 px, a 27,422-char chapter measured `clientHeight` 26,251 against `scrollHeight` 27,957. With `overflow-y: hidden`, the last ~1,700 px of text is unreachable. Desktop measured correctly.
+
+- [ ] Find the cause (likely a measurement before web fonts load or before the final width) and fix it. Re-measure after `document.fonts.ready`, on width changes, and on every input. As a safety net, if `scrollHeight > clientHeight` after measuring, measure again on the next frame.
+- [ ] Tests: the hook re-measures after a stubbed `document.fonts.ready` resolves, and after a width change from the `ResizeObserver` stub. Add a guard test that the hook never leaves `scrollHeight > clientHeight` (stubbed values).
+- [ ] Commit `fix: auto-grow re-measures after fonts and width changes so no text is clipped`.
+
+### Task 10: Busy reason and disabled-before-click
+
+**Spec:** `docs/superpowers/specs/2026-11-15-novel-busy-reason-design.md` (read it fully).
+
+**Interfaces — Produces:**
+- `NovelTranslationBusyException(long novelId, Reason reason, int chapterNo)` with `enum Reason { CHAPTER_TRANSLATING, NOTEBOOK_UPDATING }`;
+- ProblemDetail properties `reason`, `chapterNo`;
+- `ChapterDetail` gains `notebookStatus` and `notebookChapterNo`.
+
+- [ ] Backend tests (service reasons with chapter numbers; controller ProblemDetail properties; ChapterDetail JSON) → FAIL → implement → `timeout 600 mvn -q test -Dskip.npm` green. Commit `feat: say whether a chapter or the notebook keeps a novel busy`.
+- [ ] Frontend tests per the spec:
+  - `errors.ts` texts per reason, with a fallback;
+  - the listed buttons disabled with tooltips;
+  - the status line with polling under fake timers;
+  - the chapter page polls while the notebook is updating, then stops;
+  - a notebook `FAILED` disables nothing.
+
+  → FAIL → implement → full vitest + tsc green. Commit `feat: disable translate actions with the reason while a novel is busy`.
+- [ ] `CLAUDE.md` and `PROGRESS.md` updates per the spec. Commit `docs: busy reason`.
