@@ -125,3 +125,11 @@
 .chapter-bar__item > .member-menu__item {
   width: 100%;
 }
+
+/* The find tool is a ghost button; while its panel is open it shows the app's "selected" style. */
+.chapter-bar__actions .button--ghost[aria-pressed='true'],
+.chapter-bar__actions .button--ghost[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--brand-2);
+  border-color: var(--brand-2-ink);
+  color: var(--on-brand);
+}

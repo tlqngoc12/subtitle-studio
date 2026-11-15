@@ -501,7 +501,7 @@ export default function ChapterPage() {
         }
         menuItems={menuItems}
         tools={
-          <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
+          <IconButton label="Find and replace" icon={Search} className="button--ghost" disabled={locked} aria-pressed={finding}
             onClick={() => setFinding((f) => !f)} />
         }
         below={
@@ -510,18 +510,6 @@ export default function ChapterPage() {
           ) : undefined
         }
       />
-
-      <p className="chapter-count muted">
-        {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}
-        {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
-      </p>
-
-      {published && (
-        <p className="chapter-note muted">
-          This chapter is published: only the text can be edited.{' '}
-          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
-        </p>
-      )}
 
       {why?.reason === 'NOTEBOOK_UPDATING' && <BusyLine busy={why} />}
 
@@ -557,7 +545,24 @@ export default function ChapterPage() {
           writeDetailsChoice(now);
         }}
       >
-        <DisclosureSummary className="chapter-details__summary">Chapter details</DisclosureSummary>
+        <DisclosureSummary className="chapter-details__summary">
+          Chapter details
+          {originalParagraphs !== null && isShortShare(counts.paragraphs, originalParagraphs) && (
+            // Shown only while the details are closed (CSS), so the warning is not hidden with them.
+            <Tip label="The translation may be missing a part">
+              <span className="chapter-count__warn chapter-details__warn" tabIndex={0}>
+                {counts.paragraphs.toLocaleString('en')}/{originalParagraphs.toLocaleString('en')} paragraphs
+              </span>
+            </Tip>
+          )}
+        </DisclosureSummary>
+        {published && (
+          <p className="chapter-note muted">
+            {`This chapter is published: only the text, label and title can be edited. ${
+              fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'
+            }`}
+          </p>
+        )}
         <div className="chapter-meta">
         <div className="chapter-meta__row">
           {!published && (
@@ -594,9 +599,15 @@ export default function ChapterPage() {
           </div>
         </div>
         </div>
-        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
-          <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
-        )}
+        <div className="chapter-details__meta">
+          <p className="chapter-count muted">
+            {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}
+            {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
+          </p>
+          {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+            <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
+          )}
+        </div>
       </details>
 
       {!published && !fromText && (
@@ -698,8 +709,12 @@ ${p.source}` : undefined,
 }
 
 /** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
+function isShortShare(have: number, of: number): boolean {
+  return of > 0 && have < of * MIN_PARAGRAPH_SHARE;
+}
+
 function ParagraphShare({ have, of }: { have: number; of: number }) {
-  const short = of > 0 && have < of * MIN_PARAGRAPH_SHARE;
+  const short = isShortShare(have, of);
   const label = `· ${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
   if (!short) return <span className="chapter-count__share"> {label}</span>;
   return (

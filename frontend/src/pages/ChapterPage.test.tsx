@@ -423,7 +423,7 @@ describe('ChapterPage', () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toBeEnabled();
     expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
     expect(screen.getByLabelText('Chapter label (optional)')).toBeEnabled();
@@ -873,7 +873,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /^Original/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
-    expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toHaveValue('Bản dịch');
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
   });
@@ -881,12 +881,12 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   it('words the published note for each kind of chapter', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
-    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
+    expect(screen.getByText('This chapter is published: only the text, label and title can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
     cleanup();
 
     renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'x' })]);
     await loaded();
-    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to translate again.')).toBeInTheDocument();
+    expect(screen.getByText('This chapter is published: only the text, label and title can be edited. Unpublish to translate again.')).toBeInTheDocument();
     expect(screen.queryByText(/change pages/)).not.toBeInTheDocument();
   });
 
@@ -1346,14 +1346,25 @@ describe('ChapterPage: text first on a phone', () => {
     expect(css).not.toMatch(/\.chapter-note\s*\{[^}]*(border-left|background)/);
   });
 
-  it('puts the details after the counts and before the text', async () => {
+  it('the count line and the published note sit inside Chapter details', async () => {
     stubWidth(true);
-    renderPage([get()]);
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    const count = document.querySelector('.chapter-count')!;
-    expect(count.compareDocumentPosition(details()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/paragraphs? ·|words ·/).closest('details.chapter-details')).not.toBeNull();
+    expect(screen.getByText(/This chapter is published/).closest('details.chapter-details')).not.toBeNull();
     expect(details().compareDocumentPosition(textBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a short translation shows its warning on the closed details summary', async () => {
+    stubWidth(false);
+    const source = Array.from({ length: 10 }, (_, i) => `Source ${i}`).join('\n\n');
+    const text = Array.from({ length: 8 }, (_, i) => `Dòng ${i}`).join('\n\n');
+    renderPage([get({ pages: [], text, sourceText: source, wattpadPartId: '1', sourceLanguage: 'en' })]);
+    await loaded();
+
+    expect(details().open).toBe(false);
+    expect(details().querySelector('summary .chapter-count__warn')).not.toBeNull();
   });
 });
 
@@ -1389,6 +1400,13 @@ describe('ChapterPage translator tools', () => {
     await user().click(screen.getByRole('button', { name: 'Find and replace' }));
 
     expect(screen.getByRole('search', { name: 'Find and replace' }).closest('.chapter-bar')).not.toBeNull();
+  });
+
+  it('the find tool is a ghost button', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: 'Find and replace' })).toHaveClass('button--ghost');
   });
 
   it('opens with Ctrl+H and Cmd+H, preventing the browser history', async () => {
