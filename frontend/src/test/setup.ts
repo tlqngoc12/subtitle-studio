@@ -17,6 +17,9 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function scrollIntoView() {};
 }
 
+// jsdom does not implement window.scrollTo (it only logs an error); the find panel scrolls to a match with it.
+window.scrollTo = (() => {}) as typeof window.scrollTo;
+
 // jsdom has no pointer capture; Radix Select calls it when its trigger is pressed.
 if (!Element.prototype.hasPointerCapture) {
   Element.prototype.hasPointerCapture = () => false;
