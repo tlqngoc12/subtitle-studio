@@ -188,7 +188,8 @@
   gap: var(--space-4);
 }
 
-/* The sticky chapter bar's height: the original column sticks just under it. */
+/* The sticky chapter bar's height: the original column sticks just under it. ChapterBar overwrites this with its
+   measured height; the value here is the fallback before the first measure. */
 .chapter-page {
   --chapter-bar-h: 3.75rem;
 }

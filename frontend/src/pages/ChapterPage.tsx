@@ -708,11 +708,12 @@ ${p.source}` : undefined,
   );
 }
 
-/** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
+/** Fewer than 90 % of the original's paragraphs. */
 function isShortShare(have: number, of: number): boolean {
   return of > 0 && have < of * MIN_PARAGRAPH_SHARE;
 }
 
+/** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
 function ParagraphShare({ have, of }: { have: number; of: number }) {
   const short = isShortShare(have, of);
   const label = `· ${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
