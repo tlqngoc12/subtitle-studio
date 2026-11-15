@@ -107,10 +107,6 @@
     flex-wrap: wrap;
   }
 
-  .chapter-bar--with-below .chapter-bar__name {
-    flex: 1 1 0;
-  }
-
   /* An empty state still takes its place, so the actions stay on the right. */
   .chapter-bar__state:empty {
     display: block;
