@@ -962,6 +962,11 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - `t_novel.notebook_paused` (V23); `PUT /api/novels/{id}/notebook/paused`; `retry` khi tạm dừng thì 409 `NOTEBOOK_PAUSED`; tắt tạm dừng không tự chạy gì, tab Notebook hiện dòng còn thiếu mấy chương và nút Update now (chạy `retry`, nay mặc định lấy chương Published mới nhất khi không có chương lỗi chờ). `NovelDetail` thêm `notebookChapterNo` nên dòng bận dùng đúng số chương.
 - **Lưu ý deploy:** V23 chạy trên Oracle, chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi thì dừng.
 
+### 2026-11-15: Emoji trong ảnh chương, bỏ scene break, find & replace dính thanh ✅
+- Plan [docs/superpowers/plans/2026-11-15-emoji-render-and-find-replace.md](docs/superpowers/plans/2026-11-15-emoji-render-and-find-replace.md). `NovelRenderer` giữ Literata và rơi về font đơn sắc `fonts/NotoEmoji.ttf` (OFL, thêm vào `OFL.txt`) cho từng code point Literata không có (kể cả tiêu đề chương), phóng ×1,1; `clean` bỏ màu da U+1F3FB–1F3FF, U+FE0E/FE0F và U+200D nên chuỗi ZWJ hiện thành các glyph rời. `VERSION` 6 lên 7: mọi ảnh chương đã cache được vẽ lại ở lần render kế tiếp.
+- Bỏ nút Insert scene break và `insertSceneBreak` (backend `SceneBreak` giữ nguyên). Find & replace nằm trong `ChapterBar` (slot `below`, dính khi cuộn); Next/Previous/Replace cuộn trang tới kết quả bằng `textarea-caret` (`lib/scrollToMatch.ts`, kết quả đang thấy thì không cuộn); Previous/Next thành nút icon, Enter ở "Replace with" = Replace.
+- Trang chương: dòng đếm từ/ký tự/đoạn và ghi chú "published" chuyển vào Chapter details (câu chữ ghi chú sửa lại; cảnh báo đoạn thiếu vẫn hiện đỏ trên summary khi đang đóng); nút Find là nút ghost, đang mở thì kiểu "đang chọn" (tím đặc + viền `--brand-2-ink`).
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
