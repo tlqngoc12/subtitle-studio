@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * One Gemini generateContent call with the official SDK: the main model, then the fallback models while each answers
- * "overloaded" (503) or "out of quota" (429; free-tier quotas are counted per model), no automatic retries of the same
+ * "overloaded" (503), time out or are "out of quota" (429; free-tier quotas are counted per model), no automatic retries of the same
  * model. Every failure becomes a {@link TranslationFailedException} whose message can be shown to the user; request
  * and answer text never reach the log.
  */
@@ -96,6 +96,7 @@ public class GeminiCaller {
         String answeredBy = null;
         Content content = Content.fromParts(parts.toArray(Part[]::new));
         boolean busy = false;
+        boolean timedOut = false;
         boolean onlyPerMinuteLimits = true;
         try (Client client = client()) {
             List<String> all = modelOrder(settings);
@@ -130,14 +131,19 @@ public class GeminiCaller {
                     } else {
                         throw fromApi(e);
                     }
+                } catch (GenAiIOException e) {
+                    if (!causedByTimeout(e)) {
+                        throw new TranslationFailedException("Could not translate: connection to Gemini failed.");
+                    }
+                    log.warn("Gemini model {} did not respond within {}s", model, settings.timeout().toSeconds());
+                    timedOut = true;
                 }
             }
-        } catch (GenAiIOException e) {
-            throw causedByTimeout(e)
-                    ? new TranslationFailedException("Gemini did not respond in time.")
-                    : new TranslationFailedException("Could not translate: connection to Gemini failed.");
         }
         if (response == null) {
+            if (timedOut) {
+                throw new TranslationFailedException("Gemini did not respond in time.");
+            }
             if (busy) {
                 throw new TranslationFailedException(
                         "Gemini is busy right now (high demand), try again in a few minutes.");
