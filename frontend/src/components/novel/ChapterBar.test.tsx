@@ -179,6 +179,15 @@ describe('ChapterBar on one row', () => {
   });
 });
 
+describe('ChapterBar on a phone while the find panel is open', () => {
+  it('hides the nav slot and the save-state line, and shows them again from 521 px', () => {
+    expect(css).toMatch(/\.chapter-bar--with-below \.chapter-bar__nav,\s*\.chapter-bar--with-below \.chapter-bar__state\s*\{[^}]*display:\s*none/);
+    const wide = css.slice(css.indexOf('@media (min-width: 521px)', css.indexOf('.chapter-bar--with-below .chapter-bar__nav')));
+    expect(wide).toMatch(/\.chapter-bar--with-below \.chapter-bar__nav\s*\{[^}]*display:\s*inline-flex/);
+    expect(wide).toMatch(/\.chapter-bar--with-below \.chapter-bar__state\s*\{[^}]*display:\s*revert/);
+  });
+});
+
 describe('ChapterBar height tracking', () => {
   afterEach(() => vi.unstubAllGlobals());
 

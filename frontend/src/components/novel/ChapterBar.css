@@ -63,7 +63,21 @@
   min-width: 0;
 }
 
+/* Phones, while the find panel is open: only the actions row (Find, Save, menu) stays above the panel. */
+.chapter-bar--with-below .chapter-bar__nav,
+.chapter-bar--with-below .chapter-bar__state {
+  display: none;
+}
+
 @media (min-width: 521px) {
+  .chapter-bar--with-below .chapter-bar__nav {
+    display: inline-flex;
+  }
+
+  .chapter-bar--with-below .chapter-bar__state {
+    display: revert;
+  }
+
   .chapter-bar__name {
     display: inline-flex;
   }
