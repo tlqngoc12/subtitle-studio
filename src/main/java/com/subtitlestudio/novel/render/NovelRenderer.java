@@ -29,7 +29,7 @@ import java.util.List;
 public class NovelRenderer {
 
     /** Bump when the drawing changes so cached images are redrawn. */
-    static final int VERSION = 6;
+    static final int VERSION = 7;
     /**
      * Top of the first line box on pages 2+; the first page keeps {@link #FIRST_TOP} for the heading. A line box
      * has about 18 px of built-in leading above the glyphs, so a slightly negative value leaves ~12 px of paper.
@@ -40,15 +40,20 @@ public class NovelRenderer {
     static final int BOTTOM = 0;
     static final double LINE_SPACING = 1.7;
     static final float WATERMARK_ALPHA = 0.06f;
+    /** Noto Emoji sits a little small next to Literata, so it is drawn slightly larger. */
+    static final float EMOJI_SCALE = 1.1f;
 
     private final int fontSize;
     private final Font body;
     private final Font title;
     private final Font small;
+    /** Monochrome fallback for code points the reading font has no glyph for (emoji). */
+    private final Font emoji;
 
     public NovelRenderer(int fontSize) {
         this.fontSize = fontSize;
-        Font base = load();
+        Font base = load("/fonts/Literata.ttf");
+        this.emoji = load("/fonts/NotoEmoji.ttf");
         this.body = base.deriveFont((float) fontSize);
         this.title = base.deriveFont(Font.BOLD, fontSize * 1.3f);
         this.small = base.deriveFont(fontSize * 0.55f);
@@ -129,7 +134,7 @@ public class NovelRenderer {
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        watermark(g, nfc(input.watermark()) + " · " + nfc(input.novelTitle()), format, height);
+        watermark(g, clean(input.watermark()) + " · " + clean(input.novelTitle()), format, height);
 
         g.setColor(Color.BLACK);
         for (Line line : lines) {
@@ -146,26 +151,26 @@ public class NovelRenderer {
         w.setColor(Color.BLACK);
         w.setFont(small);
         w.rotate(Math.toRadians(-30), format.width() / 2.0, height / 2.0);
-        float advance = new TextLayout(text, small, w.getFontRenderContext()).getAdvance() + 120;
+        AttributedString styled = styled(text, small);
+        float advance = new TextLayout(styled.getIterator(), w.getFontRenderContext()).getAdvance() + 120;
         int step = fontSize * 5;
         int reach = Math.max(format.width(), height) * 2;
         int row = 0;
         for (int y = -reach / 2; y < reach; y += step, row++) {
             float offset = (row % 2) * advance / 2;
             for (float x = -reach / 2f - offset; x < reach; x += advance) {
-                w.drawString(text, x, y);
+                w.drawString(styled.getIterator(), x, y);
             }
         }
         w.dispose();
     }
 
-    private static List<TextLayout> layouts(String text, Font font, FontRenderContext frc, float wrap) {
+    private List<TextLayout> layouts(String text, Font font, FontRenderContext frc, float wrap) {
         List<TextLayout> out = new ArrayList<>();
         if (text.isEmpty()) {
             return out;
         }
-        AttributedString styled = new AttributedString(text);
-        styled.addAttribute(TextAttribute.FONT, font);
+        AttributedString styled = styled(text, font);
         LineBreakMeasurer measurer = new LineBreakMeasurer(styled.getIterator(), frc);
         while (measurer.getPosition() < text.length()) {
             out.add(measurer.nextLayout(wrap));
@@ -173,9 +178,35 @@ public class NovelRenderer {
         return out;
     }
 
+    /**
+     * The text in {@code base}, except each code point the base font cannot draw but the emoji font can, which gets the
+     * emoji font (same style, {@link #EMOJI_SCALE} larger). A code point neither font has stays in {@code base}.
+     */
+    AttributedString styled(String text, Font base) {
+        AttributedString styled = new AttributedString(text);
+        if (text.isEmpty()) {
+            return styled;
+        }
+        styled.addAttribute(TextAttribute.FONT, base);
+        Font fallback = null;
+        int i = 0;
+        while (i < text.length()) {
+            int cp = text.codePointAt(i);
+            int n = Character.charCount(cp);
+            if (!base.canDisplay(cp) && emoji.canDisplay(cp)) {
+                if (fallback == null) {
+                    fallback = emoji.deriveFont(base.getStyle(), base.getSize2D() * EMOJI_SCALE);
+                }
+                styled.addAttribute(TextAttribute.FONT, fallback, i, i + n);
+            }
+            i += n;
+        }
+        return styled;
+    }
+
     static String heading(RenderInput input) {
         String t = input.chapterTitle() == null || input.chapterTitle().isBlank() ? "" : ": " + input.chapterTitle();
-        return nfc((input.hasLabel() ? input.chapterLabel().strip() : "Chương " + input.chapterNo()) + t);
+        return clean((input.hasLabel() ? input.chapterLabel().strip() : "Chương " + input.chapterNo()) + t);
     }
 
     /** Lines of the text, each non-empty one a paragraph and each empty one a blank line; leading/trailing blanks dropped. */
@@ -183,7 +214,7 @@ public class NovelRenderer {
         if (text == null) {
             return List.of();
         }
-        List<String> lines = new ArrayList<>(nfc(text).lines().map(String::strip).toList());
+        List<String> lines = new ArrayList<>(clean(text).lines().map(String::strip).toList());
         while (!lines.isEmpty() && lines.getFirst().isEmpty()) {
             lines.removeFirst();
         }
@@ -193,14 +224,26 @@ public class NovelRenderer {
         return lines;
     }
 
-    private static String nfc(String s) {
-        return s == null ? "" : Normalizer.normalize(s, Normalizer.Form.NFC);
+    /**
+     * NFC, without skin-tone modifiers (U+1F3FB-1F3FF), variation selectors (U+FE0E, U+FE0F) and zero-width joiners
+     * (U+200D): the monochrome emoji font has no glyph for them, so a sequence shows as its separate base glyphs.
+     */
+    static String clean(String s) {
+        if (s == null) {
+            return "";
+        }
+        String nfc = Normalizer.normalize(s, Normalizer.Form.NFC);
+        StringBuilder out = new StringBuilder(nfc.length());
+        nfc.codePoints()
+                .filter(cp -> !(cp >= 0x1F3FB && cp <= 0x1F3FF) && cp != 0xFE0E && cp != 0xFE0F && cp != 0x200D)
+                .forEach(out::appendCodePoint);
+        return out.toString();
     }
 
-    private static Font load() {
-        try (InputStream in = NovelRenderer.class.getResourceAsStream("/fonts/Literata.ttf")) {
+    private static Font load(String resource) {
+        try (InputStream in = NovelRenderer.class.getResourceAsStream(resource)) {
             if (in == null) {
-                throw new IllegalStateException("fonts/Literata.ttf is missing from the classpath");
+                throw new IllegalStateException(resource + " is missing from the classpath");
             }
             return Font.createFont(Font.TRUETYPE_FONT, in);
         } catch (IOException e) {
