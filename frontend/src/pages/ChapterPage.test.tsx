@@ -1382,6 +1382,15 @@ describe('ChapterPage translator tools', () => {
     expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
   });
 
+  it('the find panel sits inside the sticky chapter bar', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+
+    expect(screen.getByRole('search', { name: 'Find and replace' }).closest('.chapter-bar')).not.toBeNull();
+  });
+
   it('opens with Ctrl+H and Cmd+H, preventing the browser history', async () => {
     renderPage([get()]);
     await loaded();

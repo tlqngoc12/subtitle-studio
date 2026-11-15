@@ -504,11 +504,12 @@ export default function ChapterPage() {
           <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
             onClick={() => setFinding((f) => !f)} />
         }
+        below={
+          finding ? (
+            <FindReplace text={text} onChange={setText} textareaRef={textRef} onClose={() => setFinding(false)} />
+          ) : undefined
+        }
       />
-
-      {finding && (
-        <FindReplace text={text} onChange={setText} textareaRef={textRef} onClose={() => setFinding(false)} />
-      )}
 
       <p className="chapter-count muted">
         {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}

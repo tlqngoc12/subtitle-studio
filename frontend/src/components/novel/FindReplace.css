@@ -1,17 +1,13 @@
-/* The find and replace panel under the chapter bar. Phone first: fields stacked, buttons wrap. */
+/* The find and replace panel, inside the sticky chapter bar. Phone first: fields stacked, buttons wrap. */
 .find-replace {
   display: grid;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-frame);
-  background: var(--surface);
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
 }
 
 .find-replace__fields {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .find-replace__row {
@@ -24,6 +20,11 @@
 .find-replace__case {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-2);
+}
+
+.find-replace__nav {
+  display: inline-flex;
   gap: var(--space-2);
 }
 

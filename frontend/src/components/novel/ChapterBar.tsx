@@ -50,6 +50,8 @@ export interface ChapterBarProps {
   menuItems: ChapterMenuItem[];
   /** Icon buttons shown before Save (find and replace). */
   tools?: ReactNode;
+  /** A full-width row inside the sticky bar, under everything else (the find and replace panel). */
+  below?: ReactNode;
 }
 
 /**
@@ -67,6 +69,7 @@ export function ChapterBar({
   publish,
   menuItems,
   tools,
+  below,
 }: ChapterBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const unsaved = saveState.kind === 'dirty' || saveState.kind === 'saving';
@@ -79,7 +82,7 @@ export function ChapterBar({
   }
 
   return (
-    <div className="chapter-bar">
+    <div className={below ? 'chapter-bar chapter-bar--with-below' : 'chapter-bar'}>
       <div className="chapter-bar__nav">{nav}</div>
       <div className="chapter-bar__name">
         <span className="chapter-bar__title">{title}</span>
@@ -154,6 +157,7 @@ export function ChapterBar({
           </PopoverPanel>
         </Popover.Root>
       </div>
+      {below && <div className="chapter-bar__below">{below}</div>}
     </div>
   );
 }

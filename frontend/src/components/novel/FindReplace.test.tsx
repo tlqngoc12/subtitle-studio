@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { scrollMatchIntoView } from '../../lib/scrollToMatch';
 import { FindReplace } from './FindReplace';
+
+vi.mock('../../lib/scrollToMatch', () => ({ scrollMatchIntoView: vi.fn() }));
 
 vi.mock('sonner', async (orig) => ({
   ...(await orig<typeof import('sonner')>()),
@@ -42,6 +45,7 @@ const selected = () => box().value.slice(box().selectionStart, box().selectionEn
 
 beforeEach(() => {
   vi.mocked(toast.success).mockClear();
+  vi.mocked(scrollMatchIntoView).mockClear();
 });
 
 describe('FindReplace counter and navigation', () => {
@@ -49,7 +53,7 @@ describe('FindReplace counter and navigation', () => {
     render(<Harness initial="Mai gặp Nam." />);
 
     expect(counter()).toHaveTextContent('0 of 0');
-    for (const name of ['Previous', 'Next', 'Replace', 'Replace all']) expect(button(name)).toBeDisabled();
+    for (const name of ['Previous match', 'Next match', 'Replace', 'Replace all']) expect(button(name)).toBeDisabled();
   });
 
   it('reads "0 of 0" for a query that is not found, without crashing', async () => {
@@ -58,7 +62,7 @@ describe('FindReplace counter and navigation', () => {
     await userEvent.setup().type(find(), 'zzz');
 
     expect(counter()).toHaveTextContent('0 of 0');
-    expect(button('Next')).toBeDisabled();
+    expect(button('Next match')).toBeDisabled();
     expect(button('Replace all')).toBeDisabled();
   });
 
@@ -69,22 +73,22 @@ describe('FindReplace counter and navigation', () => {
     await user.type(find(), 'Mai');
     expect(counter()).toHaveTextContent('1 of 3');
 
-    await user.click(button('Next'));
+    await user.click(button('Next match'));
     expect(selected()).toBe('Mai');
     expect(box().selectionStart).toBe(0);
     expect(box()).toHaveFocus();
     expect(counter()).toHaveTextContent('1 of 3');
 
-    await user.click(button('Next'));
+    await user.click(button('Next match'));
     expect(box().selectionStart).toBe(box().value.indexOf('Mai', 1));
     expect(counter()).toHaveTextContent('2 of 3');
 
-    await user.click(button('Next'));
-    await user.click(button('Next')); // wraps to the first
+    await user.click(button('Next match'));
+    await user.click(button('Next match')); // wraps to the first
     expect(box().selectionStart).toBe(0);
     expect(counter()).toHaveTextContent('1 of 3');
 
-    await user.click(button('Previous')); // wraps to the last
+    await user.click(button('Previous match')); // wraps to the last
     expect(box().selectionStart).toBe(box().value.lastIndexOf('Mai'));
     expect(counter()).toHaveTextContent('3 of 3');
   });
@@ -98,6 +102,23 @@ describe('FindReplace counter and navigation', () => {
 
     expect(selected()).toBe('a');
     expect(onOuterSubmit).not.toHaveBeenCalled();
+  });
+
+  it('Previous and Next are icon buttons with tooltips', () => {
+    render(<Harness initial="abc" />);
+
+    expect(screen.getByRole('button', { name: 'Previous match' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next match' })).toBeInTheDocument();
+  });
+
+  it('selecting a match scrolls it into view', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial="Mai gặp Nam. Mai cười." />);
+    await user.type(find(), 'Mai');
+
+    await user.click(button('Next match'));
+
+    expect(scrollMatchIntoView).toHaveBeenCalledWith(box(), 0, expect.any(Number));
   });
 
   it('Match case narrows the matches', async () => {
@@ -119,13 +140,23 @@ describe('FindReplace replacing', () => {
     await user.type(find(), 'Nam');
     await user.type(screen.getByLabelText('Replace with'), 'Khoa');
 
-    await user.click(button('Next')); // selects the first
+    await user.click(button('Next match')); // selects the first
     await user.click(button('Replace'));
 
     expect(box().value).toBe('Khoa, Nam, Nam');
     expect(selected()).toBe('Nam');
     expect(box().selectionStart).toBe(6);
     expect(counter()).toHaveTextContent('1 of 2');
+  });
+
+  it('Enter in Replace with replaces the selected match', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial="Nam, Nam" />);
+    await user.type(find(), 'Nam{Enter}'); // selects the first
+
+    await user.type(screen.getByLabelText('Replace with'), 'Khoa{Enter}');
+
+    expect(box().value).toBe('Khoa, Nam');
   });
 
   it('Replace with nothing selected selects the first match instead of replacing blindly', async () => {
@@ -201,7 +232,7 @@ describe('FindReplace closing', () => {
     await user.type(screen.getByLabelText('Replace with'), 'x{Enter}');
     await user.type(find(), 'a{Enter}');
     await user.click(screen.getByRole('checkbox', { name: 'Match case' }));
-    await user.click(button('Next'));
+    await user.click(button('Next match'));
 
     expect(onOuterSubmit).not.toHaveBeenCalled();
   });

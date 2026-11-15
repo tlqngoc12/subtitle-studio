@@ -56,6 +56,13 @@
   display: none;
 }
 
+/* A panel inside the bar (find and replace) takes its own full-width row under everything else. */
+.chapter-bar__below {
+  order: 4;
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
 @media (min-width: 521px) {
   .chapter-bar__name {
     display: inline-flex;
@@ -93,6 +100,15 @@
   .chapter-bar__state {
     margin-left: auto;
     white-space: nowrap;
+  }
+
+  /* The bar keeps one row for its own items and wraps only the panel under them. */
+  .chapter-bar--with-below {
+    flex-wrap: wrap;
+  }
+
+  .chapter-bar--with-below .chapter-bar__name {
+    flex: 1 1 0;
   }
 
   /* An empty state still takes its place, so the actions stay on the right. */
