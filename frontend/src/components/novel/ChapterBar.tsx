@@ -48,7 +48,7 @@ export interface ChapterBarProps {
   /** Draft chapters: `disabledReason` is why Publish cannot run now (null = it can). */
   publish?: { onPublish: () => void; disabledReason: string | null };
   menuItems: ChapterMenuItem[];
-  /** Icon buttons shown before Save (find and replace, scene break). */
+  /** Icon buttons shown before Save (find and replace). */
   tools?: ReactNode;
 }
 

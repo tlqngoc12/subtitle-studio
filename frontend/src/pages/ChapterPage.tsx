@@ -6,13 +6,12 @@ import {
   CloudDownload,
   Copy,
   Info,
-  Minus,
   RotateCcw,
   RotateCw,
   Search,
   TriangleAlert,
 } from 'lucide-react';
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
@@ -38,7 +37,7 @@ import {
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
-import { countText, insertSceneBreak, paragraphIndexAt, paragraphs } from '../lib/chapterText';
+import { countText, paragraphIndexAt, paragraphs } from '../lib/chapterText';
 import { DisclosureSummary } from '../components/ui/DisclosureSummary';
 import { OriginalPanel } from '../components/novel/OriginalPanel';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
@@ -119,22 +118,6 @@ export default function ChapterPage() {
   const textRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(textRef, text);
   const [finding, setFinding] = useState(false);
-  // Where the caret goes after a scene break is inserted (the text changes on the next render).
-  const caretAfterBreak = useRef<number | null>(null);
-  useLayoutEffect(() => {
-    const at = caretAfterBreak.current;
-    if (at === null) return;
-    caretAfterBreak.current = null;
-    textRef.current?.focus();
-    textRef.current?.setSelectionRange(at, at);
-  }, [text]);
-  function addSceneBreak() {
-    const el = textRef.current;
-    if (!el) return;
-    const result = insertSceneBreak(text, el.selectionStart);
-    caretAfterBreak.current = result.caret;
-    setText(result.text);
-  }
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   function trackCaret(el: HTMLTextAreaElement) {
@@ -518,11 +501,8 @@ export default function ChapterPage() {
         }
         menuItems={menuItems}
         tools={
-          <>
-            <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
-              onClick={() => setFinding((f) => !f)} />
-            <IconButton label="Insert scene break" icon={Minus} disabled={locked} onClick={addSceneBreak} />
-          </>
+          <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
+            onClick={() => setFinding((f) => !f)} />
         }
       />
 

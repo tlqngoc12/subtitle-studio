@@ -1426,31 +1426,16 @@ describe('ChapterPage translator tools', () => {
     expect(state()).toHaveTextContent('');
   });
 
-  it('inserts a scene break at the caret with one blank line each side', async () => {
-    renderPage([get({ text: 'One\n\nTwo' })]);
-    await loaded();
-    const box = textBox() as HTMLTextAreaElement;
-    box.setSelectionRange(3, 3);
-
-    await user().click(screen.getByRole('button', { name: 'Insert scene break' }));
-
-    expect(box).toHaveValue('One\n\n***\n\nTwo');
-    expect(box.selectionStart).toBe('One\n\n***\n\n'.length);
-    expect(box).toHaveFocus();
-    expect(state()).toHaveTextContent('Unsaved changes');
-  });
-
-  it('has tooltips on the two icon buttons, and disables them while a translation runs', async () => {
+  it('has a tooltip on the find button, has no scene break button, and disables find while a translation runs', async () => {
     renderPage([get()]);
     await loaded();
     await expectTooltip(screen.getByRole('button', { name: 'Find and replace' }), 'Find and replace');
-    await expectTooltip(screen.getByRole('button', { name: 'Insert scene break' }), 'Insert scene break');
+    expect(screen.queryByRole('button', { name: 'Insert scene break' })).not.toBeInTheDocument();
     cleanup();
 
     renderPage([get({ translationStatus: 'TRANSLATING' })]);
     await loaded();
     expect(screen.getByRole('button', { name: 'Find and replace' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Insert scene break' })).toBeDisabled();
   });
 });
 
