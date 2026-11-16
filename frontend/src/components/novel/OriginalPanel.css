@@ -9,10 +9,23 @@
   margin-bottom: var(--space-2);
 }
 
+.chapter-original__box {
+  position: relative;
+}
+
+/* The copy button sits in the corner of the frame (not in the scrolling text), above the text. */
+.chapter-original__box > .copy-corner {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 1;
+}
+
 .chapter-original__text {
   max-height: 32rem;
   overflow-y: auto;
   padding: var(--space-3);
+  padding-right: 3rem; /* room for the copy button in the corner */
   border: 1px solid var(--field-border);
   border-radius: 8px;
   background: var(--surface);

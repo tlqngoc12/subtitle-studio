@@ -1040,3 +1040,8 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 | Bulk import cả thư mục ảnh + Gemini đề xuất chia chương | Novels | người dùng chọn làm sau (upload theo chương trước) |
 | Review Novels (Minor): chương đã Published lưu được với text rỗng | Novels | final review nhánh `feature/novels` |
 | Tự khắc phục khi Gemini trả thiếu/sai block | P4 | gợi ý: hỏi lại chỉ các id thiếu/sai (giữ block đúng, request nhỏ, ít tốn quota); xem log chẩn đoán 2026-11-04 trước |
+
+### 2026-11-16: Nút copy trong khung Original và Chapter text ✅ (không có migration)
+- Trang chương: nút copy (icon `Copy` → `Check` 1,5 giây, toast "Copied" / "Could not copy") ở góc trên bên phải, bên trong khung của hộp Original (bọc trong `.chapter-original__box`, nút nằm ngoài vùng cuộn) và hộp Chapter text (`.chapter-text__box`, textarea thêm `padding-right: 3rem`; lớp highlight tìm kiếm copy padding từ textarea nên vẫn khớp).
+- Chỉ copy văn bản: bỏ đoạn `[[image:N]]` (`stripImageMarkers` trong `lib/chapterText.ts`); Chapter text copy giá trị hiện tại, kể cả phần chưa lưu. Text rỗng vẫn copy chuỗi rỗng (nút không bị disable).
+- Component mới `components/chapter/CopyTextButton.tsx` (dùng `IconButton`); test: `stripImageMarkers`, OriginalPanel (copy, đổi icon, lỗi, rỗng, CSS), ChapterPage (copy bản sửa chưa lưu, CSS padding). 1807 test + build xanh.

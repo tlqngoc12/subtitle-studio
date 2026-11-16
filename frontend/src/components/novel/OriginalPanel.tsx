@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { imageMarkerId, paragraphs } from '../../lib/chapterText';
 import { useMediaQuery } from '../../lib/useMediaQuery';
+import { CopyTextButton } from '../chapter/CopyTextButton';
 import { DisclosureSummary } from '../ui/DisclosureSummary';
 import './OriginalPanel.css';
 
@@ -40,7 +41,9 @@ export function OriginalPanel({
 
   const body = (
     <>
-      <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0} lang={language}>
+      <div className="chapter-original__box">
+        <CopyTextButton label="Copy original text" text={text} />
+        <div className="chapter-original__text" role="region" aria-label="Original text" tabIndex={0} lang={language}>
         {parts.map((p, i) => {
           const isActive = i === activeIndex;
           return (
@@ -54,6 +57,7 @@ export function OriginalPanel({
             </p>
           );
         })}
+        </div>
       </div>
       {footer}
     </>

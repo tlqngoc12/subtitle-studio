@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignParagraph, countText, findMatches, imageMarkerId, paragraphIndexAt, paragraphs } from './chapterText';
+import { alignParagraph, countText, findMatches, imageMarkerId, paragraphIndexAt, paragraphs, stripImageMarkers } from './chapterText';
 
 describe('paragraphs', () => {
   it('splits on blank lines, trims and drops empty ones', () => {
@@ -142,5 +142,18 @@ describe('alignParagraph', () => {
 
   it('falls back to the position when the translation names a marker the original lacks', () => {
     expect(alignParagraph(['A', '[[image:1]]', 'B'], ['a', '[[image:9]]', 'b'], 1)).toBe(1);
+  });
+});
+
+describe('stripImageMarkers', () => {
+  it('removes marker paragraphs, keeps the other text and its paragraph breaks', () => {
+    const text = 'One.\n\n[[image:3]]\n\nTwo.\nstill two.\n\n  [[image:4]]  \n\n[[image:5]]\n\nThree.';
+    expect(stripImageMarkers(text)).toBe('One.\n\nTwo.\nstill two.\n\nThree.');
+  });
+
+  it('keeps a marker that is only part of a paragraph, and handles empty text', () => {
+    expect(stripImageMarkers('see [[image:3]]')).toBe('see [[image:3]]');
+    expect(stripImageMarkers('[[image:3]]')).toBe('');
+    expect(stripImageMarkers('')).toBe('');
   });
 });

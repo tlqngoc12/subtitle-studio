@@ -108,6 +108,15 @@
   resize: none;
   font-size: 1.0625rem;
   line-height: 1.7;
+  /* Room on the right for the copy button in the box's corner; the find highlights copy this padding. */
+  padding-right: 3rem;
+}
+
+.chapter-text__box > .copy-corner {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 2;
 }
 
 .chapter-text textarea:focus {
