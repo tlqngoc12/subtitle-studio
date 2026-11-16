@@ -108,3 +108,20 @@ it('the current film strip dot is at least 3:1 against --paper in both themes (o
   for (const tokens of Object.values(themes)) expect(ratio(tokens, '--brand-2-ink', '--paper')).toBeGreaterThanOrEqual(3);
   expect(ratio(dark, '--brand-2', '--paper')).toBeGreaterThanOrEqual(3);
 });
+
+it('the active paragraph of the original panel keeps --ink at 4.5:1 on its 38% orchid tint, and its left bar is 3:1', () => {
+  expect(css).toMatch(
+    /\.chapter-original__p--active\s*\{\s*background:\s*color-mix\(in srgb, var\(--brand-2\) 38%, transparent\);\s*box-shadow:\s*inset 3px 0 0 var\(--brand-2-border\);\s*\}/,
+  );
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  for (const tokens of Object.values(themes)) {
+    const brand2 = hex(resolve(tokens, '--brand-2'));
+    // The panel text sits on --surface; --paper is the other worst case.
+    for (const bg of ['--surface', '--paper']) {
+      const base = hex(resolve(tokens, bg));
+      const tinted = '#' + brand2.map((v, i) => Math.round(v * 0.38 + base[i] * 0.62).toString(16).padStart(2, '0')).join('');
+      expect(ratio(tokens, '--ink', tinted)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(ratio(tokens, '--brand-2-border', '--surface')).toBeGreaterThanOrEqual(3);
+  }
+});
