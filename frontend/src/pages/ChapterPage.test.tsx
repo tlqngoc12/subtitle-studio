@@ -423,7 +423,7 @@ describe('ChapterPage', () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toBeEnabled();
     expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
     expect(screen.getByLabelText('Chapter label (optional)')).toBeEnabled();
@@ -873,7 +873,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /^Original/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
-    expect(screen.getByText(/This chapter is published: only the text can be edited\./)).toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toHaveValue('Bản dịch');
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
   });
@@ -881,12 +881,12 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   it('words the published note for each kind of chapter', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
-    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
+    expect(screen.getByText('This chapter is published: only the text, label and title can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
     cleanup();
 
     renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'x' })]);
     await loaded();
-    expect(screen.getByText('This chapter is published: only the text can be edited. Unpublish to translate again.')).toBeInTheDocument();
+    expect(screen.getByText('This chapter is published: only the text, label and title can be edited. Unpublish to translate again.')).toBeInTheDocument();
     expect(screen.queryByText(/change pages/)).not.toBeInTheDocument();
   });
 
@@ -1346,14 +1346,25 @@ describe('ChapterPage: text first on a phone', () => {
     expect(css).not.toMatch(/\.chapter-note\s*\{[^}]*(border-left|background)/);
   });
 
-  it('puts the details after the counts and before the text', async () => {
+  it('the count line and the published note sit inside Chapter details', async () => {
     stubWidth(true);
-    renderPage([get()]);
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    const count = document.querySelector('.chapter-count')!;
-    expect(count.compareDocumentPosition(details()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/paragraphs? ·|words ·/).closest('details.chapter-details')).not.toBeNull();
+    expect(screen.getByText(/This chapter is published/).closest('details.chapter-details')).not.toBeNull();
     expect(details().compareDocumentPosition(textBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a short translation shows its warning on the closed details summary', async () => {
+    stubWidth(false);
+    const source = Array.from({ length: 10 }, (_, i) => `Source ${i}`).join('\n\n');
+    const text = Array.from({ length: 8 }, (_, i) => `Dòng ${i}`).join('\n\n');
+    renderPage([get({ pages: [], text, sourceText: source, wattpadPartId: '1', sourceLanguage: 'en' })]);
+    await loaded();
+
+    expect(details().open).toBe(false);
+    expect(details().querySelector('summary .chapter-count__warn')).not.toBeNull();
   });
 });
 
@@ -1380,6 +1391,54 @@ describe('ChapterPage translator tools', () => {
 
     await user().click(toggle);
     expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
+  });
+
+  it('paints the matches behind the textarea while finding, and removes everything when find closes', async () => {
+    renderPage([get({ text: 'Mai gặp Nam. Mai cười.' })]);
+    await loaded();
+    expect(document.querySelector('.find-hits')).toBeNull();
+
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+    await user().type(screen.getByLabelText('Find'), 'Mai');
+
+    expect(document.querySelectorAll('.find-hits mark.find-hit')).toHaveLength(2);
+    expect(textBox()).toHaveClass('chapter-text--finding');
+
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+
+    expect(document.querySelector('.find-hits')).toBeNull();
+    expect(textBox()).not.toHaveClass('chapter-text--finding');
+  });
+
+  it('keeps the marks in step with the find box and with edits to the text', async () => {
+    renderPage([get({ text: 'Mai gặp Nam. Mai cười.' })]);
+    await loaded();
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+    await user().type(screen.getByLabelText('Find'), 'Nam');
+    expect(document.querySelectorAll('.find-hits mark.find-hit')).toHaveLength(1);
+
+    await user().type(textBox(), ' Nam');
+    expect(document.querySelectorAll('.find-hits mark.find-hit')).toHaveLength(2);
+    expect(document.querySelectorAll('.find-hits mark.find-hit--current')).toHaveLength(1);
+
+    await user().clear(screen.getByLabelText('Find'));
+    expect(document.querySelector('.find-hits')).toBeNull();
+  });
+
+  it('the find panel sits inside the sticky chapter bar', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+
+    expect(screen.getByRole('search', { name: 'Find and replace' }).closest('.chapter-bar')).not.toBeNull();
+  });
+
+  it('the find tool is a ghost button', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: 'Find and replace' })).toHaveClass('button--ghost');
   });
 
   it('opens with Ctrl+H and Cmd+H, preventing the browser history', async () => {
@@ -1426,31 +1485,16 @@ describe('ChapterPage translator tools', () => {
     expect(state()).toHaveTextContent('');
   });
 
-  it('inserts a scene break at the caret with one blank line each side', async () => {
-    renderPage([get({ text: 'One\n\nTwo' })]);
-    await loaded();
-    const box = textBox() as HTMLTextAreaElement;
-    box.setSelectionRange(3, 3);
-
-    await user().click(screen.getByRole('button', { name: 'Insert scene break' }));
-
-    expect(box).toHaveValue('One\n\n***\n\nTwo');
-    expect(box.selectionStart).toBe('One\n\n***\n\n'.length);
-    expect(box).toHaveFocus();
-    expect(state()).toHaveTextContent('Unsaved changes');
-  });
-
-  it('has tooltips on the two icon buttons, and disables them while a translation runs', async () => {
+  it('has a tooltip on the find button, has no scene break button, and disables find while a translation runs', async () => {
     renderPage([get()]);
     await loaded();
     await expectTooltip(screen.getByRole('button', { name: 'Find and replace' }), 'Find and replace');
-    await expectTooltip(screen.getByRole('button', { name: 'Insert scene break' }), 'Insert scene break');
+    expect(screen.queryByRole('button', { name: 'Insert scene break' })).not.toBeInTheDocument();
     cleanup();
 
     renderPage([get({ translationStatus: 'TRANSLATING' })]);
     await loaded();
     expect(screen.getByRole('button', { name: 'Find and replace' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Insert scene break' })).toBeDisabled();
   });
 });
 

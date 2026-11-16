@@ -1,6 +1,6 @@
 import * as Popover from '@radix-ui/react-popover';
 import { Ellipsis, Send } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatClock } from '../../lib/dates';
 import { Tip } from '../Tip';
 import { PopoverPanel } from '../ui/PopoverPanel';
@@ -48,8 +48,10 @@ export interface ChapterBarProps {
   /** Draft chapters: `disabledReason` is why Publish cannot run now (null = it can). */
   publish?: { onPublish: () => void; disabledReason: string | null };
   menuItems: ChapterMenuItem[];
-  /** Icon buttons shown before Save (find and replace, scene break). */
+  /** Icon buttons shown before Save (find and replace). */
   tools?: ReactNode;
+  /** A full-width row inside the sticky bar, under everything else (the find and replace panel). */
+  below?: ReactNode;
 }
 
 /**
@@ -67,8 +69,26 @@ export function ChapterBar({
   publish,
   menuItems,
   tools,
+  below,
 }: ChapterBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  // The bar grows (find panel, wrapping on narrow widths): tell the page, so what sticks under it starts below it.
+  useEffect(() => {
+    const el = root.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) return;
+    const measure = () => parent.style.setProperty('--chapter-bar-h', `${el.getBoundingClientRect().height}px`);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      parent.style.removeProperty('--chapter-bar-h');
+    };
+  }, []);
   const unsaved = saveState.kind === 'dirty' || saveState.kind === 'saving';
   const publishReason = publish ? (unsaved ? 'Save first' : publish.disabledReason) : null;
   const text = saveStateText(saveState);
@@ -79,7 +99,7 @@ export function ChapterBar({
   }
 
   return (
-    <div className="chapter-bar">
+    <div ref={root} className={below ? 'chapter-bar chapter-bar--with-below' : 'chapter-bar'}>
       <div className="chapter-bar__nav">{nav}</div>
       <div className="chapter-bar__name">
         <span className="chapter-bar__title">{title}</span>
@@ -154,6 +174,7 @@ export function ChapterBar({
           </PopoverPanel>
         </Popover.Root>
       </div>
+      {below && <div className="chapter-bar__below">{below}</div>}
     </div>
   );
 }

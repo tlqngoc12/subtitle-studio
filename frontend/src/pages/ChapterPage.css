@@ -96,6 +96,12 @@
   margin-inline: auto;
 }
 
+/* The box around the textarea (it carries the find highlights) must not shrink the textarea: it was a grid item. */
+.chapter-text__box > textarea {
+  display: block;
+  width: 100%;
+}
+
 .chapter-text textarea {
   min-height: 60vh;
   overflow-y: hidden;
@@ -108,7 +114,7 @@
   border-color: var(--brand-2-border);
 }
 
-/* Published chapter: what can still be changed, as one quiet line under the counts. */
+/* Published chapter: what can still be changed, as one quiet line at the top of Chapter details. */
 .chapter-note {
   margin: 0 0 var(--space-3);
   font-size: var(--step--1);
@@ -123,8 +129,26 @@
   margin-bottom: var(--space-2);
 }
 
-.chapter-details__model {
+/* The counts and the translating model: quiet meta lines under the fields. */
+.chapter-details__meta {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.chapter-details__meta > p {
   margin: 0;
+  font-size: var(--step--1);
+}
+
+/* The short-translation warning on the summary: only while the details are closed. */
+.chapter-details__warn {
+  margin-left: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.chapter-details[open] .chapter-details__warn {
+  display: none;
 }
 
 .chapter-warning {
@@ -170,7 +194,8 @@
   gap: var(--space-4);
 }
 
-/* The sticky chapter bar's height: the original column sticks just under it. */
+/* The sticky chapter bar's height: the original column sticks just under it. ChapterBar overwrites this with its
+   measured height; the value here is the fallback before the first measure. */
 .chapter-page {
   --chapter-bar-h: 3.75rem;
 }
@@ -194,12 +219,7 @@
   }
 }
 
-/* Under the chapter bar: words, characters, paragraphs and the share of the original's paragraphs. */
-.chapter-count {
-  margin: 0 0 var(--space-3);
-  font-size: var(--step--1);
-}
-
+/* In Chapter details: words, characters, paragraphs and the share of the original's paragraphs. */
 .chapter-count__warn {
   color: var(--danger);
   font-weight: 700;

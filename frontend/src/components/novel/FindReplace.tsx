@@ -1,10 +1,13 @@
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { toast } from 'sonner';
 import { findMatches } from '../../lib/chapterText';
+import { scrollMatchIntoView } from '../../lib/scrollToMatch';
+import { IconButton } from '../ui/IconButton';
 import './FindReplace.css';
 
 /**
- * Literal find and replace over the chapter text, shown under the chapter bar. It selects matches in the textarea
+ * Literal find and replace over the chapter text, shown inside the sticky chapter bar. It selects matches in the textarea
  * (so the person sees them in place); Replace and Replace all change the text through `onChange`, which leaves the
  * chapter unsaved. Not a `<form>`: it sits inside the chapter page, and Enter must never submit anything around it.
  */
@@ -13,11 +16,14 @@ export function FindReplace({
   onChange,
   textareaRef,
   onClose,
+  onMatchesChange,
 }: {
   text: string;
   onChange: (text: string) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   onClose: () => void;
+  /** The matches and the current one (null: none), for painting them behind the textarea; ([], null) on unmount. */
+  onMatchesChange?: (matches: { start: number; end: number }[], current: number | null) => void;
 }) {
   const ids = useId();
   const [query, setQuery] = useState('');
@@ -25,6 +31,7 @@ export function FindReplace({
   const [matchCase, setMatchCase] = useState(false);
   const [current, setCurrent] = useState(0);
   const findInput = useRef<HTMLInputElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   /** After Replace the text changes on the next render; the next match is looked up from this caret then. */
   const resumeAt = useRef<number | null>(null);
 
@@ -36,13 +43,23 @@ export function FindReplace({
     findInput.current?.focus();
   }, []);
 
+  const report = useRef(onMatchesChange);
+  report.current = onMatchesChange;
+  useEffect(() => {
+    report.current?.(matches, none ? null : shown - 1);
+  }, [matches, none, shown]);
+  useEffect(() => () => report.current?.([], null), []);
+
   function select(index: number) {
     const el = textareaRef.current;
     const m = matches[index];
     if (!el || !m) return;
     setCurrent(index);
-    el.focus();
+    // Focus stays where it is (Enter in Find must never type into the text); the match is only selected here, and
+    // the textarea gets the focus, with this selection, when the panel closes.
     el.setSelectionRange(m.start, m.end);
+    // The panel's bottom is the bottom of the sticky bar: the match should land just under it.
+    scrollMatchIntoView(el, m.start, root.current?.getBoundingClientRect().bottom ?? 0);
   }
 
   function next() {
@@ -123,7 +140,7 @@ export function FindReplace({
   }
 
   return (
-    <div className="find-replace" role="search" aria-label="Find and replace" onKeyDown={onKeyDown}>
+    <div ref={root} className="find-replace" role="search" aria-label="Find and replace" onKeyDown={onKeyDown}>
       <div className="find-replace__fields">
         <div className="field">
           <label htmlFor={`${ids}-find`}>Find</label>
@@ -149,7 +166,9 @@ export function FindReplace({
             value={replacement}
             onChange={(e) => setReplacement(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') e.preventDefault();
+              if (e.key !== 'Enter') return;
+              e.preventDefault(); // never submit a form around the panel
+              replaceCurrent();
             }}
           />
         </div>
@@ -163,12 +182,10 @@ export function FindReplace({
           {shown} of {matches.length}
         </span>
         <span className="find-replace__buttons">
-          <button type="button" className="button button--s" disabled={none} onClick={previous}>
-            Previous
-          </button>
-          <button type="button" className="button button--s" disabled={none} onClick={next}>
-            Next
-          </button>
+          <span className="find-replace__nav">
+            <IconButton label="Previous match" icon={ChevronUp} size="s" disabled={none} onClick={previous} />
+            <IconButton label="Next match" icon={ChevronDown} size="s" disabled={none} onClick={next} />
+          </span>
           <button type="button" className="button button--s" disabled={none} onClick={replaceCurrent}>
             Replace
           </button>

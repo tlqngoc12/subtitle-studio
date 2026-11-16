@@ -1,0 +1,49 @@
+/* The find matches painted behind the chapter textarea. The wrapping styles are copied from the textarea in JS. */
+.chapter-text__box {
+  position: relative;
+}
+
+/* While highlights are shown the box carries the textarea's background, so the marks show through the textarea. */
+.chapter-text__box--finding {
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.chapter-text__box--finding > textarea.chapter-text--finding {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.find-hits {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.find-hit {
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--brand-2) 35%, transparent);
+  color: transparent;
+}
+
+.find-hit--current {
+  background: var(--find-current, var(--brand-2));
+  box-shadow: 0 0 0 1px var(--brand-2-ink);
+}
+
+/* The text stays in the textarea above the marks, and in dark mode it is light: a solid --brand-2 (#D9A1D9) would give
+   it about 1.8:1. A 55% mix over the dark surface keeps the "current" purple and the text above 4.5:1. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .find-hit--current {
+    --find-current: color-mix(in srgb, var(--brand-2) 55%, transparent);
+  }
+}
+
+:root[data-theme='dark'] .find-hit--current {
+  --find-current: color-mix(in srgb, var(--brand-2) 55%, transparent);
+}

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { css } from '../../test/css';
 import { expectTooltip } from '../../test/tooltip';
 import { ChapterBar, saveStateText, type ChapterBarProps, type SaveState } from './ChapterBar';
@@ -176,5 +176,43 @@ describe('ChapterBar on one row', () => {
   it('has the page background and a bottom rule', () => {
     expect(css).toMatch(/\.chapter-bar\s*\{[^}]*background:\s*var\(--paper\)/);
     expect(css).toMatch(/\.chapter-bar\s*\{[^}]*border-bottom:\s*1px solid var\(--rule\)/);
+  });
+});
+
+describe('ChapterBar on a phone while the find panel is open', () => {
+  it('hides the nav slot and the save-state line, and shows them again from 521 px', () => {
+    expect(css).toMatch(/\.chapter-bar--with-below \.chapter-bar__nav,\s*\.chapter-bar--with-below \.chapter-bar__state\s*\{[^}]*display:\s*none/);
+    const wide = css.slice(css.indexOf('@media (min-width: 521px)', css.indexOf('.chapter-bar--with-below .chapter-bar__nav')));
+    expect(wide).toMatch(/\.chapter-bar--with-below \.chapter-bar__nav\s*\{[^}]*display:\s*inline-flex/);
+    expect(wide).toMatch(/\.chapter-bar--with-below \.chapter-bar__state\s*\{[^}]*display:\s*revert/);
+  });
+});
+
+describe('ChapterBar height tracking', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('writes its measured height to --chapter-bar-h on its parent and stops observing on unmount', () => {
+    let notify: () => void = () => {};
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: () => void) {
+          notify = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect = disconnect;
+      },
+    );
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ height: 180 } as DOMRect);
+
+    const { container, unmount } = bar();
+    notify();
+
+    expect((container as HTMLElement).style.getPropertyValue('--chapter-bar-h')).toBe('180px');
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
+    rect.mockRestore();
   });
 });

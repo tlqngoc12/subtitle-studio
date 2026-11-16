@@ -6,13 +6,12 @@ import {
   CloudDownload,
   Copy,
   Info,
-  Minus,
   RotateCcw,
   RotateCw,
   Search,
   TriangleAlert,
 } from 'lucide-react';
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import Lightbox, { useLightboxState } from 'yet-another-react-lightbox';
@@ -38,7 +37,7 @@ import {
 } from '../api/novels';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { formatInstantWithTime } from '../lib/dates';
-import { countText, insertSceneBreak, paragraphIndexAt, paragraphs } from '../lib/chapterText';
+import { countText, paragraphIndexAt, paragraphs } from '../lib/chapterText';
 import { DisclosureSummary } from '../components/ui/DisclosureSummary';
 import { OriginalPanel } from '../components/novel/OriginalPanel';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
@@ -59,6 +58,7 @@ import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { IconButton, IconLink } from '../components/ui/IconButton';
+import { FindHighlights } from '../components/novel/FindHighlights';
 import { FindReplace } from '../components/novel/FindReplace';
 import './ChapterPage.css';
 
@@ -119,22 +119,9 @@ export default function ChapterPage() {
   const textRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(textRef, text);
   const [finding, setFinding] = useState(false);
-  // Where the caret goes after a scene break is inserted (the text changes on the next render).
-  const caretAfterBreak = useRef<number | null>(null);
-  useLayoutEffect(() => {
-    const at = caretAfterBreak.current;
-    if (at === null) return;
-    caretAfterBreak.current = null;
-    textRef.current?.focus();
-    textRef.current?.setSelectionRange(at, at);
-  }, [text]);
-  function addSceneBreak() {
-    const el = textRef.current;
-    if (!el) return;
-    const result = insertSceneBreak(text, el.selectionStart);
-    caretAfterBreak.current = result.caret;
-    setText(result.text);
-  }
+  // The matches of the open find panel, painted behind the textarea (it hides its own selection when not focused).
+  const [hits, setHits] = useState<{ matches: { start: number; end: number }[]; current: number | null }>({ matches: [], current: null });
+  const showHits = finding && hits.matches.length > 0;
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   function trackCaret(el: HTMLTextAreaElement) {
@@ -518,29 +505,21 @@ export default function ChapterPage() {
         }
         menuItems={menuItems}
         tools={
-          <>
-            <IconButton label="Find and replace" icon={Search} disabled={locked} aria-pressed={finding}
-              onClick={() => setFinding((f) => !f)} />
-            <IconButton label="Insert scene break" icon={Minus} disabled={locked} onClick={addSceneBreak} />
-          </>
+          <IconButton label="Find and replace" icon={Search} className="button--ghost" disabled={locked} aria-pressed={finding}
+            onClick={() => setFinding((f) => !f)} />
+        }
+        below={
+          finding ? (
+            <FindReplace
+              text={text}
+              onChange={setText}
+              textareaRef={textRef}
+              onClose={() => setFinding(false)}
+              onMatchesChange={(matches, current) => setHits({ matches, current })}
+            />
+          ) : undefined
         }
       />
-
-      {finding && (
-        <FindReplace text={text} onChange={setText} textareaRef={textRef} onClose={() => setFinding(false)} />
-      )}
-
-      <p className="chapter-count muted">
-        {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}
-        {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
-      </p>
-
-      {published && (
-        <p className="chapter-note muted">
-          This chapter is published: only the text can be edited.{' '}
-          {fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'}
-        </p>
-      )}
 
       {why?.reason === 'NOTEBOOK_UPDATING' && <BusyLine busy={why} />}
 
@@ -576,7 +555,24 @@ export default function ChapterPage() {
           writeDetailsChoice(now);
         }}
       >
-        <DisclosureSummary className="chapter-details__summary">Chapter details</DisclosureSummary>
+        <DisclosureSummary className="chapter-details__summary">
+          Chapter details
+          {originalParagraphs !== null && isShortShare(counts.paragraphs, originalParagraphs) && (
+            // Shown only while the details are closed (CSS), so the warning is not hidden with them.
+            <Tip label="The translation may be missing a part">
+              <span className="chapter-count__warn chapter-details__warn" tabIndex={0}>
+                {counts.paragraphs.toLocaleString('en')}/{originalParagraphs.toLocaleString('en')} paragraphs
+              </span>
+            </Tip>
+          )}
+        </DisclosureSummary>
+        {published && (
+          <p className="chapter-note muted">
+            {`This chapter is published: only the text, label and title can be edited. ${
+              fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'
+            }`}
+          </p>
+        )}
         <div className="chapter-meta">
         <div className="chapter-meta__row">
           {!published && (
@@ -613,9 +609,15 @@ export default function ChapterPage() {
           </div>
         </div>
         </div>
-        {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
-          <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
-        )}
+        <div className="chapter-details__meta">
+          <p className="chapter-count muted">
+            {plural(counts.words, 'word')} · {plural(counts.characters, 'character')} · {plural(counts.paragraphs, 'paragraph')}
+            {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
+          </p>
+          {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
+            <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
+          )}
+        </div>
       </details>
 
       {!published && !fromText && (
@@ -686,14 +688,18 @@ export default function ChapterPage() {
         )}
         <div className="field chapter-text">
           <label htmlFor={`${ids}-text`}>Chapter text</label>
-          <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
-            onChange={(e) => {
-              setText(e.target.value);
-              trackCaret(e.currentTarget);
-            }}
-            onSelect={(e) => trackCaret(e.currentTarget)}
-            onKeyUp={(e) => trackCaret(e.currentTarget)}
-            onClick={(e) => trackCaret(e.currentTarget)} />
+          <div className={showHits ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
+            {showHits && <FindHighlights text={text} matches={hits.matches} current={hits.current} textareaRef={textRef} />}
+            <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
+              className={showHits ? 'chapter-text--finding' : undefined}
+              onChange={(e) => {
+                setText(e.target.value);
+                trackCaret(e.currentTarget);
+              }}
+              onSelect={(e) => trackCaret(e.currentTarget)}
+              onKeyUp={(e) => trackCaret(e.currentTarget)}
+              onClick={(e) => trackCaret(e.currentTarget)} />
+          </div>
         </div>
       </div>
 
@@ -716,9 +722,14 @@ ${p.source}` : undefined,
   );
 }
 
+/** Fewer than 90 % of the original's paragraphs. */
+function isShortShare(have: number, of: number): boolean {
+  return of > 0 && have < of * MIN_PARAGRAPH_SHARE;
+}
+
 /** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
 function ParagraphShare({ have, of }: { have: number; of: number }) {
-  const short = of > 0 && have < of * MIN_PARAGRAPH_SHARE;
+  const short = isShortShare(have, of);
   const label = `· ${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
   if (!short) return <span className="chapter-count__share"> {label}</span>;
   return (

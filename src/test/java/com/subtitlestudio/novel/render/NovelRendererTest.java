@@ -3,7 +3,11 @@ package com.subtitlestudio.novel.render;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
+import java.awt.Font;
+import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
+import java.text.AttributedCharacterIterator;
+import java.text.AttributedString;
 import java.text.Normalizer;
 import java.time.Duration;
 import java.util.List;
@@ -189,7 +193,7 @@ class NovelRendererTest {
 
     @Test
     void versionIsBumpedSoCachedImagesAreRedrawn() {
-        assertThat(NovelRenderer.VERSION).isEqualTo(6);
+        assertThat(NovelRenderer.VERSION).isEqualTo(7);
     }
 
     @Test
@@ -290,5 +294,48 @@ class NovelRendererTest {
         int g = (rgb >> 8) & 0xff;
         int b = rgb & 0xff;
         return (r + g + b) / 3 < 150;
+    }
+
+    @Test
+    void stripsSkinTonesAndJoiners() {
+        assertThat(NovelRenderer.clean("✌🏻 👍🏿 ❤️ 👨‍👩‍👧")).isEqualTo("✌ 👍 ❤ 👨👩👧");
+    }
+
+    @Test
+    void everyCharacterOfAnEmojiLineHasAGlyph() {
+        String line = NovelRenderer.clean("Ừ, nhưng chỉ trong mấy bộ truyện khác của tác giả thôi 😜, đùa đấy ✌🏻 ❤️ 👨‍👩‍👧");
+        assertAllDrawable(renderer.styled(line, renderer.font()));
+        // the heading uses the bold title font
+        assertAllDrawable(renderer.styled(NovelRenderer.heading(new RenderInput("T", 8, null, "Đùa 😜", "x", "w")),
+                renderer.font().deriveFont(Font.BOLD)));
+    }
+
+    @Test
+    void aCharacterNoFontHasStaysInTheBodyFont() {
+        AttributedString s = renderer.styled("ab", renderer.font()); // private-use char
+        AttributedCharacterIterator it = s.getIterator();
+        it.setIndex(1);
+        assertThat(it.getAttribute(TextAttribute.FONT)).isEqualTo(renderer.font());
+    }
+
+    @Test
+    void rendersAnEmojiChapterWithoutError() {
+        assertThat(renderer.render(input("Đùa đấy 😜 ✌🏻 "), PageFormat.ALL.getFirst())).hasSize(1);
+    }
+
+    private static void assertAllDrawable(AttributedString s) {
+        AttributedCharacterIterator it = s.getIterator();
+        StringBuilder text = new StringBuilder();
+        for (char c = it.first(); c != AttributedCharacterIterator.DONE; c = it.next()) {
+            text.append(c);
+        }
+        int i = 0;
+        while (i < text.length()) {
+            int cp = text.codePointAt(i);
+            it.setIndex(i);
+            Font f = (Font) it.getAttribute(TextAttribute.FONT);
+            assertThat(f.canDisplay(cp)).as("U+%04X at %d", cp, i).isTrue();
+            i += Character.charCount(cp);
+        }
     }
 }

@@ -56,7 +56,28 @@
   display: none;
 }
 
+/* A panel inside the bar (find and replace) takes its own full-width row under everything else. */
+.chapter-bar__below {
+  order: 4;
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+/* Phones, while the find panel is open: only the actions row (Find, Save, menu) stays above the panel. */
+.chapter-bar--with-below .chapter-bar__nav,
+.chapter-bar--with-below .chapter-bar__state {
+  display: none;
+}
+
 @media (min-width: 521px) {
+  .chapter-bar--with-below .chapter-bar__nav {
+    display: inline-flex;
+  }
+
+  .chapter-bar--with-below .chapter-bar__state {
+    display: revert;
+  }
+
   .chapter-bar__name {
     display: inline-flex;
   }
@@ -95,6 +116,11 @@
     white-space: nowrap;
   }
 
+  /* The bar keeps one row for its own items and wraps only the panel under them. */
+  .chapter-bar--with-below {
+    flex-wrap: wrap;
+  }
+
   /* An empty state still takes its place, so the actions stay on the right. */
   .chapter-bar__state:empty {
     display: block;
@@ -108,4 +134,12 @@
 
 .chapter-bar__item > .member-menu__item {
   width: 100%;
+}
+
+/* The find tool is a ghost button; while its panel is open it shows the app's "selected" style. */
+.chapter-bar__actions .button--ghost[aria-pressed='true'],
+.chapter-bar__actions .button--ghost[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--brand-2);
+  border-color: var(--brand-2-ink);
+  color: var(--on-brand);
 }
