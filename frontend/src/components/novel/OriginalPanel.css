@@ -35,6 +35,14 @@
   margin-bottom: 0;
 }
 
+/* An image of the chapter (a marker line in the text): as wide as the panel lets it be, never taller than itself. */
+.chapter-original__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-control);
+}
+
 /* The paragraph that matches the one the caret is in (information = purple): a clear tint plus a bar on the left. */
 .chapter-original__p--active {
   background: color-mix(in srgb, var(--brand-2) 38%, transparent);

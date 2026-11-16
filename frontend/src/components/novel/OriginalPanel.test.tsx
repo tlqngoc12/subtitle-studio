@@ -97,6 +97,39 @@ describe('OriginalPanel below 1024 px', () => {
   });
 });
 
+describe('OriginalPanel images', () => {
+  const WITH_IMAGES = 'Before.\n\n[[image:12]]\n\nAfter.';
+
+  it('shows the image itself where a marker stands, in its own paragraph', () => {
+    stubWidth(true);
+    render(<OriginalPanel language="en" text={WITH_IMAGES} activeIndex={null} />);
+
+    const region = screen.getByRole('region', { name: 'Original text' });
+    const paragraphsShown = [...region.querySelectorAll('p')];
+    expect(paragraphsShown).toHaveLength(3);
+    const img = paragraphsShown[1].querySelector('img')!;
+    expect(img).toHaveAttribute('src', '/api/media/12');
+    expect(img).toHaveAttribute('alt', 'Image in the chapter');
+    expect(img).toHaveAttribute('loading', 'lazy');
+    expect(img).toHaveClass('chapter-original__img');
+    expect(region).not.toHaveTextContent('[[image:12]]');
+  });
+
+  it('highlights the paragraph of an image like any other', () => {
+    stubWidth(true);
+    render(<OriginalPanel language="en" text={WITH_IMAGES} activeIndex={1} />);
+
+    const marked = document.querySelectorAll('[aria-current="true"]');
+    expect(marked).toHaveLength(1);
+    expect(marked[0].querySelector('img')).not.toBeNull();
+  });
+
+  it('fits the image to the panel width', () => {
+    expect(css).toMatch(/\.chapter-original__img\s*\{[^}]*max-width:\s*100%/);
+    expect(css).toMatch(/\.chapter-original__img\s*\{[^}]*height:\s*auto/);
+  });
+});
+
 describe('OriginalPanel styles', () => {
   it('tints the active paragraph with a 38% orchid tint and a left bar (box-shadow, so the text does not shift)', () => {
     expect(css).toMatch(/\.chapter-original__p--active\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--brand-2\) 38%, transparent\)/);

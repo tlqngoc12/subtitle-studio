@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
 import type { ChapterDetail } from '../../api/novels';
-import { paragraphIndexAt } from '../../lib/chapterText';
+import { alignParagraph, paragraphIndexAt, paragraphs } from '../../lib/chapterText';
 import { formatInstantWithTime } from '../../lib/dates';
 import type { FindHits } from '../../lib/useChapterEditor';
 import { useAutoGrow } from '../../lib/useAutoGrow';
@@ -29,7 +29,10 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   function trackCaret(el: HTMLTextAreaElement) {
     if (chapter.sourceText == null) return; // only a chapter with an original has paragraphs to match
-    setActiveParagraph(paragraphIndexAt(el.value, el.selectionStart));
+    // Image markers are anchors: the paragraphs the translator wrote about an image belong to that image.
+    setActiveParagraph(
+      alignParagraph(paragraphs(chapter.sourceText), paragraphs(el.value), paragraphIndexAt(el.value, el.selectionStart)),
+    );
   }
 
   return (
