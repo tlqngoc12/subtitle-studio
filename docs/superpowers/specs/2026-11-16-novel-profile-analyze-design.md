@@ -72,7 +72,7 @@ ALTER TABLE t_chapter ADD (ai_text CLOB);
   - `basedOn` in the analyze response counts only what fit into the request limits.
   - When `basedOn` is smaller, the UI shows "Used X of Y edits (newest first)".
 - **Shared profile name:** the stats line names the other novels when chapters come from more than one, for example "incl. 3 chapters of Be my Sugar!".
-- **Nothing to analyze** → `409 NO_CORRECTIONS` (same code and message style as Vietsub). Gemini is not called.
+- **Nothing to analyze** → `400 NO_CORRECTIONS` (reuse `NoCorrectionsException`, exactly as Vietsub does). Gemini is not called.
 
 ## Gemini request
 
