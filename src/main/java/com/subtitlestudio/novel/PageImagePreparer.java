@@ -26,12 +26,17 @@ public class PageImagePreparer {
     static final float QUALITY = 0.85f;
 
     public byte[] prepare(Path image) {
+        return prepare(image, MAX_SIDE);
+    }
+
+    /** Like {@link #prepare(Path)} with the long side limited to {@code maxSide} px. */
+    public byte[] prepare(Path image, int maxSide) {
         try {
             BufferedImage in = ImageIO.read(image.toFile());
             if (in == null) {
                 throw new IOException("Unsupported image: " + image.getFileName());
             }
-            double scale = Math.min(1.0, (double) MAX_SIDE / Math.max(in.getWidth(), in.getHeight()));
+            double scale = Math.min(1.0, (double) maxSide / Math.max(in.getWidth(), in.getHeight()));
             int w = Math.max(1, (int) Math.round(in.getWidth() * scale));
             int h = Math.max(1, (int) Math.round(in.getHeight() * scale));
             BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);

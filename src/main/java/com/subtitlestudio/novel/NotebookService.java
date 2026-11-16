@@ -235,7 +235,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
                 .map(n -> parse(n.getContentJson())).orElse(null);
         return new Job(profile(novel), old == null ? null : NotebookText.render(old, NotebookText.MAX_CHARS),
                 old == null ? NotebookContent.EMPTY : old,
-                ChapterText.of(chapter, ps));
+                ImageMarkers.strip(ChapterText.of(chapter, ps))); // markers mean nothing to Gemini here
     }
 
     private void save(long novelId, int chapterNo, NotebookContent content) {
