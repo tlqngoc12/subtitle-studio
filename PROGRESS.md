@@ -1008,6 +1008,10 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - **Thông báo busy của Gemini:** khi không model nào trả lời, có model hết quota ngày (hoặc bị bỏ qua vì đã biết hết) và có model quá tải/không trả lời kịp, `GeminiCaller` nêu cả hai nhóm và giờ reset, ví dụ "Gemini is busy: gemini-3.5-flash-lite is overloaded; gemini-3.6-flash, gemini-3.5-flash are out of free quota until 15:00 (Vietnam time). Try again in a few minutes."; các trường hợp khác giữ nguyên thông báo cũ.
 - **Lưu ý deploy:** V26 xoá dữ liệu sổ tay trên Oracle; chạy `scripts/backup-db.ps1` trước `docker compose up --build`. Bản sao lưu `ss-20261116-220349.dmp` còn dữ liệu sổ tay.
 
+### 2026-11-16: Xuất bản chương lỗi dịch thì xoá lỗi ✅ (có migration V27)
+- Chương dịch Gemini lỗi (`FAILED`) mà người dùng tự viết text rồi Publish vẫn hiện huy hiệu đỏ "Failed" và dòng lỗi. Nay `ChapterTranslationService.publish` đặt `TRANSLATED` và xoá `translation_error` khi chương đang `FAILED` (kể cả publish lại chương đã Published); không đụng `aiText`. Chương chưa Publish giữ nguyên lỗi.
+- **Migration V27** dọn dữ liệu cũ: `PUBLISHED` + `FAILED` thành `TRANSLATED`, lỗi `NULL`. Test mới `V27MigrationTest` và 3 test trong `ChapterTranslationServiceTest`.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
