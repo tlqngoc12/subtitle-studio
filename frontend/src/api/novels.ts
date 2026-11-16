@@ -6,7 +6,6 @@ import { send, type PromptProfiles } from './client';
 export type NovelStatus = 'ONGOING' | 'COMPLETED';
 export type ChapterTranslationStatus = 'NONE' | 'TRANSLATING' | 'TRANSLATED' | 'FAILED';
 export type ChapterPublishStatus = 'DRAFT' | 'PUBLISHED';
-export type NotebookStatus = 'IDLE' | 'UPDATING' | 'FAILED';
 export type NovelSourceType = 'SCREENSHOTS' | 'WATTPAD';
 /** The language of a novel's original text. */
 export type SourceLanguage = 'th' | 'en';
@@ -79,12 +78,6 @@ export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 's
   trailerVideoId: string | null;
   tags: string[];
   coverUrl: string | null;
-  notebookStatus: NotebookStatus;
-  notebookError: string | null;
-  /** "Pause notebook updates": publishing does not start a notebook update. */
-  notebookPaused: boolean;
-  /** The chapter the running notebook update is for (only while UPDATING). */
-  notebookChapterNo: number | null;
   chapters: ChapterSummary[];
 }
 
@@ -128,50 +121,8 @@ export interface ChapterDetail {
   sourceFetchedAt: string | null;
   /** Language of the original text of the novel (th or en). */
   sourceLanguage: SourceLanguage;
-  /** The novel's notebook state: while UPDATING no chapter of the novel can start translating. */
-  notebookStatus: NotebookStatus;
-  /** The chapter the notebook is updating after (only while UPDATING). */
-  notebookChapterNo: number | null;
   /** Images a Wattpad fetch could not download (only set by the fetch and reload calls). */
   skippedImages?: number;
-}
-
-export interface GlossaryEntry {
-  source: string;
-  target: string;
-  note: string | null;
-}
-
-export interface AddressingRule {
-  from: string;
-  to: string;
-  rule: string;
-}
-
-export interface NotebookCharacter {
-  name: string;
-  sourceName: string | null;
-  profile: string | null;
-  currentState: string | null;
-  lastUpdatedChapter: number;
-}
-
-export interface NotebookContent {
-  glossary: GlossaryEntry[];
-  addressing: AddressingRule[];
-  characters: NotebookCharacter[];
-  storySoFar: string;
-  recentChapters: { chapterNo: number; summary: string }[];
-}
-
-export interface NotebookView {
-  afterChapterNo: number | null;
-  content: NotebookContent | null;
-  versions: number[];
-  status: NotebookStatus;
-  error: string | null;
-  staleLaterVersions: boolean;
-  notebookPaused: boolean;
 }
 
 function json(method: string, body: unknown): RequestInit {
@@ -281,15 +232,6 @@ export async function unpublishChapter(id: number): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${id}/unpublish`, { method: 'POST' })).json();
 }
 
-export async function getNotebook(novelId: number, after?: number): Promise<NotebookView> {
-  const query = after === undefined ? '' : `?after=${after}`;
-  return (await send(`/api/novels/${novelId}/notebook${query}`)).json();
-}
-
-export async function retryNotebook(novelId: number): Promise<void> {
-  await afterTranslateStart(send(`/api/novels/${novelId}/notebook/retry`, { method: 'POST' }));
-}
-
 /** What the New novel form is prefilled with from a Wattpad story (nothing is saved). */
 export interface WattpadNovelPreview {
   storyId: string;
@@ -377,7 +319,3 @@ export async function reloadChapterOriginal(chapterId: number): Promise<ChapterD
   return (await send(`/api/chapters/${chapterId}/reload-original`, { method: 'POST' })).json();
 }
 
-/** Turns "pause notebook updates" on or off; returns the latest notebook view. */
-export async function setNotebookPaused(novelId: number, paused: boolean): Promise<NotebookView> {
-  return (await send(`/api/novels/${novelId}/notebook/paused`, json('PUT', { paused }))).json();
-}

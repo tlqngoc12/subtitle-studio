@@ -63,15 +63,9 @@ export function useChapterEditor(chapterId: number) {
   }, [chapterId]);
 
   const translating = chapter?.translationStatus === 'TRANSLATING';
-  const notebookUpdating = chapter?.notebookStatus === 'UPDATING';
-  // Poll while this chapter translates, and while the notebook updates (no other chapter can start then).
-  useChapterPolling(translating || notebookUpdating ? chapterId : null, (c) => {
-    if (!translating) {
-      // Only the notebook is running: take its state and keep every edit.
-      setChapter((prev) =>
-        prev ? { ...prev, notebookStatus: c.notebookStatus, notebookChapterNo: c.notebookChapterNo } : prev,
-      );
-    } else if (c.translationStatus !== 'TRANSLATING') {
+  // Poll while this chapter translates.
+  useChapterPolling(translating ? chapterId : null, (c) => {
+    if (c.translationStatus !== 'TRANSLATING') {
       load(c);
     } else {
       // A fallback model took over: show it, keep the edits.

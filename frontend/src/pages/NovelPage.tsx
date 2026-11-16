@@ -12,11 +12,9 @@ import {
   reorderChapters,
   updateNovel,
   type ChapterSummary,
-  type NotebookView as NotebookData,
   type NovelDetail,
 } from '../api/novels';
 import { ChapterList } from '../components/novel/ChapterList';
-import { NotebookView } from '../components/novel/NotebookView';
 import { NovelForm } from '../components/novel/NovelForm';
 import { NovelProfileTab } from '../components/novel/NovelProfileTab';
 import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
@@ -35,20 +33,13 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { Toolbar } from '../components/ui/Toolbar';
 import { Cover } from '../components/ui/Cover';
 
-/** The highest Published chapter number, or null when none is published. */
-function latestPublishedNo(chapters: NovelDetail['chapters']): number | null {
-  const numbers = chapters.filter((c) => c.publishStatus === 'PUBLISHED').map((c) => c.chapterNo);
-  return numbers.length > 0 ? Math.max(...numbers) : null;
-}
-
-/** Novels › one novel: Chapters | Details | Notebook | Profile. The novel is loaded once for every tab. */
+/** Novels › one novel: Chapters | Details | Profile. The novel is loaded once for every tab. */
 export default function NovelPage() {
   const { id } = useParams();
   const novelId = Number(id);
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [novel, setNovel] = useState<NovelDetail | null>(null);
-  const [notebook, setNotebook] = useState<NotebookData | null>(null);
   const [search] = useSearchParams();
   const [tab, setTab] = useState(() => {
     const wanted = search.get('tab');
@@ -70,14 +61,8 @@ export default function NovelPage() {
       .catch((e) => setError(errorMessage(e)));
   }, [novelId]);
 
-  // Poll the novel (never Wattpad) while a chapter translates or the notebook updates.
+  // Poll the novel (never Wattpad) while a chapter translates.
   useNovelPolling(novelId, novel !== null && novelIsBusy(novel), setNovel);
-
-  // The header badge follows the switch: keep the novel's flag in step with the notebook view.
-  const onNotebook = useCallback((v: NotebookData) => {
-    setNotebook(v);
-    setNovel((n) => (n && n.notebookPaused !== v.notebookPaused ? { ...n, notebookPaused: v.notebookPaused } : n));
-  }, []);
 
   const busy = novel ? novelBusy(novel) : null;
 
@@ -126,7 +111,7 @@ export default function NovelPage() {
     if (!novel) return;
     const ok = await confirm({
       title: `Delete the novel "${novel.title}"?`,
-      description: 'Every chapter, screenshot, translation and the notebook are deleted. This cannot be undone.',
+      description: 'Every chapter, screenshot and translation are deleted. This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
     });
@@ -155,12 +140,7 @@ export default function NovelPage() {
             breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]}
             title={novel.title}
             media={<Cover src={novel.coverUrl} />}
-            meta={
-              <>
-                <span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>
-                {novel.notebookPaused && <span className="badge badge--info">Notebook paused</span>}
-              </>
-            }
+            meta={<span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>}
           />
 
           {busy && <BusyLine busy={busy} />}
@@ -177,9 +157,6 @@ export default function NovelPage() {
               )}
               <TabTrigger className="tabs__tab" value="details">
                 Details
-              </TabTrigger>
-              <TabTrigger className="tabs__tab" value="notebook">
-                Notebook
               </TabTrigger>
               <TabTrigger className="tabs__tab" value="profile">
                 Profile
@@ -232,12 +209,6 @@ export default function NovelPage() {
                   toast.success('Novel saved');
                 }}
               />
-            </Tabs.Content>
-
-            <Tabs.Content value="notebook" className="tabs__panel">
-              <NotebookView novelId={novelId} view={notebook} onView={onNotebook}
-                latestPublishedNo={latestPublishedNo(novel.chapters)}
-                labels={Object.fromEntries(novel.chapters.map((c) => [c.chapterNo, c.label]))} />
             </Tabs.Content>
 
             <Tabs.Content value="profile" className="tabs__panel">

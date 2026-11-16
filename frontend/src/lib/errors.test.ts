@@ -37,7 +37,6 @@ describe('errorMessage', () => {
     ['INVALID_PAGE_ORDER', 'The pages changed meanwhile. They have been reloaded.'],
     ['CHAPTER_HAS_NO_PAGES', 'Add page screenshots before translating.'],
     ['CHAPTER_NOT_TRANSLATED', 'Every page needs a translation before publishing.'],
-    ['NOTEBOOK_UPDATE_IN_PROGRESS', 'The notebook is being updated.'],
     ['CHAPTER_PUBLISHED', 'This chapter is published.'],
   ])('maps %s to an English message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
@@ -116,13 +115,6 @@ describe('errorMessage for NOVEL_TRANSLATION_BUSY', () => {
     expect(busy({ reason: 'CHAPTER_TRANSLATING', chapterNo: 25 })).toEqual({
       title: 'Chapter 25 is still translating',
       hint: 'Wait for it to finish, then try again.',
-    });
-  });
-
-  it('names the chapter the notebook is updating after', () => {
-    expect(busy({ reason: 'NOTEBOOK_UPDATING', chapterNo: 24 })).toEqual({
-      title: 'The notebook is still updating after chapter 24',
-      hint: 'Gemini can take a few minutes when it is busy. Try again when it finishes.',
     });
   });
 
