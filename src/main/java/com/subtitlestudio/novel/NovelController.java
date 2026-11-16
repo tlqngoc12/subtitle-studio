@@ -7,6 +7,7 @@ import com.subtitlestudio.novel.wattpad.WattpadPartRow;
 import com.subtitlestudio.novel.wattpad.WattpadNovelService;
 import com.subtitlestudio.novel.wattpad.WattpadUrlRequest;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,9 +29,11 @@ public class NovelController {
     private final NotebookService notebook;
     private final ChapterService chapterService;
     private final WattpadNovelService wattpadNovels;
+    private final NovelProfileAnalyzer profileAnalyzer;
 
     public NovelController(NovelService service, NotebookService notebook, ChapterService chapterService,
-                           WattpadNovelService wattpadNovels) {
+                           WattpadNovelService wattpadNovels, NovelProfileAnalyzer profileAnalyzer) {
+        this.profileAnalyzer = profileAnalyzer;
         this.wattpadNovels = wattpadNovels;
         this.service = service;
         this.notebook = notebook;
@@ -58,6 +61,24 @@ public class NovelController {
     public NotebookView setNotebookPaused(@PathVariable long id, @RequestBody NotebookPausedRequest request) {
         return notebook.setNotebookPaused(id, request.paused());
     }
+
+    @GetMapping("/{id}/profile")
+    public NovelProfileAnalyzer.Details profile(@PathVariable long id) {
+        return profileAnalyzer.details(id);
+    }
+
+    /** Runs one Gemini call (10 to 60 seconds); writes nothing. */
+    @PostMapping("/{id}/profile/analyze")
+    public NovelProfileAnalyzer.Analysis analyzeProfile(@PathVariable long id) {
+        return profileAnalyzer.analyze(id);
+    }
+
+    @PutMapping("/{id}/profile")
+    public Map<String, String> saveProfile(@PathVariable long id, @RequestBody ProfileSaveRequest body) {
+        return Map.of("sha", profileAnalyzer.save(id, body.text(), body.baseSha()));
+    }
+
+    public record ProfileSaveRequest(String text, String baseSha) {}
 
     @PostMapping("/wattpad/preview")
     public WattpadNovelPreview wattpadPreview(@RequestBody WattpadUrlRequest request) {

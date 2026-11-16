@@ -297,6 +297,7 @@ public class ChapterTranslationService {
                 return;
             }
             c.setTextVi(result.text()); // replaces any edited text: Translate again starts over
+            c.setAiText(result.text());
             c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
             c.setTranslationError(null);
             c.setTranslatedAt(clock.instant());
@@ -378,6 +379,7 @@ public class ChapterTranslationService {
                 }
             }
             c.setTextVi(null); // the new translation replaces the edited whole text
+            c.setAiText(ChapterText.of(c, ps)); // textVi is null now: the page texts joined
             c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
             c.setTranslationError(null);
             c.setTranslatedAt(clock.instant());

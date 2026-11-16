@@ -247,6 +247,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, "NOVEL_NOT_FOUND", e.getMessage());
     }
 
+    @ExceptionHandler(com.subtitlestudio.novel.NoNovelProfileException.class)
+    ProblemDetail noNovelProfile(com.subtitlestudio.novel.NoNovelProfileException e) {
+        return problem(HttpStatus.NOT_FOUND, "NO_PROFILE", "This novel has no translation profile.");
+    }
+
     @ExceptionHandler(VietsubNotManualException.class)
     ProblemDetail vietsubNotManual(VietsubNotManualException e) {
         return problem(HttpStatus.CONFLICT, "VIETSUB_NOT_MANUAL", e.getMessage());

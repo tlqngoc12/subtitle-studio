@@ -18,6 +18,7 @@ import {
 import { ChapterList } from '../components/novel/ChapterList';
 import { NotebookView } from '../components/novel/NotebookView';
 import { NovelForm } from '../components/novel/NovelForm';
+import { NovelProfileTab } from '../components/novel/NovelProfileTab';
 import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
 import { useNovelPolling } from '../lib/useNovelPolling';
 import { busyTitle, novelBusy } from '../lib/novelBusy';
@@ -40,7 +41,7 @@ function latestPublishedNo(chapters: NovelDetail['chapters']): number | null {
   return numbers.length > 0 ? Math.max(...numbers) : null;
 }
 
-/** Novels › one novel: Chapters | Details | Notebook. The novel is loaded once for every tab. */
+/** Novels › one novel: Chapters | Details | Notebook | Profile. The novel is loaded once for every tab. */
 export default function NovelPage() {
   const { id } = useParams();
   const novelId = Number(id);
@@ -49,7 +50,10 @@ export default function NovelPage() {
   const [novel, setNovel] = useState<NovelDetail | null>(null);
   const [notebook, setNotebook] = useState<NotebookData | null>(null);
   const [search] = useSearchParams();
-  const [tab, setTab] = useState(search.get('tab') === 'wattpad' ? 'wattpad' : 'chapters');
+  const [tab, setTab] = useState(() => {
+    const wanted = search.get('tab');
+    return wanted === 'wattpad' || wanted === 'profile' ? wanted : 'chapters';
+  });
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -176,6 +180,9 @@ export default function NovelPage() {
               <TabTrigger className="tabs__tab" value="notebook">
                 Notebook
               </TabTrigger>
+              <TabTrigger className="tabs__tab" value="profile">
+                Profile
+              </TabTrigger>
             </Tabs.List>
 
             <Tabs.Content value="chapters" className="tabs__panel">
@@ -230,6 +237,10 @@ export default function NovelPage() {
               <NotebookView novelId={novelId} view={notebook} onView={onNotebook}
                 latestPublishedNo={latestPublishedNo(novel.chapters)}
                 labels={Object.fromEntries(novel.chapters.map((c) => [c.chapterNo, c.label]))} />
+            </Tabs.Content>
+
+            <Tabs.Content value="profile" className="tabs__panel">
+              <NovelProfileTab novelId={novelId} sourceType={novel.sourceType} />
             </Tabs.Content>
           </Tabs.Root>
         </>
