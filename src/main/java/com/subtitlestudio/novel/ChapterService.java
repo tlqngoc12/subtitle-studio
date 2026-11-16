@@ -213,7 +213,13 @@ public class ChapterService {
         renderCache.evict(id);
     }
 
-    /** Appends the screenshots after the existing pages, ordered by file name. */
+    /** Enough of the start of a file to recognise PNG, JPEG, GIF and WebP. */
+    private static final int SNIFF_BYTES = 32;
+
+    /**
+     * Appends the screenshots after the existing pages, ordered by file name. Files are checked by size and first
+     * bytes, then read one at a time while they are stored, so only one image is in memory at once.
+     */
     @Transactional
     public List<PageDto> addPages(long id, List<NamedImage> files) {
         Chapter c = structural(id);
@@ -221,10 +227,10 @@ public class ChapterService {
             throw new InvalidMediaException("No files");
         }
         for (NamedImage f : files) {
-            if (f.bytes().length > maxImageBytes) {
+            if (f.size() > maxImageBytes) {
                 throw new MediaTooLargeException();
             }
-            ImageType type = sniffer.sniff(f.bytes())
+            ImageType type = sniffer.sniff(f.head(SNIFF_BYTES))
                     .orElseThrow(() -> new InvalidMediaException("Not a PNG, JPEG or WebP image"));
             if (!PAGE_TYPES.contains(type)) {
                 throw new InvalidMediaException("Not a PNG, JPEG or WebP image");

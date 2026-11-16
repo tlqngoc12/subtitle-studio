@@ -251,6 +251,77 @@ class ChapterServiceTest {
         assertThat(pages.get(0).mediaUrl()).startsWith("/api/media/");
     }
 
+    /** Counts how often the head and the whole file are read, and whether only one file is "live" at a time. */
+    private static final class CountingContent implements NamedImage.Content {
+        private final byte[] data;
+        private final long reportedSize;
+        private final List<String> log;
+        private final String name;
+        int headReads;
+        int fullReads;
+
+        CountingContent(String name, byte[] data, long reportedSize, List<String> log) {
+            this.name = name;
+            this.data = data;
+            this.reportedSize = reportedSize;
+            this.log = log;
+        }
+
+        @Override
+        public long size() {
+            return reportedSize;
+        }
+
+        @Override
+        public byte[] head(int n) {
+            headReads++;
+            log.add("head:" + name);
+            return java.util.Arrays.copyOf(data, Math.min(n, data.length));
+        }
+
+        @Override
+        public byte[] bytes() {
+            fullReads++;
+            log.add("bytes:" + name);
+            return data;
+        }
+    }
+
+    @Test
+    void addPages_reads_each_file_only_when_storing() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        List<String> log = new ArrayList<>();
+        List<CountingContent> contents = new ArrayList<>();
+        for (String n : List.of("1.png", "2.png", "3.png")) {
+            byte[] png = TestImages.png();
+            contents.add(new CountingContent(n, png, png.length, log));
+        }
+
+        service.addPages(c.id(), contents.stream().map(x -> new NamedImage(x.name, x)).toList());
+
+        assertThat(contents).allSatisfy(x -> {
+            assertThat(x.fullReads).as(x.name + " full reads").isEqualTo(1);
+            assertThat(x.headReads).as(x.name + " head reads").isEqualTo(1);
+        });
+        // validation (heads) finishes before any full read, and each full read happens in the store loop
+        assertThat(log.subList(0, 3)).allMatch(e -> e.startsWith("head:"));
+        assertThat(log.subList(3, 6)).containsExactly("bytes:1.png", "bytes:2.png", "bytes:3.png");
+        assertThat(service.get(c.id()).pages()).hasSize(3);
+    }
+
+    @Test
+    void addPages_rejects_oversize_by_size_without_reading() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        List<String> log = new ArrayList<>();
+        CountingContent big = new CountingContent("big.png", TestImages.png(), 300_000, log);
+
+        assertThatThrownBy(() -> service.addPages(c.id(), List.of(new NamedImage("big.png", big))))
+                .isInstanceOf(MediaTooLargeException.class);
+
+        assertThat(big.fullReads).isZero();
+        assertThat(big.headReads).isZero();
+    }
+
     @Test
     void uploadRejectsNonImageGifAndTooLarge() {
         ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
