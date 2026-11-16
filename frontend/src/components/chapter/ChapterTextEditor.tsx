@@ -4,6 +4,7 @@ import { alignParagraph, paragraphIndexAt, paragraphs } from '../../lib/chapterT
 import { formatInstantWithTime } from '../../lib/dates';
 import type { FindHits } from '../../lib/useChapterEditor';
 import { useAutoGrow } from '../../lib/useAutoGrow';
+import { CopyTextButton } from './CopyTextButton';
 import { FindHighlights } from '../novel/FindHighlights';
 import { OriginalPanel } from '../novel/OriginalPanel';
 
@@ -52,6 +53,7 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
       <div className="field chapter-text">
         <label htmlFor={`${idBase}-text`}>Chapter text</label>
         <div className={showHits ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
+          <CopyTextButton label="Copy chapter text" text={text} />
           {showHits && <FindHighlights text={text} matches={hits.matches} current={hits.current} textareaRef={textRef} />}
           <textarea id={`${idBase}-text`} ref={textRef} rows={24} value={text} disabled={locked}
             className={showHits ? 'chapter-text--finding' : undefined}

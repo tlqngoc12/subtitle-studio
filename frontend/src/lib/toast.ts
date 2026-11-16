@@ -16,3 +16,12 @@ export function toastSkippedImages(count: number | undefined): void {
     description: 'Use Reload original to try again.',
   });
 }
+
+/** The copy buttons' two outcomes. */
+export function toastCopied(): void {
+  toast.success('Copied');
+}
+
+export function toastCopyFailed(): void {
+  toast.error('Could not copy');
+}

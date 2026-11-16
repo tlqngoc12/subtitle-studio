@@ -44,6 +44,15 @@ export function imageMarkerId(paragraph: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** The text without its image marker paragraphs; the blank lines they leave behind are collapsed. */
+export function stripImageMarkers(text: string): string {
+  return text
+    .split(/\n\s*\n/)
+    .filter((p) => imageMarkerId(p) === null)
+    .join('\n\n')
+    .trim();
+}
+
 /**
  * The index of the original's paragraph that goes with the translated paragraph `index`. Without image markers in the
  * original the two lists line up one to one, so the index is returned as it is. With markers, the markers are anchors:

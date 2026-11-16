@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
 import { css } from '../../test/css';
 import { OriginalPanel } from './OriginalPanel';
 
@@ -14,7 +15,20 @@ function stubWidth(wide: boolean) {
   }));
 }
 
-afterEach(() => vi.unstubAllGlobals());
+vi.mock('sonner', async (orig) => ({
+  ...(await orig<typeof import('sonner')>()),
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+function stubClipboard(writeText: (text: string) => Promise<void>) {
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+  vi.clearAllMocks();
+});
 
 describe('OriginalPanel on a wide screen', () => {
   it('shows the original as a heading, a labelled region and one <p> per paragraph', () => {
@@ -145,5 +159,70 @@ describe('OriginalPanel disclosure summary', () => {
     const summary = document.querySelector('details > summary')!;
     expect(summary).toHaveClass('disclosure__summary');
     expect(summary.querySelector('svg.disclosure__chevron')).not.toBeNull();
+  });
+});
+
+describe('OriginalPanel copy button', () => {
+  const original = 'One.\n\n[[image:3]]\n\nTwo.';
+
+  it('copies the original without the image markers, and shows a check for 1.5 s', async () => {
+    vi.useFakeTimers();
+    stubWidth(true);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    stubClipboard(writeText);
+    render(<OriginalPanel language="en" text={original} activeIndex={null} />);
+
+    const button = screen.getByRole('button', { name: 'Copy original text' });
+    expect(button.querySelector('svg.lucide-copy')).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(writeText).toHaveBeenCalledWith('One.\n\nTwo.');
+    expect(toast.success).toHaveBeenCalledWith('Copied');
+    expect(button.querySelector('svg.lucide-check')).not.toBeNull();
+    await act(async () => {
+      vi.advanceTimersByTime(1600);
+    });
+    expect(button.querySelector('svg.lucide-copy')).not.toBeNull();
+  });
+
+  it('shows an error toast when the clipboard refuses', async () => {
+    stubWidth(true);
+    stubClipboard(vi.fn().mockRejectedValue(new Error('denied')));
+    render(<OriginalPanel language="en" text={original} activeIndex={null} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy original text' }));
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('Could not copy');
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('copies an empty text as an empty string', async () => {
+    stubWidth(true);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    stubClipboard(writeText);
+    render(<OriginalPanel language="en" text="" activeIndex={null} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy original text' }));
+    });
+    expect(writeText).toHaveBeenCalledWith('');
+  });
+
+  it('is in the box wrapper, not in the scrolling text, and below 1024 px once the disclosure is open', () => {
+    stubWidth(false);
+    render(<OriginalPanel language="en" text={original} activeIndex={null} />);
+
+    const button = screen.getByRole('button', { name: 'Copy original text', hidden: true });
+    expect(button.parentElement).toHaveClass('chapter-original__box');
+    expect(screen.getByRole('region', { name: 'Original text', hidden: true })).not.toContainElement(button);
+  });
+
+  it('pins the button to the box corner', () => {
+    expect(css).toMatch(/\.chapter-original__box\s*\{[^}]*position:\s*relative/);
+    expect(css).toMatch(/\.chapter-original__box > \.copy-corner\s*\{[^}]*position:\s*absolute[^}]*top:[^}]*right:/);
   });
 });

@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import highlightsSource from '../components/novel/FindHighlights.tsx?raw';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -302,6 +303,30 @@ describe('ChapterPage', () => {
 
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true));
     expect(screen.queryByRole('button', { name: 'Enlarge page 2' })).not.toBeInTheDocument();
+  });
+
+  it('copies the current text, with unsaved edits and without image markers, from a button in the box corner', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderPage([get()]);
+    await loaded();
+
+    fireEvent.change(textBox(), { target: { value: 'Bản sửa\n\n[[image:3]]\n\nĐoạn hai' } });
+    const button = screen.getByRole('button', { name: 'Copy chapter text' });
+    expect(button.parentElement).toHaveClass('chapter-text__box');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(writeText).toHaveBeenCalledWith('Bản sửa\n\nĐoạn hai');
+    expect(toast.success).toHaveBeenCalledWith('Copied');
+  });
+
+  it('pins the chapter text copy button and keeps the textarea and the find highlights padded alike', () => {
+    expect(css).toMatch(/\.chapter-text__box > \.copy-corner\s*\{[^}]*position:\s*absolute[^}]*top:[^}]*right:/);
+    expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*padding-right:\s*3rem/);
+    // The highlights overlay copies the textarea's computed padding (see FindHighlights), so they stay aligned.
+    expect(highlightsSource).toContain("'paddingRight'");
   });
 
   it('saves the whole chapter text', async () => {
