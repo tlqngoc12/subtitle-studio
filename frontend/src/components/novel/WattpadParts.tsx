@@ -11,7 +11,7 @@ import {
 } from '../../api/novels';
 import { formatInstant } from '../../lib/dates';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
-import { toastError } from '../../lib/toast';
+import { toastError, toastSkippedImages } from '../../lib/toast';
 import { busyTitle, novelBusy } from '../../lib/novelBusy';
 import { Tip } from '../Tip';
 import { EmptyState } from '../EmptyState';
@@ -85,8 +85,9 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
       }
       setPending(true);
       try {
-        await fetchAndTranslateWattpadPart(novelId, p.partId);
+        const started = await fetchAndTranslateWattpadPart(novelId, p.partId);
         toast.info('Translation started', { description: p.title });
+        toastSkippedImages(started.skippedImages);
       } catch (e) {
         toastError(errorMessage(e));
       }

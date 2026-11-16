@@ -19,6 +19,7 @@ describe('errorMessage', () => {
     ['CHAPTER_ALREADY_TRANSLATED', 'already translated'],
     ['WATTPAD_PART_DELETED', 'deleted on Wattpad'],
     ['WATTPAD_PART_EMPTY', 'no text for this part'],
+    ['WATTPAD_PART_IMAGES_FAILED', 'images for this part could not be downloaded'],
     ['WATTPAD_PART_NOT_FOUND', 'not in the story'],
     ['WATTPAD_NOTHING_NEXT', 'already translated'],
     ['PLAYLIST_NOT_FOUND', 'This playlist no longer exists.'],

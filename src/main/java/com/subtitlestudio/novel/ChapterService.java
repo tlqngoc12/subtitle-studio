@@ -7,6 +7,7 @@ import com.subtitlestudio.profile.ImageSniffer;
 import com.subtitlestudio.profile.ImageType;
 import com.subtitlestudio.profile.InvalidMediaException;
 import com.subtitlestudio.profile.Media;
+import com.subtitlestudio.profile.MediaRepository;
 import com.subtitlestudio.profile.MediaService;
 import com.subtitlestudio.profile.MediaTooLargeException;
 import java.time.Clock;
@@ -34,6 +35,7 @@ public class ChapterService {
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
     private final ChapterImageRepository chapterImages;
+    private final MediaRepository mediaRepository;
     private final MediaService mediaService;
     private final ImageSniffer sniffer;
     private final RenderCache renderCache;
@@ -43,13 +45,15 @@ public class ChapterService {
     private final TranslatingModels models;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                          ChapterImageRepository chapterImages, MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
+                          ChapterImageRepository chapterImages, MediaRepository mediaRepository,
+                          MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
                           PageRotator rotator, SubtitleStudioProperties properties, Clock clock,
                           TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.chapterImages = chapterImages;
+        this.mediaRepository = mediaRepository;
         this.mediaService = mediaService;
         this.sniffer = sniffer;
         this.renderCache = renderCache;
@@ -67,6 +71,16 @@ public class ChapterService {
     /** Adds a DRAFT chapter at the end holding a Wattpad part's original text; returns its id. */
     @Transactional
     public long addFromSource(long novelId, String title, String sourceText, String wattpadPartId, Instant fetchedAt) {
+        return addFromSource(novelId, title, sourceText, wattpadPartId, fetchedAt, List.of());
+    }
+
+    /**
+     * Like the one above, for a text whose marker paragraphs refer to {@code images} (first appearance order, one per
+     * distinct Wattpad URL); the chapter owns those media from now on.
+     */
+    @Transactional
+    public long addFromSource(long novelId, String title, String sourceText, String wattpadPartId, Instant fetchedAt,
+                              List<ChapterImageLink> images) {
         String shortTitle = title == null ? null : title.strip();
         if (shortTitle != null && shortTitle.length() > MAX_TITLE) {
             shortTitle = shortTitle.substring(0, MAX_TITLE);
@@ -76,7 +90,52 @@ public class ChapterService {
         c.setWattpadPartId(wattpadPartId);
         c.setSourceFetchedAt(fetchedAt);
         chapters.flush();
+        syncImages(c, images);
         return c.getId();
+    }
+
+    /** The media id of each image the chapter already has, by the Wattpad URL it came from. */
+    @Transactional(readOnly = true)
+    public Map<String, Long> imageMediaByUrl(long id) {
+        Map<String, Long> byUrl = new HashMap<>();
+        chapterImages.findByChapterIdOrderByPosition(id)
+                .forEach(i -> byUrl.put(i.getSourceUrl(), i.getMedia().getId()));
+        return byUrl;
+    }
+
+    /**
+     * Makes the chapter's image rows match {@code images}: new URLs are linked, URLs that are gone are unlinked (and
+     * their media deleted once nothing else uses it), the others keep their row and take the new position.
+     */
+    private void syncImages(Chapter c, List<ChapterImageLink> images) {
+        Map<String, ChapterImage> existing = new HashMap<>();
+        for (ChapterImage i : chapterImages.findByChapterIdOrderByPosition(c.getId())) {
+            existing.put(i.getSourceUrl(), i);
+        }
+        int position = 1;
+        Set<String> kept = new HashSet<>();
+        for (ChapterImageLink link : images) {
+            if (!kept.add(link.sourceUrl())) {
+                continue;
+            }
+            ChapterImage row = existing.get(link.sourceUrl());
+            if (row != null && row.getMedia().getId() == link.mediaId()) {
+                row.setPosition(position++);
+                continue;
+            }
+            if (row != null) {
+                chapterImages.delete(row);
+                chapterImages.flush();
+            }
+            Media media = mediaRepository.findById(link.mediaId()).orElseThrow(() -> new InvalidChapterException(
+                    List.of(new FieldError("images", "An image of this chapter was not found."))));
+            chapterImages.save(new ChapterImage(c, media, link.sourceUrl(), position++));
+        }
+        List<ChapterImage> gone = existing.values().stream().filter(i -> !kept.contains(i.getSourceUrl())).toList();
+        List<Long> goneMedia = gone.stream().map(i -> i.getMedia().getId()).toList();
+        chapterImages.deleteAll(gone);
+        chapterImages.flush();
+        mediaService.deleteIfUnreferenced(goneMedia);
     }
 
     /** The Wattpad part id of a chapter whose original may be reloaded: a Draft that is not being translated. */
@@ -98,11 +157,24 @@ public class ChapterService {
     /** Replaces the original text of a Draft Wattpad chapter; the translation is not touched. */
     @Transactional
     public ChapterDetail replaceSourceText(long id, String sourceText, Instant fetchedAt) {
+        return replaceSourceText(id, sourceText, fetchedAt, null);
+    }
+
+    /**
+     * Like the one above, and the chapter's images become {@code images} (null leaves the images as they are, an empty
+     * list unlinks them all).
+     */
+    @Transactional
+    public ChapterDetail replaceSourceText(long id, String sourceText, Instant fetchedAt,
+                                           List<ChapterImageLink> images) {
         reloadablePartId(id);
         Chapter c = find(id);
         c.setSourceText(sourceText);
         c.setSourceFetchedAt(fetchedAt);
         touch(c);
+        if (images != null) {
+            syncImages(c, images);
+        }
         return detail(c);
     }
 

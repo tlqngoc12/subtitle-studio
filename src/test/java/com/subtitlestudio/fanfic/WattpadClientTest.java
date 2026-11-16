@@ -218,6 +218,44 @@ class WattpadClientTest {
                 "/cover/no-512-k1.jpg", "/cover/no-256-k1.jpg");
     }
 
+    private static final byte[] PNG_HEAD = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 0, 0, 0, 0};
+
+    @Test
+    void imageIsDownloadedWhenItLooksLikeAnImageAndIsSmallEnough() {
+        server.createContext("/img/ok.png", ex -> respond(ex, 200, "image/png", PNG_HEAD));
+        String base = "http://127.0.0.1:" + server.getAddress().getPort();
+
+        assertThat(client.downloadImage(base + "/img/ok.png", 1000)).containsExactly(PNG_HEAD);
+    }
+
+    @Test
+    void imageRefusedWhenTooLargeNotAnImageOrNotFound() {
+        server.createContext("/img/big.png", ex -> respond(ex, 200, "image/png", PNG_HEAD));
+        server.createContext("/img/page.png", ex -> respond(ex, 200, "text/html", "<html></html>".getBytes(StandardCharsets.UTF_8)));
+        String base = "http://127.0.0.1:" + server.getAddress().getPort();
+
+        assertThatThrownBy(() -> client.downloadImage(base + "/img/big.png", 5))
+                .isInstanceOf(WattpadUnavailableException.class);
+        assertThatThrownBy(() -> client.downloadImage(base + "/img/page.png", 1000))
+                .isInstanceOf(WattpadUnavailableException.class);
+        assertThatThrownBy(() -> client.downloadImage(base + "/img/none.png", 1000))
+                .isInstanceOf(WattpadUnavailableException.class);
+    }
+
+    @Test
+    void imageRedirectToAnotherHostIsRefused() {
+        server.createContext("/img/away.png", ex -> {
+            ex.getResponseHeaders().add("Location", "http://localhost:" + server.getAddress().getPort() + "/img/ok.png");
+            ex.sendResponseHeaders(302, -1);
+            ex.close();
+        });
+        server.createContext("/img/ok.png", ex -> respond(ex, 200, "image/png", PNG_HEAD));
+        String base = "http://127.0.0.1:" + server.getAddress().getPort();
+
+        assertThatThrownBy(() -> client.downloadImage(base + "/img/away.png", 1000))
+                .isInstanceOf(WattpadUnavailableException.class);
+    }
+
     @Test
     void coverUnavailableWhenBothVariantsFail() {
         String base = "http://127.0.0.1:" + server.getAddress().getPort();

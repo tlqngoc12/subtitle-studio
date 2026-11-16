@@ -587,6 +587,63 @@ class ChapterServiceTest {
         assertThat(mediaRepository.existsById(image.getId())).isFalse();
     }
 
+    @Test
+    void addFromSourceOwnsItsImagesInMarkerOrder() {
+        com.subtitlestudio.profile.Media a = mediaService.store("a.png", TestImages.png());
+        com.subtitlestudio.profile.Media b = mediaService.store("b.png", TestImages.png());
+
+        long id = service.addFromSource(novel.getId(), "T", "[[image:" + a.getId() + "]]\n\n[[image:" + b.getId() + "]]",
+                "77", NOW, List.of(new ChapterImageLink(a.getId(), "https://img.wattpad.com/a.png"),
+                        new ChapterImageLink(b.getId(), "https://img.wattpad.com/b.png")));
+        em.flush();
+        em.clear();
+
+        assertThat(chapterImageRepository.findByChapterIdOrderByPosition(id))
+                .extracting(i -> i.getMedia().getId(), ChapterImage::getSourceUrl, ChapterImage::getPosition)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(a.getId(), "https://img.wattpad.com/a.png", 1),
+                        org.assertj.core.groups.Tuple.tuple(b.getId(), "https://img.wattpad.com/b.png", 2));
+        assertThat(service.imageMediaByUrl(id)).containsEntry("https://img.wattpad.com/a.png", a.getId())
+                .containsEntry("https://img.wattpad.com/b.png", b.getId());
+        assertThat(mediaRepository.isReferenced(a.getId())).isTrue();
+    }
+
+    @Test
+    void replaceSourceTextKeepsKnownImagesUnlinksGoneOnesAndDeletesTheirUnusedMedia() {
+        com.subtitlestudio.profile.Media keep = mediaService.store("a.png", TestImages.png());
+        com.subtitlestudio.profile.Media gone = mediaService.store("b.png", TestImages.png());
+        com.subtitlestudio.profile.Media fresh = mediaService.store("c.png", TestImages.png());
+        long id = service.addFromSource(novel.getId(), "T", "x", "78", NOW,
+                List.of(new ChapterImageLink(keep.getId(), "https://img.wattpad.com/a.png"),
+                        new ChapterImageLink(gone.getId(), "https://img.wattpad.com/b.png")));
+        em.flush();
+
+        service.replaceSourceText(id, "y", NOW, List.of(
+                new ChapterImageLink(fresh.getId(), "https://img.wattpad.com/c.png"),
+                new ChapterImageLink(keep.getId(), "https://img.wattpad.com/a.png")));
+        em.flush();
+        em.clear();
+
+        assertThat(chapterImageRepository.findByChapterIdOrderByPosition(id))
+                .extracting(i -> i.getMedia().getId(), ChapterImage::getPosition)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(fresh.getId(), 1),
+                        org.assertj.core.groups.Tuple.tuple(keep.getId(), 2));
+        assertThat(mediaRepository.existsById(gone.getId())).isFalse();
+        assertThat(mediaRepository.existsById(keep.getId())).isTrue();
+    }
+
+    @Test
+    void replaceSourceTextWithoutAnImageListLeavesTheImagesAlone() {
+        com.subtitlestudio.profile.Media a = mediaService.store("a.png", TestImages.png());
+        long id = service.addFromSource(novel.getId(), "T", "x", "79", NOW,
+                List.of(new ChapterImageLink(a.getId(), "https://img.wattpad.com/a.png")));
+        em.flush();
+
+        service.replaceSourceText(id, "y", NOW);
+        em.flush();
+
+        assertThat(chapterImageRepository.countByChapterId(id)).isEqualTo(1);
+    }
+
     private ChapterDetail landscapeChapter(int no, int pageCount) {
         ChapterDetail c = service.add(novel.getId(), new ChapterRequest(no, null));
         List<NamedImage> files = new ArrayList<>();

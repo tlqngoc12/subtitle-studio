@@ -756,6 +756,170 @@ class WattpadNovelServiceTest {
         verify(profiles, never()).create(eq("MyGrumpyVampire"), anyString());
     }
 
+    // ---- chapter images ----
+
+    private static final String IMAGE_ONLY_PART = readFixture("part-1631821143.html");
+    private static final String[] IMAGE_URLS = {"https://img.wattpad.com/075aa9e7/cover.jpg",
+            "https://img.wattpad.com/592a9753/card1.png", "https://img.wattpad.com/3629c571/card2.png",
+            "https://img.wattpad.com/f5751ba0/card3.png"};
+
+    private static String readFixture(String name) {
+        try {
+            return java.nio.file.Files.readString(java.nio.file.Path.of("src/test/resources/wattpad", name),
+                    java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
+    private static com.subtitlestudio.novel.ChapterDetail realDetail() {
+        return new com.subtitlestudio.novel.ChapterDetail(9, 3, "Warm", 1, "One", null,
+                com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING, null, null, null, false,
+                com.subtitlestudio.novel.ChapterPublishStatus.DRAFT, List.of(), null, null, null, null, "1631821143",
+                null, "en", null, null);
+    }
+
+    private void storeImagesAs(long firstId) {
+        long[] next = {firstId};
+        when(mediaService.store(anyString(), any(byte[].class))).thenAnswer(inv -> media(next[0]++));
+        when(wattpad.downloadImage(anyString(), anyLong())).thenReturn(new byte[] {1, 2, 3});
+    }
+
+    @Test
+    void anImageOnlyPartBecomesAChapterWithOneMarkerPerImage() {
+        wattpadNovel(3);
+        storyParts(part("1631821143", "Character", false));
+        when(wattpad.partText("1631821143")).thenReturn(IMAGE_ONLY_PART);
+        storeImagesAs(11);
+        when(chapterService.addFromSource(eq(3L), eq("Character"), anyString(), eq("1631821143"), eq(NOW), any()))
+                .thenReturn(77L);
+        when(translation.start(77L)).thenReturn(started);
+
+        assertThat(service.fetchAndTranslate(3, "1631821143")).isSameAs(started);
+
+        verify(chapterService).addFromSource(3L, "Character",
+                "[[image:11]]\n\n[[image:12]]\n\n[[image:13]]\n\n[[image:14]]", "1631821143", NOW,
+                List.of(new com.subtitlestudio.novel.ChapterImageLink(11, IMAGE_URLS[0]),
+                        new com.subtitlestudio.novel.ChapterImageLink(12, IMAGE_URLS[1]),
+                        new com.subtitlestudio.novel.ChapterImageLink(13, IMAGE_URLS[2]),
+                        new com.subtitlestudio.novel.ChapterImageLink(14, IMAGE_URLS[3])));
+    }
+
+    @Test
+    void aFailedImageOfAMixedPartIsDroppedAndCounted() {
+        wattpadNovel(3);
+        storyParts(part("2", "Mixed", false));
+        when(wattpad.partText("2")).thenReturn(readFixture("part-text-and-images.html"));
+        when(wattpad.downloadImage(eq("https://img.wattpad.com/aa/one.jpg"), anyLong()))
+                .thenThrow(new WattpadUnavailableException("gone"));
+        when(wattpad.downloadImage(eq("https://img.wattpad.com/aa/two.jpg"), anyLong())).thenReturn(new byte[] {1});
+        when(mediaService.store(anyString(), any(byte[].class))).thenReturn(media(21));
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any(), any()))
+                .thenReturn(78L);
+        when(translation.start(78L)).thenReturn(realDetail());
+
+        com.subtitlestudio.novel.ChapterDetail result = service.fetchAndTranslate(3, "2");
+
+        assertThat(result.skippedImages()).isEqualTo(1);
+        verify(chapterService).addFromSource(3L, "Mixed",
+                "Before the picture.\n\nBetween pictures.\n\n[[image:21]]\n\nAfter the second picture.", "2", NOW,
+                List.of(new com.subtitlestudio.novel.ChapterImageLink(21, "https://img.wattpad.com/aa/two.jpg")));
+    }
+
+    @Test
+    void anImageOnlyPartWhoseImagesAllFailIsRefused() {
+        wattpadNovel(3);
+        storyParts(part("1631821143", "Character", false));
+        when(wattpad.partText("1631821143")).thenReturn(IMAGE_ONLY_PART);
+        when(wattpad.downloadImage(anyString(), anyLong())).thenThrow(new WattpadUnavailableException("down"));
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "1631821143"))
+                .isInstanceOfSatisfying(WattpadPartProblemException.class, e -> {
+                    assertThat(e.code()).isEqualTo(WattpadPartProblemException.IMAGES_FAILED);
+                    assertThat(e.getMessage()).isEqualTo("Wattpad images for this part could not be downloaded.");
+                });
+        verify(chapterService, never()).addFromSource(anyLong(), anyString(), anyString(), anyString(), any(), any());
+        verify(translation, never()).start(anyLong());
+    }
+
+    @Test
+    void importReportsSkippedImagesAndRefusesAnAllFailedImagePart() {
+        wattpadNovel(3);
+        storyParts(part("2", "Mixed", false), part("3", "Pictures", false));
+        when(chapters.importedParts(3L)).thenReturn(NONE);
+        when(wattpad.partText("2")).thenReturn(readFixture("part-text-and-images.html"));
+        when(wattpad.partText("3")).thenReturn(IMAGE_ONLY_PART);
+        when(wattpad.downloadImage(anyString(), anyLong())).thenAnswer(inv -> {
+            String url = inv.getArgument(0);
+            if (url.contains("/aa/one")) {
+                return new byte[] {1};
+            }
+            throw new WattpadUnavailableException("gone");
+        });
+        when(mediaService.store(anyString(), any(byte[].class))).thenReturn(media(31));
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any(), any()))
+                .thenReturn(90L);
+
+        WattpadImportResult r = service.importParts(3, List.of("2", "3"));
+
+        assertThat(r.imported()).containsExactly(new WattpadImportResult.Imported("2", 90L, 1));
+        assertThat(r.failed()).extracting(WattpadImportResult.Failure::reason)
+                .containsExactly("Wattpad images for this part could not be downloaded.");
+    }
+
+    @Test
+    void reloadReusesTheMediaOfAnImageWithTheSameUrl() {
+        when(chapterService.reloadablePartId(5L)).thenReturn("1631821143");
+        when(chapterService.imageMediaByUrl(5L)).thenReturn(java.util.Map.of(IMAGE_URLS[0], 101L, IMAGE_URLS[1], 102L,
+                IMAGE_URLS[2], 103L, IMAGE_URLS[3], 104L));
+        when(wattpad.partText("1631821143")).thenReturn(IMAGE_ONLY_PART);
+        com.subtitlestudio.novel.ChapterDetail detail = mock(com.subtitlestudio.novel.ChapterDetail.class);
+        when(chapterService.replaceSourceText(eq(5L), anyString(), eq(NOW), any())).thenReturn(detail);
+
+        assertThat(service.reloadOriginal(5L)).isSameAs(detail);
+
+        verify(wattpad, never()).downloadImage(anyString(), anyLong());
+        verify(mediaService, never()).store(anyString(), any(byte[].class));
+        verify(chapterService).replaceSourceText(5L,
+                "[[image:101]]\n\n[[image:102]]\n\n[[image:103]]\n\n[[image:104]]", NOW,
+                List.of(new com.subtitlestudio.novel.ChapterImageLink(101, IMAGE_URLS[0]),
+                        new com.subtitlestudio.novel.ChapterImageLink(102, IMAGE_URLS[1]),
+                        new com.subtitlestudio.novel.ChapterImageLink(103, IMAGE_URLS[2]),
+                        new com.subtitlestudio.novel.ChapterImageLink(104, IMAGE_URLS[3])));
+    }
+
+    @Test
+    void anImageOutsideWattpadHostsIsNeverDownloaded() {
+        wattpadNovel(3);
+        storyParts(part("2", "Odd", false));
+        when(wattpad.partText("2")).thenReturn("<p>Text</p><p><img src=\"https://evil.example/x.png\"></p>"
+                + "<p><img src=\"http://img.wattpad.com/plain-http.png\"></p>");
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any()))
+                .thenReturn(79L);
+        when(translation.start(79L)).thenReturn(realDetail());
+
+        com.subtitlestudio.novel.ChapterDetail result = service.fetchAndTranslate(3, "2");
+
+        verify(wattpad, never()).downloadImage(anyString(), anyLong());
+        verify(mediaService, never()).store(anyString(), any(byte[].class));
+        assertThat(result.skippedImages()).isEqualTo(2);
+        verify(chapterService).addFromSource(3L, "Odd", "Text", "2", NOW);
+    }
+
+    @Test
+    void imagesStoredForAChapterThatCannotBeSavedAreRemoved() {
+        wattpadNovel(3);
+        storyParts(part("1631821143", "Character", false));
+        when(wattpad.partText("1631821143")).thenReturn(IMAGE_ONLY_PART);
+        storeImagesAs(11);
+        when(chapterService.addFromSource(eq(3L), anyString(), anyString(), anyString(), any(), any()))
+                .thenThrow(new IllegalStateException("db down"));
+
+        assertThatThrownBy(() -> service.fetchAndTranslate(3, "1631821143")).isInstanceOf(IllegalStateException.class);
+
+        verify(mediaService).deleteIfUnreferenced(List.of(11L, 12L, 13L, 14L));
+    }
+
     @Test
     void thePreviewSuggestsTheProfileName() {
         when(wattpad.storyWithParts("396487502")).thenReturn(story("English"));

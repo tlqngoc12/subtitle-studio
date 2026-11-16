@@ -162,6 +162,8 @@ class ApiErrorMappingTest {
                     HttpStatus.CONFLICT, "WATTPAD_PART_DELETED"),
             c(() -> new WattpadPartProblemException(WattpadPartProblemException.EMPTY, "m"),
                     HttpStatus.CONFLICT, "WATTPAD_PART_EMPTY"),
+            c(() -> new WattpadPartProblemException(WattpadPartProblemException.IMAGES_FAILED, "m"),
+                    HttpStatus.CONFLICT, "WATTPAD_PART_IMAGES_FAILED"),
             c(WattpadNothingNextException::new, HttpStatus.CONFLICT, "WATTPAD_NOTHING_NEXT"),
             c(() -> new NovelNotWattpadException(1), HttpStatus.CONFLICT, "NOVEL_NOT_WATTPAD"),
             c(() -> new ChapterHasNoPagesException(1), HttpStatus.UNPROCESSABLE_ENTITY, "CHAPTER_HAS_NO_PAGES"),

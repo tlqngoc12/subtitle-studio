@@ -6,6 +6,8 @@ public class WattpadPartProblemException extends RuntimeException {
     public static final String NOT_FOUND = "WATTPAD_PART_NOT_FOUND";
     public static final String DELETED = "WATTPAD_PART_DELETED";
     public static final String EMPTY = "WATTPAD_PART_EMPTY";
+    /** The part has only images and none of them could be downloaded. */
+    public static final String IMAGES_FAILED = "WATTPAD_PART_IMAGES_FAILED";
 
     private final String code;
 
