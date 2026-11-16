@@ -48,6 +48,29 @@ describe('NovelPage', () => {
     expect(within(rows[1]).getByText('Draft')).toBeInTheDocument();
   });
 
+  it('profileTabOpensFromQuery', async () => {
+    const calls = fakeFetch([
+      getNovel,
+      { method: 'GET', path: '/api/novels/3/profile', status: 200, body: {
+        name: 'SummerLove', text: '## Xưng hô', sha: 's', geminiConfigured: true,
+        stats: { chapters: 1, edits: 2, otherNovels: [] },
+      } },
+    ]);
+    render(
+      <MemoryRouter initialEntries={['/novels/3?tab=profile']}>
+        <Routes>
+          <Route path="/novels/:id" element={<NovelPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('tab', { name: 'Profile', selected: true })).toBeInTheDocument();
+    expect(await screen.findByText('SummerLove.md')).toBeInTheDocument();
+    expect(calls.some((c) => c.path === '/api/novels/3/profile')).toBe(true);
+    const tabs = within(screen.getByRole('tablist', { name: 'Novel sections' })).getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent).slice(-2)).toEqual(['Notebook', 'Profile']);
+  });
+
   it('is a hero header: cover before the title, Novels > title breadcrumbs, no back link', async () => {
     fakeFetch([getNovel]);
     renderPage();
