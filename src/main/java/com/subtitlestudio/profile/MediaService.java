@@ -112,6 +112,20 @@ public class MediaService {
         return new StoredMedia(file, typeOf(m).contentType());
     }
 
+    /** The image decoded for drawing, or null when it is gone or cannot be read (the caller leaves it out). */
+    @Transactional(readOnly = true)
+    public java.awt.image.BufferedImage loadImage(long id) {
+        try {
+            return javax.imageio.ImageIO.read(load(id).path().toFile());
+        } catch (MediaNotFoundException e) {
+            log.warn("Image {} is not there to draw", id);
+            return null;
+        } catch (IOException | RuntimeException e) {
+            log.warn("Image {} could not be read to draw: {}", id, e.getClass().getName());
+            return null;
+        }
+    }
+
     /** Deletes the given images that no block or item shows any more. */
     @Transactional
     public void deleteIfUnreferenced(Collection<Long> mediaIds) {

@@ -11,6 +11,7 @@ import com.subtitlestudio.novel.NovelRepository;
 import com.subtitlestudio.novel.render.PageFormat;
 import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.novel.render.RenderInput;
+import com.subtitlestudio.profile.MediaService;
 import com.subtitlestudio.novel.render.RenderedFormat;
 import com.subtitlestudio.publish.PublicNovelDetail.PublicChapterRef;
 import java.io.IOException;
@@ -40,14 +41,16 @@ public class NovelExporter {
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
     private final RenderCache renderCache;
+    private final MediaService mediaService;
     private final SubtitleStudioProperties properties;
 
     public NovelExporter(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                         RenderCache renderCache, SubtitleStudioProperties properties) {
+                         RenderCache renderCache, MediaService mediaService, SubtitleStudioProperties properties) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.renderCache = renderCache;
+        this.mediaService = mediaService;
         this.properties = properties;
     }
 
@@ -99,7 +102,8 @@ public class NovelExporter {
     private List<PublicPageFormat> formats(Path dir, Novel n, Chapter c, String watermark) {
         String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
         List<RenderedFormat> rendered = renderCache.imagesFor(c.getId(),
-                new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark));
+                new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark,
+                        mediaService::loadImage));
         Path target = dir.resolve("novels").resolve(n.getSlug());
         List<PublicPageFormat> result = new ArrayList<>();
         try {

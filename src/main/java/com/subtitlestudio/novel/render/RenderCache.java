@@ -108,6 +108,10 @@ public class RenderCache {
         }
     }
 
+    /**
+     * The hash covers the text, and so the media ids of the {@code [[image:N]]} marker lines in it. A picture never
+     * changes under its id (a changed image is a new media row), so the pictures themselves need no hash.
+     */
     private String hash(RenderInput in, PageFormat format) {
         String key = String.join("\u0000", "v" + NovelRenderer.VERSION, encoder.extension(),
                 format.key(), String.valueOf(format.width()), String.valueOf(format.height()),

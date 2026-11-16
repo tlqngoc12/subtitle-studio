@@ -788,6 +788,36 @@ class SiteExporterTest {
     }
 
     @Test
+    void aTextChapterWithAnImageDrawsTheImageBetweenItsTextPages() throws IOException {
+        java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(60, 90,
+                java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(picture, "png", png);
+        Media image = mediaService.store("i.png", png.toByteArray());
+        tx.executeWithoutResult(s -> {
+            Novel n = novels.save(new Novel("pics", "Pics", NovelStatus.ONGOING, NOW));
+            Chapter c = new Chapter(n, 1, "Tựa", NOW);
+            c.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+            c.setPublishedAt(NOW);
+            c.setSourceText("x");
+            c.setTextVi("Trước ảnh.\n\n[[image:" + image.getId() + "]]\n\nSau ảnh.");
+            chapters.save(c);
+        });
+
+        exporter.export(out, NOW);
+
+        JsonNode formats = readJson("data/novels/pics/1.json").get("formats");
+        assertThat(formats).hasSize(3);
+        for (JsonNode format : formats) {
+            // text before the picture, the picture, text after it
+            assertThat(format.get("images")).as(format.get("key").asText()).hasSize(3);
+            for (JsonNode file : format.get("images")) {
+                assertThat(out.resolve(file.asText().substring(1))).exists();
+            }
+        }
+    }
+
+    @Test
     void chapterFileListsEveryFormat() throws IOException {
         novel("summer", null, 1, 1);
 

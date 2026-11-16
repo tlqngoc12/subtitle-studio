@@ -323,6 +323,137 @@ class NovelRendererTest {
         assertThat(renderer.render(input("Đùa đấy 😜 ✌🏻 "), PageFormat.ALL.getFirst())).hasSize(1);
     }
 
+    // ---- chapter images ----
+
+    private static BufferedImage solid(int width, int height, java.awt.Color color) {
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        g.setColor(color);
+        g.fillRect(0, 0, width, height);
+        g.dispose();
+        return img;
+    }
+
+    private static RenderInput withImages(String text, java.util.Map<Long, BufferedImage> images) {
+        return new RenderInput("Tình Yêu Mùa Hạ", 3, null, "Mưa", text, "subtitle-studio-vn.pages.dev", images::get);
+    }
+
+    /** The color at the middle of a page, ignoring the faint watermark (6 % black at most). */
+    private static int centre(BufferedImage page) {
+        return page.getRGB(page.getWidth() / 2, page.getHeight() / 2);
+    }
+
+    private static boolean mostlyRed(int argb) {
+        return ((argb >> 16) & 0xff) > 200 && ((argb >> 8) & 0xff) < 60 && (argb & 0xff) < 60;
+    }
+
+    private static boolean mostlyBlue(int argb) {
+        return (argb & 0xff) > 200 && ((argb >> 16) & 0xff) < 60 && ((argb >> 8) & 0xff) < 60;
+    }
+
+    @Test
+    void textImageTextRendersInReadingOrder() {
+        var images = java.util.Map.of(1L, solid(500, 300, java.awt.Color.RED), 2L, solid(200, 800, java.awt.Color.BLUE));
+        String text = "Trước ảnh.\n\n[[image:1]]\n\nGiữa hai ảnh.\n\n[[image:2]]\n\nSau ảnh.";
+
+        for (PageFormat format : PageFormat.ALL) {
+            List<BufferedImage> pages = renderer.render(withImages(text, images), format);
+
+            assertThat(pages).hasSize(5);
+            assertThat(pages).allSatisfy(p -> assertThat(p.getWidth()).isEqualTo(format.width()));
+            assertThat(mostlyRed(centre(pages.get(1)))).isTrue();
+            assertThat(pages.get(1).getHeight()).isEqualTo((int) Math.round(300.0 * format.width() / 500));
+            assertThat(mostlyBlue(centre(pages.get(3)))).isTrue();
+            assertThat(pages.get(3).getHeight()).isEqualTo((int) Math.round(800.0 * format.width() / 200));
+            for (int k : new int[] {0, 2, 4}) {
+                assertThat(pages.get(k).getRGB(0, 0) >>> 24).as("text page %d has transparent paper", k).isZero();
+                assertThat(pages.get(k).getHeight()).as("text page %d is cropped to its text", k)
+                        .isLessThan(format.height());
+            }
+        }
+    }
+
+    @Test
+    void aPictureIsWatermarkedLikeATextPage() {
+        var images = java.util.Map.of(1L, solid(400, 400, java.awt.Color.WHITE));
+        BufferedImage picture = renderer.render(withImages("[[image:1]]", images), PageFormat.M).get(1);
+
+        boolean darkened = false;
+        for (int y = 0; y < picture.getHeight() && !darkened; y++) {
+            for (int x = 0; x < picture.getWidth(); x++) {
+                if ((picture.getRGB(x, y) & 0xff) < 250) {
+                    darkened = true;
+                    break;
+                }
+            }
+        }
+        assertThat(darkened).isTrue();
+    }
+
+    @Test
+    void aChapterOfImagesOnlyIsAHeadingPageAndOnePagePerImage() {
+        var images = java.util.Map.of(1L, solid(300, 300, java.awt.Color.RED), 2L, solid(300, 300, java.awt.Color.BLUE));
+
+        List<BufferedImage> pages = renderer.render(withImages("[[image:1]]\n\n[[image:2]]", images), PageFormat.S);
+
+        assertThat(pages).hasSize(3);
+        assertThat(pages.get(0).getHeight()).isLessThan(PageFormat.S.height() / 4);
+        assertThat(mostlyRed(centre(pages.get(1)))).isTrue();
+        assertThat(mostlyBlue(centre(pages.get(2)))).isTrue();
+    }
+
+    @Test
+    void aMissingImageIsLeftOutAndTheRestStillRenders() {
+        var images = java.util.Map.of(2L, solid(300, 300, java.awt.Color.BLUE));
+
+        List<BufferedImage> pages = renderer.render(withImages("Một.\n\n[[image:1]]\n\nHai.\n\n[[image:2]]", images),
+                PageFormat.S);
+
+        // "Một." and "Hai." share a page now that nothing stands between them; then the one picture that exists.
+        assertThat(pages).hasSize(2);
+        assertThat(mostlyBlue(centre(pages.get(1)))).isTrue();
+    }
+
+    @Test
+    void aVeryTallPictureIsScaledToFitThePageLimit() {
+        var images = java.util.Map.of(1L, solid(100, 40_000, java.awt.Color.RED));
+
+        BufferedImage picture = renderer.render(withImages("[[image:1]]", images), PageFormat.S).get(1);
+
+        assertThat(picture.getHeight()).isEqualTo(NovelRenderer.MAX_IMAGE_PAGE_HEIGHT);
+        assertThat(picture.getWidth()).isEqualTo(PageFormat.S.width());
+    }
+
+    /**
+     * Pixel hashes of a chapter without markers, taken from the renderer before images existed: a text-only chapter
+     * must draw the very same pages. (Taken on Windows with JDK 21; if Java2D text rendering differs on another
+     * platform, compare against that platform's output of the unchanged renderer.)
+     */
+    @Test
+    void noMarkerOutputIsUnchanged() throws Exception {
+        String text = String.join("\n\n", java.util.Collections.nCopies(30, PARAGRAPH)) + "\n\n***\n\nHết.";
+        java.util.Map<String, String> expected = java.util.Map.of(
+                "s", "3 69cc944bf8cdff0b5141a65c93bfd845bdffa1e9ddd51739694a025dd6b782cd",
+                "m", "5 9653f1bab4700a7552a0a62e3e9d283bebd0bf8e0aa38a7575c0e9179b992bf3",
+                "l", "6 8e916777a3f9937e98bd60383c7bc4a68d0f25b720adaf185469e47ae61438da");
+        for (PageFormat f : PageFormat.ALL) {
+            List<BufferedImage> pages = renderer.render(input(text), f);
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            for (BufferedImage img : pages) {
+                java.nio.ByteBuffer bb = java.nio.ByteBuffer.allocate(img.getWidth() * img.getHeight() * 4 + 8);
+                bb.putInt(img.getWidth()).putInt(img.getHeight());
+                for (int y = 0; y < img.getHeight(); y++) {
+                    for (int x = 0; x < img.getWidth(); x++) {
+                        bb.putInt(img.getRGB(x, y));
+                    }
+                }
+                md.update(bb.array());
+            }
+            assertThat(pages.size() + " " + java.util.HexFormat.of().formatHex(md.digest()))
+                    .as("format %s", f.key()).isEqualTo(expected.get(f.key()));
+        }
+    }
+
     private static void assertAllDrawable(AttributedString s) {
         AttributedCharacterIterator it = s.getIterator();
         StringBuilder text = new StringBuilder();
