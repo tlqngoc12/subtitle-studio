@@ -314,13 +314,86 @@ class GeminiCallerTest {
     }
 
     @Test
-    void busyThenDailyQuotaThenTimeoutReportsTheTimeout() {
+    void busyThenDailyQuotaThenTimeoutNamesBothGroups() {
         server.replyForModel(MAIN, 503, BUSY);
-        server.replyForModel(LITE, 429, DAILY);
-        server.delayForModel(THIRD, SLOW);
+        server.replyForModel(LITE, 429, daily429());
+        server.delayForModel(THIRD, Duration.ofSeconds(8));
 
-        assertThatThrownBy(() -> timeoutCaller(server.baseUrl(), LITE, THIRD).generate(HI, NO_CONFIG))
-                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini did not respond in time."));
+        // A generous timeout: the first request to the fake server can take a second or two on a busy machine.
+        var gemini = new SubtitleStudioProperties.Gemini("test-key", MAIN, Duration.ofSeconds(4),
+                Duration.ofMinutes(60), 0.3, List.of(LITE, THIRD));
+        assertThatThrownBy(() -> new GeminiCaller(gemini, server.baseUrl()).generate(HI, NO_CONFIG))
+                .satisfies(e -> assertThat(userMessage(e)).startsWith("Gemini is busy: " + MAIN + " is overloaded, "
+                        + THIRD + " did not respond in time; " + LITE + " is out of free quota until ")
+                        .endsWith(" (Vietnam time). Try again in a few minutes."));
+    }
+
+    private static final String FLASH36 = "gemini-3.6-flash";
+    private static final String LITE35 = "gemini-3.5-flash-lite";
+    private static final String FLASH35 = "gemini-3.5-flash";
+
+    /** A caller on the fixed test clock whose models are the three real names, in this order. */
+    private GeminiCaller busyCaller() {
+        return busyCaller(Duration.ofSeconds(10), LITE35, FLASH35);
+    }
+
+    private GeminiCaller busyCaller(Duration timeout, String... fallbacks) {
+        var gemini = new SubtitleStudioProperties.Gemini("secret-key", FLASH36, timeout,
+                Duration.ofMinutes(60), 0.3, List.of(fallbacks));
+        return new GeminiCaller(gemini, server.baseUrl(), tracker);
+    }
+
+    @Test
+    void busy_message_names_overloaded_and_exhausted_models() {
+        server.replyForModel(FLASH36, 429, daily429());
+        server.replyForModel(LITE35, 503, BUSY);
+        server.replyForModel(FLASH35, 429, daily429());
+
+        assertThatThrownBy(() -> busyCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy: gemini-3.5-flash-lite is overloaded; gemini-3.6-flash, gemini-3.5-flash "
+                        + "are out of free quota until 15:00 (Vietnam time). Try again in a few minutes.");
+    }
+
+    @Test
+    void busy_message_counts_models_skipped_as_exhausted() {
+        tracker.record(FLASH36, GeminiQuotaTracker.QuotaKind.DAILY, Instant.parse("2026-01-16T08:00:00Z"));
+        tracker.record(FLASH35, GeminiQuotaTracker.QuotaKind.DAILY, Instant.parse("2026-01-16T08:00:00Z"));
+        server.replyForModel(LITE35, 503, BUSY);
+
+        assertThatThrownBy(() -> busyCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy: gemini-3.5-flash-lite is overloaded; gemini-3.6-flash, gemini-3.5-flash "
+                        + "are out of free quota until 15:00 (Vietnam time). Try again in a few minutes.");
+        assertThat(server.requests()).isEqualTo(1);
+    }
+
+    @Test
+    void timeout_named_in_busy_message() {
+        server.replyForModel(FLASH36, 429, daily429());
+        server.delayForModel(LITE35, Duration.ofSeconds(8));
+        server.replyForModel(FLASH35, 429, daily429());
+
+        assertThatThrownBy(() -> busyCaller(Duration.ofSeconds(4), FLASH35, LITE35).generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy: gemini-3.5-flash-lite did not respond in time; gemini-3.6-flash, "
+                        + "gemini-3.5-flash are out of free quota until 15:00 (Vietnam time). Try again in a few minutes.");
+    }
+
+    @Test
+    void one_exhausted_model_is_named_in_the_singular() {
+        server.replyForModel(FLASH36, 429, daily429());
+        server.replyForModel(LITE35, 503, BUSY);
+        server.replyForModel(FLASH35, 503, BUSY);
+
+        assertThatThrownBy(() -> busyCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy: gemini-3.5-flash-lite is overloaded, gemini-3.5-flash is overloaded; "
+                        + "gemini-3.6-flash is out of free quota until 15:00 (Vietnam time). Try again in a few minutes.");
+    }
+
+    @Test
+    void all_overloaded_keeps_old_message() {
+        server.reply(503, BUSY);
+
+        assertThatThrownBy(() -> busyCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy right now (high demand), try again in a few minutes.");
     }
 
     @Test
