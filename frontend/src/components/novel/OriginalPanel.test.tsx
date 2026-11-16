@@ -98,8 +98,9 @@ describe('OriginalPanel below 1024 px', () => {
 });
 
 describe('OriginalPanel styles', () => {
-  it('tints the active paragraph with the hover colour', () => {
-    expect(css).toMatch(/\.chapter-original__p--active\s*\{[^}]*background:\s*var\(--hover\)/);
+  it('tints the active paragraph with a 38% orchid tint and a left bar (box-shadow, so the text does not shift)', () => {
+    expect(css).toMatch(/\.chapter-original__p--active\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--brand-2\) 38%, transparent\)/);
+    expect(css).toMatch(/\.chapter-original__p--active\s*\{[^}]*box-shadow:\s*inset 3px 0 0 var\(--brand-2-border\)/);
   });
 });
 

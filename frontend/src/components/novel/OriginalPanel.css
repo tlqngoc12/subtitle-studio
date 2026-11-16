@@ -35,9 +35,10 @@
   margin-bottom: 0;
 }
 
-/* The paragraph that matches the one the caret is in (information = purple). */
+/* The paragraph that matches the one the caret is in (information = purple): a clear tint plus a bar on the left. */
 .chapter-original__p--active {
-  background: var(--hover);
+  background: color-mix(in srgb, var(--brand-2) 38%, transparent);
+  box-shadow: inset 3px 0 0 var(--brand-2-border);
 }
 
 @media (min-width: 1024px) {
