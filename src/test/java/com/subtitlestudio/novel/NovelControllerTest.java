@@ -51,8 +51,11 @@ class NovelControllerTest {
     @MockitoBean
     private com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
 
+    @MockitoBean
+    private NovelProfileAnalyzer profileAnalyzer;
+
     @Test
-    void reordersChapters() throws Exception {
+    void reordersChapters()throws Exception {
         ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null, null,
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
@@ -357,5 +360,77 @@ class NovelControllerTest {
 
         mvc.perform(get("/api/novels/3/wattpad/parts")).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOVEL_NOT_WATTPAD"));
+    }
+
+    @Test
+    void getProfileReturnsTextShaStats() throws Exception {
+        when(profileAnalyzer.details(3L)).thenReturn(new NovelProfileAnalyzer.Details("SummerLove", "## Xưng hô",
+                "abc", new NovelProfileAnalyzer.Stats(12, 48, List.of("Be my Sugar!")), true));
+
+        mvc.perform(get("/api/novels/3/profile")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("SummerLove")).andExpect(jsonPath("$.sha").value("abc"))
+                .andExpect(jsonPath("$.stats.chapters").value(12)).andExpect(jsonPath("$.stats.edits").value(48))
+                .andExpect(jsonPath("$.stats.otherNovels[0]").value("Be my Sugar!"))
+                .andExpect(jsonPath("$.geminiConfigured").value(true));
+    }
+
+    @Test
+    void missingProfileFileIs404() throws Exception {
+        when(profileAnalyzer.details(3L)).thenThrow(new NoNovelProfileException(3));
+
+        mvc.perform(get("/api/novels/3/profile")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NO_PROFILE"))
+                .andExpect(jsonPath("$.detail").value("This novel has no translation profile."));
+    }
+
+    @Test
+    void analyzeReturnsTheProposal() throws Exception {
+        when(profileAnalyzer.analyze(3L)).thenReturn(new NovelProfileAnalyzer.Analysis("# P",
+                List.of(new NovelProfileAnalyzer.Rule("r", 2)),
+                List.of(new NovelProfileAnalyzer.Term("term", "Ellis → cô Ellis", 3)),
+                new NovelProfileAnalyzer.BasedOn(1, 5), "m", "abc"));
+
+        mvc.perform(post("/api/novels/3/profile/analyze")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.proposed").value("# P")).andExpect(jsonPath("$.rules[0].count").value(2))
+                .andExpect(jsonPath("$.terms[0].kind").value("term"))
+                .andExpect(jsonPath("$.basedOn.edits").value(5)).andExpect(jsonPath("$.sha").value("abc"));
+    }
+
+    @Test
+    void analyzeWithoutEditsIs400NoCorrections() throws Exception {
+        when(profileAnalyzer.analyze(3L)).thenThrow(new com.subtitlestudio.translate.NoCorrectionsException("none"));
+
+        mvc.perform(post("/api/novels/3/profile/analyze")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("NO_CORRECTIONS"));
+    }
+
+    @Test
+    void analyzeWhileTranslatingIs409Busy() throws Exception {
+        when(profileAnalyzer.analyze(3L)).thenThrow(new NovelTranslationBusyException(3,
+                NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING, 4));
+
+        mvc.perform(post("/api/novels/3/profile/analyze")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"));
+    }
+
+    @Test
+    void saveReturnsTheNewShaAndStaleShaIsRejected() throws Exception {
+        when(profileAnalyzer.save(3L, "# New", "old")).thenReturn("new");
+        when(profileAnalyzer.save(3L, "# New", "stale"))
+                .thenThrow(new com.subtitlestudio.translate.ProfileChangedException("changed"));
+
+        mvc.perform(put("/api/novels/3/profile").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"text\":\"# New\",\"baseSha\":\"old\"}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.sha").value("new"));
+        mvc.perform(put("/api/novels/3/profile").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"text\":\"# New\",\"baseSha\":\"stale\"}")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROFILE_CHANGED"));
+    }
+
+    @Test
+    void unknownNovelIs404() throws Exception {
+        when(profileAnalyzer.details(99L)).thenThrow(new NovelNotFoundException(99));
+
+        mvc.perform(get("/api/novels/99/profile")).andExpect(status().isNotFound());
     }
 }
