@@ -1,15 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeFetch } from '../test/fakeFetch';
-import { chapterDetail, notebookView, novelDetail } from '../test/novelFixtures';
+import { chapterDetail, novelDetail } from '../test/novelFixtures';
 import {
   addChapter,
   deletePage,
   getNovelProfiles,
-  getNotebook,
   publishChapter,
   reorderPages,
-  retryNotebook,
-  setNotebookPaused,
   rotatePage,
   rotatePages,
   translateChapter,
@@ -40,23 +37,6 @@ describe('novels API', () => {
     expect(JSON.parse(calls[0].body as string)).toEqual({ pageIds: [3, 1, 2] });
   });
 
-  it('asks for a notebook version', async () => {
-    const calls = fakeFetch([{ method: 'GET', path: '/api/novels/3/notebook?after=5', status: 200, body: notebookView() }]);
-
-    const view = await getNotebook(3, 5);
-
-    expect(calls[0].path).toBe('/api/novels/3/notebook?after=5');
-    expect(view.afterChapterNo).toBe(5);
-  });
-
-  it('asks for the latest notebook without a version', async () => {
-    const calls = fakeFetch([{ method: 'GET', path: '/api/novels/3/notebook', status: 200, body: notebookView() }]);
-
-    await getNotebook(3);
-
-    expect(calls[0].path).toBe('/api/novels/3/notebook');
-  });
-
   it('posts chapter actions', async () => {
     const calls = fakeFetch([
       { method: 'POST', path: '/api/novels/3/chapters', status: 201, body: chapterDetail() },
@@ -64,7 +44,6 @@ describe('novels API', () => {
       { method: 'POST', path: '/api/chapters/9/publish', status: 200, body: chapterDetail() },
       { method: 'PUT', path: '/api/chapters/9', status: 200, body: chapterDetail() },
       { method: 'DELETE', path: '/api/chapters/9/pages/11', status: 204 },
-      { method: 'POST', path: '/api/novels/3/notebook/retry', status: 202 },
     ]);
 
     await addChapter(3, { title: 'Mở đầu' });
@@ -72,7 +51,6 @@ describe('novels API', () => {
     await publishChapter(9);
     await updateChapter(9, { pages: [{ id: 11, textVi: 'Chào' }] });
     await deletePage(9, 11);
-    await retryNotebook(3);
 
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
       'POST /api/novels/3/chapters',
@@ -81,8 +59,6 @@ describe('novels API', () => {
       'POST /api/chapters/9/publish',
       'PUT /api/chapters/9',
       'DELETE /api/chapters/9/pages/11',
-      'POST /api/novels/3/notebook/retry',
-      'GET /api/gemini/quota',
     ]);
     expect(JSON.parse(calls[0].body as string)).toEqual({ title: 'Mở đầu' });
     expect(JSON.parse(calls[4].body as string)).toEqual({ pages: [{ id: 11, textVi: 'Chào' }] });
@@ -111,18 +87,5 @@ describe('novels API', () => {
     expect(JSON.parse(calls[0].body as string)).toEqual({ direction: 'RIGHT' });
     expect(calls[1].path).toBe('/api/chapters/1/pages/rotate');
     expect(JSON.parse(calls[1].body as string)).toEqual({ direction: 'LEFT' });
-  });
-});
-
-describe('notebook pause', () => {
-  it('PUTs the paused flag and returns the view', async () => {
-    const calls = fakeFetch([
-      { method: 'PUT', path: '/api/novels/3/notebook/paused', status: 200, body: { notebookPaused: true } },
-    ]);
-
-    const view = await setNotebookPaused(3, true);
-
-    expect(view.notebookPaused).toBe(true);
-    expect(JSON.parse(calls[0].body as string)).toEqual({ paused: true });
   });
 });

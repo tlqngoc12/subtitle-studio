@@ -35,7 +35,7 @@ class TextChapterTranslationTest {
     }
 
     private static TextChapterPrompt prompt(String language, String source) {
-        return new TextChapterPrompt("Warm", 3, null, "profile", "notebook", "previous", language, null, null, source);
+        return new TextChapterPrompt("Warm", 3, null, "profile", "previous", language, null, null, source);
     }
 
     @Test
@@ -233,7 +233,7 @@ class TextChapterTranslationTest {
         for (int i = 1; i <= imageCount; i++) {
             images.add(new PromptImage(i, "image/jpeg", new byte[] {(byte) i}));
         }
-        return new TextChapterPrompt("Warm", 3, null, "profile", "notebook", "previous", "en", null, null, source,
+        return new TextChapterPrompt("Warm", 3, null, "profile", "previous", "en", null, null, source,
                 images);
     }
 

@@ -22,7 +22,7 @@ import './WattpadParts.css';
 
 type RowState = 'NEW' | ChapterTranslationStatus;
 
-/** True while a chapter of the novel translates or its notebook updates: one translation at a time. */
+/** True while a chapter of the novel translates: one translation at a time. */
 export function novelIsBusy(novel: NovelDetail): boolean {
   return novelBusy(novel) !== null;
 }
@@ -78,7 +78,7 @@ export function WattpadParts({ novel, onChanged }: { novel: NovelDetail; onChang
         const next = list[nextIndex];
         const ok = await confirm({
           title: `${next.title} is not translated yet.`,
-          description: `The notebook will not know about it. Translate ${p.title} anyway?`,
+          description: `Translate ${p.title} anyway?`,
           confirmLabel: 'Translate anyway',
         });
         if (!ok) return;

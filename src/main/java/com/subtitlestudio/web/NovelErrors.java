@@ -14,7 +14,6 @@ import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.InvalidChapterException;
 import com.subtitlestudio.novel.InvalidNovelException;
 import com.subtitlestudio.novel.InvalidPageOrderException;
-import com.subtitlestudio.novel.NotebookUpdateInProgressException;
 import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.novel.NovelNotWattpadException;
 import com.subtitlestudio.novel.NovelTranslationBusyException;
@@ -28,7 +27,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Errors of novels, chapters, pages, the notebook and Wattpad parts.
+ * Errors of novels, chapters, pages and Wattpad parts.
  * Runs before {@link ApiExceptionHandler}, whose catch-all {@code Exception} handler must stay last.
  */
 @RestControllerAdvice
@@ -179,18 +178,6 @@ class NovelErrors {
     @ExceptionHandler(ChapterNotTranslatedException.class)
     ProblemDetail chapterNotTranslated(ChapterNotTranslatedException e) {
         return ProblemDetails.problem(HttpStatus.CONFLICT, "CHAPTER_NOT_TRANSLATED", e.getMessage());
-    }
-
-
-    @ExceptionHandler(NotebookUpdateInProgressException.class)
-    ProblemDetail notebookUpdateInProgress(NotebookUpdateInProgressException e) {
-        return ProblemDetails.problem(HttpStatus.CONFLICT, "NOTEBOOK_UPDATE_IN_PROGRESS", e.getMessage());
-    }
-
-
-    @ExceptionHandler(com.subtitlestudio.novel.NotebookPausedException.class)
-    ProblemDetail notebookPaused(com.subtitlestudio.novel.NotebookPausedException e) {
-        return ProblemDetails.problem(HttpStatus.CONFLICT, "NOTEBOOK_PAUSED", e.getMessage());
     }
 
 }

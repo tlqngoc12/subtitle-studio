@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Writes the public Novels data (spec section 7): novels with at least one published chapter, their published
- * chapters as drawn images. Chapter text, screenshots, notebooks and translation profiles never leave the app.
+ * chapters as drawn images. Chapter text, screenshots and translation profiles never leave the app.
  */
 @Component
 public class NovelExporter {

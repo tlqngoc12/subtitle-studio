@@ -10,8 +10,6 @@ import com.subtitlestudio.novel.ChapterPageRepository;
 import com.subtitlestudio.novel.ChapterPublishStatus;
 import com.subtitlestudio.novel.ChapterRepository;
 import com.subtitlestudio.novel.Novel;
-import com.subtitlestudio.novel.NovelNotebook;
-import com.subtitlestudio.novel.NovelNotebookRepository;
 import com.subtitlestudio.novel.NovelRepository;
 import com.subtitlestudio.novel.NovelStatus;
 import com.subtitlestudio.playlist.PlaylistService;
@@ -141,9 +139,6 @@ class SiteExporterTest {
     private ChapterPageRepository chapterPages;
 
     @Autowired
-    private NovelNotebookRepository notebooks;
-
-    @Autowired
     private TransactionTemplate tx;
 
     @Autowired
@@ -169,7 +164,7 @@ class SiteExporterTest {
         workRepository.deleteAll();
         personRepository.deleteAll();
         jdbc.update("update t_profile set portrait_media_id = null");
-        for (String table : List.of("t_novel_notebook", "t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
+        for (String table : List.of("t_chapter_page", "t_chapter", "t_novel", "t_playlist_item", "t_playlist", "t_profile_banner_image", "t_profile_block_item", "t_profile_block", "t_media",
                 "vi_cue", "cue", "video")) {
             jdbc.update("delete from " + table);
         }
@@ -601,7 +596,6 @@ class SiteExporterTest {
                 page.setTextVi("Chương " + no + " " + SECRET);
                 chapterPages.save(page);
             }
-            notebooks.save(new NovelNotebook(n, 1, "{\"storySoFar\":\"NOTEBOOK-SECRET\"}", NOW));
             return n.getId();
         });
     }
@@ -764,7 +758,7 @@ class SiteExporterTest {
             for (Path f : files.filter(Files::isRegularFile).toList()) {
                 byte[] bytes = Files.readAllBytes(f);
                 String text = new String(bytes, StandardCharsets.UTF_8);
-                assertThat(text).as(f.toString()).doesNotContain(SECRET).doesNotContain("NOTEBOOK-SECRET")
+                assertThat(text).as(f.toString()).doesNotContain(SECRET)
                         .doesNotContain("SecretProfileName");
                 assertThat(bytes).as(f.toString()).isNotEqualTo(PNG);
             }

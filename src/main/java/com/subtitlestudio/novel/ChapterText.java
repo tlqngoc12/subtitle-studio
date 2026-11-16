@@ -3,7 +3,7 @@ package com.subtitlestudio.novel;
 import java.util.List;
 
 /**
- * The chapter's text everyone reads (export, notebook, the next chapter's context): the whole-chapter text once it
+ * The chapter's text everyone reads (export, the next chapter's context): the whole-chapter text once it
  * was edited, otherwise the page texts joined with a blank line.
  */
 public final class ChapterText {

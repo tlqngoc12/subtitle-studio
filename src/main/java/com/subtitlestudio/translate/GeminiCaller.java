@@ -95,12 +95,17 @@ public class GeminiCaller {
         GenerateContentResponse response = null;
         String answeredBy = null;
         Content content = Content.fromParts(parts.toArray(Part[]::new));
+        // What each model did, for the "busy" message: 503, timeout, or a daily 429 (a model skipped as exhausted counts as daily).
+        java.util.Set<String> overloaded = new java.util.HashSet<>();
+        java.util.Set<String> noAnswer = new java.util.HashSet<>();
+        java.util.Set<String> outOfQuota = new java.util.HashSet<>();
         boolean busy = false;
         boolean timedOut = false;
         boolean onlyPerMinuteLimits = true;
+        List<String> all = modelOrder(settings);
         try (Client client = client()) {
-            List<String> all = modelOrder(settings);
             List<String> models = all.stream().filter(m -> !quota.isDailyExhausted(m)).toList();
+            all.stream().filter(m -> !models.contains(m)).forEach(outOfQuota::add);
             if (models.isEmpty()) {
                 Instant reset = quota.earliestDailyReset(all);
                 throw new TranslationFailedException(reset == null
@@ -117,6 +122,7 @@ public class GeminiCaller {
                     if (e.code() == 503) {
                         log.warn("Gemini model {} is overloaded (HTTP 503)", model);
                         busy = true;
+                        overloaded.add(model);
                     } else if (e.code() == 429) {
                         GeminiQuotaTracker.Classification kind = GeminiQuotaTracker.classify(e.message());
                         logQuota(model, e.message(), kind.kind());
@@ -125,6 +131,7 @@ public class GeminiCaller {
                             quota.record(model, GeminiQuotaTracker.QuotaKind.MINUTE, now.plus(kind.delay()));
                         } else {
                             onlyPerMinuteLimits = false;
+                            outOfQuota.add(model);
                             quota.record(model, GeminiQuotaTracker.QuotaKind.DAILY,
                                     GeminiQuotaTracker.nextDailyReset(now));
                         }
@@ -137,10 +144,14 @@ public class GeminiCaller {
                     }
                     log.warn("Gemini model {} did not respond within {}s", model, settings.timeout().toSeconds());
                     timedOut = true;
+                    noAnswer.add(model);
                 }
             }
         }
         if (response == null) {
+            if (!outOfQuota.isEmpty() && (busy || timedOut)) {
+                throw new TranslationFailedException(busyMessage(all, overloaded, noAnswer, outOfQuota));
+            }
             if (timedOut) {
                 throw new TranslationFailedException("Gemini did not respond in time.");
             }
@@ -161,6 +172,28 @@ public class GeminiCaller {
             throw new TranslationFailedException("Gemini refused to translate this content.");
         }
         return new Answer(text, answeredBy);
+    }
+
+    /**
+     * "Gemini is busy: A is overloaded, B did not respond in time; C, D are out of free quota until 15:00 (Vietnam
+     * time). Try again in a few minutes." Models are named in the order they are tried.
+     */
+    private String busyMessage(List<String> all, java.util.Set<String> overloaded, java.util.Set<String> noAnswer,
+                               java.util.Set<String> outOfQuota) {
+        List<String> busyParts = new ArrayList<>();
+        for (String model : all) {
+            if (overloaded.contains(model)) {
+                busyParts.add(model + " is overloaded");
+            } else if (noAnswer.contains(model)) {
+                busyParts.add(model + " did not respond in time");
+            }
+        }
+        List<String> exhausted = all.stream().filter(outOfQuota::contains).toList();
+        Instant reset = quota.earliestDailyReset(exhausted);
+        String until = reset == null ? "for today" : "until " + RESET_FORMAT.format(reset) + " (Vietnam time)";
+        String quotaPart = String.join(", ", exhausted) + (exhausted.size() == 1 ? " is" : " are")
+                + " out of free quota " + until;
+        return "Gemini is busy: " + String.join(", ", busyParts) + "; " + quotaPart + ". Try again in a few minutes.";
     }
 
     /** Logs which quota ran out (metric, limit, wait, kind), never the rest of the message. */

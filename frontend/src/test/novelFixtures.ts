@@ -1,7 +1,6 @@
 import type {
   ChapterDetail,
   ChapterSummary,
-  NotebookView,
   NovelDetail,
   NovelSummary,
 } from '../api/novels';
@@ -60,10 +59,6 @@ export function novelDetail(over: Partial<NovelDetail> = {}): NovelDetail {
     sourceType: 'SCREENSHOTS',
     sourceLanguage: 'th',
     wattpadStoryId: null,
-    notebookStatus: 'IDLE',
-    notebookError: null,
-    notebookPaused: false,
-    notebookChapterNo: null,
     chapters: [
       chapterSummary(),
       chapterSummary({ id: 10, chapterNo: 2, title: null, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' }),
@@ -97,29 +92,6 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     wattpadPartId: null,
     sourceFetchedAt: null,
     sourceLanguage: 'th',
-    notebookStatus: 'IDLE',
-    notebookChapterNo: null,
-    ...over,
-  };
-}
-
-export function notebookView(over: Partial<NotebookView> = {}): NotebookView {
-  return {
-    afterChapterNo: 5,
-    content: {
-      glossary: [{ source: 'พี่ชาย', target: 'anh trai', note: null }],
-      addressing: [{ from: 'Mai', to: 'Nam', rule: 'Mai gọi Nam là anh, xưng em' }],
-      characters: [
-        { name: 'Mai', sourceName: 'ใหม่', profile: 'hiền', currentState: 'đang buồn', lastUpdatedChapter: 5 },
-      ],
-      storySoFar: 'Mai gặp Nam.',
-      recentChapters: [{ chapterNo: 5, summary: 'Nam cứu Mai.' }],
-    },
-    versions: [2, 5],
-    status: 'IDLE',
-    error: null,
-    staleLaterVersions: false,
-    notebookPaused: false,
     ...over,
   };
 }

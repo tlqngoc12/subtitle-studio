@@ -1001,6 +1001,13 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - **Không làm:** tự lấy lại ảnh cho chương đã nhập trước đây (dùng Reload original rồi dịch lại), sắp xếp/sửa ảnh trong trình sửa, dịch chữ trong ảnh của Vietsub.
 - **Lưu ý deploy:** V25 chạy trên Oracle, chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi thì dừng.
 
+### 2026-11-16: Bỏ sổ tay truyện, thông báo busy rõ hơn ✅ (có migration V26)
+- Spec [docs/superpowers/specs/2026-11-16-remove-novel-notebook-design.md](docs/superpowers/specs/2026-11-16-remove-novel-notebook-design.md), plan [docs/superpowers/plans/2026-11-16-remove-novel-notebook.md](docs/superpowers/plans/2026-11-16-remove-novel-notebook.md). Sổ tay tốn một request Gemini mỗi chương Published (free tier 20/ngày/model), chạy hàng phút (prompt cứng cho tiếng Thái, `sourceName` tràn tới 35k ký tự, timeout 180 s) và phần hữu ích (xưng hô, tóm tắt) nhỏ, trùng với hồ sơ dịch + Analyze. Người dùng chọn xoá hẳn, kể cả dữ liệu.
+- **Backend:** xoá `NotebookService`/`Scheduler`/`Updater`/`Merger`/`Content`/`Text`/`View`... và 3 endpoint notebook; Publish không xếp việc nền; `NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING` và mọi kiểm tra "sổ tay đang cập nhật" bị bỏ. **V26** bỏ `t_novel_notebook` + sequence và 4 cột `t_novel.notebook_*` (chạy được trên cả Oracle lẫn H2; Oracle IT kiểm tra không còn cột `NOTEBOOK%`). Prompt dịch giữ nguyên từng byte, chỉ mất mục `# Sổ tay truyện` và cụm "và sổ tay truyện" trong luật (fixture golden `text-only-request-*.json` chỉ bị bỏ đúng phần đó); các file mẫu hồ sơ `_example.md`, `_novel_example.md`, `_novel_template_*.md` bỏ câu nhắc "sổ tay truyện tự cập nhật".
+- **Giao diện:** bỏ tab Notebook, công tắc tạm dừng, huy hiệu "Notebook paused", dòng "Notebook updating…", polling và các thông báo lỗi liên quan; `?tab=notebook` rơi về tab Chapters.
+- **Thông báo busy của Gemini:** khi không model nào trả lời, có model hết quota ngày (hoặc bị bỏ qua vì đã biết hết) và có model quá tải/không trả lời kịp, `GeminiCaller` nêu cả hai nhóm và giờ reset, ví dụ "Gemini is busy: gemini-3.5-flash-lite is overloaded; gemini-3.6-flash, gemini-3.5-flash are out of free quota until 15:00 (Vietnam time). Try again in a few minutes."; các trường hợp khác giữ nguyên thông báo cũ.
+- **Lưu ý deploy:** V26 xoá dữ liệu sổ tay trên Oracle; chạy `scripts/backup-db.ps1` trước `docker compose up --build`. Bản sao lưu `ss-20261116-220349.dmp` còn dữ liệu sổ tay.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
@@ -1027,8 +1034,5 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 | Nhãn Manual/AI trên trang public | Public site | dữ liệu đã có `viSource`; thêm badge nhỏ ở Vietsub list nếu muốn khách thấy |
 | Review Public site (Minor): Publish có thể kẹt PUBLISHING nếu executor từ chối/`Error`; tắt app phải chờ Publish đang chạy; ảnh Profile bị bỏ vẫn hiện khung zoom rỗng; code quản trị nằm trong bundle public (không chạy); `_redirects` có thể thừa với SPA mode của Pages; chèn meta noindex chỉ khớp `<head>`; đường dẫn file trong bundle lấy từ URI (percent-encoding); `mvn spring-boot:run` không có `public-site/` → lỗi chung chung; wrangler nhận toàn bộ env của app | Public site | final review nhánh `public-site` |
 | Bulk import cả thư mục ảnh + Gemini đề xuất chia chương | Novels | người dùng chọn làm sau (upload theo chương trước) |
-| Sửa sổ tay truyện bằng tay | Novels | hiện chỉ đọc; tự cập nhật sau mỗi chương Published |
-| Tạo lại các phiên bản sổ tay sau chương N khi dịch lại/sửa chương N | Novels | hiện chỉ cảnh báo "built from an older text" ở tab Notebook |
-| Hàng đợi cập nhật sổ tay mất khi app khởi động lại | Novels | trạng thái thành FAILED "interrupted", bấm Retry chạy lại chương gần nhất |
-| Review Novels (Minor): tab Notebook không tự làm mới khi đang UPDATING (phải tải lại trang); xoá chương khi sổ tay của nó đang/chờ cập nhật vẫn tạo bản "after N" hoặc báo FAILED; khi sổ tay vượt 12.000 ký tự phần cắt cứng rơi vào Tóm tắt/Chương gần đây (nằm cuối); cập nhật chương N lỗi rồi chương N+1 thành công thì lỗi của N bị quên (không Retry được); chương đã Published lưu được với text rỗng | Novels | final review nhánh `feature/novels` |
+| Review Novels (Minor): chương đã Published lưu được với text rỗng | Novels | final review nhánh `feature/novels` |
 | Tự khắc phục khi Gemini trả thiếu/sai block | P4 | gợi ý: hỏi lại chỉ các id thiếu/sai (giữ block đúng, request nhỏ, ít tốn quota); xem log chẩn đoán 2026-11-04 trước |

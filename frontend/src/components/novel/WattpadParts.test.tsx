@@ -35,13 +35,9 @@ const fetchTranslate = (partId: string, status = 202, body: unknown = {}) => ({
   body,
 });
 
-function novelWith(
-  chapterStatus: ChapterTranslationStatus | null,
-  notebookStatus: 'IDLE' | 'UPDATING' | 'FAILED' = 'IDLE',
-): NovelDetail {
+function novelWith(chapterStatus: ChapterTranslationStatus | null): NovelDetail {
   return {
     id: 3,
-    notebookStatus,
     chapters: chapterStatus ? [{ id: 77, chapterNo: 1, title: 'Chapter 1: Cold Brew', translationStatus: chapterStatus }] : [],
   } as unknown as NovelDetail;
 }
@@ -120,43 +116,12 @@ describe('WattpadParts', () => {
     expect(within(row('Chapter 1: Cold Brew')).getByText('Translating…')).toBeInTheDocument();
   });
 
-  it('disables every button while the notebook updates', async () => {
-    fakeFetch([getParts()]);
-    renderParts(novelWith('TRANSLATED', 'UPDATING'));
-    await screen.findByText('PROLOGUE');
-
-    expect(action('PROLOGUE')).toBeDisabled();
-    expect(action('Chapter 2: Three Seconds')).toBeDisabled();
-  });
-
-  it('says why in a tooltip: the notebook is updating after the chapter the server names', async () => {
-    fakeFetch([getParts()]);
-    const novel = {
-      ...novelWith('TRANSLATED', 'UPDATING'),
-      notebookChapterNo: 24,
-      chapters: [{ id: 77, chapterNo: 24, translationStatus: 'TRANSLATED', publishStatus: 'PUBLISHED' }],
-    } as unknown as NovelDetail;
-    renderParts(novel);
-    await screen.findByText('PROLOGUE');
-
-    expect(action('PROLOGUE')).toBeDisabled();
-    await expectTooltip(action('PROLOGUE').parentElement!, 'The notebook is still updating after chapter 24');
-  });
-
   it('says why in a tooltip: another chapter is translating', async () => {
     fakeFetch([getParts()]);
     renderParts(novelWith('TRANSLATING'));
     await screen.findByText('PROLOGUE');
 
     await expectTooltip(action('Chapter 2: Three Seconds').parentElement!, 'Chapter 1 is still translating');
-  });
-
-  it('does not treat a failed notebook as busy', async () => {
-    fakeFetch([getParts()]);
-    renderParts(novelWith('TRANSLATED', 'FAILED'));
-    await screen.findByText('PROLOGUE');
-
-    expect(action('PROLOGUE')).toBeEnabled();
   });
 
   it('asks before translating out of order', async () => {

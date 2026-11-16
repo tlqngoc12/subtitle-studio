@@ -270,8 +270,6 @@ public class ChapterService {
             c.setEditedAfterTranslation(true);
         }
         touch(c);
-        // No notebook update here: it runs once, at Publish. Re-reading the chapter after every fix spent the
-        // free Gemini quota on typo corrections.
         return detail(c);
     }
 
@@ -432,8 +430,7 @@ public class ChapterService {
     }
 
     /**
-     * The chapter, when its pages may change: not while translating, and not once published (the notebook was built
-     * from it; Unpublish first).
+     * The chapter, when its pages may change: not while translating, and not once published (Unpublish first).
      */
     private Chapter structural(long id) {
         Chapter c = editable(id);
@@ -520,9 +517,6 @@ public class ChapterService {
                 c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
-                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage(),
-                c.getNovel().getNotebookStatus(),
-                c.getNovel().getNotebookStatus() == NotebookStatus.UPDATING
-                        ? c.getNovel().getNotebookPendingChapterNo() : null);
+                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage());
     }
 }

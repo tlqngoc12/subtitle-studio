@@ -19,7 +19,7 @@ export function useNovelPolling(novelId: number, active: boolean, onUpdate: (nov
         .then((n) => {
           const translating = n.chapters.filter((c) => c.translationStatus === 'TRANSLATING');
           const model = translating.map((c) => c.translationModel ?? '').join('|') || null;
-          const failed = n.notebookStatus === 'FAILED' || n.chapters.some((c) => c.translationStatus === 'FAILED');
+          const failed = n.chapters.some((c) => c.translationStatus === 'FAILED');
           watch(model, failed);
           callback.current(n);
         })

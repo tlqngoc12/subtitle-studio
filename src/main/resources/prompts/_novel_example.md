@@ -2,8 +2,7 @@
 
 Sao chép file này thành `<TênBộ>.md` (ví dụ `BeMySugar.md`) trong cùng thư mục `prompts/novels/` rồi sửa lại.
 Tên file chỉ dùng chữ, số, `-`, `_` (tối đa 40 ký tự). File bắt đầu bằng `_` không hiện trong danh sách.
-Nội dung được gửi nguyên văn cho Gemini cùng ảnh chụp các trang. Chỉ ghi QUY TẮC CỐ ĐỊNH; diễn biến, tâm lý và
-nhân vật mới do sổ tay truyện tự cập nhật sau mỗi chương đã đăng.
+Nội dung được gửi nguyên văn cho Gemini cùng ảnh chụp các trang. Chỉ ghi QUY TẮC CỐ ĐỊNH, không ghi diễn biến.
 
 ## Ngôn ngữ gốc
 - Ngôn ngữ gốc: tiếng Thái. Dịch sang tiếng Việt.

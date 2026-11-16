@@ -24,8 +24,6 @@ import com.subtitlestudio.novel.InvalidChapterException;
 import com.subtitlestudio.novel.InvalidNovelException;
 import com.subtitlestudio.novel.InvalidPageOrderException;
 import com.subtitlestudio.novel.NoNovelProfileException;
-import com.subtitlestudio.novel.NotebookPausedException;
-import com.subtitlestudio.novel.NotebookUpdateInProgressException;
 import com.subtitlestudio.novel.NovelNotFoundException;
 import com.subtitlestudio.novel.NovelNotWattpadException;
 import com.subtitlestudio.novel.NovelTranslationBusyException;
@@ -170,8 +168,6 @@ class ApiErrorMappingTest {
             c(() -> new NovelNotWattpadException(1), HttpStatus.CONFLICT, "NOVEL_NOT_WATTPAD"),
             c(() -> new ChapterHasNoPagesException(1), HttpStatus.UNPROCESSABLE_ENTITY, "CHAPTER_HAS_NO_PAGES"),
             c(() -> new ChapterNotTranslatedException(1), HttpStatus.CONFLICT, "CHAPTER_NOT_TRANSLATED"),
-            c(() -> new NotebookUpdateInProgressException(1), HttpStatus.CONFLICT, "NOTEBOOK_UPDATE_IN_PROGRESS"),
-            c(NotebookPausedException::new, HttpStatus.CONFLICT, "NOTEBOOK_PAUSED"),
             c(() -> new PlaylistNotFoundException(1), HttpStatus.NOT_FOUND, "PLAYLIST_NOT_FOUND"),
             c(() -> new InvalidPlaylistException(FIELDS), HttpStatus.BAD_REQUEST, "INVALID_PLAYLIST"),
             c(() -> new VideoHasNoVietsubException("v"), HttpStatus.CONFLICT, "VIDEO_HAS_NO_VIETSUB"),

@@ -45,7 +45,7 @@ class TextChapterTranslationCompletenessTest {
     }
 
     private static TextChapterPrompt prompt(String source) {
-        return new TextChapterPrompt("Warm", 3, null, "profile", null, null, "en", null, null, source);
+        return new TextChapterPrompt("Warm", 3, null, "profile", null, "en", null, null, source);
     }
 
     @Test

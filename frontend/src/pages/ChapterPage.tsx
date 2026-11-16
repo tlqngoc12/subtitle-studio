@@ -3,7 +3,6 @@ import { useId, useRef, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
-import { BusyLine } from '../components/novel/BusyLine';
 import { FindReplace } from '../components/novel/FindReplace';
 import { StatusBadges } from '../components/novel/StatusBadges';
 import { ChapterDetails } from '../components/chapter/ChapterDetails';
@@ -17,7 +16,7 @@ import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { useConfirmDialog } from '../components/useConfirmDialog';
-import { busyTitle, chapterBusy } from '../lib/novelBusy';
+import { chapterBusy } from '../lib/novelBusy';
 import { useChapterActions } from '../lib/useChapterActions';
 import { useChapterEditor } from '../lib/useChapterEditor';
 import { useChapterPages } from '../lib/useChapterPages';
@@ -73,7 +72,7 @@ export default function ChapterPage() {
   const novelPath = `/novels/${chapter.novelId}`;
   const chapterPath = (id: number) => `${novelPath}/chapters/${id}`;
   const locked = translating || busy;
-  // Published: the notebook was built from this chapter, so only its text and title change (Unpublish to do more).
+  // Published: only its text and title change (Unpublish to do more).
   const published = chapter.publishStatus === 'PUBLISHED';
   // A Wattpad chapter: the original is text on the left, there are no page screenshots.
   const fromText = chapter.sourceText !== null;
@@ -100,8 +99,6 @@ export default function ChapterPage() {
             // Translating again replaces the text, edits included.
             danger: chapter.translationStatus !== 'NONE',
             disabled: locked || (!fromText && chapter.pages.length === 0),
-            // The notebook is updating: no chapter of this novel can translate until it is done.
-            disabledReason: why?.reason === 'NOTEBOOK_UPDATING' ? busyTitle(why) : undefined,
             onSelect: () => void actions.translate(),
           },
         ]),
@@ -161,8 +158,6 @@ export default function ChapterPage() {
           ) : undefined
         }
       />
-
-      {why?.reason === 'NOTEBOOK_UPDATING' && <BusyLine busy={why} />}
 
       {(translating || (chapter.translationStatus === 'FAILED' && chapter.translationError)) && (
         <div className="chapter-status">

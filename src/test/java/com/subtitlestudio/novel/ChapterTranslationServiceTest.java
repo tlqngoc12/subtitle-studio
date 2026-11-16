@@ -108,25 +108,6 @@ class ChapterTranslationServiceTest {
         }
     }
 
-    static class RecordingScheduler implements NotebookScheduler {
-        final List<String> calls = new ArrayList<>();
-
-        @Override
-        public void scheduleUpdate(long novelId, int chapterNo) {
-            calls.add(novelId + ":" + chapterNo);
-        }
-    }
-
-    static class FakeNotebookSource implements NotebookPromptSource {
-        final List<String> asked = new ArrayList<>();
-
-        @Override
-        public String textBefore(long novelId, int chapterNo) {
-            asked.add(novelId + ":" + chapterNo);
-            return "## Nhân vật\nA";
-        }
-    }
-
     @TestConfiguration
     static class Config {
         @Bean
@@ -142,18 +123,6 @@ class ChapterTranslationServiceTest {
         @Bean
         FakeTextTranslator textTranslator() {
             return new FakeTextTranslator();
-        }
-
-        @Bean
-        @Primary
-        RecordingScheduler scheduler() {
-            return new RecordingScheduler();
-        }
-
-        @Bean
-        @Primary
-        FakeNotebookSource notebookSource() {
-            return new FakeNotebookSource();
         }
 
         @Bean(name = "translationExecutor")
@@ -209,12 +178,6 @@ class ChapterTranslationServiceTest {
     private TextChapterTranslation textTranslation;
 
     @Autowired
-    private RecordingScheduler scheduler;
-
-    @Autowired
-    private FakeNotebookSource notebookSource;
-
-    @Autowired
     private NovelProfileStore profiles;
 
     @Autowired
@@ -242,8 +205,6 @@ class ChapterTranslationServiceTest {
         translator.beforeReturn = null;
         translator.omitSource = false;
         translator.modelByCall = null;
-        scheduler.calls.clear();
-        notebookSource.asked.clear();
         Novel n = new Novel("n", "Tình Yêu", NovelStatus.ONGOING, NOW);
         n.setPromptProfile("SummerLove");
         novel = novels.save(n);
@@ -270,7 +231,7 @@ class ChapterTranslationServiceTest {
     @Test
     void geminiNotConfiguredComesFirst() {
         ChapterTranslationService off = new ChapterTranslationService(propertiesWithKey(""), profiles, translator, textTranslation, preparer,
-                mediaService, chapters, pages, notebookSource, scheduler, chapterService, tx, Runnable::run,
+                mediaService, chapters, pages, chapterService, tx, Runnable::run,
                 clock);
 
         assertThatThrownBy(() -> off.start(chapter(1, 0).id())).isInstanceOf(GeminiNotConfiguredException.class);
@@ -369,15 +330,13 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
-    void usesNotebookBeforeAndPreviousChapterText() {
+    void usesPreviousChapterText() {
         ChapterDetail two = chapter(2, 1);
         setTexts(two.id(), "Bản nháp chương hai");
         ChapterDetail three = chapter(3, 1);
 
         service.start(three.id());
 
-        assertThat(notebookSource.asked).containsExactly(novel.getId() + ":3");
-        assertThat(translator.prompts.getFirst().notebookText()).isEqualTo("## Nhân vật\nA");
         assertThat(translator.prompts.getFirst().previousText()).isEqualTo("Bản nháp chương hai");
         assertThat(translator.prompts.getFirst().chapterNo()).isEqualTo(3);
     }
@@ -472,13 +431,6 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
-    void draftTranslationDoesNotScheduleNotebook() {
-        service.start(chapter(1, 1).id());
-
-        assertThat(scheduler.calls).isEmpty();
-    }
-
-    @Test
     void restartMarksInterrupted() {
         ChapterDetail c = chapter(1, 1);
         reload(c.id()).setTranslationStatus(ChapterTranslationStatus.TRANSLATING);
@@ -544,11 +496,10 @@ class ChapterTranslationServiceTest {
         ChapterDetail c = chapter(2, 2);
         pages.findByChapterIdOrderByPosition(c.id()).getFirst().setTextVi("Một");
         assertThatThrownBy(() -> service.publish(c.id())).isInstanceOf(ChapterNotTranslatedException.class);
-        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test
-    void publishSchedulesNotebook() {
+    void publishMarksChapterPublished() {
         ChapterDetail c = chapter(3, 2);
         setTexts(c.id(), "Xong");
 
@@ -556,7 +507,6 @@ class ChapterTranslationServiceTest {
 
         assertThat(published.publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
         assertThat(reload(c.id()).getPublishedAt()).isEqualTo(NOW);
-        assertThat(scheduler.calls).containsExactly(novel.getId() + ":3");
     }
 
     @Test
@@ -569,16 +519,14 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
-    void unpublishKeepsNotebook() {
+    void unpublishReturnsToDraft() {
         ChapterDetail c = chapter(3, 1);
         setTexts(c.id(), "Xong");
         service.publish(c.id());
-        scheduler.calls.clear();
 
         ChapterDetail draft = service.unpublish(c.id());
 
         assertThat(draft.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
-        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test
@@ -661,7 +609,6 @@ class ChapterTranslationServiceTest {
         assertThat(prompt.sourceLanguage()).isEqualTo("en");
         assertThat(prompt.novelTitle()).isEqualTo("Tình Yêu");
         assertThat(prompt.profile()).contains("Ngôn ngữ gốc");
-        assertThat(prompt.notebookText()).contains("Nhân vật");
         assertThat(translator.prompts).isEmpty();
     }
 
@@ -790,7 +737,6 @@ class ChapterTranslationServiceTest {
 
         assertThat(published.publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
         assertThat(published.text()).isEqualTo("VI: Text");
-        assertThat(scheduler.calls).hasSize(1);
     }
 
     @Test

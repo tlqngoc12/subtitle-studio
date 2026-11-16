@@ -454,63 +454,11 @@ class WattpadNovelServiceTest {
         verifyNothingFetchedOrStarted();
     }
 
-    @Test
-    void fetchAndTranslateRefusesWhileNotebookUpdates() {
-        Novel n = wattpadNovel(3);
-        n.setNotebookStatus(com.subtitlestudio.novel.NotebookStatus.UPDATING);
-        n.setNotebookPendingChapterNo(24);
-
-        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
-                .isInstanceOf(com.subtitlestudio.novel.NovelTranslationBusyException.class)
-                .satisfies(e -> {
-                    var busy = (com.subtitlestudio.novel.NovelTranslationBusyException) e;
-                    assertThat(busy.reason())
-                            .isEqualTo(com.subtitlestudio.novel.NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING);
-                    assertThat(busy.chapterNo()).isEqualTo(24);
-                    assertThat(busy.getMessage()).isEqualTo("The notebook is still updating after chapter 24.");
-                });
-        verifyNothingFetchedOrStarted();
-    }
-
-    @Test
-    void theNotebookBusyChapterFallsBackToTheLatestPublishedOne() {
-        Novel n = wattpadNovel(3);
-        n.setNotebookStatus(com.subtitlestudio.novel.NotebookStatus.UPDATING);
-        com.subtitlestudio.novel.Chapter older = chapterWith(7, com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED);
-        com.subtitlestudio.novel.Chapter newer = chapterWith(9, com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED);
-        com.subtitlestudio.novel.Chapter draft = chapterWith(10, com.subtitlestudio.novel.ChapterPublishStatus.DRAFT);
-        when(chapters.maxPublishedChapterNo(3L)).thenReturn(9);
-
-        assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
-                .isInstanceOf(com.subtitlestudio.novel.NovelTranslationBusyException.class)
-                .satisfies(e -> assertThat(((com.subtitlestudio.novel.NovelTranslationBusyException) e).chapterNo())
-                        .isEqualTo(9));
-    }
-
     private void translatingChapter(long novelId, int chapterNo) {
         com.subtitlestudio.novel.Chapter c = org.mockito.Mockito.mock(com.subtitlestudio.novel.Chapter.class);
         when(c.getChapterNo()).thenReturn(chapterNo);
         when(chapters.findFirstByNovelIdAndTranslationStatusOrderByChapterNo(novelId,
                 com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING)).thenReturn(Optional.of(c));
-    }
-
-    private com.subtitlestudio.novel.Chapter chapterWith(int chapterNo, com.subtitlestudio.novel.ChapterPublishStatus s) {
-        com.subtitlestudio.novel.Chapter c = org.mockito.Mockito.mock(com.subtitlestudio.novel.Chapter.class);
-        when(c.getChapterNo()).thenReturn(chapterNo);
-        when(c.getPublishStatus()).thenReturn(s);
-        return c;
-    }
-
-    @Test
-    void aFailedNotebookIsNotBusy() {
-        Novel n = wattpadNovel(3);
-        n.setNotebookStatus(com.subtitlestudio.novel.NotebookStatus.FAILED);
-        storyParts(part("2", "One", false));
-        when(wattpad.partText("2")).thenReturn("<p>Hello</p>");
-        when(chapterService.addFromSource(3L, "One", "Hello", "2", NOW)).thenReturn(77L);
-        when(translation.start(77L)).thenReturn(started);
-
-        assertThat(service.fetchAndTranslate(3, "2")).isSameAs(started);
     }
 
     @Test
@@ -776,7 +724,7 @@ class WattpadNovelServiceTest {
         return new com.subtitlestudio.novel.ChapterDetail(9, 3, "Warm", 1, "One", null,
                 com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING, null, null, null, false,
                 com.subtitlestudio.novel.ChapterPublishStatus.DRAFT, List.of(), null, null, null, null, "1631821143",
-                null, "en", null, null);
+                null, "en");
     }
 
     private void storeImagesAs(long firstId) {

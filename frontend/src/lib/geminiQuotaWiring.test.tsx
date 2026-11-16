@@ -6,7 +6,6 @@ import { fetchVideo, translateVideo } from '../api/client';
 import {
   fetchAndTranslateWattpadPart,
   fetchTranslateNext,
-  retryNotebook,
   translateChapter,
 } from '../api/novels';
 import { analyzeProfile } from '../api/promptProfiles';
@@ -45,7 +44,6 @@ describe('the translate-start API functions check the quota once, after their ow
     ['translateChapter', () => translateChapter(5), 'POST', '/api/chapters/5/translate'],
     ['fetchAndTranslateWattpadPart', () => fetchAndTranslateWattpadPart(3, '77'), 'POST', '/api/novels/3/wattpad/parts/77/fetch-translate'],
     ['fetchTranslateNext', () => fetchTranslateNext(3), 'POST', '/api/novels/3/wattpad/next/fetch-translate'],
-    ['retryNotebook', () => retryNotebook(3), 'POST', '/api/novels/3/notebook/retry'],
     ['translateVideo', () => translateVideo('abcdefghijk', 'Moonshadow'), 'POST', '/api/videos/abcdefghijk/translate'],
     ['analyzeProfile', () => analyzeProfile('Moonshadow'), 'POST', '/api/prompt-profiles/Moonshadow/analyze'],
     ['fetchVideo with a profile (Get Engsub)', () => fetchVideo('https://youtu.be/abcdefghijk', 'Moonshadow'), 'POST', '/api/videos'],

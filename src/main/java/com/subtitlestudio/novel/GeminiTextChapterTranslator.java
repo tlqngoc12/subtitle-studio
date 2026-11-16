@@ -43,7 +43,7 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
             - Giữ ngắt đoạn của bản gốc: mỗi đoạn gốc thành một đoạn dịch, cách nhau một dòng trống. Dòng ngăn cảnh \
             (như ***, * * *, ---) giữ nguyên thành một đoạn riêng.
             - Hội thoại giữ dấu ngoặc kép; dòng xuống hàng trong một đoạn giữ nguyên.
-            %s- Hồ sơ dịch và sổ tay truyện bên dưới được ưu tiên về tên riêng, thuật ngữ và cách xưng hô.
+            %s- Hồ sơ dịch bên dưới được ưu tiên về tên riêng, thuật ngữ và cách xưng hô.
             - Nếu có mục "Đoạn ngay trước", đó là phần đã dịch ngay trước văn bản này trong cùng chương: dịch tiếp \
             cho liền mạch, KHÔNG dịch lại và không lặp lại phần đó.
             - Chỉ trả về JSON theo schema, không giải thích.""";
@@ -172,9 +172,6 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
     private static String context(TextChapterPrompt p) {
         StringBuilder sb = new StringBuilder();
         sb.append("# Hồ sơ dịch\n").append(p.profile()).append("\n\n");
-        if (p.notebookText() != null) {
-            sb.append("# Sổ tay truyện\n").append(p.notebookText()).append("\n\n");
-        }
         if (p.previousText() != null) {
             sb.append("# Chương trước (bản dịch)\n").append(p.previousText()).append("\n\n");
         }

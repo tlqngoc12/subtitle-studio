@@ -31,20 +31,17 @@ function publicErrorMessage(error: unknown): ErrorMessage {
   }
 }
 
-/** NOVEL_TRANSLATION_BUSY: says whether a chapter or the notebook keeps the novel busy (older servers send no reason). */
+/** NOVEL_TRANSLATION_BUSY: a chapter of the novel is still translating (older servers send no reason). */
 function busyMessage(reason: string | undefined, chapterNo: number | undefined): ErrorMessage {
-  if (reason === 'CHAPTER_TRANSLATING' || reason === 'NOTEBOOK_UPDATING') {
+  if (reason === 'CHAPTER_TRANSLATING') {
     return {
       title: busyTitle({ reason, chapterNo: chapterNo ?? null }),
-      hint:
-        reason === 'CHAPTER_TRANSLATING'
-          ? 'Wait for it to finish, then try again.'
-          : 'Gemini can take a few minutes when it is busy. Try again when it finishes.',
+      hint: 'Wait for it to finish, then try again.',
     };
   }
   return {
     title: 'Another chapter is still translating',
-    hint: 'Wait for it (and the notebook update) to finish.',
+    hint: 'Wait for it to finish.',
   };
 }
 
@@ -160,10 +157,6 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: error.detail || 'This Wattpad story is already translated.', hint: 'Open that novel instead.' };
     case 'CHAPTER_NOT_TRANSLATED':
       return { title: 'Every page needs a translation before publishing.' };
-    case 'NOTEBOOK_UPDATE_IN_PROGRESS':
-      return { title: 'The notebook is being updated.', hint: 'Try again when it is done.' };
-    case 'NOTEBOOK_PAUSED':
-      return { title: 'Notebook updates are paused.', hint: 'Turn the pause off to update the notebook.' };
     case 'PUBLISH_IN_PROGRESS':
       return { title: 'A publish is already running.' };
     case 'PUBLISH_NOT_CONFIGURED':

@@ -15,6 +15,4 @@ public interface NovelRepository extends JpaRepository<Novel, Long> {
     List<Novel> findAllByOrderByUpdatedAtDesc();
 
     long countByFeaturedTrue();
-
-    List<Novel> findByNotebookStatus(NotebookStatus status);
 }
