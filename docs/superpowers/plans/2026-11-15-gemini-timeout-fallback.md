@@ -44,6 +44,14 @@
 - [ ] Run `mvn -q test -Dtest='NotebookService*'` — PASS.
 - [ ] Commit `fix: log why a notebook update failed`.
 
+### Task 2b: Drop over-long notebook items instead of refusing the update
+
+**Files:** Modify `NotebookMerger.java` (`check` now returns a repaired `NotebookUpdate`) and `NotebookMergerTest.java`.
+- A character, glossary entry or addressing entry with an over-long field is dropped; an over-long character `sourceName` becomes null. Each drop logs the field and length only (never the text).
+- `storySoFar` and `chapterSummary` over their limits still refuse the whole update.
+- Tests: dropped character, nulled sourceName, dropped glossary and addressing entries, storySoFar/chapterSummary still throw.
+- Commit `fix: drop over-long notebook items instead of refusing the update`.
+
 ### Task 3: Docs and PR
 - [ ] PROGRESS.md: add `### 2026-11-15: Gemini quá thời gian chờ thì thử model dự phòng ✅` (section 8, after the last entry) with 2 bullets.
 - [ ] `mvn -q test` — all pass.

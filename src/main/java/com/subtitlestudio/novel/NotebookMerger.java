@@ -28,11 +28,13 @@ final class NotebookMerger {
     static final int MAX_NOTE = 300;
     static final int MAX_PERSON = 80;
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NotebookMerger.class);
+
     private NotebookMerger() {
     }
 
     static NotebookContent merge(NotebookContent stored, NotebookUpdate update, int chapterNo) {
-        check(update);
+        update = check(update, chapterNo);
         NotebookContent old = sanitize(stored);
 
         Map<String, GlossaryEntry> glossary = new LinkedHashMap<>();
@@ -93,7 +95,12 @@ final class NotebookMerger {
         return value == null || value.length() <= max;
     }
 
-    private static void check(NotebookUpdate u) {
+    /**
+     * storySoFar and chapterSummary must be present and within limits, or the whole update is refused. Over-long
+     * optional parts are repaired instead: a character's sourceName becomes null; a character, glossary entry or
+     * addressing entry with another over-long field is dropped. Each drop is logged (field and length only).
+     */
+    private static NotebookUpdate check(NotebookUpdate u, int chapterNo) {
         if (u.storySoFar() == null || u.storySoFar().isBlank()) {
             throw new InvalidNotebookUpdateException("Gemini left out storySoFar.");
         }
@@ -102,22 +109,45 @@ final class NotebookMerger {
             throw new InvalidNotebookUpdateException("Gemini left out chapterSummary.");
         }
         tooLong("chapterSummary", u.chapterSummary(), MAX_CHAPTER_SUMMARY);
+
+        List<NotebookCharacter> characters = new ArrayList<>();
         for (NotebookCharacter c : list(u.characters())) {
-            tooLong("name", c.name(), MAX_NAME);
-            tooLong("sourceName", c.sourceName(), MAX_SOURCE_NAME);
-            tooLong("profile", c.profile(), MAX_CHARACTER_FIELD);
-            tooLong("currentState", c.currentState(), MAX_CHARACTER_FIELD);
+            if (over(chapterNo, "character name", c.name(), MAX_NAME)
+                    || over(chapterNo, "character profile", c.profile(), MAX_CHARACTER_FIELD)
+                    || over(chapterNo, "character currentState", c.currentState(), MAX_CHARACTER_FIELD)) {
+                continue;
+            }
+            characters.add(over(chapterNo, "character sourceName", c.sourceName(), MAX_SOURCE_NAME)
+                    ? new NotebookCharacter(c.name(), null, c.profile(), c.currentState(), c.lastUpdatedChapter())
+                    : c);
         }
+        List<GlossaryEntry> glossary = new ArrayList<>();
         for (GlossaryEntry g : list(u.glossaryUpserts())) {
-            tooLong("glossary source", g.source(), MAX_TERM);
-            tooLong("glossary target", g.target(), MAX_TERM);
-            tooLong("glossary note", g.note(), MAX_NOTE);
+            if (!(over(chapterNo, "glossary source", g.source(), MAX_TERM)
+                    | over(chapterNo, "glossary target", g.target(), MAX_TERM)
+                    | over(chapterNo, "glossary note", g.note(), MAX_NOTE))) {
+                glossary.add(g);
+            }
         }
+        List<AddressingRule> addressing = new ArrayList<>();
         for (AddressingRule a : list(u.addressingUpserts())) {
-            tooLong("addressing from", a.from(), MAX_PERSON);
-            tooLong("addressing to", a.to(), MAX_PERSON);
-            tooLong("addressing rule", a.rule(), MAX_NOTE);
+            if (!(over(chapterNo, "addressing from", a.from(), MAX_PERSON)
+                    | over(chapterNo, "addressing to", a.to(), MAX_PERSON)
+                    | over(chapterNo, "addressing rule", a.rule(), MAX_NOTE))) {
+                addressing.add(a);
+            }
         }
+        return new NotebookUpdate(glossary, addressing, characters, u.storySoFar(), u.chapterSummary());
+    }
+
+    /** True (and one warn with the field and length, never the text) when {@code value} is over {@code max}. */
+    private static boolean over(int chapterNo, String field, String value, int max) {
+        if (value == null || value.length() <= max) {
+            return false;
+        }
+        log.warn("Notebook update after chapter {}: dropped an over-long {} ({} chars)", chapterNo, field,
+                value.length());
+        return true;
     }
 
     private static void tooLong(String field, String value, int max) {
