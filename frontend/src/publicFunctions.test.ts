@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The Pages Functions are generated into the Cloudflare deploy at Publish; they live in the backend resources.
 type Env = { READS: unknown; ASSETS: { fetch: (url: URL) => Promise<Response> } };
@@ -90,5 +90,93 @@ describe('read-count Pages Functions', () => {
 
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=60');
     expect(await res.json()).toEqual({ 'my-novel': 7 });
+  });
+});
+
+describe('read-count dedupe per visitor', () => {
+  let db: ReturnType<typeof fakeD1>;
+  let env: Env;
+  let store: Map<string, Response>;
+  let keys: string[];
+
+  beforeEach(() => {
+    db = fakeD1();
+    env = {
+      READS: db,
+      ASSETS: { fetch: async () => new Response(JSON.stringify([{ slug: 'my-novel' }, { slug: 'other' }])) },
+    };
+    store = new Map();
+    keys = [];
+    vi.stubGlobal('caches', {
+      default: {
+        match: async (req: Request) => {
+          keys.push(req.url);
+          return store.get(req.url);
+        },
+        put: async (req: Request, res: Response) => {
+          store.set(req.url, res);
+        },
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const callFrom = (slug: string, ip: string) => ({
+    env,
+    request: new Request('https://x.pages.dev/api/reads/' + slug, { method: 'POST', headers: { 'CF-Connecting-IP': ip } }),
+    params: { slug },
+  });
+
+  it('second_post_from_same_ip_and_slug_within_window_does_not_write', async () => {
+    const { post } = await load();
+
+    expect((await post(callFrom('my-novel', '1.2.3.4'))).status).toBe(204);
+    expect((await post(callFrom('my-novel', '1.2.3.4'))).status).toBe(204);
+
+    expect(db.rows.get('my-novel')).toBe(1);
+  });
+
+  it('different_ip_counts_again', async () => {
+    const { post } = await load();
+
+    await post(callFrom('my-novel', '1.2.3.4'));
+    await post(callFrom('my-novel', '5.6.7.8'));
+
+    expect(db.rows.get('my-novel')).toBe(2);
+  });
+
+  it('different_slug_counts_again', async () => {
+    const { post } = await load();
+
+    await post(callFrom('my-novel', '1.2.3.4'));
+    await post(callFrom('other', '1.2.3.4'));
+
+    expect(db.rows.get('my-novel')).toBe(1);
+    expect(db.rows.get('other')).toBe(1);
+  });
+
+  it('cache_failure_still_counts', async () => {
+    (globalThis as unknown as { caches: { default: { match: () => Promise<never> } } }).caches.default.match = async () => {
+      throw new Error('cache down');
+    };
+    const { post } = await load();
+
+    expect((await post(callFrom('my-novel', '1.2.3.4'))).status).toBe(204);
+
+    expect(db.rows.get('my-novel')).toBe(1);
+  });
+
+  it('ip_is_not_stored_in_plain_text', async () => {
+    const { post } = await load();
+
+    await post(callFrom('my-novel', '1.2.3.4'));
+
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toContain('my-novel');
+    expect(keys[0]).not.toContain('1.2.3.4');
+    expect([...store.keys()].join()).not.toContain('1.2.3.4');
   });
 });
