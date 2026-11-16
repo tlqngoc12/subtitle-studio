@@ -1393,6 +1393,38 @@ describe('ChapterPage translator tools', () => {
     expect(screen.queryByRole('search', { name: 'Find and replace' })).not.toBeInTheDocument();
   });
 
+  it('paints the matches behind the textarea while finding, and removes everything when find closes', async () => {
+    renderPage([get({ text: 'Mai gặp Nam. Mai cười.' })]);
+    await loaded();
+    expect(document.querySelector('.find-hits')).toBeNull();
+
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+    await user().type(screen.getByLabelText('Find'), 'Mai');
+
+    expect(document.querySelectorAll('.find-hits mark.find-hit')).toHaveLength(2);
+    expect(textBox()).toHaveClass('chapter-text--finding');
+
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+
+    expect(document.querySelector('.find-hits')).toBeNull();
+    expect(textBox()).not.toHaveClass('chapter-text--finding');
+  });
+
+  it('keeps the marks in step with the find box and with edits to the text', async () => {
+    renderPage([get({ text: 'Mai gặp Nam. Mai cười.' })]);
+    await loaded();
+    await user().click(screen.getByRole('button', { name: 'Find and replace' }));
+    await user().type(screen.getByLabelText('Find'), 'Nam');
+    expect(document.querySelectorAll('.find-hits mark.find-hit')).toHaveLength(1);
+
+    await user().type(textBox(), ' Nam');
+    expect(document.querySelectorAll('.find-hits mark.find-hit')).toHaveLength(2);
+    expect(document.querySelectorAll('.find-hits mark.find-hit--current')).toHaveLength(1);
+
+    await user().clear(screen.getByLabelText('Find'));
+    expect(document.querySelector('.find-hits')).toBeNull();
+  });
+
   it('the find panel sits inside the sticky chapter bar', async () => {
     renderPage([get()]);
     await loaded();

@@ -58,6 +58,7 @@ import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { IconButton, IconLink } from '../components/ui/IconButton';
+import { FindHighlights } from '../components/novel/FindHighlights';
 import { FindReplace } from '../components/novel/FindReplace';
 import './ChapterPage.css';
 
@@ -118,6 +119,9 @@ export default function ChapterPage() {
   const textRef = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(textRef, text);
   const [finding, setFinding] = useState(false);
+  // The matches of the open find panel, painted behind the textarea (it hides its own selection when not focused).
+  const [hits, setHits] = useState<{ matches: { start: number; end: number }[]; current: number | null }>({ matches: [], current: null });
+  const showHits = finding && hits.matches.length > 0;
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   function trackCaret(el: HTMLTextAreaElement) {
@@ -506,7 +510,13 @@ export default function ChapterPage() {
         }
         below={
           finding ? (
-            <FindReplace text={text} onChange={setText} textareaRef={textRef} onClose={() => setFinding(false)} />
+            <FindReplace
+              text={text}
+              onChange={setText}
+              textareaRef={textRef}
+              onClose={() => setFinding(false)}
+              onMatchesChange={(matches, current) => setHits({ matches, current })}
+            />
           ) : undefined
         }
       />
@@ -678,14 +688,18 @@ export default function ChapterPage() {
         )}
         <div className="field chapter-text">
           <label htmlFor={`${ids}-text`}>Chapter text</label>
-          <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
-            onChange={(e) => {
-              setText(e.target.value);
-              trackCaret(e.currentTarget);
-            }}
-            onSelect={(e) => trackCaret(e.currentTarget)}
-            onKeyUp={(e) => trackCaret(e.currentTarget)}
-            onClick={(e) => trackCaret(e.currentTarget)} />
+          <div className={showHits ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
+            {showHits && <FindHighlights text={text} matches={hits.matches} current={hits.current} textareaRef={textRef} />}
+            <textarea id={`${ids}-text`} ref={textRef} rows={24} value={text} disabled={locked}
+              className={showHits ? 'chapter-text--finding' : undefined}
+              onChange={(e) => {
+                setText(e.target.value);
+                trackCaret(e.currentTarget);
+              }}
+              onSelect={(e) => trackCaret(e.currentTarget)}
+              onKeyUp={(e) => trackCaret(e.currentTarget)}
+              onClick={(e) => trackCaret(e.currentTarget)} />
+          </div>
         </div>
       </div>
 

@@ -17,10 +17,14 @@ function Harness({
   initial,
   onClose,
   onOuterSubmit,
+  onTextChange,
+  onMatchesChange,
 }: {
   initial: string;
   onClose?: () => void;
   onOuterSubmit?: () => void;
+  onTextChange?: (text: string) => void;
+  onMatchesChange?: (matches: { start: number; end: number }[], current: number | null) => void;
 }) {
   const [text, setText] = useState(initial);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -32,7 +36,12 @@ function Harness({
       }}
     >
       <textarea ref={ref} aria-label="Chapter text" value={text} onChange={(e) => setText(e.target.value)} />
-      <FindReplace text={text} onChange={setText} textareaRef={ref} onClose={onClose ?? (() => {})} />
+      <FindReplace
+        text={text}
+        onChange={(t) => {
+          onTextChange?.(t);
+          setText(t);
+        }} textareaRef={ref} onClose={onClose ?? (() => {})} onMatchesChange={onMatchesChange} />
     </form>
   );
 }
@@ -76,7 +85,6 @@ describe('FindReplace counter and navigation', () => {
     await user.click(button('Next match'));
     expect(selected()).toBe('Mai');
     expect(box().selectionStart).toBe(0);
-    expect(box()).toHaveFocus();
     expect(counter()).toHaveTextContent('1 of 3');
 
     await user.click(button('Next match'));
@@ -119,6 +127,49 @@ describe('FindReplace counter and navigation', () => {
     await user.click(button('Next match'));
 
     expect(scrollMatchIntoView).toHaveBeenCalledWith(box(), 0, expect.any(Number));
+  });
+
+  it('Enter in Find never edits the text and keeps the focus in Find', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Harness initial="Mai gặp Nam. Mai cười. Nam hỏi Mai. Mai đi." onTextChange={onChange} />);
+    await user.type(find(), 'Mai');
+
+    await user.keyboard('{Enter}{Enter}{Enter}');
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(find()).toHaveFocus();
+    expect(counter()).toHaveTextContent('3 of 4');
+    expect(box().value).toBe('Mai gặp Nam. Mai cười. Nam hỏi Mai. Mai đi.');
+  });
+
+  it('Escape after Next puts the focus in the textarea with the match still selected', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial="Mai gặp Nam. Mai cười." />);
+    await user.type(find(), 'Mai');
+    await user.click(button('Next match'));
+    await user.click(button('Next match'));
+    const start = box().value.indexOf('Mai', 1);
+
+    await user.keyboard('{Escape}');
+
+    expect(box()).toHaveFocus();
+    expect([box().selectionStart, box().selectionEnd]).toEqual([start, start + 3]);
+  });
+
+  it('reports the matches and the current one to onMatchesChange, and clears them on unmount', async () => {
+    const onMatchesChange = vi.fn();
+    const user = userEvent.setup();
+    const { unmount } = render(<Harness initial="Mai gặp Nam. Mai cười." onMatchesChange={onMatchesChange} />);
+    await user.type(find(), 'Mai');
+    expect(onMatchesChange).toHaveBeenLastCalledWith([{ start: 0, end: 3 }, { start: 13, end: 16 }], 0);
+
+    await user.click(button('Next match'));
+    await user.click(button('Next match'));
+    expect(onMatchesChange).toHaveBeenLastCalledWith([{ start: 0, end: 3 }, { start: 13, end: 16 }], 1);
+
+    unmount();
+    expect(onMatchesChange).toHaveBeenLastCalledWith([], null);
   });
 
   it('Match case narrows the matches', async () => {

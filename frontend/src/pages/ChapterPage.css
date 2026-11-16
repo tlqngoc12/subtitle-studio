@@ -96,6 +96,12 @@
   margin-inline: auto;
 }
 
+/* The box around the textarea (it carries the find highlights) must not shrink the textarea: it was a grid item. */
+.chapter-text__box > textarea {
+  display: block;
+  width: 100%;
+}
+
 .chapter-text textarea {
   min-height: 60vh;
   overflow-y: hidden;

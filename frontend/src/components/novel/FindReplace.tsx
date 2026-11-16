@@ -16,11 +16,14 @@ export function FindReplace({
   onChange,
   textareaRef,
   onClose,
+  onMatchesChange,
 }: {
   text: string;
   onChange: (text: string) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   onClose: () => void;
+  /** The matches and the current one (null: none), for painting them behind the textarea; ([], null) on unmount. */
+  onMatchesChange?: (matches: { start: number; end: number }[], current: number | null) => void;
 }) {
   const ids = useId();
   const [query, setQuery] = useState('');
@@ -40,12 +43,20 @@ export function FindReplace({
     findInput.current?.focus();
   }, []);
 
+  const report = useRef(onMatchesChange);
+  report.current = onMatchesChange;
+  useEffect(() => {
+    report.current?.(matches, none ? null : shown - 1);
+  }, [matches, none, shown]);
+  useEffect(() => () => report.current?.([], null), []);
+
   function select(index: number) {
     const el = textareaRef.current;
     const m = matches[index];
     if (!el || !m) return;
     setCurrent(index);
-    el.focus({ preventScroll: true }); // the page is scrolled below, once, to where the match sits under this panel
+    // Focus stays where it is (Enter in Find must never type into the text); the match is only selected here, and
+    // the textarea gets the focus, with this selection, when the panel closes.
     el.setSelectionRange(m.start, m.end);
     // The panel's bottom is the bottom of the sticky bar: the match should land just under it.
     scrollMatchIntoView(el, m.start, root.current?.getBoundingClientRect().bottom ?? 0);
