@@ -132,8 +132,13 @@ public class ChapterTranslationService {
                 c.setPublishedAt(clock.instant());
                 c.touch(clock.instant());
                 c.getNovel().touch(clock.instant());
-                chapters.flush();
             }
+            if (c.getTranslationStatus() == ChapterTranslationStatus.FAILED) {
+                // the text was written by hand: the failed Gemini run no longer matters
+                c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
+                c.setTranslationError(null);
+            }
+            chapters.flush();
             return chapterService.detail(c);
         });
     }

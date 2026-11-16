@@ -509,6 +509,53 @@ class ChapterTranslationServiceTest {
         assertThat(reload(c.id()).getPublishedAt()).isEqualTo(NOW);
     }
 
+    private ChapterDetail failedChapter(boolean published) {
+        ChapterDetail c = chapter(1, 1);
+        setTexts(c.id(), "Tự viết");
+        Chapter ch = reload(c.id());
+        ch.setTranslationStatus(ChapterTranslationStatus.FAILED);
+        ch.setTranslationError("Gemini failed");
+        if (published) {
+            ch.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        }
+        return c;
+    }
+
+    @Test
+    void publishing_a_failed_chapter_clears_the_error_and_marks_it_translated() {
+        ChapterDetail c = failedChapter(false);
+
+        service.publish(c.id());
+
+        Chapter ch = reload(c.id());
+        assertThat(ch.getPublishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
+        assertThat(ch.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(ch.getTranslationError()).isNull();
+    }
+
+    @Test
+    void republishing_a_failed_published_chapter_cleans_it() {
+        ChapterDetail c = failedChapter(true);
+
+        service.publish(c.id());
+
+        Chapter ch = reload(c.id());
+        assertThat(ch.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(ch.getTranslationError()).isNull();
+    }
+
+    @Test
+    void a_failed_draft_chapter_keeps_its_error() {
+        ChapterDetail c = failedChapter(false);
+
+        service.unpublish(c.id());
+
+        Chapter still = reload(c.id());
+        assertThat(still.getPublishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+        assertThat(still.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(still.getTranslationError()).isEqualTo("Gemini failed");
+    }
+
     @Test
     void publishWhileTranslatingIsBlocked() {
         ChapterDetail c = chapter(1, 1);
