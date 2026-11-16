@@ -52,4 +52,22 @@ class NovelProfileTemplateTest {
                     .doesNotContain("Perth", "Pipim", "Sugar");
         }
     }
+
+    @Test
+    void bothTemplatesCarryTheBonnieAndEmiPronounRuleBeforeTheSpecificPairs() {
+        for (String lang : List.of("en", "th")) {
+            String text = NovelProfileTemplate.render(lang, "T", "A", List.of(), "d");
+            int section = text.indexOf("## Xưng hô");
+            int bonnie = text.indexOf("- Bonnie: ");
+            int emi = text.indexOf("- Emi: ");
+            int pairs = text.indexOf("- Cặp xưng hô cụ thể");
+            assertThat(section).as(lang).isGreaterThanOrEqualTo(0);
+            assertThat(bonnie).as(lang).isGreaterThan(section);
+            assertThat(emi).as(lang).isGreaterThan(bonnie);
+            assertThat(pairs).as(lang).isGreaterThan(emi);
+            assertThat(text.substring(bonnie, emi)).as(lang).contains("→ \"em\"");
+            assertThat(text.substring(emi, pairs)).as(lang).contains("→ \"cô\"");
+            assertThat(text.substring(section, pairs)).as(lang).contains("Đại từ ngôi thứ ba mặc định cho Bonnie và Emi");
+        }
+    }
 }

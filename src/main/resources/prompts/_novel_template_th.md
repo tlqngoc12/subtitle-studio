@@ -30,6 +30,11 @@
 - กู / มึง giữa bạn thân → "tao - mày"; khi giận dữ với người lạ → "tôi - anh/cô".
 - คุณ → "anh" / "cô" (với người ngang hàng, lịch sự, chưa thân) hoặc theo tuổi khi lớn hơn; không dịch thành "bạn" trong văn cảnh trang trọng.
 - Với người lớn trong gia đình: แม่ → "mẹ", พ่อ → "bố", ป้า → "dì / bác" theo ngữ cảnh, ยาย / ย่า → "bà".
+- Đại từ ngôi thứ ba mặc định cho Bonnie và Emi (nếu truyện có hai nhân vật này), áp dụng cả trong lời dẫn lẫn khi nhân vật khác nhắc tới họ. Quy tắc này ưu tiên hơn quy tắc เขา / เธอ chung ở trên:
+  - Bonnie: เธอ / เขา chỉ Bonnie → "em" (ví dụ "em ấy", "của em", "chính em").
+  - Emi: เธอ / เขา chỉ Emi → "cô" (ví dụ "cô ấy", "của cô", "chính cô").
+  - Bản gốc gọi tên ("Bonnie", "Emi") thì giữ nguyên tên, không đổi tên thành đại từ "em" / "cô".
+  - Khi một câu nhắc cả hai người bằng เธอ / เขา, dựa vào ngữ cảnh để biết ai là ai. Nếu dùng "em" / "cô" vẫn dễ nhầm thì dùng tên cho rõ.
 - Cặp xưng hô cụ thể giữa các nhân vật chính: bổ sung ở đây khi đã rõ (A → B gọi là gì, xưng gì).
 
 ## Tên riêng và thuật ngữ
