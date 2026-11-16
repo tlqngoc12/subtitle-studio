@@ -607,6 +607,78 @@ class ChapterServiceTest {
         assertThat(mediaRepository.isReferenced(a.getId())).isTrue();
     }
 
+    private long chapterWithMarkers(int no, long... mediaIds) {
+        List<ChapterImageLink> links = new ArrayList<>();
+        List<String> paragraphs = new ArrayList<>();
+        for (long m : mediaIds) {
+            paragraphs.add("Text " + m + ".");
+            paragraphs.add(ImageMarkers.marker(m));
+            links.add(new ChapterImageLink(m, "https://img.wattpad.com/" + no + "/" + m + ".png"));
+        }
+        return service.addFromSource(novel.getId(), "T", String.join("\n\n", paragraphs), "p" + no, NOW, links);
+    }
+
+    private ChapterUpdateRequest text(String text) {
+        return new ChapterUpdateRequest(null, null, null, text);
+    }
+
+    @Test
+    void savingATextThatLacksAMarkerIsRefused() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long b = mediaService.store("b.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a, b);
+
+        assertThatThrownBy(() -> service.update(id, text("Văn bản\n\n[[image:" + a + "]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+        assertThatThrownBy(() -> service.update(id, text("Chỉ chữ"))).isInstanceOf(ChapterImageMarkersException.class);
+        service.update(id, text("[[image:" + a + "]]\n\n[[image:" + b + "]]"));
+        assertThatThrownBy(() -> service.update(id, text("  "))).isInstanceOf(ChapterImageMarkersException.class);
+        assertThat(service.get(id).text()).isNotEqualTo("Chỉ chữ");
+    }
+
+    @Test
+    void savingATextWithAnUnknownOrChangedMarkerIsRefused() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a);
+
+        assertThatThrownBy(() -> service.update(id, text("[[image:" + a + "]]\n\n[[image:999999]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+        assertThatThrownBy(() -> service.update(id, text("[[image:" + (a + 1) + "]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+        assertThatThrownBy(() -> service.update(id, text("[[image:" + a + "]]\n\n[[image:" + a + "]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+    }
+
+    @Test
+    void savingATextThatMovesTheMarkersAndAddsTextIsAccepted() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long b = mediaService.store("b.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a, b);
+        String moved = "[[image:" + b + "]]\n\nChữ dưới ảnh b\n\nVăn bản\n\n[[image:" + a + "]]";
+
+        ChapterDetail saved = service.update(id, text(moved));
+
+        assertThat(saved.text()).isEqualTo(moved);
+        assertThat(saved.editedAfterTranslation()).isTrue();
+    }
+
+    @Test
+    void aChapterWithoutImagesIsNotChecked() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(7, null));
+
+        assertThat(service.update(c.id(), text("Văn bản [[image:5]] tự do")).text()).isEqualTo("Văn bản [[image:5]] tự do");
+    }
+
+    @Test
+    void anUnchangedTextIsNeverChecked() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a);
+        service.update(id, text("[[image:" + a + "]]\n\nOK"));
+
+        assertThat(service.update(id, new ChapterUpdateRequest(null, "New title", null, "[[image:" + a + "]]\n\nOK"))
+                .title()).isEqualTo("New title");
+    }
+
     @Test
     void replaceSourceTextKeepsKnownImagesUnlinksGoneOnesAndDeletesTheirUnusedMedia() {
         com.subtitlestudio.profile.Media keep = mediaService.store("a.png", TestImages.png());

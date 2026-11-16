@@ -17,6 +17,7 @@ describe('errorMessage', () => {
     ['TRANSLATION_IN_PROGRESS', 'already being translated'],
     ['NOVEL_TRANSLATION_BUSY', 'Another chapter is still translating'],
     ['CHAPTER_ALREADY_TRANSLATED', 'already translated'],
+    ['CHAPTER_IMAGE_MARKERS', 'Keep every [[image:…]] line'],
     ['WATTPAD_PART_DELETED', 'deleted on Wattpad'],
     ['WATTPAD_PART_EMPTY', 'no text for this part'],
     ['WATTPAD_PART_IMAGES_FAILED', 'images for this part could not be downloaded'],

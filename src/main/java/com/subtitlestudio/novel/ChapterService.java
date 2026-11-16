@@ -261,6 +261,7 @@ public class ChapterService {
         if (request.text() != null) {
             String text = request.text().isBlank() ? null : request.text();
             if (!Objects.equals(text, c.getTextVi())) {
+                requireSameImageMarkers(c, text);
                 c.setTextVi(text);
                 textChanged = true;
             }
@@ -272,6 +273,26 @@ public class ChapterService {
         // No notebook update here: it runs once, at Publish. Re-reading the chapter after every fix spent the
         // free Gemini quota on typo corrections.
         return detail(c);
+    }
+
+    /**
+     * A chapter with images keeps every one of them: the new text must hold exactly the marker lines the chapter owns
+     * (the original's, else its image rows'), in any order. A chapter without images is not checked.
+     */
+    private void requireSameImageMarkers(Chapter c, String newText) {
+        List<Long> owned = ImageMarkers.ids(c.getSourceText());
+        if (owned.isEmpty()) {
+            owned = chapterImages.findByChapterIdOrderByPosition(c.getId()).stream()
+                    .map(i -> i.getMedia().getId()).toList();
+        }
+        if (owned.isEmpty()) {
+            return;
+        }
+        List<Long> expected = owned.stream().sorted().toList();
+        List<Long> given = ImageMarkers.ids(newText).stream().sorted().toList();
+        if (!expected.equals(given)) {
+            throw new ChapterImageMarkersException();
+        }
     }
 
     @Transactional

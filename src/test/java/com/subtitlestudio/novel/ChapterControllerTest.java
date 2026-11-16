@@ -191,6 +191,16 @@ class ChapterControllerTest {
     }
 
     @Test
+    void savingWithoutAnImageMarkerIs400WithItsCode() throws Exception {
+        when(service.update(eq(9L), any())).thenThrow(new ChapterImageMarkersException());
+
+        mvc.perform(put("/api/chapters/9").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"text\":\"no markers\"}")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CHAPTER_IMAGE_MARKERS"))
+                .andExpect(jsonPath("$.detail").value("Keep every [[image:…]] line of this chapter unchanged."));
+    }
+
+    @Test
     void pageEndpointsOfATextChapterAre409() throws Exception {
         when(service.reorder(eq(9L), any())).thenThrow(new ChapterTextSourceException(9));
 

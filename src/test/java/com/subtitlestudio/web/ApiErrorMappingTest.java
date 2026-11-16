@@ -153,6 +153,8 @@ class ApiErrorMappingTest {
             c(() -> new ChapterTranslationInProgressException(1), HttpStatus.CONFLICT, "TRANSLATION_IN_PROGRESS"),
             c(() -> new ChapterPublishedException(1), HttpStatus.CONFLICT, "CHAPTER_PUBLISHED"),
             c(() -> new ChapterTextSourceException(1), HttpStatus.CONFLICT, "CHAPTER_TEXT_SOURCE"),
+            c(com.subtitlestudio.novel.ChapterImageMarkersException::new, HttpStatus.BAD_REQUEST,
+                    "CHAPTER_IMAGE_MARKERS"),
             c(() -> new NovelTranslationBusyException(1, NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING, 2),
                     HttpStatus.CONFLICT, "NOVEL_TRANSLATION_BUSY"),
             c(() -> new ChapterAlreadyTranslatedException(1), HttpStatus.CONFLICT, "CHAPTER_ALREADY_TRANSLATED"),

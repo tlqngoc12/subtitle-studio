@@ -133,6 +133,11 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
         title: 'This chapter is published.',
         hint: 'Only its text can be edited. Unpublish it to change pages or translate again.',
       };
+    case 'CHAPTER_IMAGE_MARKERS':
+      return {
+        title: 'Keep every [[image:…]] line of this chapter unchanged.',
+        hint: 'Those lines stand for the chapter images. You can move them, but not remove or edit them.',
+      };
     case 'CHAPTER_TEXT_SOURCE':
       return { title: 'This chapter comes from Wattpad text, so it has no pages.' };
     case 'NOVEL_TRANSLATION_BUSY':
