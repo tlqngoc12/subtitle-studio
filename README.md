@@ -141,7 +141,7 @@ Menu **Novels** dùng để đăng tiểu thuyết dịch từ **ảnh chụp m�
 1. **New novel**: tên, slug (dùng trong link public), bìa, tác giả gốc, giới thiệu, tag, trạng thái (Ongoing/Completed), credit người dịch, link bản gốc và **Translation profile** (một file `./data/prompts/<Tên>.md`, ghi rõ ngôn ngữ gốc, xưng hô, tên riêng; xem `_example.md`).
 2. **Add chapter** → kéo thả ảnh chụp của chương (một hay nhiều ảnh mỗi lần; xếp theo tên file, kéo để đổi thứ tự) → **Translate**. Gemini đọc chữ trong ảnh và dịch, chạy nền; chương dài được tự chia thành nhiều lượt (20 ảnh/lượt).
 3. Sửa bản dịch ngay cạnh ảnh gốc → **Save** → **Publish** chương. Chỉ chương **Published** lên trang public.
-4. Sau mỗi chương Published, app tự cập nhật **sổ tay truyện** (nhân vật, xưng hô, thuật ngữ, tóm tắt; xem ở tab **Notebook**) và gửi kèm khi dịch các chương sau, để bản dịch liền mạch. Tên riêng và xưng hô đã chốt không bao giờ bị xoá.
+4. Tên riêng và cách xưng hô nằm trong **Translation profile** của truyện (tab **Profile**; nút Analyze gợi ý chỉnh hồ sơ từ các chỗ bạn đã sửa) và được gửi kèm mỗi lần dịch.
 5. Bấm **Publish** (góc phải) như bình thường: mỗi chương Published được **vẽ thành ảnh WebP có watermark** rồi đẩy lên trang public. Trang public **không có text chương**; trang đọc chặn bôi đen, chuột phải, giữ để lưu ảnh, phím tắt copy/lưu/in, in trang và làm mờ khi cửa sổ mất focus. Không chặn được chụp bằng thiết bị khác; watermark để truy nguồn.
 
 - Ảnh chụp gốc ở `./data/media/`; ảnh đã vẽ cho public ở `./data/novel-render/` (cache, xoá được, Publish sẽ vẽ lại).
