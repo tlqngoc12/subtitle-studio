@@ -33,6 +33,7 @@ public class ChapterService {
     private final NovelRepository novels;
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
+    private final ChapterImageRepository chapterImages;
     private final MediaService mediaService;
     private final ImageSniffer sniffer;
     private final RenderCache renderCache;
@@ -42,12 +43,13 @@ public class ChapterService {
     private final TranslatingModels models;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                          MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
+                          ChapterImageRepository chapterImages, MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
                           PageRotator rotator, SubtitleStudioProperties properties, Clock clock,
                           TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
+        this.chapterImages = chapterImages;
         this.mediaService = mediaService;
         this.sniffer = sniffer;
         this.renderCache = renderCache;
@@ -204,8 +206,11 @@ public class ChapterService {
     public void delete(long id) {
         Chapter c = editable(id);
         List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(id);
-        List<Long> images = ps.stream().map(p -> p.getMedia().getId()).toList();
+        List<Long> images = new ArrayList<>(ps.stream().map(p -> p.getMedia().getId()).toList());
         pages.deleteAll(ps);
+        List<ChapterImage> inText = chapterImages.findByChapterIdOrderByPosition(id);
+        inText.forEach(i -> images.add(i.getMedia().getId()));
+        chapterImages.deleteAll(inText);
         c.getNovel().touch(clock.instant());
         chapters.delete(c);
         chapters.flush();

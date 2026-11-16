@@ -62,6 +62,9 @@ public class MediaFiler {
             new Rule("ChapterPage.media",
                     "select n.slug from ChapterPage e join e.chapter c join c.novel n where e.media.id = :id", "page",
                     slug -> "novels/" + MediaNames.folder((String) slug, "novel")),
+            new Rule("ChapterImage.media",
+                    "select n.slug from ChapterImage e join e.chapter c join c.novel n where e.media.id = :id", "image",
+                    slug -> "novels/" + MediaNames.folder((String) slug, "novel")),
             new Rule("Fanfic.cover", "select 1 from Fanfic e where e.cover.id = :id", "cover", "fanfics/covers"));
 
     private static final Object PENDING = MediaFiler.class.getName() + ".pending";
@@ -110,10 +113,13 @@ public class MediaFiler {
         pending.addAll(mediaIds);
     }
 
-    /** Files every page image of a novel (its slug names the folder) once the transaction commits. */
+    /** Files every page and chapter image of a novel (its slug names the folder) once the transaction commits. */
     public void fileNovelPagesAfterCommit(long novelId) {
-        List<Long> ids = em.createQuery("select p.media.id from ChapterPage p where p.chapter.novel.id = :id", Long.class)
-                .setParameter("id", novelId).getResultList();
+        List<Long> ids = new java.util.ArrayList<>(em.createQuery(
+                "select p.media.id from ChapterPage p where p.chapter.novel.id = :id", Long.class)
+                .setParameter("id", novelId).getResultList());
+        ids.addAll(em.createQuery("select i.media.id from ChapterImage i where i.chapter.novel.id = :id", Long.class)
+                .setParameter("id", novelId).getResultList());
         fileAfterCommit(ids);
     }
 

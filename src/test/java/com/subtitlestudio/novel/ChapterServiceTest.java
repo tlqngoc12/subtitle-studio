@@ -88,6 +88,12 @@ class ChapterServiceTest {
     private MediaService mediaService;
 
     @Autowired
+    private ChapterImageRepository chapterImageRepository;
+
+    @Autowired
+    private com.subtitlestudio.profile.MediaRepository mediaRepository;
+
+    @Autowired
     private NovelNotebookRepository notebooks;
 
     @Autowired
@@ -564,6 +570,21 @@ class ChapterServiceTest {
 
         assertThat(cached).doesNotExist();
         assertThatThrownBy(() -> service.get(c.id())).isInstanceOf(ChapterNotFoundException.class);
+    }
+
+    @Test
+    void deleteRemovesChapterImagesAndTheirUnusedMedia() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        com.subtitlestudio.profile.Media image = mediaService.store("a.png", TestImages.png());
+        chapterImageRepository.save(new ChapterImage(chapters.findById(c.id()).orElseThrow(), image,
+                "https://img.wattpad.com/a.jpg", 1));
+        em.flush();
+
+        service.delete(c.id());
+        em.flush();
+
+        assertThat(chapterImageRepository.countByChapterId(c.id())).isZero();
+        assertThat(mediaRepository.existsById(image.getId())).isFalse();
     }
 
     private ChapterDetail landscapeChapter(int no, int pageCount) {

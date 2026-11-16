@@ -132,8 +132,12 @@ class PersistenceOracleIT {
     @Autowired
     private com.subtitlestudio.novel.ChapterPageRepository chapterPageRepository;
 
+    @Autowired
+    private com.subtitlestudio.novel.ChapterImageRepository chapterImageRepository;
+
     @AfterEach
     void cleanUp() {
+        chapterImageRepository.deleteAll();
         fanficRepository.deleteAll();
         photoPosts.deleteAll();
         workRepository.deleteAll();
@@ -155,7 +159,7 @@ class PersistenceOracleIT {
     void onlyFlywayCreatesTables() {
         // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
-                .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_PAGE", "T_FANFIC", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
+                .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_IMAGE", "T_CHAPTER_PAGE", "T_FANFIC", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
                         "T_PERSON", "T_PHOTO_POST", "T_PHOTO_POST_PROFILE", "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
                         "T_PROFILE_BLOCK_ITEM", "T_WORK", "T_WORK_CATEGORY", "T_WORK_CREDIT", "T_WORK_LINK", "VIDEO",
                         "VI_CUE", "flyway_schema_history");
@@ -321,6 +325,30 @@ class PersistenceOracleIT {
             chapterRepository.deleteAll();
             novelRepository.deleteById(n.getId());
             novelRepository.deleteById(empty.getId());
+        }
+    }
+
+    @Test
+    void chapterImageTableCascadesWithItsChapterOnOracle() throws IOException {
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(20, 30, java.awt.image.BufferedImage.TYPE_INT_RGB),
+                "png", png);
+        com.subtitlestudio.profile.Media m = mediaService.storeResized("i.png", png.toByteArray(), 1600);
+        com.subtitlestudio.novel.Novel n = novelRepository.save(new com.subtitlestudio.novel.Novel("image-it", "Img",
+                com.subtitlestudio.novel.NovelStatus.ONGOING, java.time.Instant.parse("2026-11-16T10:00:00Z")));
+        com.subtitlestudio.novel.Chapter c = chapterRepository.save(new com.subtitlestudio.novel.Chapter(n, 1, "One",
+                java.time.Instant.parse("2026-11-16T11:00:00Z")));
+        chapterImageRepository.save(new com.subtitlestudio.novel.ChapterImage(c, m, "https://img.wattpad.com/i.jpg", 1));
+        try {
+            assertThat(media.isReferenced(m.getId())).isTrue();
+            assertThat(chapterImageRepository.findByChapterIdOrderByPosition(c.getId())).hasSize(1);
+            jdbc.update("delete from t_chapter where id = ?", c.getId());
+            assertThat(jdbc.queryForObject("select count(*) from t_chapter_image", Integer.class)).isZero();
+            assertThat(media.isReferenced(m.getId())).isFalse();
+        } finally {
+            chapterImageRepository.deleteAll();
+            chapterRepository.deleteAll();
+            novelRepository.deleteById(n.getId());
         }
     }
 

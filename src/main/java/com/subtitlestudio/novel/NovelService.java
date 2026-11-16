@@ -27,6 +27,7 @@ public class NovelService {
     private final NovelRepository novels;
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
+    private final ChapterImageRepository chapterImages;
     private final NovelNotebookRepository notebooks;
     private final MediaRepository media;
     private final MediaService mediaService;
@@ -37,12 +38,13 @@ public class NovelService {
     private final MediaFiler mediaFiler;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                        NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
+                        ChapterImageRepository chapterImages, NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
                         NovelValidator validator, RenderCache renderCache, Clock clock,
                         TranslatingModels models, MediaFiler mediaFiler) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
+        this.chapterImages = chapterImages;
         this.notebooks = notebooks;
         this.media = media;
         this.mediaService = mediaService;
@@ -143,6 +145,9 @@ public class NovelService {
             List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(c.getId());
             ps.forEach(p -> images.add(p.getMedia().getId()));
             pages.deleteAll(ps);
+            List<ChapterImage> inText = chapterImages.findByChapterIdOrderByPosition(c.getId());
+            inText.forEach(i -> images.add(i.getMedia().getId()));
+            chapterImages.deleteAll(inText);
         }
         chapters.deleteAll(cs);
         notebooks.deleteAll(notebooks.findByNovelIdOrderByAfterChapterNo(id));

@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.novel.Chapter;
+import com.subtitlestudio.novel.ChapterImage;
+import com.subtitlestudio.novel.ChapterImageRepository;
 import com.subtitlestudio.novel.ChapterPage;
 import com.subtitlestudio.novel.ChapterPageRepository;
 import com.subtitlestudio.novel.ChapterRepository;
@@ -97,8 +99,12 @@ class MediaServiceTest {
     @Autowired
     private ChapterPageRepository chapterPages;
 
+    @Autowired
+    private ChapterImageRepository chapterImages;
+
     @AfterEach
     void cleanUp() throws IOException {
+        chapterImages.deleteAll();
         chapterPages.deleteAll();
         chapters.deleteAll();
         novels.deleteAll();
@@ -256,6 +262,25 @@ class MediaServiceTest {
         assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isEqualTo(1);
 
         assertThat(media.findAll()).extracting(Media::getId).containsExactlyInAnyOrder(cover.getId(), page.getId());
+        assertThat(fileOf(abandoned, "png")).doesNotExist();
+    }
+
+    @Test
+    void abandonedCleanupKeepsChapterImages() {
+        Media image = storeAt(NOW.minus(Duration.ofHours(25)));
+        Media abandoned = storeAt(NOW.minus(Duration.ofHours(25)));
+        Novel novel = novels.saveAndFlush(new Novel("w-" + image.getId(), "W", NovelStatus.ONGOING, NOW));
+        Chapter chapter = chapters.saveAndFlush(new Chapter(novel, 1, null, NOW));
+        chapterImages.saveAndFlush(new ChapterImage(chapter, image, "https://img.wattpad.com/a.jpg", 1));
+
+        assertThat(media.isReferenced(image.getId())).isTrue();
+        assertThat(media.isReferenced(abandoned.getId())).isFalse();
+        assertThat(media.findUnreferencedCreatedBefore(NOW.minus(Duration.ofHours(24))))
+                .extracting(Media::getId).containsExactly(abandoned.getId());
+        assertThat(service.deleteUnreferencedOlderThan(Duration.ofHours(24))).isEqualTo(1);
+
+        assertThat(media.findAll()).extracting(Media::getId).containsExactly(image.getId());
+        assertThat(fileOf(image, "png")).exists();
         assertThat(fileOf(abandoned, "png")).doesNotExist();
     }
 
