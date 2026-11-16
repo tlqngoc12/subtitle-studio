@@ -733,4 +733,57 @@ class ChapterTranslationServiceTest {
 
         assertThatThrownBy(() -> service.start(id)).isInstanceOf(ChapterPublishedException.class);
     }
+
+    @Test
+    void textChapterSuccessKeepsTheAiText() {
+        long id = textChapter(1, "First.\n\nSecond.");
+
+        service.start(id);
+
+        Chapter c = reload(id);
+        assertThat(c.getAiText()).isEqualTo("VI: First.\n\nSecond.").isEqualTo(c.getTextVi());
+        chapterService.update(id, new ChapterUpdateRequest(null, null, null, "edited"));
+        assertThat(reload(id).getTextVi()).isEqualTo("edited");
+        assertThat(reload(id).getAiText()).isEqualTo("VI: First.\n\nSecond.");
+    }
+
+    @Test
+    void screenshotSuccessKeepsTheJoinedPageTexts() {
+        translator.length = 5;
+        ChapterDetail c = chapter(1, 2);
+
+        service.start(c.id());
+
+        Chapter done = reload(c.id());
+        assertThat(done.getAiText()).isEqualTo("T1 xx\n\nT2 xx");
+        assertThat(done.getTextVi()).isNull();
+    }
+
+    @Test
+    void failedOrPartialTranslationDoesNotSetAiText() {
+        ChapterDetail c = chapter(1, 3);
+        translator.failOnCall = 1;
+        translator.partlyDone = 2;
+
+        service.start(c.id());
+
+        assertThat(reload(c.id()).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(reload(c.id()).getAiText()).isNull();
+        long t = textChapter(2, "Text");
+        textTranslator.failOnCall = textTranslator.prompts.size() + 1;
+        service.start(t);
+        assertThat(reload(t).getAiText()).isNull();
+    }
+
+    @Test
+    void translateAgainReplacesAiText() {
+        long id = textChapter(1, "Text");
+        service.start(id);
+        assertThat(reload(id).getAiText()).isEqualTo("VI: Text");
+        tx.executeWithoutResult(s -> reload(id).setSourceText("Other"));
+
+        service.start(id);
+
+        assertThat(reload(id).getAiText()).isEqualTo("VI: Other");
+    }
 }

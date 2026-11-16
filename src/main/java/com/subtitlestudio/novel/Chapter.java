@@ -50,6 +50,11 @@ public class Chapter {
     @Column(name = "text_vi")
     private String textVi;
 
+    /** Gemini's whole-chapter translation as it came back; never changed by edits (V24). Null until translated. */
+    @Lob
+    @Column(name = "ai_text")
+    private String aiText;
+
     /** The original text fetched from Wattpad (plain text, paragraphs separated by a blank line); null for screenshots. */
     @Lob
     @Column(name = "source_text")
@@ -151,6 +156,14 @@ public class Chapter {
 
     public void setTextVi(String textVi) {
         this.textVi = textVi;
+    }
+
+    public String getAiText() {
+        return aiText;
+    }
+
+    public void setAiText(String aiText) {
+        this.aiText = aiText;
     }
 
     public String getSourceText() {
