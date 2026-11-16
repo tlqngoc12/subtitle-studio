@@ -962,6 +962,11 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - `t_novel.notebook_paused` (V23); `PUT /api/novels/{id}/notebook/paused`; `retry` khi tạm dừng thì 409 `NOTEBOOK_PAUSED`; tắt tạm dừng không tự chạy gì, tab Notebook hiện dòng còn thiếu mấy chương và nút Update now (chạy `retry`, nay mặc định lấy chương Published mới nhất khi không có chương lỗi chờ). `NovelDetail` thêm `notebookChapterNo` nên dòng bận dùng đúng số chương.
 - **Lưu ý deploy:** V23 chạy trên Oracle, chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi thì dừng.
 
+### 2026-11-15: Gemini quá thời gian chờ thì thử model dự phòng ✅
+- Plan [docs/superpowers/plans/2026-11-15-gemini-timeout-fallback.md](docs/superpowers/plans/2026-11-15-gemini-timeout-fallback.md). Khi một model Gemini quá thời gian chờ, `GeminiClient` ghi log rồi thử tiếp model dự phòng thay vì dừng ngay; chỉ khi mọi model đều lỗi mới báo (ưu tiên thông báo quá thời gian chờ, rồi đến "bận", rồi hết quota).
+- Cập nhật sổ tay thất bại nay được ghi log kèm lý do (`NotebookService.fail`), không còn chỉ hiện trên giao diện.
+- `NotebookMerger` không còn từ chối cả lần cập nhật khi một mục phụ quá dài: mục nhân vật/thuật ngữ/cách xưng hô quá dài bị bỏ riêng lẻ (`sourceName` quá dài thì đặt null), log tên trường và độ dài, không log nội dung. `storySoFar` và `chapterSummary` quá dài vẫn từ chối cả lần cập nhật.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

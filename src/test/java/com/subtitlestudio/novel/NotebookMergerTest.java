@@ -92,9 +92,6 @@ class NotebookMergerTest {
         assertThatThrownBy(() -> NotebookMerger.merge(NotebookContent.EMPTY,
                 new NotebookUpdate(List.of(), List.of(), List.of(), "x".repeat(2_501), "c"), 1))
                 .isInstanceOf(InvalidNotebookUpdateException.class).hasMessageContaining("storySoFar");
-        assertThatThrownBy(() -> NotebookMerger.merge(NotebookContent.EMPTY, new NotebookUpdate(List.of(), List.of(),
-                List.of(new NotebookCharacter("A", null, "x".repeat(301), "s", 0)), "x", "c"), 1))
-                .isInstanceOf(InvalidNotebookUpdateException.class).hasMessageContaining("profile");
         assertThatThrownBy(() -> NotebookMerger.merge(NotebookContent.EMPTY,
                 new NotebookUpdate(List.of(), List.of(), List.of(), "x", "c".repeat(801)), 1))
                 .isInstanceOf(InvalidNotebookUpdateException.class).hasMessageContaining("chapterSummary");
@@ -120,32 +117,64 @@ class NotebookMergerTest {
         return new NotebookUpdate(List.of(), List.of(new AddressingRule(from, to, rule)), List.of(), "x", "c");
     }
 
-    private static void accepts(NotebookUpdate u) {
-        NotebookMerger.merge(NotebookContent.EMPTY, u, 1);
-    }
-
-    private static void rejects(NotebookUpdate u, String field, int length, int max) {
-        assertThatThrownBy(() -> accepts(u)).isInstanceOf(InvalidNotebookUpdateException.class)
-                .hasMessageContaining(field).hasMessageContaining("(" + length + " > " + max + ")");
+    private static NotebookContent merged(NotebookUpdate u) {
+        return NotebookMerger.merge(NotebookContent.EMPTY, u, 1);
     }
 
     @Test
-    void everyNewFieldLimitRejectsOneOverAndAcceptsExactlyTheLimit() {
+    void everyNewFieldLimitDropsOneOverAndAcceptsExactlyTheLimit() {
         String ok80 = "a".repeat(80);
         String over80 = "a".repeat(81);
-        accepts(withCharacter(ok80, "b".repeat(120)));
-        rejects(withCharacter(over80, null), "name", 81, 80);
-        rejects(withCharacter("Mai", "b".repeat(121)), "sourceName", 121, 120);
+        assertThat(merged(withCharacter(ok80, "b".repeat(120))).characters()).hasSize(1);
+        assertThat(merged(withCharacter(over80, null)).characters()).isEmpty();
+        assertThat(merged(withCharacter("Mai", "b".repeat(121))).characters())
+                .extracting(NotebookCharacter::sourceName).containsExactly((String) null);
 
-        accepts(withGlossary("s".repeat(120), "t".repeat(120), "n".repeat(300)));
-        rejects(withGlossary("s".repeat(121), "t", null), "glossary source", 121, 120);
-        rejects(withGlossary("s", "t".repeat(121), null), "glossary target", 121, 120);
-        rejects(withGlossary("s", "t", "n".repeat(301)), "glossary note", 301, 300);
+        assertThat(merged(withGlossary("s".repeat(120), "t".repeat(120), "n".repeat(300))).glossary()).hasSize(1);
+        assertThat(merged(withGlossary("s".repeat(121), "t", null)).glossary()).isEmpty();
+        assertThat(merged(withGlossary("s", "t".repeat(121), null)).glossary()).isEmpty();
+        assertThat(merged(withGlossary("s", "t", "n".repeat(301))).glossary()).isEmpty();
 
-        accepts(withAddressing(ok80, ok80, "r".repeat(300)));
-        rejects(withAddressing(over80, "b", "r"), "addressing from", 81, 80);
-        rejects(withAddressing("a", over80, "r"), "addressing to", 81, 80);
-        rejects(withAddressing("a", "b", "r".repeat(301)), "addressing rule", 301, 300);
+        assertThat(merged(withAddressing(ok80, ok80, "r".repeat(300))).addressing()).hasSize(1);
+        assertThat(merged(withAddressing(over80, "b", "r")).addressing()).isEmpty();
+        assertThat(merged(withAddressing("a", over80, "r")).addressing()).isEmpty();
+        assertThat(merged(withAddressing("a", "b", "r".repeat(301))).addressing()).isEmpty();
+    }
+
+    @Test
+    void aRunawaySourceNameIsDroppedButTheCharacterIsKept() {
+        NotebookContent result = merged(new NotebookUpdate(List.of(), List.of(),
+                List.of(new NotebookCharacter("Bonnie", "x".repeat(37_969), "hiền", "vui", 0)), "Tóm", "c"));
+
+        assertThat(result.characters()).containsExactly(new NotebookCharacter("Bonnie", null, "hiền", "vui", 1));
+    }
+
+    @Test
+    void anOverlongProfileDropsThatCharacterAndKeepsTheStoredOne() {
+        NotebookContent old = new NotebookContent(List.of(), List.of(),
+                List.of(new NotebookCharacter("A", null, "cũ", "cũ", 1)), "x", List.of());
+
+        NotebookContent result = NotebookMerger.merge(old, new NotebookUpdate(List.of(), List.of(),
+                List.of(new NotebookCharacter("A", null, "x".repeat(301), "s", 0),
+                        new NotebookCharacter("B", null, "p", "s", 0)), "Tóm", "c"), 2);
+
+        assertThat(result.characters()).extracting(NotebookCharacter::name).containsExactly("A", "B");
+        assertThat(result.characters().get(0).profile()).isEqualTo("cũ");
+    }
+
+    @Test
+    void anOverlongGlossaryTargetDropsOnlyThatEntry() {
+        NotebookContent result = merged(new NotebookUpdate(
+                List.of(new GlossaryEntry("a", "t".repeat(121), null), new GlossaryEntry("b", "bê", null)),
+                List.of(), List.of(), "Tóm", "c"));
+
+        assertThat(result.glossary()).containsExactly(new GlossaryEntry("b", "bê", null));
+    }
+
+    @Test
+    void anOverlongStorySoFarStillThrows() {
+        assertThatThrownBy(() -> merged(new NotebookUpdate(List.of(), List.of(), List.of(), "x".repeat(2_501), "c")))
+                .isInstanceOf(InvalidNotebookUpdateException.class).hasMessageContaining("storySoFar");
     }
 
     @Test

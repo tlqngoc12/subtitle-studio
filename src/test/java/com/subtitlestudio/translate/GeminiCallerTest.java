@@ -261,4 +261,76 @@ class GeminiCallerTest {
         assertThat(caller(List.of()).generate(List.of(Part.fromText("hi")), GenerateContentConfig.builder().build())
                 .model()).isEqualTo("m1");
     }
+
+    private static final String MAIN = "gemini-test-flash";
+    private static final String LITE = "gemini-test-lite";
+    private static final String THIRD = "gemini-test-third";
+    private static final String BUSY = "{\"error\":{\"code\":503,\"message\":\"High demand.\",\"status\":\"UNAVAILABLE\"}}";
+    private static final String DAILY = "{\"error\":{\"code\":429,\"message\":\"Quota exceeded for metric: "
+            + "generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, "
+            + "model: x\nPlease retry in 30000s.\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
+    private static final Duration SLOW = Duration.ofSeconds(2);
+
+    /** A caller with a 300 ms timeout whose main model is {@link #MAIN}, for the timeout tests. */
+    private static GeminiCaller timeoutCaller(String baseUrl, String... fallbacks) {
+        var gemini = new SubtitleStudioProperties.Gemini("test-key", MAIN, Duration.ofMillis(300),
+                Duration.ofMinutes(60), 0.3, List.of(fallbacks));
+        return new GeminiCaller(gemini, baseUrl);
+    }
+
+    private static String userMessage(Throwable e) {
+        return ((TranslationFailedException) e).userMessage();
+    }
+
+    @Test
+    void aTimeoutFallsBackToTheNextModel() {
+        server.delayForModel(MAIN, SLOW);
+        server.replyForModel(LITE, 200, "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"ok\"}]},"
+                + "\"finishReason\":\"STOP\"}]}");
+        List<String> tried = new ArrayList<>();
+
+        GeminiCaller.Answer answer = timeoutCaller(server.baseUrl(), LITE).generate(HI, NO_CONFIG, tried::add);
+
+        assertThat(answer.text()).isEqualTo("ok");
+        assertThat(answer.model()).isEqualTo(LITE);
+        assertThat(tried).containsExactly(MAIN, LITE);
+    }
+
+    @Test
+    void allModelsTimingOutFails() {
+        server.delay(SLOW);
+
+        assertThatThrownBy(() -> timeoutCaller(server.baseUrl(), LITE).generate(HI, NO_CONFIG))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini did not respond in time."));
+    }
+
+    @Test
+    void aTimeoutThenBusyStillReportsTheTimeout() {
+        server.delayForModel(MAIN, SLOW);
+        server.replyForModel(LITE, 503, BUSY);
+
+        assertThatThrownBy(() -> timeoutCaller(server.baseUrl(), LITE).generate(HI, NO_CONFIG))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini did not respond in time."));
+    }
+
+    @Test
+    void busyThenDailyQuotaThenTimeoutReportsTheTimeout() {
+        server.replyForModel(MAIN, 503, BUSY);
+        server.replyForModel(LITE, 429, DAILY);
+        server.delayForModel(THIRD, SLOW);
+
+        assertThatThrownBy(() -> timeoutCaller(server.baseUrl(), LITE, THIRD).generate(HI, NO_CONFIG))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini did not respond in time."));
+    }
+
+    @Test
+    void aConnectionErrorDoesNotFallBack() {
+        String deadUrl = server.baseUrl();
+        server.close();
+        List<String> tried = new ArrayList<>();
+
+        assertThatThrownBy(() -> timeoutCaller(deadUrl, LITE).generate(HI, NO_CONFIG, tried::add))
+                .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Could not translate: connection to Gemini failed."));
+        assertThat(tried).containsExactly(MAIN);
+    }
 }
