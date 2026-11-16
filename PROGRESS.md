@@ -980,6 +980,12 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Gợi ý tên riêng/thuật ngữ và xưng hô được ghi thẳng vào hồ sơ (mục `## Tên riêng và thuật ngữ`, `## Xưng hô`) và liệt kê riêng trong giao diện; không ghi vào sổ tay truyện. Không có gì được lưu nếu người dùng chưa bấm Save.
 - **Lưu ý deploy:** V24 chạy trên Oracle, chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi thì dừng.
 
+### 2026-11-16: Làm chặt bảo mật và hiệu năng (PR A; không có migration)
+- Spec [docs/superpowers/specs/2026-11-16-hardening-performance-design.md](docs/superpowers/specs/2026-11-16-hardening-performance-design.md), plan [docs/superpowers/plans/2026-11-16-hardening-performance.md](docs/superpowers/plans/2026-11-16-hardening-performance.md).
+- **Mạng:** compose chỉ mở `127.0.0.1:8080`; `mem_limit: 2g` và `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError`; `GET /api/ping` (204) cho `HEALTHCHECK`; `LocalOriginFilter` trên `/api/*` (Host phải là localhost/127.0.0.1; POST/PUT/DELETE có `Origin` phải là `http://localhost|127.0.0.1[:port]`, `null` bị chặn; 403 `FORBIDDEN_ORIGIN`).
+- **Hiệu năng:** danh sách và trang truyện không còn đọc CLOB chương (`chapterStats`, `findRowsByNovel`, `countPerChapter`, `maxPublishedChapterNo`, `findIdsBefore`); upload ảnh chương đọc từng file một (`NamedImage.Content`); route lazy ở cả hai app (bundle đầu admin 1.134,81 kB xuống 371,78 kB, public 1.012,02 kB xuống 437,71 kB).
+- **Public:** `_headers` có `X-Content-Type-Options`, `Referrer-Policy` và CSP (thêm `https://www.youtube.com` vào script-src cho `iframe_api` và `https://open.spotify.com` vào frame-src cho khối EMBED); `reads-post.js` đếm một lượt đọc mỗi (IP băm SHA-256, slug) trong 10 phút qua Cache API.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

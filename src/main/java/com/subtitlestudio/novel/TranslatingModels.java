@@ -24,6 +24,11 @@ public class TranslatingModels {
         return active.get(chapterId);
     }
 
+    String shown(ChapterRow c) {
+        return c.translationStatus() == ChapterTranslationStatus.TRANSLATING ? active.get(c.id())
+                : c.translationModel();
+    }
+
     String shown(Chapter c) {
         return c.getTranslationStatus() == ChapterTranslationStatus.TRANSLATING ? active.get(c.getId())
                 : c.getTranslationModel();

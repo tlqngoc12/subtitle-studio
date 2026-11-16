@@ -503,4 +503,108 @@ class NovelServiceTest {
         assertThatThrownBy(() -> service.create(other)).isInstanceOf(DuplicateWattpadNovelException.class)
                 .satisfies(e -> assertThat(((DuplicateWattpadNovelException) e).novelId()).isEqualTo(first.id()));
     }
+
+    @Test
+    void list_counts_chapters_without_loading_texts() {
+        long a = novel("count-a");
+        Novel novel = em.find(Novel.class, a);
+        Chapter one = new Chapter(novel, 1, null, NOW);
+        one.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        one.setPublishedAt(NOW.plusSeconds(10));
+        Chapter two = new Chapter(novel, 2, null, NOW);
+        two.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        two.setPublishedAt(NOW.plusSeconds(20));
+        Chapter draft = new Chapter(novel, 3, null, NOW);
+        chapters.save(one);
+        chapters.save(two);
+        chapters.save(draft);
+        long b = novel("count-b");
+        em.flush();
+        em.clear();
+
+        NovelSummary sa = service.list().stream().filter(n -> n.id() == a).findFirst().orElseThrow();
+        assertThat(sa.chapterCount()).isEqualTo(3);
+        assertThat(sa.publishedCount()).isEqualTo(2);
+        assertThat(sa.lastPublishedAt()).isEqualTo(NOW.plusSeconds(20));
+        NovelSummary sb = service.list().stream().filter(n -> n.id() == b).findFirst().orElseThrow();
+        assertThat(sb.chapterCount()).isZero();
+        assertThat(sb.publishedCount()).isZero();
+        assertThat(sb.lastPublishedAt()).isNull();
+        // setFeatured uses the single-novel aggregate and must give the same numbers
+        assertThat(service.setFeatured(a, true).chapterCount()).isEqualTo(3);
+        assertThat(service.setFeatured(b, true).chapterCount()).isZero();
+    }
+
+    @Test
+    void detail_page_counts_include_chapters_without_pages() throws IOException {
+        long id = novel("page-counts");
+        Novel novel = em.find(Novel.class, id);
+        Chapter x = chapters.save(new Chapter(novel, 1, null, NOW));
+        Chapter y = chapters.save(new Chapter(novel, 2, null, NOW));
+        Media m1 = mediaService.store("p1.png", TestImages.png());
+        Media m2 = mediaService.store("p2.png", TestImages.png());
+        pages.save(new ChapterPage(x, 1, m1));
+        pages.save(new ChapterPage(x, 2, m2));
+        em.flush();
+        em.clear();
+
+        assertThat(service.get(id).chapters()).extracting(ChapterSummary::chapterNo, ChapterSummary::pageCount)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(1, 2), org.assertj.core.groups.Tuple.tuple(2, 0));
+        assertThat(y.getId()).isNotNull();
+    }
+
+    @Test
+    void detail_rows_match_previous_shape() throws IOException {
+        long id = novel("shape");
+        Novel novel = em.find(Novel.class, id);
+        Chapter one = new Chapter(novel, 1, "Một", NOW);
+        one.setLabel("Ngoại truyện 1");
+        one.setSortOrder(2);
+        one.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        one.setTranslationModel("gemini-x");
+        Chapter two = new Chapter(novel, 2, null, NOW);
+        two.setSortOrder(1);
+        chapters.save(one);
+        chapters.save(two);
+        pages.save(new ChapterPage(one, 1, mediaService.store("s1.png", TestImages.png())));
+        em.flush();
+        em.clear();
+
+        // the previous code path: entities -> ChapterSummary
+        List<ChapterSummary> old = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(id).stream()
+                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
+                        c.getTranslationStatus(), c.getTranslationError(), c.getTranslationModel(),
+                        c.getPublishStatus(), (int) pages.countByChapterId(c.getId()), 0))
+                .toList();
+        em.clear();
+
+        assertThat(service.get(id).chapters()).isEqualTo(old);
+    }
+
+    @Test
+    void metadata_queries_do_not_need_chapter_entities() {
+        long id = novel("meta");
+        Novel novel = em.find(Novel.class, id);
+        Chapter one = new Chapter(novel, 1, "A", NOW);
+        one.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        one.setPublishedAt(NOW.plusSeconds(5));
+        Chapter two = new Chapter(novel, 2, "B", NOW);
+        Chapter three = new Chapter(novel, 3, "C", NOW);
+        three.setPublishStatus(ChapterPublishStatus.PUBLISHED);
+        three.setPublishedAt(NOW.plusSeconds(7));
+        chapters.save(one);
+        chapters.save(two);
+        chapters.save(three);
+        long empty = novel("meta-empty");
+        em.flush();
+        em.clear();
+
+        assertThat(chapters.maxPublishedChapterNo(id)).isEqualTo(3);
+        assertThat(chapters.maxPublishedChapterNo(empty)).isNull();
+        assertThat(chapters.findIdsBefore(id, 3)).containsExactly(two.getId(), one.getId());
+        assertThat(chapters.chapterStats(id)).isEqualTo(new NovelChapterStats(id, 3, 2, NOW.plusSeconds(7)));
+        assertThat(chapters.chapterStats(empty)).isNull();
+        assertThat(chapters.findRowsByNovel(id)).extracting(ChapterRow::chapterNo).containsExactly(1, 2, 3);
+        assertThat(chapters.chapterStats()).extracting(NovelChapterStats::novelId).contains(id).doesNotContain(empty);
+    }
 }

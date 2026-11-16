@@ -41,4 +41,36 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     /** The nearest earlier chapter (any status); callers check that its pages have text. */
     List<Chapter> findByNovelIdAndChapterNoLessThanOrderByChapterNoDesc(long novelId, int chapterNo);
+
+    /** Chapter totals for every novel that has chapters (a novel without chapters has no row). */
+    @org.springframework.data.jpa.repository.Query("select new com.subtitlestudio.novel.NovelChapterStats("
+            + "c.novel.id, count(c), "
+            + "sum(case when c.publishStatus = com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED then 1L else 0L end), "
+            + "max(case when c.publishStatus = com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED then c.publishedAt end)) "
+            + "from Chapter c group by c.novel.id")
+    List<NovelChapterStats> chapterStats();
+
+    /** The same totals for one novel; null when it has no chapters. */
+    @org.springframework.data.jpa.repository.Query("select new com.subtitlestudio.novel.NovelChapterStats("
+            + "c.novel.id, count(c), "
+            + "sum(case when c.publishStatus = com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED then 1L else 0L end), "
+            + "max(case when c.publishStatus = com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED then c.publishedAt end)) "
+            + "from Chapter c where c.novel.id = :novelId group by c.novel.id")
+    NovelChapterStats chapterStats(@org.springframework.data.repository.query.Param("novelId") long novelId);
+
+    /** Chapter metadata in reading order, without the text columns. */
+    @org.springframework.data.jpa.repository.Query("select new com.subtitlestudio.novel.ChapterRow(c.id, c.chapterNo, "
+            + "c.title, c.label, c.translationStatus, c.translationError, c.translationModel, c.publishStatus) "
+            + "from Chapter c where c.novel.id = :novelId order by c.sortOrder asc, c.chapterNo asc")
+    List<ChapterRow> findRowsByNovel(@org.springframework.data.repository.query.Param("novelId") long novelId);
+
+    /** The highest chapter number among the published chapters; null when none is published. */
+    @org.springframework.data.jpa.repository.Query("select max(c.chapterNo) from Chapter c where c.novel.id = :novelId "
+            + "and c.publishStatus = com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED")
+    Integer maxPublishedChapterNo(@org.springframework.data.repository.query.Param("novelId") long novelId);
+
+    /** Ids of the chapters before {@code chapterNo}, nearest first. */
+    @org.springframework.data.jpa.repository.Query("select c.id from Chapter c where c.novel.id = :novelId "
+            + "and c.chapterNo < :chapterNo order by c.chapterNo desc")
+    List<Long> findIdsBefore(@org.springframework.data.repository.query.Param("novelId") long novelId, @org.springframework.data.repository.query.Param("chapterNo") int chapterNo);
 }

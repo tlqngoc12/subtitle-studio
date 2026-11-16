@@ -479,7 +479,7 @@ class WattpadNovelServiceTest {
         com.subtitlestudio.novel.Chapter older = chapterWith(7, com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED);
         com.subtitlestudio.novel.Chapter newer = chapterWith(9, com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED);
         com.subtitlestudio.novel.Chapter draft = chapterWith(10, com.subtitlestudio.novel.ChapterPublishStatus.DRAFT);
-        when(chapters.findByNovelIdOrderByChapterNo(3L)).thenReturn(List.of(older, newer, draft));
+        when(chapters.maxPublishedChapterNo(3L)).thenReturn(9);
 
         assertThatThrownBy(() -> service.fetchAndTranslate(3, "2"))
                 .isInstanceOf(com.subtitlestudio.novel.NovelTranslationBusyException.class)

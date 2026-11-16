@@ -86,7 +86,7 @@ public class ChapterController {
         }
         List<NamedImage> images = new ArrayList<>();
         for (MultipartFile f : files) {
-            images.add(new NamedImage(f.getOriginalFilename(), f.getBytes()));
+            images.add(NamedImage.of(f));
         }
         return service.addPages(id, images);
     }

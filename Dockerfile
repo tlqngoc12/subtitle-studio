@@ -59,6 +59,6 @@ VOLUME /data
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD curl -fsS http://localhost:8080/api/videos > /dev/null || exit 1
+    CMD curl -fsS http://localhost:8080/api/ping > /dev/null || exit 1
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

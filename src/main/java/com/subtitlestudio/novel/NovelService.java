@@ -55,17 +55,19 @@ public class NovelService {
 
     @Transactional(readOnly = true)
     public List<NovelSummary> list() {
+        Map<Long, NovelChapterStats> stats = new HashMap<>();
+        chapters.chapterStats().forEach(s -> stats.put(s.novelId(), s));
         return novels.findAllByOrderByUpdatedAtDesc().stream()
-                .map(n -> summary(n, chapters.findByNovelIdOrderByChapterNo(n.getId()))).toList();
+                .map(n -> summary(n, stats.get(n.getId()))).toList();
     }
 
-    private NovelSummary summary(Novel n, List<Chapter> cs) {
-        List<Chapter> published = cs.stream()
-                .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED).toList();
-        Instant lastPublishedAt = published.stream().map(Chapter::getPublishedAt).filter(Objects::nonNull)
-                .max(Comparator.naturalOrder()).orElse(null);
-        return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(), cs.size(),
-                published.size(), n.getUpdatedAt(), n.getWattpadStoryId(), n.isFeatured(), n.getCreatedAt(),
+    /** {@code stats} is null for a novel without chapters. */
+    private NovelSummary summary(Novel n, NovelChapterStats stats) {
+        long chapterCount = stats == null ? 0 : stats.chapters();
+        long publishedCount = stats == null ? 0 : stats.published();
+        Instant lastPublishedAt = stats == null ? null : stats.lastPublishedAt();
+        return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(),
+                (int) chapterCount, (int) publishedCount, n.getUpdatedAt(), n.getWattpadStoryId(), n.isFeatured(), n.getCreatedAt(),
                 lastPublishedAt, n.getOriginalAuthor(), n.getDescription(), tags(n));
     }
 
@@ -77,7 +79,7 @@ public class NovelService {
             throw new BannerFullException();
         }
         n.setFeatured(featured);
-        return summary(novels.save(n), chapters.findByNovelIdOrderByChapterNo(id));
+        return summary(novels.save(n), chapters.chapterStats(id));
     }
 
     @Transactional(readOnly = true)
@@ -180,11 +182,13 @@ public class NovelService {
         Map<Long, Integer> suspect = new HashMap<>();
         novelPages.stream().filter(p -> SuspectPages.suspect(p.getTextVi(), p.getSourceTh(), median))
                 .forEach(p -> suspect.merge(p.getChapter().getId(), 1, Integer::sum));
-        List<ChapterSummary> list = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId()).stream()
-                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
-                        c.getTranslationStatus(),
-                        c.getTranslationError(), models.shown(c), c.getPublishStatus(), (int) pages.countByChapterId(c.getId()),
-                        suspect.getOrDefault(c.getId(), 0)))
+        Map<Long, Integer> pageCounts = new HashMap<>();
+        pages.countPerChapter(n.getId()).forEach(row -> pageCounts.put((Long) row[0], ((Number) row[1]).intValue()));
+        List<ChapterSummary> list = chapters.findRowsByNovel(n.getId()).stream()
+                .map(c -> new ChapterSummary(c.id(), c.chapterNo(), c.title(), c.label(),
+                        c.translationStatus(),
+                        c.translationError(), models.shown(c), c.publishStatus(), pageCounts.getOrDefault(c.id(), 0),
+                        suspect.getOrDefault(c.id(), 0)))
                 .toList();
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),
