@@ -25,6 +25,7 @@
   max-height: 32rem;
   overflow-y: auto;
   padding: var(--space-3);
+  padding-right: 3rem; /* room for the copy button in the corner */
   border: 1px solid var(--field-border);
   border-radius: 8px;
   background: var(--surface);

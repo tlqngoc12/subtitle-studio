@@ -224,5 +224,6 @@ describe('OriginalPanel copy button', () => {
   it('pins the button to the box corner', () => {
     expect(css).toMatch(/\.chapter-original__box\s*\{[^}]*position:\s*relative/);
     expect(css).toMatch(/\.chapter-original__box > \.copy-corner\s*\{[^}]*position:\s*absolute[^}]*top:[^}]*right:/);
+    expect(css).toMatch(/\.chapter-original__text\s*\{[^}]*padding-right:\s*3rem/);
   });
 });
