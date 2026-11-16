@@ -26,7 +26,7 @@ import { BusyLine } from '../components/novel/BusyLine';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
-import { toastError } from '../lib/toast';
+import { toastError, toastSkippedImages } from '../lib/toast';
 import { STATUS_LABEL } from './NovelsPage';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
@@ -99,6 +99,7 @@ export default function NovelPage() {
     try {
       const started = await fetchTranslateNext(novelId);
       toast.info('Translation started', { description: started.title ?? undefined });
+      toastSkippedImages(started.skippedImages);
       navigate(`/novels/${novelId}/chapters/${started.id}`);
     } catch (e) {
       toastError(errorMessage(e));

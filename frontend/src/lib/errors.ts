@@ -133,6 +133,11 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
         title: 'This chapter is published.',
         hint: 'Only its text can be edited. Unpublish it to change pages or translate again.',
       };
+    case 'CHAPTER_IMAGE_MARKERS':
+      return {
+        title: 'Keep every [[image:…]] line of this chapter unchanged.',
+        hint: 'Those lines stand for the chapter images. You can move them, but not remove or edit them.',
+      };
     case 'CHAPTER_TEXT_SOURCE':
       return { title: 'This chapter comes from Wattpad text, so it has no pages.' };
     case 'NOVEL_TRANSLATION_BUSY':
@@ -143,6 +148,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'This part was deleted on Wattpad.' };
     case 'WATTPAD_PART_EMPTY':
       return { title: 'Wattpad has no text for this part (locked, empty or removed).' };
+    case 'WATTPAD_PART_IMAGES_FAILED':
+      return { title: 'Wattpad images for this part could not be downloaded.', hint: 'Try again later.' };
     case 'WATTPAD_PART_NOT_FOUND':
       return { title: 'This part is not in the story.' };
     case 'WATTPAD_NOTHING_NEXT':

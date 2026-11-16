@@ -17,14 +17,22 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.text.AttributedString;
 import java.text.Normalizer;
+import com.subtitlestudio.novel.ImageMarkers;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Draws a chapter's Vietnamese text as page images for the public site (spec section 7): reading font, title on the
  * first page, lines broken with {@link LineBreakMeasurer} (a word longer than the line is broken inside), a faint
  * diagonal watermark. Pages carry no footer and only a slim margin top and bottom (pages 2+), so consecutive images
  * read as one continuous strip. Same input, same pixels.
+ *
+ * <p>A {@code [[image:N]]} paragraph of the text is a picture of the chapter: the text before it ends its page, the
+ * picture gets a page of its own (scaled to the page width, watermarked like the text pages), and the text goes on
+ * on a new page. A text without markers is drawn exactly as before.
  */
 public class NovelRenderer {
 
@@ -42,6 +50,10 @@ public class NovelRenderer {
     static final float WATERMARK_ALPHA = 0.06f;
     /** Noto Emoji sits a little small next to Literata, so it is drawn slightly larger. */
     static final float EMOJI_SCALE = 1.1f;
+    /** A picture page never gets taller than this (WebP allows 16,383 px); a taller picture is scaled down to fit. */
+    static final int MAX_IMAGE_PAGE_HEIGHT = 16_000;
+
+    private static final Logger log = LoggerFactory.getLogger(NovelRenderer.class);
 
     private final int fontSize;
     private final Font body;
@@ -74,7 +86,7 @@ public class NovelRenderer {
         float bottom = format.height() - BOTTOM;
         float lineHeight = (float) (fontSize * LINE_SPACING);
 
-        List<List<Line>> pages = new ArrayList<>();
+        List<Page> pages = new ArrayList<>();
         List<Line> page = new ArrayList<>();
         float y = FIRST_TOP;
         float pageTop = FIRST_TOP;
@@ -86,6 +98,23 @@ public class NovelRenderer {
         y += lineHeight * 0.6f;
 
         for (String paragraph : paragraphs(input.text())) {
+            OptionalLong imageId = ImageMarkers.mediaId(paragraph);
+            if (imageId.isPresent()) {
+                BufferedImage picture = input.images().apply(imageId.getAsLong());
+                if (picture == null) {
+                    log.warn("Chapter {}: image {} is missing, left out of the pages", input.chapterNo(),
+                            imageId.getAsLong());
+                    continue;
+                }
+                if (!page.isEmpty()) {
+                    pages.add(new Page(page, null, true)); // ends right below its last line: a picture follows
+                    page = new ArrayList<>();
+                }
+                pages.add(new Page(List.of(), picture, false));
+                y = TOP;
+                pageTop = TOP;
+                continue;
+            }
             if (paragraph.isEmpty()) {
                 // A blank line typed by the translator: one empty line of space (nothing at the top of a page).
                 if (y > pageTop) {
@@ -95,7 +124,7 @@ public class NovelRenderer {
             }
             for (TextLayout layout : layouts(paragraph, body, frc, wrap)) {
                 if (y + lineHeight > bottom && !page.isEmpty()) {
-                    pages.add(page);
+                    pages.add(new Page(page, null, false));
                     page = new ArrayList<>();
                     y = TOP;
                     pageTop = TOP;
@@ -105,26 +134,54 @@ public class NovelRenderer {
             }
             y += lineHeight * 0.35f;
         }
-        pages.add(page);
+        if (!page.isEmpty() || pages.isEmpty()) {
+            pages.add(new Page(page, null, true)); // the last page ends below its last line
+        }
 
         List<BufferedImage> images = new ArrayList<>();
-        for (int k = 0; k < pages.size(); k++) {
-            List<Line> lines = pages.get(k);
+        for (Page p : pages) {
+            if (p.picture() != null) {
+                images.add(drawPicture(p.picture(), input, format));
+                continue;
+            }
             int height = format.height();
-            if (k == pages.size() - 1) {
-                // The last page ends just below its last line (plus the side margin), not at the full format height.
+            if (p.trimmed()) {
+                // A page that nothing more of the text follows (the last one, or one a picture follows) ends just below
+                // its last line (plus the side margin), not at the full format height.
                 double lastBottom = 0;
-                for (Line line : lines) {
+                for (Line line : p.lines()) {
                     lastBottom = Math.max(lastBottom, line.baseline() + line.layout().getDescent());
                 }
                 height = (int) Math.max(1, Math.min(height, Math.ceil(lastBottom + format.margin())));
             }
-            images.add(draw(lines, input, format, height));
+            images.add(draw(p.lines(), input, format, height));
         }
         return images;
     }
 
     private record Line(TextLayout layout, float baseline) {}
+
+    /** One page: text lines, or one picture. {@code trimmed}: the page ends below its last line. */
+    private record Page(List<Line> lines, BufferedImage picture, boolean trimmed) {}
+
+    /** The picture as wide as the page (taller than the format when it is tall), with the watermark over it. */
+    private BufferedImage drawPicture(BufferedImage picture, RenderInput input, PageFormat format) {
+        double scale = Math.min((double) format.width() / picture.getWidth(),
+                (double) MAX_IMAGE_PAGE_HEIGHT / picture.getHeight());
+        int w = Math.max(1, (int) Math.round(picture.getWidth() * scale));
+        int h = Math.max(1, (int) Math.round(picture.getHeight() * scale));
+        BufferedImage img = new BufferedImage(format.width(), h, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g.drawImage(picture, (format.width() - w) / 2, 0, w, h, null);
+        watermark(g, clean(input.watermark()) + " · " + clean(input.novelTitle()), format, h);
+        g.dispose();
+        return img;
+    }
 
     private BufferedImage draw(List<Line> lines, RenderInput input, PageFormat format, int height) {
         // Transparent paper: the reader colours it with CSS.

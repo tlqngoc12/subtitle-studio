@@ -169,7 +169,9 @@ public class NovelProfileAnalyzer {
             if (ai == null || c.getTextVi() == null || c.getTextVi().isBlank()) {
                 continue;
             }
-            List<Edit> edits = NovelCorrections.edits(ai, c.getTextVi(), c.getSourceText());
+            // Image markers are not text a translator corrects, and they would only make the paragraph counts differ.
+            List<Edit> edits = NovelCorrections.edits(ImageMarkers.strip(ai), ImageMarkers.strip(c.getTextVi()),
+                    ImageMarkers.strip(c.getSourceText()));
             if (!edits.isEmpty()) {
                 out.add(new ChapterEdits(c.getNovel().getId(), c.getNovel().getTitle(), edits));
             }

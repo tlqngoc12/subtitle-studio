@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countText, findMatches, paragraphIndexAt, paragraphs } from './chapterText';
+import { alignParagraph, countText, findMatches, imageMarkerId, paragraphIndexAt, paragraphs } from './chapterText';
 
 describe('paragraphs', () => {
   it('splits on blank lines, trims and drops empty ones', () => {
@@ -77,5 +77,70 @@ describe('findMatches', () => {
   it('gives nothing for an empty query or no match', () => {
     expect(findMatches('abc', '', false)).toEqual([]);
     expect(findMatches('abc', 'z', false)).toEqual([]);
+  });
+});
+
+describe('imageMarkerId', () => {
+  it('reads a paragraph that is only a marker', () => {
+    expect(imageMarkerId('[[image:42]]')).toBe(42);
+    expect(imageMarkerId('  [[image:7]]  ')).toBe(7);
+  });
+
+  it('is null for text that merely holds a marker', () => {
+    expect(imageMarkerId('see [[image:42]]')).toBeNull();
+    expect(imageMarkerId('[[image:x]]')).toBeNull();
+    expect(imageMarkerId('plain')).toBeNull();
+  });
+});
+
+describe('alignParagraph', () => {
+  it('is the identity for a chapter without images', () => {
+    const source = ['A', 'B', 'C'];
+    expect(alignParagraph(source, ['a', 'b', 'c'], 0)).toBe(0);
+    expect(alignParagraph(source, ['a', 'b', 'c'], 2)).toBe(2);
+    expect(alignParagraph(source, ['a', 'b', 'c', 'd'], 3)).toBe(3);
+  });
+
+  it('sends the text of an image to the marker and the text after it to the original paragraph', () => {
+    const source = ['A', '[[image:1]]', 'B'];
+    const translated = ['a', '[[image:1]]', 'x', 'y', 'b'];
+
+    expect(translated.map((_, i) => alignParagraph(source, translated, i))).toEqual([0, 1, 1, 1, 2]);
+  });
+
+  it('follows a marker that the translator moved', () => {
+    const source = ['A', '[[image:1]]', 'B', '[[image:2]]', 'C'];
+    const translated = ['a', '[[image:2]]', 'c', '[[image:1]]', 'text of image one', 'b'];
+
+    expect(translated.map((_, i) => alignParagraph(source, translated, i))).toEqual([0, 3, 4, 1, 1, 2]);
+  });
+
+  it('maps a chapter of images only to the markers', () => {
+    const source = ['[[image:1]]', '[[image:2]]', '[[image:3]]'];
+    const translated = ['[[image:1]]', '[[image:2]]', 'Card two', 'Card two, more', '[[image:3]]', 'Card three'];
+
+    expect(translated.map((_, i) => alignParagraph(source, translated, i))).toEqual([0, 1, 1, 1, 2, 2]);
+  });
+
+  it('keeps a paragraph before the first marker inside its own segment', () => {
+    const source = ['A1', 'A2', '[[image:1]]', 'B'];
+    const translated = ['a1', 'a2', 'a3', '[[image:1]]', 'b'];
+
+    expect(translated.map((_, i) => alignParagraph(source, translated, i))).toEqual([0, 1, 1, 2, 3]);
+  });
+
+  it('stays inside the original when the translation has more paragraphs', () => {
+    const source = ['A', '[[image:1]]'];
+    const translated = ['a', 'a2', 'a3', '[[image:1]]', 't1', 't2'];
+
+    expect(translated.map((_, i) => alignParagraph(source, translated, i))).toEqual([0, 0, 0, 1, 1, 1]);
+  });
+
+  it('stays inside the original when the caret is past the last translated paragraph', () => {
+    expect(alignParagraph(['A', '[[image:1]]'], ['a'], 5)).toBe(1);
+  });
+
+  it('falls back to the position when the translation names a marker the original lacks', () => {
+    expect(alignParagraph(['A', '[[image:1]]', 'B'], ['a', '[[image:9]]', 'b'], 1)).toBe(1);
   });
 });

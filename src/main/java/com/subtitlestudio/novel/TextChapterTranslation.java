@@ -21,6 +21,8 @@ public class TextChapterTranslation {
 
     static final int MAX_DEPTH = 3;
     static final int CARRY_CHARS = 1_500;
+    /** Gemini gets at most this many images in one request; a part with more is split like a too long one. */
+    static final int MAX_IMAGES = 20;
 
     /** The finished Vietnamese chapter and the models that answered, in order of use. */
     public record Result(String text, String model, int requests) {}
@@ -59,12 +61,16 @@ public class TextChapterTranslation {
         }
 
         void piece(String text, int depth) {
-            if (text.length() > maxSourceChars && depth < MAX_DEPTH) {
+            int images = new java.util.HashSet<>(ImageMarkers.ids(text)).size();
+            if ((text.length() > maxSourceChars || images > MAX_IMAGES) && depth < MAX_DEPTH) {
                 List<String> halves = TextSplitter.split(text);
                 if (!halves.isEmpty()) {
                     halves.forEach(h -> piece(h, depth + 1));
                     return;
                 }
+            }
+            if (images > MAX_IMAGES) {
+                throw new TranslationFailedException("This chapter part has more than " + MAX_IMAGES + " images.");
             }
             String out;
             try {
@@ -85,8 +91,9 @@ public class TextChapterTranslation {
 
         private String ask(String text) {
             boolean later = !translated.isEmpty();
-            TextChapterPrompt prompt = base.withText(text, later ? tail(sourceSoFar) : null,
-                    later ? tail(String.join("\n\n", translated)) : null);
+            // The carried context is plain text: image markers mean nothing to Gemini without their pictures.
+            TextChapterPrompt prompt = base.withText(text, later ? carry(sourceSoFar) : null,
+                    later ? carry(String.join("\n\n", translated)) : null);
             TextAnswer answer = send(prompt);
             if ("th".equals(base.sourceLanguage()) && PageTextOutput.thaiShare(answer.text()) > PageTextOutput.MAX_THAI_SHARE) {
                 answer = send(prompt);
@@ -105,6 +112,12 @@ public class TextChapterTranslation {
             }
             return answer;
         }
+    }
+
+    /** The end of the text before a later part, without image markers; null when nothing is left. */
+    private static String carry(String text) {
+        String plain = ImageMarkers.strip(text);
+        return plain.isBlank() ? null : tail(plain);
     }
 
     private static String tail(String text) {

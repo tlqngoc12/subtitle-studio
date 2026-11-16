@@ -34,6 +34,7 @@ public class WattpadClient {
             + "tags,user(username),modifyDate,lastPublishedPart(createDate),language(name),"
             + "parts(id,title,wordCount,createDate,modifyDate,deleted)";
     private static final int MAX_TEXT_PAGES = 30;
+    private static final com.subtitlestudio.profile.ImageSniffer SNIFFER = new com.subtitlestudio.profile.ImageSniffer();
 
     private final String baseUrl;
     private final Duration timeout;
@@ -144,6 +145,40 @@ public class WattpadClient {
             throw new WattpadUnavailableException("Wattpad cover answered " + original.statusCode());
         }
         return original.body();
+    }
+
+    /**
+     * Downloads one image of a chapter. The caller has checked that the URL is a Wattpad image host; a redirect may only
+     * stay on that host or move to another Wattpad host. The body must be at most {@code maxBytes} and look like an
+     * image (first bytes), otherwise {@link WattpadUnavailableException}.
+     */
+    public byte[] downloadImage(String imageUrl, long maxBytes) {
+        URI uri;
+        try {
+            uri = URI.create(imageUrl);
+        } catch (IllegalArgumentException e) {
+            throw new WattpadUnavailableException("Not a valid image URL");
+        }
+        HttpResponse<byte[]> response = get(uri);
+        if (response.statusCode() != 200) {
+            throw new WattpadUnavailableException("Wattpad image answered " + response.statusCode());
+        }
+        String finalHost = response.uri() == null ? null : response.uri().getHost();
+        String firstHost = uri.getHost();
+        boolean sameHost = finalHost != null && firstHost != null && finalHost.equalsIgnoreCase(firstHost);
+        boolean wattpadHost = finalHost != null && (finalHost.equalsIgnoreCase("wattpad.com")
+                || finalHost.toLowerCase(java.util.Locale.ROOT).endsWith(".wattpad.com"));
+        if (!sameHost && !wattpadHost) {
+            throw new WattpadUnavailableException("Wattpad image moved to another host");
+        }
+        byte[] body = response.body();
+        if (body.length == 0 || body.length > maxBytes) {
+            throw new WattpadUnavailableException("Wattpad image has an unusable size");
+        }
+        if (SNIFFER.sniff(body).isEmpty()) {
+            throw new WattpadUnavailableException("Wattpad image is not an image");
+        }
+        return body;
     }
 
     private HttpResponse<byte[]> get(URI uri) {

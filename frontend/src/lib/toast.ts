@@ -8,3 +8,11 @@ import type { ErrorMessage } from './errors';
 export function toastError(message: ErrorMessage): void {
   toast.error(message.title.replace(/\.$/, ''), message.hint ? { description: message.hint } : undefined);
 }
+
+/** Warns when a Wattpad fetch had to skip images it could not download (the chapter itself was still created). */
+export function toastSkippedImages(count: number | undefined): void {
+  if (!count || count < 1) return;
+  toast.warning(`${count} image${count === 1 ? '' : 's'} could not be downloaded`, {
+    description: 'Use Reload original to try again.',
+  });
+}

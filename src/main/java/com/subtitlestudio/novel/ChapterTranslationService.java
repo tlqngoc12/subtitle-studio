@@ -34,6 +34,8 @@ public class ChapterTranslationService {
     static final String INTERRUPTED = "Translation was interrupted.";
     static final int PREVIOUS_TEXT_CHARS = 4_000;
     static final int CARRY_OVER_CHARS = 2_000;
+    /** Images go to Gemini with their long side at most this many pixels. */
+    static final int PROMPT_IMAGE_SIDE = 1_600;
     private static final int MAX_ERROR_LENGTH = 500;
     private static final Logger log = LoggerFactory.getLogger(ChapterTranslationService.class);
 
@@ -252,6 +254,9 @@ public class ChapterTranslationService {
         } catch (UnknownProfileException e) {
             fail(chapterId, "Could not translate: the novel's translation profile can no longer be used.");
             return;
+        } catch (TranslationFailedException e) {
+            fail(chapterId, e.userMessage());
+            return;
         } catch (RuntimeException e) {
             log.warn("Translation of chapter {} failed: {}", chapterId, e.getClass().getName());
             fail(chapterId, "Could not translate: " + e.getClass().getSimpleName() + ".");
@@ -282,7 +287,23 @@ public class ChapterTranslationService {
         String profile = profiles.read(n.getPromptProfile() == null ? "" : n.getPromptProfile());
         return new TextJob(new TextChapterPrompt(n.getTitle(), c.getChapterNo(), c.getLabel(), profile,
                 notebook.textBefore(n.getId(), c.getChapterNo()), previousText(n.getId(), c.getChapterNo()),
-                n.getSourceLanguage(), null, null, c.getSourceText()));
+                n.getSourceLanguage(), null, null, c.getSourceText(), promptImages(c.getSourceText())));
+    }
+
+    /** The chapter's images named by marker paragraphs of its original, shrunk for Gemini, in marker order. */
+    private List<PromptImage> promptImages(String sourceText) {
+        List<PromptImage> images = new ArrayList<>();
+        for (long id : new LinkedHashSet<>(ImageMarkers.ids(sourceText))) {
+            try {
+                images.add(new PromptImage(id, "image/jpeg",
+                        preparer.prepare(media.load(id).path(), PROMPT_IMAGE_SIDE)));
+            } catch (RuntimeException e) {
+                log.warn("An image of a chapter could not be read for translation: {}", e.getClass().getName());
+                throw new TranslationFailedException("An image of this chapter is missing or unreadable. "
+                        + "Reload the original text and translate again.");
+            }
+        }
+        return images;
     }
 
     private void saveText(long chapterId, String sourceText, TextChapterTranslation.Result result) {
@@ -357,7 +378,8 @@ public class ChapterTranslationService {
             }
             List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(prev.getId());
             if (ChapterText.complete(prev, ps)) {
-                return tail(ChapterText.of(prev, ps), PREVIOUS_TEXT_CHARS);
+                // Context only: image markers mean nothing to Gemini without their pictures.
+                return tail(ImageMarkers.strip(ChapterText.of(prev, ps)), PREVIOUS_TEXT_CHARS);
             }
         }
         return null;

@@ -56,6 +56,12 @@ class NovelErrors {
     }
 
 
+    @ExceptionHandler(com.subtitlestudio.novel.ChapterImageMarkersException.class)
+    ProblemDetail chapterImageMarkers(com.subtitlestudio.novel.ChapterImageMarkersException e) {
+        return ProblemDetails.problem(HttpStatus.BAD_REQUEST, "CHAPTER_IMAGE_MARKERS", e.getMessage());
+    }
+
+
     @ExceptionHandler(BannerFullException.class)
     ProblemDetail bannerFull(BannerFullException e) {
         return ProblemDetails.problem(HttpStatus.CONFLICT, "BANNER_FULL", e.getMessage());

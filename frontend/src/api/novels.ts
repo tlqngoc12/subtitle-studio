@@ -132,6 +132,8 @@ export interface ChapterDetail {
   notebookStatus: NotebookStatus;
   /** The chapter the notebook is updating after (only while UPDATING). */
   notebookChapterNo: number | null;
+  /** Images a Wattpad fetch could not download (only set by the fetch and reload calls). */
+  skippedImages?: number;
 }
 
 export interface GlossaryEntry {
@@ -330,7 +332,7 @@ export interface WattpadPart {
 }
 
 export interface WattpadImportResult {
-  imported: { partId: string; chapterId: number }[];
+  imported: { partId: string; chapterId: number; skippedImages?: number }[];
   skipped: string[];
   failed: { partId: string; title: string; reason: string }[];
 }

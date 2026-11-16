@@ -24,6 +24,10 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     @Query("select (count(p) > 0) from ChapterPage p where p.media.id = :id")
     boolean isUsedByChapterPage(@Param("id") Long mediaId);
 
+    /** True when a Wattpad chapter shows this image in its text. */
+    @Query("select (count(i) > 0) from ChapterImage i where i.media.id = :id")
+    boolean isUsedByChapterImage(@Param("id") Long mediaId);
+
     /** True when a profile banner shows this image. */
     @Query("select (count(i) > 0) from ProfileBannerImage i where i.media.id = :id")
     boolean isUsedByBanner(@Param("id") Long mediaId);
@@ -59,7 +63,7 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
         return isUsedByBlock(mediaId) || isUsedByItem(mediaId) || isUsedByNovelCover(mediaId)
                 || isUsedByChapterPage(mediaId) || isUsedByBanner(mediaId) || isUsedByPortrait(mediaId)
                 || isUsedByPhotoPost(mediaId) || isUsedByWorkCover(mediaId) || isUsedByPersonAvatar(mediaId)
-                || isUsedByFanficCover(mediaId);
+                || isUsedByFanficCover(mediaId) || isUsedByChapterImage(mediaId);
     }
 
     /** Images nobody shows that were uploaded before {@code before} (abandoned uploads). */
@@ -73,6 +77,7 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
             + "and not exists (select ph from PhotoPost ph where ph.media = m) "
             + "and not exists (select w from Work w where w.cover = m) "
             + "and not exists (select pe from Person pe where pe.avatar = m) "
-            + "and not exists (select f from Fanfic f where f.cover = m) order by m.id")
+            + "and not exists (select f from Fanfic f where f.cover = m) "
+            + "and not exists (select ci from ChapterImage ci where ci.media = m) order by m.id")
     List<Media> findUnreferencedCreatedBefore(@Param("before") Instant before);
 }

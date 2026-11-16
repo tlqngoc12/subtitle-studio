@@ -11,7 +11,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { chapterLabel } from '../components/novel/ChapterList';
 import type { ConfirmOptions } from '../components/useConfirmDialog';
 import { errorMessage } from './errors';
-import { toastError } from './toast';
+import { toastError, toastSkippedImages } from './toast';
 
 type Params = {
   chapterId: number;
@@ -70,6 +70,7 @@ export function useChapterActions({
       toast.info('Translation started', {
         description: next.title ?? chapterLabel(next.chapterNo, next.title, next.label),
       });
+      toastSkippedImages(next.skippedImages);
       openChapter(next.id);
     } catch (e) {
       toastError(errorMessage(e));
@@ -89,6 +90,7 @@ export function useChapterActions({
       // Only the original changes: edits in the boxes below stay.
       setChapter((c) => (c ? { ...c, sourceText: fresh.sourceText, sourceFetchedAt: fresh.sourceFetchedAt } : c));
       toast.success('Original text reloaded');
+      toastSkippedImages(fresh.skippedImages);
     });
   }
 

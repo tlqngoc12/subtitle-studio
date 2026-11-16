@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { paragraphs } from '../../lib/chapterText';
+import { imageMarkerId, paragraphs } from '../../lib/chapterText';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { DisclosureSummary } from '../ui/DisclosureSummary';
 import './OriginalPanel.css';
 
 const WIDE = '(min-width: 1024px)';
+
+/** A marker paragraph shows its image; any other paragraph shows its text. */
+function imageOf(paragraph: string): ReactNode {
+  const id = imageMarkerId(paragraph);
+  if (id === null) return paragraph;
+  return <img src={`/api/media/${id}`} alt="Image in the chapter" loading="lazy" className="chapter-original__img" />;
+}
 
 /**
  * The original text of a Wattpad chapter as read-only paragraphs. `activeIndex` is the paragraph that matches the one
@@ -43,7 +50,7 @@ export function OriginalPanel({
               className={isActive ? 'chapter-original__p chapter-original__p--active' : 'chapter-original__p'}
               aria-current={isActive ? 'true' : undefined}
             >
-              {p}
+              {imageOf(p)}
             </p>
           );
         })}

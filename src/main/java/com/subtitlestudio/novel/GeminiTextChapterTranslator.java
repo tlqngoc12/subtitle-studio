@@ -53,6 +53,17 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
             tiếng Việt, không kèm chữ gốc trong ngoặc.
             """;
 
+    /** Only added to the rules when the request carries images, so a chapter without images asks exactly as before. */
+    static final String IMAGE_RULES = """
+            - Văn bản có các dòng ảnh dạng [[image:N]] (mỗi dòng là một đoạn riêng). Ảnh tương ứng được đính kèm ngay \
+            sau văn bản, mỗi ảnh có nhãn "Ảnh [[image:N]]:". Chép NGUYÊN VẸN từng dòng [[image:N]] vào đúng vị trí cũ, \
+            không đổi số, không bỏ, không thêm, không gộp vào đoạn khác.
+            - Nếu ảnh có chữ thuộc nội dung truyện (mô tả nhân vật, tin nhắn, thư từ... chứ không phải logo hay tên \
+            cuốn sách), dịch chữ đó sang tiếng Việt và đặt NGAY SAU dòng [[image:N]] của ảnh đó, thành một hoặc \
+            nhiều đoạn.
+            - Ảnh không có chữ như vậy thì không thêm gì sau dòng [[image:N]].
+            """;
+
     private static final Logger log = LoggerFactory.getLogger(GeminiTextChapterTranslator.class);
 
     private record Answer(String text) {}
@@ -77,6 +88,10 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
         List<Part> parts = new ArrayList<>();
         parts.add(Part.fromText(context(prompt)));
         parts.add(Part.fromText(prompt.sourceText()));
+        for (PromptImage image : prompt.images()) {
+            parts.add(Part.fromText("Ảnh " + ImageMarkers.marker(image.mediaId()) + ":"));
+            parts.add(Part.fromBytes(image.bytes(), image.mimeType()));
+        }
         GeminiCaller.Answer answer = caller.generate(parts, config(prompt), onTrying, true);
         if (answer.truncated()) {
             log.warn("Gemini {} stopped at its output limit for chapter {} ({} source chars)", answer.model(),
@@ -92,22 +107,38 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
             throw new TextIncompleteException("Gemini's answer was cut off.");
         }
         String text = got == null || got.text() == null ? "" : got.text().strip();
-        int sourceParagraphs = TextSplitter.paragraphs(prompt.sourceText()).size();
-        int answerParagraphs = TextSplitter.paragraphs(text).size();
+        if (!ImageMarkers.ids(text).equals(ImageMarkers.ids(prompt.sourceText()))) {
+            log.warn("Gemini {} answer for chapter {} lost or changed an image marker ({} markers expected, {} found)",
+                    answer.model(), prompt.chapterNo(), ImageMarkers.ids(prompt.sourceText()).size(),
+                    ImageMarkers.ids(text).size());
+            throw new TextIncompleteException("Gemini's answer lost an image.");
+        }
+        // Marker paragraphs are not text: only the rest of the original is compared with the rest of the answer, and
+        // a chapter of images alone has nothing to compare.
+        String source = ImageMarkers.strip(prompt.sourceText());
+        String translated = ImageMarkers.strip(text);
+        if (source.isBlank()) {
+            log.info("Gemini {} translated chapter {} (images only, {} chars)", answer.model(), prompt.chapterNo(),
+                    text.length());
+            return new TextAnswer(text, answer.model());
+        }
+        int sourceParagraphs = TextSplitter.paragraphs(source).size();
+        int answerParagraphs = TextSplitter.paragraphs(translated).size();
         if (answerParagraphs < Math.ceil(sourceParagraphs * MIN_PARAGRAPH_SHARE)) {
             log.warn("Gemini {} answered {} paragraphs for {} in chapter {}", answer.model(), answerParagraphs,
                     sourceParagraphs, prompt.chapterNo());
             throw new TextIncompleteException("Gemini's answer is much shorter than the original.");
         }
-        int sourceChars = prompt.sourceText().length();
-        if (sourceChars > 0 && (double) text.length() / sourceChars < MIN_LENGTH_RATIO) {
+        int sourceChars = source.length();
+        if (sourceChars > 0 && (double) translated.length() / sourceChars < MIN_LENGTH_RATIO) {
             log.warn("Gemini {} answered {} chars for {} source chars in chapter {} (length ratio check)",
-                    answer.model(), text.length(), sourceChars, prompt.chapterNo());
+                    answer.model(), translated.length(), sourceChars, prompt.chapterNo());
             throw new TextIncompleteException("Gemini's answer is much shorter than the original.");
         }
-        if (endsMidSentence(prompt.sourceText(), text)) {
+        // The text after a final image is the translation of that image: it has no original to compare with.
+        if (!endsWithMarker(prompt.sourceText()) && endsMidSentence(source, translated)) {
             log.warn("Gemini {} answer for chapter {} stops mid-sentence (ending check, {} to {} chars)",
-                    answer.model(), prompt.chapterNo(), sourceChars, text.length());
+                    answer.model(), prompt.chapterNo(), sourceChars, translated.length());
             throw new TextIncompleteException("Gemini's answer stops mid-sentence.");
         }
         log.info("Gemini {} translated chapter {} ({} chars to {})", answer.model(), prompt.chapterNo(),
@@ -121,6 +152,11 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
      */
     static boolean endsMidSentence(String source, String translated) {
         return endsSentence(lastParagraph(source)) && !endsSentence(lastParagraph(translated));
+    }
+
+    private static boolean endsWithMarker(String text) {
+        List<String> paragraphs = TextSplitter.paragraphs(text);
+        return !paragraphs.isEmpty() && ImageMarkers.mediaId(paragraphs.getLast()).isPresent();
     }
 
     private static String lastParagraph(String text) {
@@ -159,7 +195,7 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                 .required("text")
                 .build();
         String rules = String.format(java.util.Locale.ROOT, SYSTEM_RULES, p.languageName(),
-                "th".equals(p.sourceLanguage()) ? THAI_RULE : "");
+                ("th".equals(p.sourceLanguage()) ? THAI_RULE : "") + (p.images().isEmpty() ? "" : IMAGE_RULES));
         return GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(rules)))
                 .responseMimeType("application/json")

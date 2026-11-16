@@ -1235,6 +1235,24 @@ describe('ChapterPage reading width and the aligned original', () => {
     await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('Four.'));
   });
 
+  it('matches the paragraphs written about an image with that image, and the text after it with its own paragraph', async () => {
+    stubWide(true);
+    const text = 'Một\n\n[[image:5]]\n\nChữ trong ảnh\n\nHai';
+    renderPage([wattpad({ sourceText: 'One.\n\n[[image:5]]\n\nTwo.', text })]);
+    await loaded();
+    const box = textBox() as HTMLTextAreaElement;
+    const region = screen.getByRole('region', { name: 'Original text' });
+    expect(region.querySelector('img')).toHaveAttribute('src', '/api/media/5');
+
+    box.setSelectionRange(text.indexOf('Chữ') + 2, text.indexOf('Chữ') + 2);
+    fireEvent.keyUp(box);
+    await waitFor(() => expect(region.querySelector('[aria-current="true"] img')).not.toBeNull());
+
+    box.setSelectionRange(text.length, text.length);
+    fireEvent.keyUp(box);
+    await waitFor(() => expect(region.querySelector('[aria-current="true"]')).toHaveTextContent('Two.'));
+  });
+
   it('shows the original as a closed disclosure below 1024 px', async () => {
     stubWide(false);
     renderPage([wattpad()]);

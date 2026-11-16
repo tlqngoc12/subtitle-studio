@@ -228,6 +228,17 @@ class NotebookServiceTest {
     }
 
     @Test
+    void updateInputHasNoImageMarkers() {
+        publishedChapter(1, "Trang một");
+        tx.executeWithoutResult(st -> chapters.findByNovelIdAndChapterNo(novelId, 1).orElseThrow()
+                .setTextVi("Mở đầu\n\n[[image:7]]\n\nChữ trong ảnh\n\nKết"));
+
+        service.scheduleUpdate(novelId, 1);
+
+        assertThat(updater.calls).containsExactly("1:Mở đầu\n\nChữ trong ảnh\n\nKết");
+    }
+
+    @Test
     void updateUsesNotebookBeforeChapter() {
         publishedChapter(3, "Ba");
         publishedChapter(5, "Năm");

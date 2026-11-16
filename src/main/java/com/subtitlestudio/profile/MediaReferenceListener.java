@@ -1,6 +1,7 @@
 package com.subtitlestudio.profile;
 
 import com.subtitlestudio.fanfic.Fanfic;
+import com.subtitlestudio.novel.ChapterImage;
 import com.subtitlestudio.novel.ChapterPage;
 import com.subtitlestudio.novel.Novel;
 import com.subtitlestudio.photo.PhotoPost;
@@ -53,6 +54,7 @@ public class MediaReferenceListener {
             case Person e -> Stream.ofNullable(e.getAvatar());
             case Novel e -> Stream.ofNullable(e.getCover());
             case ChapterPage e -> Stream.ofNullable(e.getMedia());
+            case ChapterImage e -> Stream.ofNullable(e.getMedia());
             case Fanfic e -> Stream.ofNullable(e.getCover());
             default -> Stream.empty();
         };

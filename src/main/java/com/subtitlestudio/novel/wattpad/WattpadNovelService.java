@@ -10,7 +10,9 @@ import com.subtitlestudio.fanfic.Sleeper;
 import com.subtitlestudio.fanfic.WattpadPart;
 import com.subtitlestudio.fanfic.WattpadUnavailableException;
 import com.subtitlestudio.novel.ChapterDetail;
+import com.subtitlestudio.novel.ChapterImageLink;
 import com.subtitlestudio.novel.ChapterRepository;
+import com.subtitlestudio.novel.ImageMarkers;
 import com.subtitlestudio.novel.Chapter;
 import com.subtitlestudio.novel.ChapterAlreadyTranslatedException;
 import com.subtitlestudio.novel.ChapterService;
@@ -59,6 +61,7 @@ public class WattpadNovelService {
     private static final int COVER_SIDE = 512;
     static final int PAUSE_BETWEEN_PARTS_MS = 500;
     static final String NO_TEXT = "Wattpad has no text for this part (locked, empty or removed).";
+    static final String IMAGES_FAILED = "Wattpad images for this part could not be downloaded.";
     static final String DID_NOT_ANSWER = "Wattpad did not answer. Try again later.";
 
     private final WattpadClient wattpad;
@@ -182,17 +185,24 @@ public class WattpadNovelService {
                 sleeper.sleep(PAUSE_BETWEEN_PARTS_MS);
             }
             fetchedBefore = true;
+            PreparedText prepared = null;
             try {
-                String text = WattpadText.toPlain(wattpad.partText(part.id()));
-                if (text.isEmpty()) {
-                    failed.add(new WattpadImportResult.Failure(part.id(), part.title(), NO_TEXT));
+                prepared = prepare(part.id(), wattpad.partText(part.id()), Map.of());
+                if (prepared.text().isEmpty()) {
+                    failed.add(new WattpadImportResult.Failure(part.id(), part.title(),
+                            prepared.allImagesFailed() ? IMAGES_FAILED : NO_TEXT));
                     continue;
                 }
-                long chapterId = chapterService.addFromSource(novelId, part.title(), text, part.id(), clock.instant());
-                imported.add(new WattpadImportResult.Imported(part.id(), chapterId));
+                long chapterId = prepared.links().isEmpty()
+                        ? chapterService.addFromSource(novelId, part.title(), prepared.text(), part.id(), clock.instant())
+                        : chapterService.addFromSource(novelId, part.title(), prepared.text(), part.id(),
+                                clock.instant(), prepared.links());
+                imported.add(new WattpadImportResult.Imported(part.id(), chapterId, prepared.skipped()));
             } catch (WattpadUnavailableException e) {
+                discard(prepared);
                 failed.add(new WattpadImportResult.Failure(part.id(), part.title(), DID_NOT_ANSWER));
             } catch (RuntimeException e) {
+                discard(prepared);
                 log.warn("Could not import Wattpad part {}: {}", part.id(), e.toString());
                 failed.add(new WattpadImportResult.Failure(part.id(), part.title(), "Could not save this part."));
             }
@@ -208,16 +218,114 @@ public class WattpadNovelService {
     /** Fetches the part again and replaces the chapter's original text (Draft chapters only). */
     public ChapterDetail reloadOriginal(long chapterId) {
         String partId = chapterService.reloadablePartId(chapterId);
-        String text;
-        try {
-            text = WattpadText.toPlain(wattpad.partText(partId));
-        } catch (WattpadUnavailableException e) {
-            throw e;
-        }
-        if (text.isEmpty()) {
+        Map<String, Long> known = chapterService.imageMediaByUrl(chapterId);
+        PreparedText prepared = prepare(partId, wattpad.partText(partId), known);
+        if (prepared.text().isEmpty()) {
+            if (prepared.allImagesFailed()) {
+                throw new WattpadPartProblemException(WattpadPartProblemException.IMAGES_FAILED, IMAGES_FAILED);
+            }
             throw new WattpadUnavailableException("Wattpad has no text for part " + partId);
         }
-        return chapterService.replaceSourceText(chapterId, text, clock.instant());
+        try {
+            ChapterDetail reloaded = prepared.links().isEmpty() && known.isEmpty()
+                    ? chapterService.replaceSourceText(chapterId, prepared.text(), clock.instant())
+                    : chapterService.replaceSourceText(chapterId, prepared.text(), clock.instant(), prepared.links());
+            return withSkipped(reloaded, prepared.skipped());
+        } catch (RuntimeException e) {
+            discard(prepared);
+            throw e;
+        }
+    }
+
+    /** The original text of a part with its images stored: markers in place of the images, links to own them. */
+    private record PreparedText(String text, List<ChapterImageLink> links, int skipped, boolean allImagesFailed,
+                                List<Long> newMedia) {
+    }
+
+    /**
+     * Downloads and stores the images of a part's HTML and replaces each image placeholder by its marker paragraph. An
+     * image the chapter already has (same URL) keeps its media, so markers of an existing translation stay valid. An
+     * image that cannot be downloaded (or is not on a Wattpad image host, which is never contacted) is dropped and
+     * counted. Wattpad is called here, so never inside a transaction.
+     */
+    private PreparedText prepare(String partId, String html, Map<String, Long> known) {
+        WattpadText.Parsed parsed = WattpadText.parse(html);
+        List<String> urls = parsed.imageUrls();
+        Long[] mediaOf = new Long[urls.size()];
+        Map<String, Long> byUrl = new HashMap<>();
+        List<Long> created = new ArrayList<>();
+        Set<String> failedUrls = new HashSet<>();
+        for (int i = 0; i < urls.size(); i++) {
+            String url = urls.get(i);
+            Long id = byUrl.get(url);
+            if (id == null && !failedUrls.contains(url)) {
+                id = known.get(url);
+                if (id == null) {
+                    Media stored = downloadChapterImage(partId, url);
+                    if (stored != null) {
+                        id = stored.getId();
+                        created.add(id);
+                    }
+                }
+                if (id == null) {
+                    failedUrls.add(url);
+                } else {
+                    byUrl.put(url, id);
+                }
+            }
+            mediaOf[i] = id;
+        }
+        List<String> paragraphs = new ArrayList<>();
+        List<ChapterImageLink> links = new ArrayList<>();
+        Set<String> linked = new HashSet<>();
+        int skipped = 0;
+        for (String paragraph : parsed.text().isEmpty() ? new String[0] : parsed.text().split("\n\n")) {
+            int index = WattpadText.placeholderIndex(paragraph);
+            if (index < 0 || index >= mediaOf.length) {
+                paragraphs.add(paragraph);
+            } else if (mediaOf[index] == null) {
+                skipped++;
+            } else {
+                paragraphs.add(ImageMarkers.marker(mediaOf[index]));
+                if (linked.add(urls.get(index))) {
+                    links.add(new ChapterImageLink(mediaOf[index], urls.get(index)));
+                }
+            }
+        }
+        if (skipped > 0) {
+            log.warn("Wattpad part {}: {} image(s) could not be downloaded", partId, skipped);
+        }
+        String text = String.join("\n\n", paragraphs);
+        boolean allFailed = !urls.isEmpty() && links.isEmpty() && text.isEmpty();
+        return new PreparedText(text, links, skipped, allFailed, created);
+    }
+
+    private Media downloadChapterImage(String partId, String url) {
+        if (!isWattpadImageHost(url)) {
+            log.warn("Wattpad part {}: image skipped, not a Wattpad image host", partId);
+            return null;
+        }
+        try {
+            return mediaService.store("wattpad-image", wattpad.downloadImage(url, MediaService.MAX_BYTES));
+        } catch (RuntimeException e) {
+            log.warn("Wattpad part {}: could not store an image: {}", partId, e.toString());
+            return null;
+        }
+    }
+
+    private static ChapterDetail withSkipped(ChapterDetail detail, int skipped) {
+        return skipped > 0 ? detail.withSkippedImages(skipped) : detail;
+    }
+
+    /** Removes the images stored for a chapter that was not saved. */
+    private void discard(PreparedText prepared) {
+        if (prepared != null && !prepared.newMedia().isEmpty()) {
+            try {
+                mediaService.deleteIfUnreferenced(prepared.newMedia());
+            } catch (RuntimeException e) {
+                log.warn("Could not remove images of an unsaved Wattpad chapter: {}", e.toString());
+            }
+        }
     }
 
     /**
@@ -291,12 +399,24 @@ public class WattpadNovelService {
 
     /** Fetches a part that is not a chapter yet, saves it as one and starts translating it. */
     private ChapterDetail fetchAndStart(long novelId, WattpadPart part) {
-        String text = WattpadText.toPlain(wattpad.partText(part.id()));
-        if (text.isEmpty()) {
+        PreparedText prepared = prepare(part.id(), wattpad.partText(part.id()), Map.of());
+        if (prepared.text().isEmpty()) {
+            if (prepared.allImagesFailed()) {
+                throw new WattpadPartProblemException(WattpadPartProblemException.IMAGES_FAILED, IMAGES_FAILED);
+            }
             throw new WattpadPartProblemException(WattpadPartProblemException.EMPTY, NO_TEXT);
         }
-        long chapterId = chapterService.addFromSource(novelId, part.title(), text, part.id(), clock.instant());
-        return translation.start(chapterId);
+        long chapterId;
+        try {
+            chapterId = prepared.links().isEmpty()
+                    ? chapterService.addFromSource(novelId, part.title(), prepared.text(), part.id(), clock.instant())
+                    : chapterService.addFromSource(novelId, part.title(), prepared.text(), part.id(), clock.instant(),
+                            prepared.links());
+        } catch (RuntimeException e) {
+            discard(prepared);
+            throw e;
+        }
+        return withSkipped(translation.start(chapterId), prepared.skipped());
     }
 
     private String wattpadStoryOf(long novelId) {
@@ -334,6 +454,12 @@ public class WattpadNovelService {
 
     /** Only Wattpad image hosts are fetched, so a crafted request cannot make the server call anything else. */
     private static void requireWattpadImageHost(String url) {
+        if (!isWattpadImageHost(url)) {
+            throw new InvalidNovelException(List.of(new FieldError("coverUrl", "Use a cover image from wattpad.com.")));
+        }
+    }
+
+    static boolean isWattpadImageHost(String url) {
         String host = null;
         String scheme = null;
         try {
@@ -341,13 +467,10 @@ public class WattpadNovelService {
             host = uri.getHost() == null ? null : uri.getHost().toLowerCase(Locale.ROOT);
             scheme = uri.getScheme() == null ? null : uri.getScheme().toLowerCase(Locale.ROOT);
         } catch (IllegalArgumentException e) {
-            // falls through to the error below
+            return false;
         }
-        boolean ok = "https".equals(scheme) && host != null
+        return "https".equals(scheme) && host != null
                 && (host.equals("wattpad.com") || host.endsWith(".wattpad.com"));
-        if (!ok) {
-            throw new InvalidNovelException(List.of(new FieldError("coverUrl", "Use a cover image from wattpad.com.")));
-        }
     }
 
     private static NovelRequest withCover(NovelRequest r, long mediaId) {

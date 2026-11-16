@@ -145,6 +145,22 @@ class NovelProfileAnalyzerTest {
     }
 
     @Test
+    void imageMarkersAreNotCorrections() {
+        chapter(novel, "s1\n\n[[image:7]]\n\ns2", "A\n\n[[image:7]]\n\nCard text\n\nB", "A\n\n[[image:7]]\n\nCard text\n\nB2");
+
+        var stats = analyzer("k").details(novel.getId()).stats();
+
+        assertThat(stats.edits()).isEqualTo(1);
+    }
+
+    @Test
+    void aChapterOfOnlyMarkersHasNoEdits() {
+        chapter(novel, "[[image:1]]\n\n[[image:2]]", "[[image:1]]\n\n[[image:2]]", "[[image:1]]\n\n[[image:2]]");
+
+        assertThat(analyzer("k").details(novel.getId()).stats()).isEqualTo(new Stats(0, 0, List.of()));
+    }
+
+    @Test
     void neverEditedChapterHasNoEdits() {
         chapter(novel, "s", "A\n\nB", null);
 

@@ -82,6 +82,9 @@ class NovelServiceTest {
     private ChapterPageRepository pages;
 
     @Autowired
+    private ChapterImageRepository chapterImages;
+
+    @Autowired
     private TestEntityManager em;
 
     static NovelRequest valid() {
@@ -398,6 +401,24 @@ class NovelServiceTest {
         assertThat(media.findById(page.getId())).isEmpty();
         assertThatThrownBy(() -> service.get(d.id())).isInstanceOf(NovelNotFoundException.class);
         assertThat(cached).doesNotExist();
+    }
+
+    @Test
+    void deleteRemovesChapterImagesAndTheirUnusedMedia() {
+        Media image = mediaService.store("i.png", TestImages.png());
+        NovelDetail d = service.create(valid());
+        Novel novel = em.find(Novel.class, d.id());
+        Chapter chapter = chapters.save(new Chapter(novel, 1, null, NOW));
+        chapterImages.save(new ChapterImage(chapter, image, "https://img.wattpad.com/i.jpg", 1));
+        em.flush();
+        em.clear();
+
+        service.delete(d.id());
+        em.flush();
+        em.clear();
+
+        assertThat(chapterImages.count()).isZero();
+        assertThat(media.findById(image.getId())).isEmpty();
     }
 
     @Test

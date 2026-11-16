@@ -88,6 +88,12 @@ class ChapterServiceTest {
     private MediaService mediaService;
 
     @Autowired
+    private ChapterImageRepository chapterImageRepository;
+
+    @Autowired
+    private com.subtitlestudio.profile.MediaRepository mediaRepository;
+
+    @Autowired
     private NovelNotebookRepository notebooks;
 
     @Autowired
@@ -564,6 +570,150 @@ class ChapterServiceTest {
 
         assertThat(cached).doesNotExist();
         assertThatThrownBy(() -> service.get(c.id())).isInstanceOf(ChapterNotFoundException.class);
+    }
+
+    @Test
+    void deleteRemovesChapterImagesAndTheirUnusedMedia() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        com.subtitlestudio.profile.Media image = mediaService.store("a.png", TestImages.png());
+        chapterImageRepository.save(new ChapterImage(chapters.findById(c.id()).orElseThrow(), image,
+                "https://img.wattpad.com/a.jpg", 1));
+        em.flush();
+
+        service.delete(c.id());
+        em.flush();
+
+        assertThat(chapterImageRepository.countByChapterId(c.id())).isZero();
+        assertThat(mediaRepository.existsById(image.getId())).isFalse();
+    }
+
+    @Test
+    void addFromSourceOwnsItsImagesInMarkerOrder() {
+        com.subtitlestudio.profile.Media a = mediaService.store("a.png", TestImages.png());
+        com.subtitlestudio.profile.Media b = mediaService.store("b.png", TestImages.png());
+
+        long id = service.addFromSource(novel.getId(), "T", "[[image:" + a.getId() + "]]\n\n[[image:" + b.getId() + "]]",
+                "77", NOW, List.of(new ChapterImageLink(a.getId(), "https://img.wattpad.com/a.png"),
+                        new ChapterImageLink(b.getId(), "https://img.wattpad.com/b.png")));
+        em.flush();
+        em.clear();
+
+        assertThat(chapterImageRepository.findByChapterIdOrderByPosition(id))
+                .extracting(i -> i.getMedia().getId(), ChapterImage::getSourceUrl, ChapterImage::getPosition)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(a.getId(), "https://img.wattpad.com/a.png", 1),
+                        org.assertj.core.groups.Tuple.tuple(b.getId(), "https://img.wattpad.com/b.png", 2));
+        assertThat(service.imageMediaByUrl(id)).containsEntry("https://img.wattpad.com/a.png", a.getId())
+                .containsEntry("https://img.wattpad.com/b.png", b.getId());
+        assertThat(mediaRepository.isReferenced(a.getId())).isTrue();
+    }
+
+    private long chapterWithMarkers(int no, long... mediaIds) {
+        List<ChapterImageLink> links = new ArrayList<>();
+        List<String> paragraphs = new ArrayList<>();
+        for (long m : mediaIds) {
+            paragraphs.add("Text " + m + ".");
+            paragraphs.add(ImageMarkers.marker(m));
+            links.add(new ChapterImageLink(m, "https://img.wattpad.com/" + no + "/" + m + ".png"));
+        }
+        return service.addFromSource(novel.getId(), "T", String.join("\n\n", paragraphs), "p" + no, NOW, links);
+    }
+
+    private ChapterUpdateRequest text(String text) {
+        return new ChapterUpdateRequest(null, null, null, text);
+    }
+
+    @Test
+    void savingATextThatLacksAMarkerIsRefused() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long b = mediaService.store("b.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a, b);
+
+        assertThatThrownBy(() -> service.update(id, text("Văn bản\n\n[[image:" + a + "]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+        assertThatThrownBy(() -> service.update(id, text("Chỉ chữ"))).isInstanceOf(ChapterImageMarkersException.class);
+        service.update(id, text("[[image:" + a + "]]\n\n[[image:" + b + "]]"));
+        assertThatThrownBy(() -> service.update(id, text("  "))).isInstanceOf(ChapterImageMarkersException.class);
+        assertThat(service.get(id).text()).isNotEqualTo("Chỉ chữ");
+    }
+
+    @Test
+    void savingATextWithAnUnknownOrChangedMarkerIsRefused() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a);
+
+        assertThatThrownBy(() -> service.update(id, text("[[image:" + a + "]]\n\n[[image:999999]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+        assertThatThrownBy(() -> service.update(id, text("[[image:" + (a + 1) + "]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+        assertThatThrownBy(() -> service.update(id, text("[[image:" + a + "]]\n\n[[image:" + a + "]]")))
+                .isInstanceOf(ChapterImageMarkersException.class);
+    }
+
+    @Test
+    void savingATextThatMovesTheMarkersAndAddsTextIsAccepted() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long b = mediaService.store("b.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a, b);
+        String moved = "[[image:" + b + "]]\n\nChữ dưới ảnh b\n\nVăn bản\n\n[[image:" + a + "]]";
+
+        ChapterDetail saved = service.update(id, text(moved));
+
+        assertThat(saved.text()).isEqualTo(moved);
+        assertThat(saved.editedAfterTranslation()).isTrue();
+    }
+
+    @Test
+    void aChapterWithoutImagesIsNotChecked() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(7, null));
+
+        assertThat(service.update(c.id(), text("Văn bản [[image:5]] tự do")).text()).isEqualTo("Văn bản [[image:5]] tự do");
+    }
+
+    @Test
+    void anUnchangedTextIsNeverChecked() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a);
+        service.update(id, text("[[image:" + a + "]]\n\nOK"));
+
+        assertThat(service.update(id, new ChapterUpdateRequest(null, "New title", null, "[[image:" + a + "]]\n\nOK"))
+                .title()).isEqualTo("New title");
+    }
+
+    @Test
+    void replaceSourceTextKeepsKnownImagesUnlinksGoneOnesAndDeletesTheirUnusedMedia() {
+        com.subtitlestudio.profile.Media keep = mediaService.store("a.png", TestImages.png());
+        com.subtitlestudio.profile.Media gone = mediaService.store("b.png", TestImages.png());
+        com.subtitlestudio.profile.Media fresh = mediaService.store("c.png", TestImages.png());
+        long id = service.addFromSource(novel.getId(), "T", "x", "78", NOW,
+                List.of(new ChapterImageLink(keep.getId(), "https://img.wattpad.com/a.png"),
+                        new ChapterImageLink(gone.getId(), "https://img.wattpad.com/b.png")));
+        em.flush();
+
+        service.replaceSourceText(id, "y", NOW, List.of(
+                new ChapterImageLink(fresh.getId(), "https://img.wattpad.com/c.png"),
+                new ChapterImageLink(keep.getId(), "https://img.wattpad.com/a.png")));
+        em.flush();
+        em.clear();
+
+        assertThat(chapterImageRepository.findByChapterIdOrderByPosition(id))
+                .extracting(i -> i.getMedia().getId(), ChapterImage::getPosition)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(fresh.getId(), 1),
+                        org.assertj.core.groups.Tuple.tuple(keep.getId(), 2));
+        assertThat(mediaRepository.existsById(gone.getId())).isFalse();
+        assertThat(mediaRepository.existsById(keep.getId())).isTrue();
+    }
+
+    @Test
+    void replaceSourceTextWithoutAnImageListLeavesTheImagesAlone() {
+        com.subtitlestudio.profile.Media a = mediaService.store("a.png", TestImages.png());
+        long id = service.addFromSource(novel.getId(), "T", "x", "79", NOW,
+                List.of(new ChapterImageLink(a.getId(), "https://img.wattpad.com/a.png")));
+        em.flush();
+
+        service.replaceSourceText(id, "y", NOW);
+        em.flush();
+
+        assertThat(chapterImageRepository.countByChapterId(id)).isEqualTo(1);
     }
 
     private ChapterDetail landscapeChapter(int no, int pageCount) {
