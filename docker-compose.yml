@@ -25,6 +25,7 @@ services:
     image: subtitle-studio:local
     environment:
       SPRING_PROFILES_ACTIVE: oracle
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError"
       SUBTITLESTUDIO_DB_HOST: oracle
       SUBTITLESTUDIO_DB_USER: subtitle_studio
       SUBTITLESTUDIO_DB_PASSWORD: ${SUBTITLESTUDIO_DB_PASSWORD:?Set SUBTITLESTUDIO_DB_PASSWORD in .env (see .env.example)}
@@ -38,8 +39,11 @@ services:
       SUBTITLESTUDIO_PUBLISH_INDEXABLE: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:-false}
       # Optional: watermark on public novel chapter images (empty = <project>.pages.dev).
       SUBTITLESTUDIO_NOVEL_WATERMARK: ${SUBTITLESTUDIO_NOVEL_WATERMARK:-}
+    # Localhost only: the app has no login, so other devices on the LAN must not reach it.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
+    # Bounded memory: the JVM heap is 60% of the container limit; an OOM exits so Docker restarts it.
+    mem_limit: 2g
     volumes:
       # Subtitle files (subs/: .vtt, en.srt, vi_auto.srt, vi_manual.srt), translation profiles (prompts/)
       # and profile images (media/); the database is in Oracle.
