@@ -63,11 +63,33 @@ public class PublicSiteBundle {
         }
     }
 
+    /**
+     * What the public pages may load. Own files only, plus: YouTube thumbnails (img), the YouTube player (its
+     * iframe_api script and the nocookie iframe on the Vietsub watch page and a novel's Trailer tab) and Spotify
+     * embeds in Profile blocks. Inline styles are allowed because the app sets style attributes.
+     */
+    private static final String CSP = String.join("; ",
+            "default-src 'self'",
+            "img-src 'self' data: https://i.ytimg.com",
+            "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://open.spotify.com",
+            "style-src 'self' 'unsafe-inline'",
+            "script-src 'self' https://www.youtube.com",
+            "connect-src 'self'",
+            "font-src 'self'",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'none'");
+
     private static String headers(boolean indexable) {
         StringBuilder sb = new StringBuilder();
+        // Cloudflare Pages reads one "/*" block, so the noindex header shares it with the security headers.
+        sb.append("/*\n");
         if (!indexable) {
-            sb.append("/*\n  X-Robots-Tag: noindex, nofollow\n\n");
+            sb.append("  X-Robots-Tag: noindex, nofollow\n");
         }
+        sb.append("  X-Content-Type-Options: nosniff\n");
+        sb.append("  Referrer-Policy: strict-origin-when-cross-origin\n");
+        sb.append("  Content-Security-Policy: ").append(CSP).append("\n\n");
         sb.append("/assets/*\n").append(LONG_CACHE).append('\n');
         sb.append("/media/*\n").append(LONG_CACHE).append('\n');
         // Chapter images are named by a hash of their content.

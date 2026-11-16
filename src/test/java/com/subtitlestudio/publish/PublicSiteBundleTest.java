@@ -64,4 +64,41 @@ class PublicSiteBundleTest {
         assertThat(read("_headers")).doesNotContain("X-Robots-Tag");
         assertThat(read("robots.txt")).isEqualTo("User-agent: *\nAllow: /\n");
     }
+
+    @Test
+    void headers_include_csp_and_nosniff_for_all_paths() throws IOException {
+        bundle.writeTo(out, true);
+
+        String headers = read("_headers");
+        assertThat(headers.split("(?m)^/\\*$", -1)).as("exactly one /* block").hasSize(2);
+        assertThat(headers).contains("/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n"
+                + "  Content-Security-Policy: default-src 'self'; ");
+        String csp = headers.lines().filter(l -> l.startsWith("  Content-Security-Policy:")).findFirst().orElseThrow();
+        assertThat(csp).contains("img-src 'self' data: https://i.ytimg.com;")
+                .contains("frame-src https://www.youtube-nocookie.com https://www.youtube.com")
+                .contains("style-src 'self' 'unsafe-inline';")
+                .contains("connect-src 'self';")
+                .contains("font-src 'self';")
+                .contains("frame-ancestors 'none';")
+                .contains("base-uri 'self';")
+                .endsWith("form-action 'none'");
+    }
+
+    @Test
+    void noindex_stays_in_same_block_when_not_indexable() throws IOException {
+        bundle.writeTo(out, false);
+
+        String headers = read("_headers");
+        assertThat(headers.split("(?m)^/\\*$", -1)).as("exactly one /* block").hasSize(2);
+        String block = headers.substring(0, headers.indexOf("\n\n"));
+        assertThat(block).startsWith("/*\n  X-Robots-Tag: noindex, nofollow\n")
+                .contains("X-Content-Type-Options: nosniff").contains("Content-Security-Policy:");
+    }
+
+    @Test
+    void indexable_site_has_no_noindex() throws IOException {
+        bundle.writeTo(out, true);
+
+        assertThat(read("_headers")).doesNotContain("noindex");
+    }
 }
