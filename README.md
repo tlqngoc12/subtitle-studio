@@ -27,7 +27,7 @@ docker compose up -d --build  # lần đầu tải image Oracle (vài GB)
 docker compose ps             # chờ cả hai báo (healthy)
 ```
 
-Mở http://localhost:8080. Thiếu `.env` thì compose dừng và báo biến nào còn thiếu.
+Mở http://localhost:8080. Thiếu `.env` thì compose dừng và báo biến nào còn thiếu. Cổng 8080 chỉ mở cho chính máy này (`127.0.0.1`), không truy cập được từ thiết bị khác trong mạng LAN; container bị giới hạn 2 GB RAM và `HEALTHCHECK` gọi `/api/ping`.
 
 - **Database:** Oracle, dữ liệu trong volume Docker `subtitle-studio_oracle-data`. Schema do Flyway tạo (`src/main/resources/db/migration`).
 - **`./data`:** chứa phụ đề (`subs/`: `.vtt`, `en.srt`, `vi_auto.srt`, `vi_manual.srt`), hồ sơ dịch Gemini (`prompts/`) và ảnh của trang Profile (`media/`). Trên Linux, thư mục này phải cho uid 10001 ghi được: `sudo chown -R 10001 data`.
