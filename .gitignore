@@ -3,6 +3,7 @@ target/
 !/data/prompts/
 !/data/subs/
 /data/prompts/.history/
+/data/prompts/novels/.history/
 .idea/
 *.iml
 .vscode/

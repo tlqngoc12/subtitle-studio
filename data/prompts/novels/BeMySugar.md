@@ -41,6 +41,11 @@
 - กู / มึง giữa bạn thân → "tao - mày"; khi giận dữ với người lạ → "tôi - cô".
 - คุณ → "cô" (với người ngang hàng, lịch sự, chưa thân) hoặc "chị" (khi lớn tuổi hơn); không dịch thành "bạn" trong văn cảnh trang trọng.
 - Với người lớn trong gia đình: แม่ → "mẹ", พ่อ → "bố", ป้า → "dì / bác" theo ngữ cảnh, ยาย / ย่า → "bà".
+- Đại từ ngôi thứ ba mặc định cho Bonnie và Emi (nếu truyện có hai nhân vật này), áp dụng cả trong lời dẫn lẫn khi nhân vật khác nhắc tới họ. Quy tắc này ưu tiên hơn quy tắc he / she chung:
+  - Bonnie: "she / her / herself" chỉ Bonnie → "em" (ví dụ "em ấy", "của em", "chính em"). Ví dụ: "She smiled" → "Em mỉm cười".
+  - Emi: "she / her / herself" chỉ Emi → "cô" (ví dụ "cô ấy", "của cô", "chính cô"). Ví dụ: "She sighed" → "Cô thở dài".
+  - Bản gốc gọi tên ("Bonnie", "Emi") thì giữ nguyên tên, không đổi tên thành đại từ "em" / "cô".
+  - Khi một câu nhắc cả hai người bằng "she" / "her", dựa vào ngữ cảnh để biết ai là ai. Nếu dùng "em" / "cô" vẫn dễ nhầm thì dùng tên cho rõ.
 - Cặp xưng hô cụ thể giữa hai nhân vật chính: Perth → Pipim là em, xưng Perth. Pipim → Perth là cô, xưng Pipim.
 
 ## Tên riêng và thuật ngữ
