@@ -973,6 +973,13 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Cập nhật sổ tay thất bại nay được ghi log kèm lý do (`NotebookService.fail`), không còn chỉ hiện trên giao diện.
 - `NotebookMerger` không còn từ chối cả lần cập nhật khi một mục phụ quá dài: mục nhân vật/thuật ngữ/cách xưng hô quá dài bị bỏ riêng lẻ (`sourceName` quá dài thì đặt null), log tên trường và độ dài, không log nội dung. `storySoFar` và `chapterSummary` quá dài vẫn từ chối cả lần cập nhật.
 
+### 2026-11-16: Analyze hồ sơ dịch cho Novels ✅ (có migration V24)
+- Spec [docs/superpowers/specs/2026-11-16-novel-profile-analyze-design.md](docs/superpowers/specs/2026-11-16-novel-profile-analyze-design.md), plan [docs/superpowers/plans/2026-11-16-novel-profile-analyze.md](docs/superpowers/plans/2026-11-16-novel-profile-analyze.md). Truyện nào cũng có tab **Profile** (`/novels/:id?tab=profile`): xem, sửa tay và lưu hồ sơ dịch `.md` của truyện, hoặc bấm **Analyze corrections** để Gemini đề xuất hồ sơ mới từ những đoạn người dịch đã sửa trong các chương đã Published (một request Gemini mỗi lần bấm).
+- `t_chapter.ai_text` (V24) giữ nguyên bản Gemini dịch cả chương, không đổi khi sửa tay (chương chụp ảnh: các trang ghép lại; chương Wattpad: bản dịch cả chương). Chỉ ghi khi dịch xong trọn vẹn; Translate again ghi đè. Chương Wattpad dịch trước V24 không có `ai_text` nên bị bỏ qua khi phân tích; chương chụp ảnh cũ lấy chữ các trang làm bản AI.
+- Backend: `NovelCorrections` so từng đoạn (LCS, bỏ qua khác biệt khoảng trắng, đoạn bị gộp/tách thành một chỗ sửa), `NovelProfileAnalyzer` (tối đa 300 chỗ sửa và 30.000 ký tự, chương mới nhất trước, mỗi phía cắt ở 2.000 ký tự; 409 `NOVEL_TRANSLATION_BUSY` khi có chương đang dịch; 404 `NO_PROFILE`), `GET/POST analyze/PUT /api/novels/{id}/profile`, lưu có kiểm tra SHA và giữ bản cũ trong `.history/`. Frontend: `ProfileAnalyzePanel` dùng chung với Vietsub › Profiles, `NovelProfileTab`.
+- Gợi ý tên riêng/thuật ngữ và xưng hô được ghi thẳng vào hồ sơ (mục `## Tên riêng và thuật ngữ`, `## Xưng hô`) và liệt kê riêng trong giao diện; không ghi vào sổ tay truyện. Không có gì được lưu nếu người dùng chưa bấm Save.
+- **Lưu ý deploy:** V24 chạy trên Oracle, chạy `scripts/backup-db.ps1` trước `docker compose up -d --build`; backup lỗi thì dừng.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.
