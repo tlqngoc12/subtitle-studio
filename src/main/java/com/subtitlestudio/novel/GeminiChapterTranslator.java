@@ -37,7 +37,7 @@ public class GeminiChapterTranslator implements ChapterTranslator {
             - Giữ ngắt đoạn của bản gốc (một dòng trống giữa các đoạn). Không thêm lời bình, chú thích hay tóm tắt.
             - Bỏ qua chữ thuộc giao diện ứng dụng nếu có trong ảnh (thanh trạng thái, giờ, pin, nút bấm, số trang).
             - Một câu bị cắt sang trang sau thì dịch sao cho mỗi trang khớp phần lời của nó.
-            - Hồ sơ dịch và sổ tay truyện bên dưới được ưu tiên về tên riêng, thuật ngữ và cách xưng hô.
+            - Hồ sơ dịch bên dưới được ưu tiên về tên riêng, thuật ngữ và cách xưng hô.
             - Chỉ trả về JSON theo schema, không giải thích.""";
 
     private static final Logger log = LoggerFactory.getLogger(GeminiChapterTranslator.class);
@@ -126,9 +126,6 @@ public class GeminiChapterTranslator implements ChapterTranslator {
     private static String context(ChapterPrompt p) {
         StringBuilder sb = new StringBuilder();
         sb.append("# Hồ sơ dịch\n").append(p.profile()).append("\n\n");
-        if (p.notebookText() != null) {
-            sb.append("# Sổ tay truyện\n").append(p.notebookText()).append("\n\n");
-        }
         if (p.previousText() != null) {
             sb.append("# Chương trước (bản dịch)\n").append(p.previousText()).append("\n\n");
         }

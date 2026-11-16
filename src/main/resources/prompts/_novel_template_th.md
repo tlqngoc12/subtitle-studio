@@ -15,7 +15,7 @@
 - Giữ đúng ngôi kể của từng đoạn; không tự đổi ngôi.
 
 ## Nhân vật
-- Bổ sung nhân vật chính, giới tính và quan hệ khi đã rõ; sổ tay truyện tự cập nhật sau mỗi chương.
+- Bổ sung nhân vật chính, giới tính và quan hệ khi đã rõ.
 
 ## Xưng hô
 - Đại từ ngôi thứ ba tiếng Thái (เขา, เธอ) không phân biệt rõ giới tính. Luôn dịch theo giới tính và quan hệ của nhân vật được nhắc tới:

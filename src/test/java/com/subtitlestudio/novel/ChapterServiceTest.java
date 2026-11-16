@@ -39,26 +39,11 @@ class ChapterServiceTest {
     @TempDir
     static Path dataDir;
 
-    /** Records scheduled notebook updates instead of running them. */
-    static class RecordingScheduler implements NotebookScheduler {
-        final List<String> calls = new ArrayList<>();
-
-        @Override
-        public void scheduleUpdate(long novelId, int chapterNo) {
-            calls.add(novelId + ":" + chapterNo);
-        }
-    }
-
     @TestConfiguration
     static class Config {
         @Bean
         MutableClock clock() {
             return new MutableClock(NOW);
-        }
-
-        @Bean
-        RecordingScheduler scheduler() {
-            return new RecordingScheduler();
         }
 
         @Bean
@@ -94,19 +79,12 @@ class ChapterServiceTest {
     private com.subtitlestudio.profile.MediaRepository mediaRepository;
 
     @Autowired
-    private NovelNotebookRepository notebooks;
-
-    @Autowired
-    private RecordingScheduler scheduler;
-
-    @Autowired
     private TestEntityManager em;
 
     private Novel novel;
 
     @BeforeEach
     void setUp() {
-        scheduler.calls.clear();
         novel = novels.save(new Novel("n", "Tình Yêu", NovelStatus.ONGOING, NOW));
     }
 
@@ -232,18 +210,6 @@ class ChapterServiceTest {
                 .isInstanceOf(InvalidChapterException.class);
         assertThatThrownBy(() -> service.add(novel.getId(), new ChapterRequest(1, "x".repeat(201))))
                 .isInstanceOf(InvalidChapterException.class);
-    }
-
-    @Test
-    void renumberKeepsNotebookLookupByNewNumber() {
-        ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));
-        notebooks.save(new NovelNotebook(novel, 5, "{}", NOW));
-
-        service.update(five.id(), new ChapterUpdateRequest(7, "Bảy", null));
-
-        assertThat(service.get(five.id()).chapterNo()).isEqualTo(7);
-        assertThat(notebooks.findTopByNovelIdAndAfterChapterNoLessThanOrderByAfterChapterNoDesc(novel.getId(), 8))
-                .map(NovelNotebook::getAfterChapterNo).contains(5);
     }
 
     @Test
@@ -386,7 +352,6 @@ class ChapterServiceTest {
 
         assertThat(updated.pages().getFirst().textVi()).isEqualTo("Xin chào");
         assertThat(updated.editedAfterTranslation()).isTrue();
-        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test
@@ -440,18 +405,6 @@ class ChapterServiceTest {
         ChapterDetail cleared = service.update(c.id(), new ChapterUpdateRequest(null, null, null, "   "));
 
         assertThat(cleared.text()).isEqualTo("Một");
-    }
-
-    @Test
-    void editingPublishedTextDoesNotUpdateTheNotebook() {
-        ChapterDetail c = chapterWithPages(4, "a.png");
-        setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
-
-        service.update(c.id(), new ChapterUpdateRequest(null, null,
-                List.of(new PageTextEdit(c.pages().getFirst().id(), "Mới"))));
-        service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Bản sửa"));
-
-        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test
@@ -541,7 +494,6 @@ class ChapterServiceTest {
         assertThat(edited.title()).isEqualTo("Tựa mới");
         assertThat(edited.pages().getFirst().textVi()).isEqualTo("Sửa chữ");
         assertThat(edited.pages()).extracting(PageDto::id).containsExactlyElementsOf(ids);
-        assertThat(scheduler.calls).isEmpty();
     }
 
     @Test

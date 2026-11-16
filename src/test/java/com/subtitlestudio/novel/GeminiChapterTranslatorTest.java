@@ -44,8 +44,8 @@ class GeminiChapterTranslatorTest {
         return new GeminiChapterTranslator(new GeminiCaller(gemini, server.baseUrl()), gemini, new ObjectMapper());
     }
 
-    private static ChapterPrompt prompt(String notebook, String previous, String carry) {
-        return new ChapterPrompt("Tình Yêu Mùa Hạ", 3, "Ngôn ngữ gốc: tiếng Thái", notebook, previous, carry,
+    private static ChapterPrompt prompt(String previous, String carry) {
+        return new ChapterPrompt("Tình Yêu Mùa Hạ", 3, "Ngôn ngữ gốc: tiếng Thái", previous, carry,
                 List.of(new PageImage(1, IMG1), new PageImage(2, IMG2)));
     }
 
@@ -53,11 +53,10 @@ class GeminiChapterTranslatorTest {
     void sendsPagesInOrderWithLabelsAndImages() {
         server.replyText(GOOD, "STOP");
 
-        translator(List.of()).translate(prompt("## Nhân vật\nA", "Chương trước đây", "đoạn cuối"));
+        translator(List.of()).translate(prompt("Chương trước đây", "đoạn cuối"));
 
         String body = server.lastBody();
         assertThat(body).contains("systemInstruction").contains("Ngôn ngữ gốc: tiếng Thái");
-        assertThat(body).contains("# Sổ tay truyện").contains("## Nhân vật");
         assertThat(body).contains("# Chương trước (bản dịch)").contains("Chương trước đây");
         assertThat(body).contains("# Đoạn cuối lượt trước").contains("đoạn cuối");
         assertThat(body).contains("Chương 3").contains("Tình Yêu Mùa Hạ");
@@ -74,7 +73,7 @@ class GeminiChapterTranslatorTest {
         server.replyText("{\"pages\":[{\"page\":1,\"text\":\"Xin chào\",\"source\":\"สวัสดี\"},"
                 + "{\"page\":2,\"text\":\"Hai\",\"source\":\"สอง\"}]}", "STOP");
 
-        List<TranslatedPage> got = translator(List.of()).translate(prompt(null, null, null));
+        List<TranslatedPage> got = translator(List.of()).translate(prompt(null, null));
 
         assertThat(got).containsExactly(new TranslatedPage(1, "Xin chào", "สวัสดี"),
                 new TranslatedPage(2, "Hai", "สอง"));
@@ -92,10 +91,10 @@ class GeminiChapterTranslatorTest {
     @Test
     void namesTheChapterByItsLabel() {
         server.replyText(GOOD, "STOP");
-        ChapterPrompt p = prompt(null, null, null);
+        ChapterPrompt p = prompt(null, null);
 
         translator(List.of()).translate(new ChapterPrompt(p.novelTitle(), 31, "Ngoại truyện 1", p.profile(), null,
-                null, null, p.pages()));
+                null, p.pages()));
 
         assertThat(server.lastBody()).contains("# Ngoại truyện 1: Tình Yêu Mùa Hạ").doesNotContain("Chương 31");
     }
@@ -104,9 +103,9 @@ class GeminiChapterTranslatorTest {
     void leavesOutEmptySections() {
         server.replyText(GOOD, "STOP");
 
-        translator(List.of()).translate(prompt(null, null, null));
+        translator(List.of()).translate(prompt(null, null));
 
-        assertThat(server.lastBody()).doesNotContain("# Sổ tay truyện").doesNotContain("# Chương trước")
+        assertThat(server.lastBody()).doesNotContain("# Chương trước")
                 .doesNotContain("# Đoạn cuối lượt trước");
     }
 
@@ -114,7 +113,7 @@ class GeminiChapterTranslatorTest {
     void parsesPagesInOrder() {
         server.replyText(GOOD, "STOP");
 
-        assertThat(translator(List.of()).translate(prompt(null, null, null)))
+        assertThat(translator(List.of()).translate(prompt(null, null)))
                 .containsExactly(new TranslatedPage(1, "Một"), new TranslatedPage(2, "Hai"));
     }
 
@@ -123,7 +122,7 @@ class GeminiChapterTranslatorTest {
         server.replyText(GOOD, "STOP");
         server.replyForModel("gemini-test-flash", 503, "{}");
 
-        assertThat(translator(List.of("gemini-lite")).translate(prompt(null, null, null))).hasSize(2);
+        assertThat(translator(List.of("gemini-lite")).translate(prompt(null, null))).hasSize(2);
         assertThat(server.lastPath()).contains("/models/gemini-lite:");
     }
 
@@ -131,7 +130,7 @@ class GeminiChapterTranslatorTest {
     void quotaErrorOnEveryModelFails() {
         server.reply(429, DAILY_429);
 
-        assertThatThrownBy(() -> translator(List.of("gemini-lite")).translate(prompt(null, null, null)))
+        assertThatThrownBy(() -> translator(List.of("gemini-lite")).translate(prompt(null, null)))
                 .isInstanceOfSatisfying(TranslationFailedException.class,
                         e -> assertThat(e.userMessage()).isEqualTo("Gemini free quota is used up, try again later."));
         assertThat(server.requests()).isEqualTo(2);
@@ -140,7 +139,7 @@ class GeminiChapterTranslatorTest {
     private static final byte[] IMG3 = "jpeg-three".getBytes(StandardCharsets.US_ASCII);
 
     private static ChapterPrompt threePages() {
-        return new ChapterPrompt("Tình Yêu", 5, "Hồ sơ", null, null, null,
+        return new ChapterPrompt("Tình Yêu", 5, "Hồ sơ", null, null,
                 List.of(new PageImage(1, IMG1), new PageImage(2, IMG2), new PageImage(3, IMG3)));
     }
 
@@ -201,7 +200,7 @@ class GeminiChapterTranslatorTest {
     void notJsonFails() {
         server.replyText("nope", "STOP");
 
-        assertThatThrownBy(() -> translator(List.of()).translate(prompt(null, null, null)))
+        assertThatThrownBy(() -> translator(List.of()).translate(prompt(null, null)))
                 .isInstanceOf(TranslationFailedException.class);
     }
 }

@@ -246,7 +246,6 @@ class NovelServiceTest {
 
         assertThat(d.slug()).isEqualTo("summer-love");
         assertThat(d.tags()).containsExactly("romance", "BL");
-        assertThat(d.notebookStatus()).isEqualTo(NotebookStatus.IDLE);
         assertThat(d.chapters()).isEmpty();
         assertThat(service.list()).singleElement().satisfies(s -> {
             assertThat(s.title()).isEqualTo("Tình Yêu Mùa Hạ");

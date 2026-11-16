@@ -159,7 +159,7 @@ class PersistenceOracleIT {
     void onlyFlywayCreatesTables() {
         // Hibernate creates HTE_* global temporary tables on Oracle at startup unless told not to.
         assertThat(jdbc.queryForList("select table_name from user_tables order by table_name", String.class))
-                .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_IMAGE", "T_CHAPTER_PAGE", "T_FANFIC", "T_MEDIA", "T_NOVEL", "T_NOVEL_NOTEBOOK",
+                .containsExactly("CUE", "T_CHAPTER", "T_CHAPTER_IMAGE", "T_CHAPTER_PAGE", "T_FANFIC", "T_MEDIA", "T_NOVEL",
                         "T_PERSON", "T_PHOTO_POST", "T_PHOTO_POST_PROFILE", "T_PLAYLIST", "T_PLAYLIST_ITEM", "T_PROFILE", "T_PROFILE_BANNER_IMAGE", "T_PROFILE_BLOCK",
                         "T_PROFILE_BLOCK_ITEM", "T_WORK", "T_WORK_CATEGORY", "T_WORK_CREDIT", "T_WORK_LINK", "VIDEO",
                         "VI_CUE", "flyway_schema_history");
@@ -271,23 +271,11 @@ class PersistenceOracleIT {
     }
 
     @Test
-    void storesTheNotebookPausedFlagAsYesNoOnOracle() {
-        com.subtitlestudio.novel.Novel n = new com.subtitlestudio.novel.Novel("pause-it", "Pause",
-                com.subtitlestudio.novel.NovelStatus.ONGOING, java.time.Instant.parse("2026-11-15T10:00:00Z"));
-        n = novelRepository.save(n);
-        try {
-            assertThat(jdbc.queryForObject("select notebook_paused from t_novel where id = ?", String.class,
-                    n.getId())).isEqualTo("N");
-
-            n.setNotebookPaused(true);
-            novelRepository.save(n);
-
-            assertThat(jdbc.queryForObject("select notebook_paused from t_novel where id = ?", String.class,
-                    n.getId())).isEqualTo("Y");
-            assertThat(novelRepository.findById(n.getId()).orElseThrow().isNotebookPaused()).isTrue();
-        } finally {
-            novelRepository.deleteById(n.getId());
-        }
+    void theNotebookColumnsAreGoneAfterV26() {
+        assertThat(jdbc.queryForList("select column_name from user_tab_columns where table_name = 'T_NOVEL' "
+                + "and column_name like 'NOTEBOOK%'", String.class)).isEmpty();
+        assertThat(jdbc.queryForList("select sequence_name from user_sequences where sequence_name like '%NOTEBOOK%'",
+                String.class)).isEmpty();
     }
 
     @Test

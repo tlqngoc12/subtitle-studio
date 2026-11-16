@@ -31,9 +31,6 @@ class NovelRepositoryTest {
     private ChapterPageRepository pages;
 
     @Autowired
-    private NovelNotebookRepository notebooks;
-
-    @Autowired
     private MediaRepository media;
 
     @Autowired
@@ -48,7 +45,7 @@ class NovelRepositoryTest {
     }
 
     @Test
-    void savesNovelWithChaptersPagesAndNotebook() {
+    void savesNovelWithChaptersAndPages() {
         Novel n = novel("summer-love");
         Media cover = image();
         n.setCover(cover);
@@ -63,7 +60,6 @@ class NovelRepositoryTest {
         ChapterPage p = new ChapterPage(c, 1, image());
         p.setTextVi(longText);
         pages.save(p);
-        notebooks.save(new NovelNotebook(n, 1, "{\"glossary\":[]}", T0));
         em.flush();
         em.clear();
 
@@ -73,7 +69,6 @@ class NovelRepositoryTest {
         assertThat(loaded.getOriginalAuthor()).isEqualTo("ผู้เขียน");
         assertThat(loaded.getTags()).isEqualTo("romance,BL");
         assertThat(loaded.getNovelStatus()).isEqualTo(NovelStatus.ONGOING);
-        assertThat(loaded.getNotebookStatus()).isEqualTo(NotebookStatus.IDLE);
         assertThat(loaded.getPromptProfile()).isEqualTo("SummerLove");
 
         Chapter lc = chapters.findByNovelIdOrderByChapterNo(n.getId()).getFirst();
@@ -82,7 +77,6 @@ class NovelRepositoryTest {
         assertThat(lc.getPublishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
         assertThat(lc.isEditedAfterTranslation()).isFalse();
         assertThat(pages.findByChapterIdOrderByPosition(c.getId()).getFirst().getTextVi()).isEqualTo(longText);
-        assertThat(notebooks.findByNovelIdAndAfterChapterNo(n.getId(), 1)).isPresent();
         assertThat(novels.existsBySlug("summer-love")).isTrue();
     }
 
@@ -98,11 +92,10 @@ class NovelRepositoryTest {
     }
 
     @Test
-    void deletingNovelCascadesToChaptersPagesAndNotebooks() {
+    void deletingNovelCascadesToChaptersAndPages() {
         Novel n = novel("gone");
         Chapter c = chapters.save(new Chapter(n, 1, null, T0));
         pages.save(new ChapterPage(c, 1, image()));
-        notebooks.save(new NovelNotebook(n, 1, "{}", T0));
         em.flush();
         em.clear();
 
@@ -112,23 +105,6 @@ class NovelRepositoryTest {
 
         assertThat(chapters.count()).isZero();
         assertThat(pages.count()).isZero();
-        assertThat(notebooks.count()).isZero();
-    }
-
-    @Test
-    void findsLatestNotebookBeforeChapter() {
-        Novel n = novel("nb");
-        notebooks.save(new NovelNotebook(n, 2, "{}", T0));
-        notebooks.save(new NovelNotebook(n, 5, "{}", T0));
-        notebooks.save(new NovelNotebook(n, 9, "{}", T0));
-        em.flush();
-
-        assertThat(notebooks.findTopByNovelIdAndAfterChapterNoLessThanOrderByAfterChapterNoDesc(n.getId(), 9))
-                .map(NovelNotebook::getAfterChapterNo).contains(5);
-        assertThat(notebooks.findTopByNovelIdAndAfterChapterNoLessThanOrderByAfterChapterNoDesc(n.getId(), 2))
-                .isEmpty();
-        assertThat(notebooks.findByNovelIdOrderByAfterChapterNo(n.getId()))
-                .extracting(NovelNotebook::getAfterChapterNo).containsExactly(2, 5, 9);
     }
 
     @Test

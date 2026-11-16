@@ -35,7 +35,7 @@ class GeminiTextChapterTranslatorTest {
     }
 
     private static TextChapterPrompt prompt(String language, String carrySource, String carryTranslation) {
-        return new TextChapterPrompt("Warm", 3, null, "Hồ sơ: dịch mượt", "## Nhân vật\nEmi", "Chương trước đây",
+        return new TextChapterPrompt("Warm", 3, null, "Hồ sơ: dịch mượt", "Chương trước đây",
                 language, carrySource, carryTranslation, SOURCE);
     }
 
@@ -55,7 +55,6 @@ class GeminiTextChapterTranslatorTest {
         String body = server.lastBody();
         assertThat(body).contains("systemInstruction").contains("tiếng Anh").contains("responseSchema");
         assertThat(body).contains("# Hồ sơ dịch").contains("Hồ sơ: dịch mượt");
-        assertThat(body).contains("# Sổ tay truyện").contains("## Nhân vật");
         assertThat(body).contains("# Chương trước (bản dịch)").contains("Chương trước đây");
         assertThat(body).contains("Chương 3").contains("Warm");
         assertThat(body).contains("First paragraph.").contains("Third paragraph.");
@@ -118,7 +117,7 @@ class GeminiTextChapterTranslatorTest {
     void anAnswerWithFarFewerParagraphsMeansIncomplete() {
         String source = String.join("\n\n", java.util.Collections.nCopies(10, "A paragraph."));
         server.replyText(answer(GOOD), "STOP");
-        var prompt = new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source);
+        var prompt = new TextChapterPrompt("Warm", 3, null, "p", null, "en", null, null, source);
 
         assertThatThrownBy(() -> translator(List.of()).translate(prompt, m -> {}))
                 .isInstanceOf(TextIncompleteException.class);
@@ -129,13 +128,13 @@ class GeminiTextChapterTranslatorTest {
         String source = String.join("\n\n", java.util.Collections.nCopies(10, "A paragraph."));
         server.replyText(answer("Đoạn một của chương này khá dài.\n\nĐoạn hai của chương này khá dài.\n\n"
                 + "Đoạn ba của chương này khá dài.\n\nĐoạn bốn của chương này khá dài."), "STOP");
-        var prompt = new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source);
+        var prompt = new TextChapterPrompt("Warm", 3, null, "p", null, "en", null, null, source);
 
         assertThat(translator(List.of()).translate(prompt, m -> {}).text()).startsWith("Đoạn một");
     }
 
     private static TextChapterPrompt promptFor(String source) {
-        return new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source);
+        return new TextChapterPrompt("Warm", 3, null, "p", null, "en", null, null, source);
     }
 
     /** A source of one paragraph with exactly {@code length} chars, ending with {@code ending}. */
@@ -220,7 +219,7 @@ class GeminiTextChapterTranslatorTest {
         for (long id : ids) {
             images.add(new PromptImage(id, "image/jpeg", IMG));
         }
-        return new TextChapterPrompt("Warm", 3, null, "p", null, null, "en", null, null, source, images);
+        return new TextChapterPrompt("Warm", 3, null, "p", null, "en", null, null, source, images);
     }
 
     private static String readGolden(String name) throws java.io.IOException {
@@ -234,7 +233,7 @@ class GeminiTextChapterTranslatorTest {
             server.replyText(answer(GOOD), "STOP");
 
             translator(List.of()).translate(new TextChapterPrompt("Warm", 3, null, "Hồ sơ: dịch mượt",
-                    "## Nhân vật\nEmi", "Chương trước đây", language, "carry src", "carry tr", SOURCE), m -> {});
+                    "Chương trước đây", language, "carry src", "carry tr", SOURCE), m -> {});
 
             assertThat(server.lastBody()).as(language).isEqualTo(readGolden("text-only-request-" + language + ".json"));
         }

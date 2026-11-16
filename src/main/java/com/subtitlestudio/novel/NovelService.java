@@ -28,7 +28,6 @@ public class NovelService {
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
     private final ChapterImageRepository chapterImages;
-    private final NovelNotebookRepository notebooks;
     private final MediaRepository media;
     private final MediaService mediaService;
     private final NovelValidator validator;
@@ -38,14 +37,13 @@ public class NovelService {
     private final MediaFiler mediaFiler;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                        ChapterImageRepository chapterImages, NovelNotebookRepository notebooks, MediaRepository media, MediaService mediaService,
+                        ChapterImageRepository chapterImages, MediaRepository media, MediaService mediaService,
                         NovelValidator validator, RenderCache renderCache, Clock clock,
                         TranslatingModels models, MediaFiler mediaFiler) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
         this.chapterImages = chapterImages;
-        this.notebooks = notebooks;
         this.media = media;
         this.mediaService = mediaService;
         this.validator = validator;
@@ -132,7 +130,7 @@ public class NovelService {
         return detail(n);
     }
 
-    /** Deletes the novel, its chapters, pages and notebooks, and the images nothing else uses. */
+    /** Deletes the novel, its chapters and pages, and the images nothing else uses. */
     @Transactional
     public void delete(long id) {
         Novel n = find(id);
@@ -150,7 +148,6 @@ public class NovelService {
             chapterImages.deleteAll(inText);
         }
         chapters.deleteAll(cs);
-        notebooks.deleteAll(notebooks.findByNovelIdOrderByAfterChapterNo(id));
         novels.delete(n);
         novels.flush();
         mediaService.deleteIfUnreferenced(images);
@@ -199,9 +196,8 @@ public class NovelService {
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),
                 n.getDescription(), tags(n), n.getNovelStatus(), n.getTranslatorCredit(), n.getSourceUrl(),
                 n.getPromptProfile(), n.getTrailerVideoId(),
-                n.getNotebookStatus(), n.getNotebookError(), list, n.getSourceType(), n.getSourceLanguage(),
-                n.getWattpadStoryId(), n.isNotebookPaused(),
-                n.getNotebookStatus() == NotebookStatus.UPDATING ? n.getNotebookPendingChapterNo() : null);
+                list, n.getSourceType(), n.getSourceLanguage(),
+                n.getWattpadStoryId());
     }
 
     static List<String> tags(Novel n) {

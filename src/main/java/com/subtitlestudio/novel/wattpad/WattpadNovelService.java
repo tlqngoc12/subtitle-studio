@@ -18,7 +18,6 @@ import com.subtitlestudio.novel.ChapterAlreadyTranslatedException;
 import com.subtitlestudio.novel.ChapterService;
 import com.subtitlestudio.novel.ChapterTranslationService;
 import com.subtitlestudio.novel.ChapterTranslationStatus;
-import com.subtitlestudio.novel.NotebookStatus;
 import com.subtitlestudio.novel.NovelTranslationBusyException;
 import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.NovelNotFoundException;
@@ -385,13 +384,6 @@ public class WattpadNovelService {
         if (translating != null) {
             throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING,
                     translating.getChapterNo());
-        }
-        if (novel.getNotebookStatus() == NotebookStatus.UPDATING) {
-            Integer pending = novel.getNotebookPendingChapterNo();
-            Integer latest = pending != null ? pending : chapters.maxPublishedChapterNo(novelId);
-            int chapterNo = latest != null ? latest : 0;
-            throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING,
-                    chapterNo);
         }
         translation.requireReady(novel);
         return novel;

@@ -19,7 +19,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import org.hibernate.type.YesNoConverter;
 
-/** A translated novel: the eight fields guests see, its translation profile and its notebook update state. */
+/** A translated novel: the eight fields guests see, and its translation profile. */
 @EntityListeners(com.subtitlestudio.profile.MediaReferenceListener.class)
 @Entity
 @Table(name = "t_novel")
@@ -78,21 +78,6 @@ public class Novel {
 
     @Column(name = "trailer_video_id", length = 11)
     private String trailerVideoId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "notebook_status", length = 20, nullable = false)
-    private NotebookStatus notebookStatus = NotebookStatus.IDLE;
-
-    @Column(name = "notebook_error", length = 500)
-    private String notebookError;
-
-    @Column(name = "notebook_pending_chapter_no")
-    private Integer notebookPendingChapterNo;
-
-    /** While true, publishing a chapter does not start a notebook update. */
-    @Convert(converter = YesNoConverter.class)
-    @Column(name = "notebook_paused", length = 1, nullable = false)
-    private boolean notebookPaused;
 
     /** Picked for the public Novels page banner (at most 5 novels; the service enforces it). */
     @Convert(converter = YesNoConverter.class)
@@ -231,38 +216,6 @@ public class Novel {
 
     public void setTrailerVideoId(String trailerVideoId) {
         this.trailerVideoId = trailerVideoId;
-    }
-
-    public NotebookStatus getNotebookStatus() {
-        return notebookStatus;
-    }
-
-    public void setNotebookStatus(NotebookStatus notebookStatus) {
-        this.notebookStatus = notebookStatus;
-    }
-
-    public String getNotebookError() {
-        return notebookError;
-    }
-
-    public void setNotebookError(String notebookError) {
-        this.notebookError = notebookError;
-    }
-
-    public Integer getNotebookPendingChapterNo() {
-        return notebookPendingChapterNo;
-    }
-
-    public void setNotebookPendingChapterNo(Integer notebookPendingChapterNo) {
-        this.notebookPendingChapterNo = notebookPendingChapterNo;
-    }
-
-    public boolean isNotebookPaused() {
-        return notebookPaused;
-    }
-
-    public void setNotebookPaused(boolean notebookPaused) {
-        this.notebookPaused = notebookPaused;
     }
 
     public boolean isFeatured() {

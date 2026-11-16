@@ -26,17 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class NovelController {
 
     private final NovelService service;
-    private final NotebookService notebook;
     private final ChapterService chapterService;
     private final WattpadNovelService wattpadNovels;
     private final NovelProfileAnalyzer profileAnalyzer;
 
-    public NovelController(NovelService service, NotebookService notebook, ChapterService chapterService,
+    public NovelController(NovelService service, ChapterService chapterService,
                            WattpadNovelService wattpadNovels, NovelProfileAnalyzer profileAnalyzer) {
         this.profileAnalyzer = profileAnalyzer;
         this.wattpadNovels = wattpadNovels;
         this.service = service;
-        this.notebook = notebook;
         this.chapterService = chapterService;
     }
 
@@ -44,22 +42,6 @@ public class NovelController {
     public List<ChapterSummary> reorderChapters(@PathVariable long id, @RequestBody ChapterOrderRequest request) {
         chapterService.reorderChapters(id, request);
         return service.get(id).chapters();
-    }
-
-    @GetMapping("/{id}/notebook")
-    public NotebookView notebook(@PathVariable long id, @RequestParam(required = false) Integer after) {
-        return notebook.view(id, after);
-    }
-
-    @PostMapping("/{id}/notebook/retry")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void retryNotebook(@PathVariable long id) {
-        notebook.retry(id);
-    }
-
-    @PutMapping("/{id}/notebook/paused")
-    public NotebookView setNotebookPaused(@PathVariable long id, @RequestBody NotebookPausedRequest request) {
-        return notebook.setNotebookPaused(id, request.paused());
     }
 
     @GetMapping("/{id}/profile")

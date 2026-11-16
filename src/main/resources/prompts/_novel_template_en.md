@@ -15,7 +15,7 @@
 - Giữ đúng ngôi kể của từng đoạn; không tự đổi ngôi.
 
 ## Nhân vật
-- Bổ sung nhân vật chính, giới tính và quan hệ khi đã rõ; sổ tay truyện tự cập nhật sau mỗi chương.
+- Bổ sung nhân vật chính, giới tính và quan hệ khi đã rõ.
 
 ## Xưng hô
 - he / she / they: dịch theo giới tính và quan hệ của nhân vật được nhắc tới ("anh ấy", "cô ấy", "chị ấy", "em ấy", "cậu ấy"); "they" chỉ một người thì theo giới tính đã biết của người đó, không biết thì dùng tên hoặc "người đó". Không dùng "chàng" / "nàng" trừ khi giọng văn lãng mạn rõ rệt và đã dùng nhất quán trước đó.

@@ -23,8 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Translates a chapter in the background (spec section 4): pages go to Gemini in batches with the profile, the story
- * notebook and the end of the previous chapter. Pages Gemini already translated are saved even when a later request
+ * Translates a chapter in the background (spec section 4): pages go to Gemini in batches with the profile and the end
+ * of the previous chapter. Pages Gemini already translated are saved even when a later request
  * fails, and after a failure Translate again sends only the pages still without text, so no request is paid twice.
  * Also publish / unpublish.
  */
@@ -40,7 +40,7 @@ public class ChapterTranslationService {
     private static final Logger log = LoggerFactory.getLogger(ChapterTranslationService.class);
 
     /** What the background run needs, read in one transaction. */
-    private record Job(long novelId, int chapterNo, String chapterLabel, String novelTitle, String profile, String notebookText,
+    private record Job(long novelId, int chapterNo, String chapterLabel, String novelTitle, String profile,
                        String previousText, List<Long> pageIds, List<Long> mediaIds, Map<Integer, String> kept) {}
 
     private final SubtitleStudioProperties.Gemini gemini;
@@ -52,8 +52,6 @@ public class ChapterTranslationService {
     private final MediaService media;
     private final ChapterRepository chapters;
     private final ChapterPageRepository pages;
-    private final NotebookPromptSource notebook;
-    private final NotebookScheduler scheduler;
     private final ChapterService chapterService;
     private final TransactionTemplate tx;
     private final Executor executor;
@@ -63,7 +61,6 @@ public class ChapterTranslationService {
                                      ChapterTranslator translator, TextChapterTranslation textTranslation,
                                      PageImagePreparer preparer, MediaService media,
                                      ChapterRepository chapters, ChapterPageRepository pages,
-                                     NotebookPromptSource notebook, NotebookScheduler scheduler,
                                      ChapterService chapterService, TransactionTemplate tx,
                                      @Qualifier("translationExecutor") Executor executor, Clock clock) {
         this.gemini = properties.gemini();
@@ -75,8 +72,6 @@ public class ChapterTranslationService {
         this.media = media;
         this.chapters = chapters;
         this.pages = pages;
-        this.notebook = notebook;
-        this.scheduler = scheduler;
         this.chapterService = chapterService;
         this.tx = tx;
         this.executor = executor;
@@ -138,7 +133,6 @@ public class ChapterTranslationService {
                 c.touch(clock.instant());
                 c.getNovel().touch(clock.instant());
                 chapters.flush();
-                scheduler.scheduleUpdate(c.getNovel().getId(), c.getChapterNo());
             }
             return chapterService.detail(c);
         });
@@ -216,7 +210,7 @@ public class ChapterTranslationService {
                 try {
                     got = translator.translate(new ChapterPrompt(job.novelTitle(), job.chapterNo(), job.chapterLabel(),
                             job.profile(),
-                            job.notebookText(), job.previousText(), carryOver(texts, batch.getFirst().page()),
+                            job.previousText(), carryOver(texts, batch.getFirst().page()),
                             batch), onTrying);
                 } catch (ChapterPartlyTranslatedException e) {
                     e.done().forEach(p -> {
@@ -286,7 +280,7 @@ public class ChapterTranslationService {
         Novel n = c.getNovel();
         String profile = profiles.read(n.getPromptProfile() == null ? "" : n.getPromptProfile());
         return new TextJob(new TextChapterPrompt(n.getTitle(), c.getChapterNo(), c.getLabel(), profile,
-                notebook.textBefore(n.getId(), c.getChapterNo()), previousText(n.getId(), c.getChapterNo()),
+                previousText(n.getId(), c.getChapterNo()),
                 n.getSourceLanguage(), null, null, c.getSourceText(), promptImages(c.getSourceText())));
     }
 
@@ -364,7 +358,7 @@ public class ChapterTranslationService {
             }
         }
         return new Job(n.getId(), c.getChapterNo(), c.getLabel(), n.getTitle(), profile,
-                notebook.textBefore(n.getId(), c.getChapterNo()), previousText(n.getId(), c.getChapterNo()),
+                previousText(n.getId(), c.getChapterNo()),
                 ps.stream().map(ChapterPage::getId).toList(), ps.stream().map(p -> p.getMedia().getId()).toList(),
                 kept);
     }
