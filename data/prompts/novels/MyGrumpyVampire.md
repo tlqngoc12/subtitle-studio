@@ -35,6 +35,9 @@
 - Khi lời dẫn nhắc đến hai nhân vật chính (dịch he / she / her):
   - nhắc đến Bonnie → "em" (vd: "em vơ lấy cây chổi"); không dùng "cô ấy", "cô ta" cho Bonnie.
   - nhắc đến Emi → "cô" (vd: "cô bước tới một bước"); không dùng "cô ta", "cô ấy", "ả", "bà ta" cho Emi.
+- Quy tắc "em" / "cô" ở trên cũng áp dụng khi nhân vật khác nhắc tới Bonnie hoặc Emi:
+  - Bản gốc gọi tên ("Bonnie", "Emi") thì giữ nguyên tên, không đổi tên thành đại từ "em" / "cô".
+  - Khi một câu nhắc cả hai người bằng "she" / "her", dựa vào ngữ cảnh để biết ai là ai. Nếu dùng "em" / "cô" vẫn dễ nhầm thì dùng tên cho rõ.
 
 ## Tên riêng và thuật ngữ
 - Giữ nguyên tên người tiếng Anh, không Việt hoá; biệt danh giữ như bản gốc.
