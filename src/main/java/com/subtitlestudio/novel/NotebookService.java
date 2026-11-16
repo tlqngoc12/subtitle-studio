@@ -141,9 +141,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
                 return novel.getNotebookPendingChapterNo();
             }
             // Nothing failed (e.g. updates were paused): update from the latest published chapter.
-            return chapters.findByNovelIdOrderByChapterNo(novelId).stream()
-                    .filter(c -> c.getPublishStatus() == ChapterPublishStatus.PUBLISHED)
-                    .map(Chapter::getChapterNo).reduce((first, second) -> second).orElse(null);
+            return chapters.maxPublishedChapterNo(novelId);
         });
         if (chapterNo != null) {
             scheduleUpdate(novelId, chapterNo);

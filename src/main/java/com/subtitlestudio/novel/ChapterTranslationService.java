@@ -350,7 +350,11 @@ public class ChapterTranslationService {
 
     /** The nearest earlier chapter whose every page has text, joined, at most the last 20,000 characters. */
     private String previousText(long novelId, int chapterNo) {
-        for (Chapter prev : chapters.findByNovelIdAndChapterNoLessThanOrderByChapterNoDesc(novelId, chapterNo)) {
+        for (long prevId : chapters.findIdsBefore(novelId, chapterNo)) {
+            Chapter prev = chapters.findById(prevId).orElse(null);
+            if (prev == null) {
+                continue;
+            }
             List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(prev.getId());
             if (ChapterText.complete(prev, ps)) {
                 return tail(ChapterText.of(prev, ps), PREVIOUS_TEXT_CHARS);

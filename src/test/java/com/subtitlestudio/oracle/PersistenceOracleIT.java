@@ -126,6 +126,12 @@ class PersistenceOracleIT {
     @Autowired
     private com.subtitlestudio.novel.NovelRepository novelRepository;
 
+    @Autowired
+    private com.subtitlestudio.novel.ChapterRepository chapterRepository;
+
+    @Autowired
+    private com.subtitlestudio.novel.ChapterPageRepository chapterPageRepository;
+
     @AfterEach
     void cleanUp() {
         fanficRepository.deleteAll();
@@ -277,6 +283,44 @@ class PersistenceOracleIT {
             assertThat(novelRepository.findById(n.getId()).orElseThrow().isNotebookPaused()).isTrue();
         } finally {
             novelRepository.deleteById(n.getId());
+        }
+    }
+
+    @Test
+    void novelChapterMetadataQueriesRunOnOracle() throws IOException {
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(40, 60, java.awt.image.BufferedImage.TYPE_INT_RGB),
+                "png", png);
+        com.subtitlestudio.profile.Media m = mediaService.storeResized("c.png", png.toByteArray(), 1600);
+        com.subtitlestudio.novel.Novel n = novelRepository.save(new com.subtitlestudio.novel.Novel("meta-it", "Meta",
+                com.subtitlestudio.novel.NovelStatus.ONGOING, java.time.Instant.parse("2026-11-16T10:00:00Z")));
+        com.subtitlestudio.novel.Novel empty = novelRepository.save(new com.subtitlestudio.novel.Novel("meta-empty-it",
+                "Empty", com.subtitlestudio.novel.NovelStatus.ONGOING, java.time.Instant.parse("2026-11-16T10:00:00Z")));
+        java.time.Instant published = java.time.Instant.parse("2026-11-16T11:00:00Z");
+        com.subtitlestudio.novel.Chapter one = new com.subtitlestudio.novel.Chapter(n, 1, "One", published);
+        one.setPublishStatus(com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED);
+        one.setPublishedAt(published);
+        com.subtitlestudio.novel.Chapter two = new com.subtitlestudio.novel.Chapter(n, 2, "Two", published);
+        one = chapterRepository.save(one);
+        two = chapterRepository.save(two);
+        chapterPageRepository.save(new com.subtitlestudio.novel.ChapterPage(one, 1, m));
+        try {
+            assertThat(chapterRepository.chapterStats(n.getId())).isEqualTo(
+                    new com.subtitlestudio.novel.NovelChapterStats(n.getId(), 2, 1, published));
+            assertThat(chapterRepository.chapterStats(empty.getId())).isNull();
+            assertThat(chapterRepository.chapterStats()).extracting(com.subtitlestudio.novel.NovelChapterStats::novelId)
+                    .contains(n.getId()).doesNotContain(empty.getId());
+            assertThat(chapterRepository.findRowsByNovel(n.getId()))
+                    .extracting(com.subtitlestudio.novel.ChapterRow::chapterNo).containsExactly(1, 2);
+            assertThat(chapterRepository.maxPublishedChapterNo(n.getId())).isEqualTo(1);
+            assertThat(chapterRepository.findIdsBefore(n.getId(), 2)).containsExactly(one.getId());
+            assertThat(chapterPageRepository.countPerChapter(n.getId())).hasSize(1);
+            assertThat(((Number) chapterPageRepository.countPerChapter(n.getId()).get(0)[1]).longValue()).isEqualTo(1);
+        } finally {
+            chapterPageRepository.deleteAll();
+            chapterRepository.deleteAll();
+            novelRepository.deleteById(n.getId());
+            novelRepository.deleteById(empty.getId());
         }
     }
 

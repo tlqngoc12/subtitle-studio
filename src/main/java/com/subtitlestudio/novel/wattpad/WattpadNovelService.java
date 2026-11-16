@@ -280,9 +280,8 @@ public class WattpadNovelService {
         }
         if (novel.getNotebookStatus() == NotebookStatus.UPDATING) {
             Integer pending = novel.getNotebookPendingChapterNo();
-            int chapterNo = pending != null ? pending : chapters.findByNovelIdOrderByChapterNo(novelId).stream()
-                    .filter(c -> c.getPublishStatus() == com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED)
-                    .mapToInt(Chapter::getChapterNo).max().orElse(0);
+            Integer latest = pending != null ? pending : chapters.maxPublishedChapterNo(novelId);
+            int chapterNo = latest != null ? latest : 0;
             throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.NOTEBOOK_UPDATING,
                     chapterNo);
         }
