@@ -968,6 +968,11 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Find tô sáng mọi kết quả trong văn bản chương (`FindHighlights`: lớp phản chiếu nằm sau textarea, sao chép font/padding/viền/line-height, đồng bộ cuộn và co giãn); kết quả đang chọn là tím đặc + viền `--brand-2-ink`, các kết quả khác tím nhạt (dark mode giảm còn 55% để chữ sáng vẫn đủ tương phản). Enter trong ô Find không còn gõ vào văn bản; đóng panel thì xoá hết dấu tô và trả focus về textarea với kết quả đang chọn. Chỉ tô bản dịch, cột bản gốc ở trang Draft giữ nguyên.
 - Trang chương: dòng đếm từ/ký tự/đoạn và ghi chú "published" chuyển vào Chapter details (câu chữ ghi chú sửa lại; cảnh báo đoạn thiếu vẫn hiện đỏ trên summary khi đang đóng); nút Find là nút ghost, đang mở thì kiểu "đang chọn" (tím đặc + viền `--brand-2-ink`).
 
+### 2026-11-15: Gemini quá thời gian chờ thì thử model dự phòng ✅
+- Plan [docs/superpowers/plans/2026-11-15-gemini-timeout-fallback.md](docs/superpowers/plans/2026-11-15-gemini-timeout-fallback.md). Khi một model Gemini quá thời gian chờ, `GeminiClient` ghi log rồi thử tiếp model dự phòng thay vì dừng ngay; chỉ khi mọi model đều lỗi mới báo (ưu tiên thông báo quá thời gian chờ, rồi đến "bận", rồi hết quota).
+- Cập nhật sổ tay thất bại nay được ghi log kèm lý do (`NotebookService.fail`), không còn chỉ hiện trên giao diện.
+- `NotebookMerger` không còn từ chối cả lần cập nhật khi một mục phụ quá dài: mục nhân vật/thuật ngữ/cách xưng hô quá dài bị bỏ riêng lẻ (`sourceName` quá dài thì đặt null), log tên trường và độ dài, không log nội dung. `storySoFar` và `chapterSummary` quá dài vẫn từ chối cả lần cập nhật.
+
 ## 9. Rủi ro đang theo dõi
 
 - yt-dlp thay đổi theo YouTube: pin version trong Dockerfile, và bản mới có thể cần JS runtime (deno). Kiểm tra lúc làm T11.

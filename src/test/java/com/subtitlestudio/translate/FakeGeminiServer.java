@@ -21,6 +21,7 @@ public final class FakeGeminiServer implements AutoCloseable {
     private volatile int status = 200;
     private volatile String body = "{}";
     private volatile Duration delay = Duration.ZERO;
+    private final java.util.Map<String, Duration> delayPerModel = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile String lastPath;
     private volatile String lastBody;
 
@@ -34,8 +35,14 @@ public final class FakeGeminiServer implements AutoCloseable {
             requests.incrementAndGet();
             lastPath = exchange.getRequestURI().getPath();
             lastBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            Duration wait = delay;
+            for (var entry : delayPerModel.entrySet()) {
+                if (lastPath.contains("/models/" + entry.getKey() + ":")) {
+                    wait = entry.getValue();
+                }
+            }
             try {
-                Thread.sleep(delay.toMillis());
+                Thread.sleep(wait.toMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -62,6 +69,12 @@ public final class FakeGeminiServer implements AutoCloseable {
                 // the client gave up (timeout test)
             }
         });
+        // A slow reply must not block the next request (a timed-out request is still sleeping when the fallback comes).
+        server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool(runnable -> {
+            Thread thread = new Thread(runnable);
+            thread.setDaemon(true);
+            return thread;
+        }));
         server.start();
     }
 
@@ -109,6 +122,11 @@ public final class FakeGeminiServer implements AutoCloseable {
 
     public void delay(Duration delay) {
         this.delay = delay;
+    }
+
+    /** A delay used only for requests to {@code model}. */
+    public void delayForModel(String model, Duration delay) {
+        delayPerModel.put(model, delay);
     }
 
     public int requests() {

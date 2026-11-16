@@ -256,6 +256,7 @@ public class NotebookService implements NotebookScheduler, NotebookPromptSource 
     }
 
     private void fail(long novelId, String message) {
+        log.warn("Notebook update of novel {} failed: {}", novelId, message);
         tx.executeWithoutResult(status -> novels.findById(novelId).ifPresent(n -> failInTx(n, message)));
     }
 
