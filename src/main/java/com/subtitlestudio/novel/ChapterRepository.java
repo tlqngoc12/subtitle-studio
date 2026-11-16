@@ -28,6 +28,17 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     boolean existsByNovelIdAndTranslationStatus(long novelId, ChapterTranslationStatus status);
 
+    /**
+     * Published, translated chapters of the novels that use {@code profile}, newest published first: the chapters whose
+     * corrections can improve the profile.
+     */
+    @org.springframework.data.jpa.repository.Query("select c from Chapter c join fetch c.novel n "
+            + "where n.promptProfile = :profile and c.publishStatus = "
+            + "com.subtitlestudio.novel.ChapterPublishStatus.PUBLISHED and c.translationStatus = "
+            + "com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATED "
+            + "order by c.publishedAt desc, c.id desc")
+    List<Chapter> findAnalysisChapters(@org.springframework.data.repository.query.Param("profile") String profile);
+
     /** The nearest earlier chapter (any status); callers check that its pages have text. */
     List<Chapter> findByNovelIdAndChapterNoLessThanOrderByChapterNoDesc(long novelId, int chapterNo);
 }

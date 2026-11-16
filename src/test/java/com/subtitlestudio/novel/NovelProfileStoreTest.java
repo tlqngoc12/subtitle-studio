@@ -87,4 +87,26 @@ class NovelProfileStoreTest {
 
         assertThat(novels.exists("MoonShadow")).isFalse();
     }
+
+    @Test
+    void writeKeepsHistoryAndChecksSha() throws IOException {
+        write("prompts/novels/MoonShadow.md", "old");
+        SubtitleStudioProperties p = properties();
+        NovelProfileStore novels = new NovelProfileStore(p, new PromptProfileStore(p));
+        String sha = novels.sha("MoonShadow");
+
+        String next = novels.write("MoonShadow", "new text", sha);
+
+        assertThat(novels.read("MoonShadow")).isEqualTo("new text");
+        assertThat(next).isEqualTo(novels.sha("MoonShadow")).isNotEqualTo(sha);
+        try (var history = Files.list(dataDir.resolve("prompts/novels/.history"))) {
+            assertThat(history.toList()).singleElement().satisfies(f -> {
+                assertThat(f.getFileName().toString()).startsWith("MoonShadow-").endsWith(".md");
+                assertThat(f).hasContent("old");
+            });
+        }
+        assertThatThrownBy(() -> novels.write("MoonShadow", "again", sha))
+                .isInstanceOf(com.subtitlestudio.translate.ProfileChangedException.class);
+        assertThat(novels.read("MoonShadow")).isEqualTo("new text");
+    }
 }

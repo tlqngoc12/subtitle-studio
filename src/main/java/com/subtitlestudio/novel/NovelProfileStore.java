@@ -40,6 +40,19 @@ public class NovelProfileStore {
         store.create(name, text);
     }
 
+    /** SHA-256 of the profile text as stored; the editor sends it back to detect a changed file. */
+    public String sha(String name) {
+        return store.sha(name);
+    }
+
+    /**
+     * Replaces a profile, keeping the old file in {@code .history/}; throws {@code ProfileChangedException} when the file
+     * no longer has {@code baseSha}. Returns the SHA-256 of the new text.
+     */
+    public String write(String name, String text, String baseSha) {
+        return store.write(name, text, baseSha);
+    }
+
     public boolean exists(String name) {
         return store.exists(name);
     }
