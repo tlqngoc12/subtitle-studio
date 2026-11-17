@@ -132,8 +132,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       };
     case 'CHAPTER_IMAGE_MARKERS':
       return {
-        title: 'Keep every [[image:…]] line of this chapter unchanged.',
-        hint: 'Those lines stand for the chapter images. You can move them, but not remove or edit them.',
+        title: 'You can move or remove [[image:…]] lines, but not edit them or add new ones.',
+        hint: 'Those lines stand for the chapter images. A line you remove just hides its image from the text.',
       };
     case 'CHAPTER_TEXT_SOURCE':
       return { title: 'This chapter comes from Wattpad text, so it has no pages.' };

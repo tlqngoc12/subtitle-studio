@@ -315,4 +315,17 @@ class TextChapterTranslationTest {
         assertThat(later.carrySource()).doesNotContain("[[image:").contains("Paragraph 1.");
         assertThat(later.carryTranslation()).doesNotContain("[[image:").contains("Một.");
     }
+
+    @Test
+    void lostImagesNeverSplitTheChapter() {
+        String source = textAndImages(2);
+        fake.script = p -> {
+            throw new TranslationFailedException("Gemini (m) dropped this chapter's images. Try again later.");
+        };
+
+        assertThatThrownBy(() -> new TextChapterTranslation(fake, 60_000).translate(withImages(source, 2), m -> {}))
+                .isInstanceOf(TranslationFailedException.class)
+                .hasMessageContaining("dropped this chapter's images").hasMessageNotContaining("too long");
+        assertThat(fake.prompts).hasSize(1);
+    }
 }

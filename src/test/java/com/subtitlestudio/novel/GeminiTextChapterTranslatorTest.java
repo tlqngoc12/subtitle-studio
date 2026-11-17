@@ -275,28 +275,47 @@ class GeminiTextChapterTranslatorTest {
     }
 
     @Test
-    void anAnswerThatDropsAMarkerIsIncomplete() {
+    void anAnswerThatDropsAMarkerGetsItBackByParagraphPosition() {
         String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
         server.replyText(answer("Trước đó.\n\n[[image:5]]\n\nỞ giữa."), "STOP");
 
-        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TextIncompleteException.class).hasMessageContaining("image");
+        TextAnswer got = translator(List.of()).translate(withImages(source, 5, 6), m -> {});
+
+        assertThat(got.text()).isEqualTo("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:6]]");
     }
 
     @Test
-    void anAnswerThatChangesOrReordersAMarkerIsIncomplete() {
+    void anAnswerThatReordersMarkersGetsThemBackInPlace() {
         String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
         server.replyText(answer("Trước đó.\n\n[[image:6]]\n\nỞ giữa.\n\n[[image:5]]"), "STOP");
-        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TextIncompleteException.class);
 
+        assertThat(translator(List.of()).translate(withImages(source, 5, 6), m -> {}).text())
+                .isEqualTo("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:6]]");
+    }
+
+    @Test
+    void anAnswerWithLeadingMarkersLostIsRestoredAtTheTop() {
+        String source = "[[image:5]]\n\n[[image:6]]\n\nHello there friend.";
+        server.replyText(answer("Xin chào người bạn."), "STOP");
+
+        assertThat(translator(List.of()).translate(withImages(source, 5, 6), m -> {}).text())
+                .isEqualTo("[[image:5]]\n\n[[image:6]]\n\nXin chào người bạn.");
+    }
+
+    @Test
+    void anUnknownMarkerOrAParagraphMismatchFailsWithoutBeingSplittable() {
+        String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
         server.replyText(answer("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:7]]"), "STOP");
         assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TextIncompleteException.class);
+                .isInstanceOf(TranslationFailedException.class).hasMessageContaining("dropped this chapter's images");
 
-        server.replyText(answer("Trước đó. [[image:5]]\n\nỞ giữa.\n\n[[image:6]]"), "STOP");
+        server.replyText(answer("Trước đó.\n\n[[image:5]]"), "STOP");
         assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TextIncompleteException.class);
+                .isInstanceOf(TranslationFailedException.class);
+
+        server.replyText(answer("Trước đó.\n\n[[image:5]]\n\n[[image:5]]\n\nỞ giữa."), "STOP");
+        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
+                .isInstanceOf(TranslationFailedException.class);
     }
 
     @Test

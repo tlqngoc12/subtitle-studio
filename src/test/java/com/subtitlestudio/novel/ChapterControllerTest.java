@@ -187,7 +187,7 @@ class ChapterControllerTest {
         mvc.perform(put("/api/chapters/9").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"text\":\"no markers\"}")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CHAPTER_IMAGE_MARKERS"))
-                .andExpect(jsonPath("$.detail").value("Keep every [[image:…]] line of this chapter unchanged."));
+                .andExpect(jsonPath("$.detail").value("You can move or remove [[image:…]] lines, but not edit them or add new ones."));
     }
 
     @Test

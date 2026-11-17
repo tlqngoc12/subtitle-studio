@@ -1,6 +1,6 @@
 # Subtitle Studio: Tổng quan và tiến độ
 
-> Cập nhật lần cuối: 2026-11-14 (sửa thanh Đọc tiếp tràn màn hình, thẻ Fanfic, Refresh all thành icon; trước đó: Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng; trước đó: hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
+> Cập nhật lần cuối: 2026-11-17 (sửa dịch chương có ảnh bị báo "too long", cho xoá dòng ảnh khi lưu; trước đó: sửa thanh Đọc tiếp tràn màn hình, thẻ Fanfic, Refresh all thành icon; trước đó: Novels › Translated kiểu Fanfics, banner chọn tay, Tủ sách một hàng; trước đó: hồ sơ dịch tự tạo cho truyện Wattpad; trước đó 2026-11-13: UI consistency; trước đó 2026-11-12: lô phản hồi UI; trước đó 2026-11-11: Fanfics; trước đó: UI polish; trước đó 2026-11-10: lô cải tiến 2; trước đó: data/prompts và data/subs được theo dõi trong git, repo public, theo lựa chọn của người dùng; phần còn lại của data/ vẫn bị bỏ qua)
 > **Trạng thái nhánh (2026-11-14):** mọi việc trong nhật ký đến PR #30 đã merge vào `main` và đã deploy (image Docker build 2026-11-14 03:20, ngay sau merge PR #30); các nhánh cũ đã xoá cả ở máy lẫn GitHub. Nhãn "chưa merge"/"chưa deploy" cũ trong nhật ký đã được bỏ.
 > Plan chi tiết: [PLAN.md](PLAN.md)
 
@@ -1052,3 +1052,8 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - `subtitle-studio.novel.media-resolution` (`low|medium|high`, mặc định `high` = như cũ) thay giá trị cố định `MEDIA_RESOLUTION_HIGH` khi dịch ảnh chương.
 - Cờ `translatedByFallback` (tính ở Java bằng `GeminiCaller.translatedByFallback`, không đổi DB) trên `ChapterSummary`, `ChapterDetail`, `VideoDto`: true khi `translationModel` có model khác model chính. UI: badge tím "Fallback model" cạnh Translated trong danh sách chương (tooltip gợi ý dịch lại), và "(fallback model)" sau "Translated by ..." ở chi tiết chương và Vietsub.
 - Test: backend 1616 (mvn test), frontend 1809 (vitest) + tsc xanh; không có script lint trong `frontend/package.json`.
+
+### 2026-11-17: Sửa dịch chương có ảnh bị báo "too long" ✅ (không có migration)
+- **Nguyên nhân:** Gemini làm mất dòng `[[image:N]]` thì `GeminiTextChapterTranslator` ném `TextIncompleteException`, `TextChapterTranslation` chia đôi chương rồi thử lại tới độ sâu tối đa (tốn quota 20 request/ngày/model) và báo sai "too long". Chương 18959 (1.155 ký tự, 2 ảnh ở đầu) dính lỗi này.
+- **Khôi phục marker:** `ImageMarkers.restore` chèn lại mọi dòng marker của bản gốc đúng vị trí theo số đoạn chữ khi câu trả lời chỉ thiếu/đổi chỗ marker và số đoạn chữ bằng bản gốc (ghi log WARN, không chia đôi). Nếu có id lạ, id trùng hoặc số đoạn lệch thì ném `TranslationFailedException` "Gemini (model) dropped this chapter's images. Try again later." và không bao giờ chia đôi vì mất ảnh; thiếu/cụt chữ thật vẫn chia như cũ.
+- **Lưu text:** `ChapterService` nay cho xoá/di chuyển dòng marker (id lưu phải là tập con id chương sở hữu, không trùng, không id lạ). Hàng `t_chapter_image` vẫn giữ nên media không bị dọn. Đây là thay đổi hành vi có chủ đích; thông báo `CHAPTER_IMAGE_MARKERS` đổi theo.

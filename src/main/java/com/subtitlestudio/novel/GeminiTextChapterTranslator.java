@@ -108,10 +108,16 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
         }
         String text = got == null || got.text() == null ? "" : got.text().strip();
         if (!ImageMarkers.ids(text).equals(ImageMarkers.ids(prompt.sourceText()))) {
-            log.warn("Gemini {} answer for chapter {} lost or changed an image marker ({} markers expected, {} found)",
-                    answer.model(), prompt.chapterNo(), ImageMarkers.ids(prompt.sourceText()).size(),
-                    ImageMarkers.ids(text).size());
-            throw new TextIncompleteException("Gemini's answer lost an image.");
+            int expected = ImageMarkers.ids(prompt.sourceText()).size();
+            int found = ImageMarkers.ids(text).size();
+            text = ImageMarkers.restore(prompt.sourceText(), text).orElseThrow(() -> {
+                log.warn("Gemini {} answer for chapter {} lost or changed an image marker ({} markers expected, "
+                        + "could not restore them)", answer.model(), prompt.chapterNo(), expected);
+                return new TranslationFailedException(
+                        "Gemini (" + answer.model() + ") dropped this chapter's images. Try again later.");
+            });
+            log.warn("Gemini {} answer for chapter {} lost or moved image markers ({} expected, {} found); "
+                    + "restored them by paragraph position", answer.model(), prompt.chapterNo(), expected, found);
         }
         // Marker paragraphs are not text: only the rest of the original is compared with the rest of the answer, and
         // a chapter of images alone has nothing to compare.
