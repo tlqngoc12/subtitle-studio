@@ -4,13 +4,16 @@ import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.google.genai.Client;
 import com.google.genai.errors.ApiException;
 import com.google.genai.errors.GenAiIOException;
+import com.google.genai.types.BlockedReason;
 import com.google.genai.types.Content;
 import com.google.genai.types.FinishReason;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.HarmProbability;
 import com.google.genai.types.HttpOptions;
 import com.google.genai.types.HttpRetryOptions;
 import com.google.genai.types.Part;
+import com.google.genai.types.SafetyRating;
 import java.io.InterruptedIOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -169,9 +172,52 @@ public class GeminiCaller {
         }
         String text = textOrNull(response, false);
         if (text == null || text.isBlank()) {
+            String blockReason = blockReason(response);
+            String finishReason = finishReason(response);
+            log.warn("Gemini model {} returned no usable text: finishReason={}, blockReason={}, flagged={}",
+                    answeredBy, finishReason == null ? "none" : finishReason,
+                    blockReason == null ? "none" : blockReason, flaggedRatings(response));
+            if (blockReason != null) {
+                throw new TranslationFailedException("Gemini blocked this content (" + blockReason + ").");
+            }
+            if (finishReason != null && !"STOP".equals(finishReason)) {
+                throw new TranslationFailedException("Gemini refused to translate this content (" + finishReason + ").");
+            }
             throw new TranslationFailedException("Gemini refused to translate this content.");
         }
         return new Answer(text, answeredBy);
+    }
+
+    /** The reason the whole prompt was blocked, or null; an enum name only, never content. */
+    private static String blockReason(GenerateContentResponse response) {
+        return response.promptFeedback().flatMap(f -> f.blockReason())
+                .filter(r -> r.knownEnum() != BlockedReason.Known.BLOCKED_REASON_UNSPECIFIED)
+                .map(Object::toString).orElse(null);
+    }
+
+    private static String finishReason(GenerateContentResponse response) {
+        FinishReason reason = response.finishReason();
+        // The SDK reports a missing finish reason as FINISH_REASON_UNSPECIFIED.
+        return reason == null || reason.knownEnum() == FinishReason.Known.FINISH_REASON_UNSPECIFIED
+                ? null : reason.toString();
+    }
+
+    /** "CATEGORY:PROBABILITY" of the safety ratings that blocked or rated MEDIUM/HIGH, or "none". */
+    private static String flaggedRatings(GenerateContentResponse response) {
+        List<SafetyRating> ratings = new ArrayList<>();
+        response.candidates().flatMap(c -> c.stream().findFirst()).flatMap(c -> c.safetyRatings())
+                .ifPresent(ratings::addAll);
+        response.promptFeedback().flatMap(f -> f.safetyRatings()).ifPresent(ratings::addAll);
+        List<String> flagged = new ArrayList<>();
+        for (SafetyRating rating : ratings) {
+            HarmProbability.Known probability = rating.probability().map(HarmProbability::knownEnum).orElse(null);
+            boolean high = probability == HarmProbability.Known.MEDIUM || probability == HarmProbability.Known.HIGH;
+            if (rating.blocked().orElse(false) || high) {
+                flagged.add(rating.category().map(Object::toString).orElse("UNKNOWN") + ":"
+                        + rating.probability().map(Object::toString).orElse("UNKNOWN"));
+            }
+        }
+        return flagged.isEmpty() ? "none" : String.join(",", flagged);
     }
 
     /**
