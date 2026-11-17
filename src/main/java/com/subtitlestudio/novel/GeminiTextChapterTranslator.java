@@ -193,11 +193,14 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                 .build();
         String rules = String.format(java.util.Locale.ROOT, SYSTEM_RULES, p.languageName(),
                 ("th".equals(p.sourceLanguage()) ? THAI_RULE : "") + (p.images().isEmpty() ? "" : IMAGE_RULES));
-        return GenerateContentConfig.builder()
+        GenerateContentConfig.Builder config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(rules)))
                 .responseMimeType("application/json")
                 .responseSchema(root)
-                .temperature((float) settings.temperature())
-                .build();
+                .temperature((float) settings.temperature());
+        if (settings.translationThinking() != null) {
+            config.thinkingConfig(settings.translationThinking());
+        }
+        return config.build();
     }
 }

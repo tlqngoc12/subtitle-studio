@@ -56,10 +56,17 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
     /**
      * Novels: how many page screenshots go to Gemini per request, the upload limit, how chapters are drawn for the
      * public site, the watermark text (blank = the public site's host) and the longest original text (characters)
-     * of a Wattpad chapter sent to Gemini in one request before it is split (0 = 60,000).
+     * of a Wattpad chapter sent to Gemini in one request before it is split (0 = 60,000), and the media resolution
+     * (low|medium|high) of page screenshots.
      */
     public record Novel(int pagesPerRequest, DataSize maxPageImageSize, @Valid Render render, String watermarkText,
-                        int maxSourceChars) {
+                        int maxSourceChars, String mediaResolution) {
+
+        /** Same, with the default (high) media resolution. */
+        public Novel(int pagesPerRequest, DataSize maxPageImageSize, Render render, String watermarkText,
+                     int maxSourceChars) {
+            this(pagesPerRequest, maxPageImageSize, render, watermarkText, maxSourceChars, null);
+        }
 
         public Novel {
             pagesPerRequest = pagesPerRequest <= 0 ? 20 : pagesPerRequest;
@@ -67,10 +74,25 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
             render = render == null ? Render.defaults() : render;
             watermarkText = watermarkText == null ? "" : watermarkText;
             maxSourceChars = maxSourceChars <= 0 ? 60_000 : maxSourceChars;
+            mediaResolution = mediaResolution == null || mediaResolution.isBlank() ? "high"
+                    : mediaResolution.strip().toLowerCase(java.util.Locale.ROOT);
+            if (!List.of("low", "medium", "high").contains(mediaResolution)) {
+                throw new IllegalArgumentException("subtitle-studio.novel.media-resolution must be low, medium or "
+                        + "high, not '" + mediaResolution + "'");
+            }
+        }
+
+        /** The SDK value for {@code mediaResolution}. */
+        public com.google.genai.types.MediaResolution.Known mediaResolutionKnown() {
+            return switch (mediaResolution) {
+                case "low" -> com.google.genai.types.MediaResolution.Known.MEDIA_RESOLUTION_LOW;
+                case "medium" -> com.google.genai.types.MediaResolution.Known.MEDIA_RESOLUTION_MEDIUM;
+                default -> com.google.genai.types.MediaResolution.Known.MEDIA_RESOLUTION_HIGH;
+            };
         }
 
         public static Novel defaults() {
-            return new Novel(20, DataSize.ofMegabytes(10), Render.defaults(), "", 60_000);
+            return new Novel(20, DataSize.ofMegabytes(10), Render.defaults(), "", 60_000, "high");
         }
 
         public record Render(int fontSize) {
@@ -131,7 +153,7 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
     /** Gemini translation. A blank {@code apiKey} turns the feature off. Never log the key. */
     public record Gemini(String apiKey, @NotBlank String model, @NotNull Duration timeout,
                          @NotNull Duration maxDuration, @NotNull Duration partDuration, double temperature,
-                         List<String> fallbackModels) {
+                         List<String> fallbackModels, String thinkingLevel) {
 
         /** Videos up to this long are translated in one request; longer ones in parts of at most this length. */
         public static final Duration DEFAULT_PART_DURATION = Duration.ofMinutes(45);
@@ -139,13 +161,43 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
         /** Same, with the default part duration. */
         public Gemini(String apiKey, String model, Duration timeout, Duration maxDuration, double temperature,
                       List<String> fallbackModels) {
-            this(apiKey, model, timeout, maxDuration, DEFAULT_PART_DURATION, temperature, fallbackModels);
+            this(apiKey, model, timeout, maxDuration, DEFAULT_PART_DURATION, temperature, fallbackModels, null);
+        }
+
+        /** Same, without a thinking level (the model's default). */
+        public Gemini(String apiKey, String model, Duration timeout, Duration maxDuration, Duration partDuration,
+                      double temperature, List<String> fallbackModels) {
+            this(apiKey, model, timeout, maxDuration, partDuration, temperature, fallbackModels, null);
         }
 
         /** Models tried in order when the previous one is overloaded (HTTP 503); never null. */
         @ConstructorBinding
         public Gemini {
             fallbackModels = fallbackModels == null ? List.of() : List.copyOf(fallbackModels);
+            thinkingLevel = thinkingLevel == null ? "" : thinkingLevel.strip().toLowerCase(java.util.Locale.ROOT);
+            if (!thinkingLevel.isEmpty() && thinkingLevelOrNull(thinkingLevel) == null) {
+                throw new IllegalArgumentException("subtitle-studio.gemini.thinking-level must be blank, minimal, low, "
+                        + "medium or high, not '" + thinkingLevel + "'");
+            }
+        }
+
+        private static com.google.genai.types.ThinkingLevel.Known thinkingLevelOrNull(String level) {
+            for (var known : com.google.genai.types.ThinkingLevel.Known.values()) {
+                if (known != com.google.genai.types.ThinkingLevel.Known.THINKING_LEVEL_UNSPECIFIED
+                        && known.name().equalsIgnoreCase(level)) {
+                    return known;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * The thinking config for translation requests, or null when {@code thinkingLevel} is blank (nothing is sent,
+         * the model decides). Not used for profile analysis, which benefits from thinking.
+         */
+        public com.google.genai.types.ThinkingConfig translationThinking() {
+            var level = thinkingLevelOrNull(thinkingLevel);
+            return level == null ? null : com.google.genai.types.ThinkingConfig.builder().thinkingLevel(level).build();
         }
 
         public boolean configured() {

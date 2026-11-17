@@ -56,6 +56,10 @@ subtitle-studio:
     # Videos up to this long go in one request; longer ones are split at cue boundaries into parts this long.
     part-duration: 45m
     temperature: 0.3
+    # Thinking level for TRANSLATION requests only (not profile analysis): minimal | low | medium | high.
+    # Lower = fewer output tokens, faster, less risk of hitting the output limit or the timeout.
+    # Blank = send nothing (the model's own default, which is to think).
+    thinking-level: low
   # Public read-only site on Cloudflare Pages (Publish button). Empty token, account id or project = off.
   publish:
     cloudflare-api-token: ${CLOUDFLARE_API_TOKEN:}
@@ -80,6 +84,9 @@ subtitle-studio:
     # Wattpad chapters: an original text longer than this (characters) is split at a scene break or paragraph before
     # it goes to Gemini; a shorter one is translated in a single request.
     max-source-chars: 60000
+    # Media resolution of page screenshots sent to Gemini: low | medium | high. Lower uses fewer image tokens per
+    # page but reads small or dense Thai text less accurately; high is the most accurate.
+    media-resolution: high
 
 # Log to the console (docker compose logs) and to a file that survives container rebuilds:
 # {data-dir}/logs/app.log, i.e. ./data/logs on the host. Rolled daily and at 10 MB (app.log.YYYY-MM-DD.N.gz),

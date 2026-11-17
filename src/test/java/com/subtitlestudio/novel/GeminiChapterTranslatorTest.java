@@ -44,6 +44,14 @@ class GeminiChapterTranslatorTest {
         return new GeminiChapterTranslator(new GeminiCaller(gemini, server.baseUrl()), gemini, new ObjectMapper());
     }
 
+    private GeminiChapterTranslator translator(String thinkingLevel, String mediaResolution) {
+        var gemini = new SubtitleStudioProperties.Gemini("k", "gemini-test-flash", Duration.ofSeconds(10),
+                Duration.ofMinutes(60), Duration.ofMinutes(45), 0.3, List.of(), thinkingLevel);
+        var novel = new SubtitleStudioProperties.Novel(20, null, null, "", 0, mediaResolution);
+        return new GeminiChapterTranslator(new GeminiCaller(gemini, server.baseUrl()), gemini, novel,
+                new ObjectMapper());
+    }
+
     private static ChapterPrompt prompt(String previous, String carry) {
         return new ChapterPrompt("Tình Yêu Mùa Hạ", 3, "Ngôn ngữ gốc: tiếng Thái", previous, carry,
                 List.of(new PageImage(1, IMG1), new PageImage(2, IMG2)));
@@ -202,5 +210,32 @@ class GeminiChapterTranslatorTest {
 
         assertThatThrownBy(() -> translator(List.of()).translate(prompt(null, null)))
                 .isInstanceOf(TranslationFailedException.class);
+    }
+
+    @Test
+    void sendsTheConfiguredThinkingLevel() {
+        server.replyText(GOOD, "STOP");
+
+        translator("medium", "high").translate(prompt(null, null));
+
+        assertThat(server.lastBody()).contains("thinkingConfig").contains("\"thinkingLevel\":\"MEDIUM\"");
+    }
+
+    @Test
+    void sendsNoThinkingConfigWhenTheLevelIsBlank() {
+        server.replyText(GOOD, "STOP");
+
+        translator("", "high").translate(prompt(null, null));
+
+        assertThat(server.lastBody()).doesNotContain("thinkingConfig");
+    }
+
+    @Test
+    void sendsTheConfiguredMediaResolution() {
+        server.replyText(GOOD, "STOP");
+
+        translator("", "low").translate(prompt(null, null));
+
+        assertThat(server.lastBody()).contains("MEDIA_RESOLUTION_LOW").doesNotContain("MEDIA_RESOLUTION_HIGH");
     }
 }

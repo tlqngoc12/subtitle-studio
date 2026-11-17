@@ -97,12 +97,15 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
                         "text", Schema.builder().type(Type.Known.STRING).build()))
                 .required("id", "text")
                 .build();
-        return GenerateContentConfig.builder()
+        GenerateContentConfig.Builder config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
                 .responseMimeType("application/json")
                 .responseSchema(Schema.builder().type(Type.Known.ARRAY).items(line).build())
-                .temperature((float) settings.temperature())
-                .build();
+                .temperature((float) settings.temperature());
+        if (settings.translationThinking() != null) {
+            config.thinkingConfig(settings.translationThinking());
+        }
+        return config.build();
     }
 
     private String userContent(VideoContext video, String profile, List<SourceLine> lines) {

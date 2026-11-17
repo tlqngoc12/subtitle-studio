@@ -7,7 +7,6 @@ import com.subtitlestudio.translate.GeminiCaller;
 import com.subtitlestudio.translate.TranslationFailedException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
-import com.google.genai.types.MediaResolution;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
@@ -46,16 +45,23 @@ public class GeminiChapterTranslator implements ChapterTranslator {
 
     private final GeminiCaller caller;
     private final SubtitleStudioProperties.Gemini settings;
+    private final SubtitleStudioProperties.Novel novelSettings;
     private final ObjectMapper mapper;
 
     @Autowired
     public GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties properties, ObjectMapper mapper) {
-        this(caller, properties.gemini(), mapper);
+        this(caller, properties.gemini(), properties.novel(), mapper);
     }
 
     GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties.Gemini settings, ObjectMapper mapper) {
+        this(caller, settings, SubtitleStudioProperties.Novel.defaults(), mapper);
+    }
+
+    GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties.Gemini settings,
+                            SubtitleStudioProperties.Novel novelSettings, ObjectMapper mapper) {
         this.caller = caller;
         this.settings = settings;
+        this.novelSettings = novelSettings;
         this.mapper = mapper;
     }
 
@@ -153,12 +159,15 @@ public class GeminiChapterTranslator implements ChapterTranslator {
                 .properties(Map.of("pages", Schema.builder().type(Type.Known.ARRAY).items(page).build()))
                 .required("pages")
                 .build();
-        return GenerateContentConfig.builder()
+        GenerateContentConfig.Builder config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
                 .responseMimeType("application/json")
                 .responseSchema(root)
-                .mediaResolution(MediaResolution.Known.MEDIA_RESOLUTION_HIGH)
-                .temperature((float) settings.temperature())
-                .build();
+                .mediaResolution(novelSettings.mediaResolutionKnown())
+                .temperature((float) settings.temperature());
+        if (settings.translationThinking() != null) {
+            config.thinkingConfig(settings.translationThinking());
+        }
+        return config.build();
     }
 }

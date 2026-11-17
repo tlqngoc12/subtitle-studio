@@ -43,6 +43,12 @@ class GeminiTranslatorImplTest {
         return translator(timeout, List.of());
     }
 
+    private GeminiTranslatorImpl translatorThinking(String level) {
+        var gemini = new SubtitleStudioProperties.Gemini(KEY, "gemini-test-flash", Duration.ofSeconds(10),
+                Duration.ofMinutes(60), Duration.ofMinutes(45), 0.3, List.of(), level);
+        return new GeminiTranslatorImpl(gemini, new ObjectMapper(), server.baseUrl());
+    }
+
     private GeminiTranslatorImpl translator() {
         return translator(Duration.ofSeconds(10), List.of());
     }
@@ -304,5 +310,23 @@ class GeminiTranslatorImplTest {
                     assertThat(userMessage(e)).startsWith("Could not translate: ").doesNotContain(KEY);
                     assertThat(e.getMessage()).doesNotContain(KEY);
                 });
+    }
+
+    @Test
+    void sendsTheConfiguredThinkingLevel() {
+        server.replyText(GOOD, "STOP");
+
+        translatorThinking("low").translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.lastBody()).contains("thinkingConfig").contains("\"thinkingLevel\":\"LOW\"");
+    }
+
+    @Test
+    void sendsNoThinkingConfigWhenTheLevelIsBlank() {
+        server.replyText(GOOD, "STOP");
+
+        translatorThinking("").translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.lastBody()).doesNotContain("thinkingConfig");
     }
 }
