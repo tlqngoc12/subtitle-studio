@@ -775,6 +775,75 @@ class ChapterServiceTest {
         assertThat(dtos.get(5).source()).isEqualTo(source);
     }
 
+    private void setFailed(long chapterId, ChapterTranslationStatus status) {
+        Chapter c = chapters.findById(chapterId).orElseThrow();
+        c.setTranslationStatus(status);
+        c.setTranslationError(status == ChapterTranslationStatus.FAILED ? "Gemini failed" : null);
+        chapters.saveAndFlush(c);
+    }
+
+    @Test
+    void savingAHandTextOnAFailedChapterMakesItTranslated() {
+        long id = wattpadChapter(1, "p1");
+        setFailed(id, ChapterTranslationStatus.FAILED);
+
+        ChapterDetail d = service.update(id, text("Bản dịch tay"));
+
+        assertThat(d.translationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(d.translationError()).isNull();
+        Chapter c = chapters.findById(id).orElseThrow();
+        assertThat(c.getTranslatedAt()).isNull();
+        assertThat(c.getTranslationModel()).isNull();
+    }
+
+    @Test
+    void savingEveryPageOfAFailedChapterMakesItTranslatedButNotPartOfThem() {
+        ChapterDetail c = chapterWithPages(1, "a.png", "b.png");
+        setFailed(c.id(), ChapterTranslationStatus.FAILED);
+        long p1 = c.pages().get(0).id();
+        long p2 = c.pages().get(1).id();
+
+        ChapterDetail half = service.update(c.id(),
+                new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(p1, "Một"))));
+        assertThat(half.translationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(half.translationError()).isEqualTo("Gemini failed");
+
+        ChapterDetail full = service.update(c.id(),
+                new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(p2, "Hai"))));
+        assertThat(full.translationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(full.translationError()).isNull();
+    }
+
+    @Test
+    void aBlankTextOrANonTextChangeLeavesAFailedChapterFailed() {
+        long id = wattpadChapter(1, "p1");
+        setFailed(id, ChapterTranslationStatus.FAILED);
+
+        assertThat(service.update(id, text("   ")).translationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(service.update(id, new ChapterUpdateRequest(null, "New title", null)).translationStatus())
+                .isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(service.update(id, ChapterUpdateRequest.label("L1")).translationStatus())
+                .isEqualTo(ChapterTranslationStatus.FAILED);
+        assertThat(service.get(id).translationError()).isEqualTo("Gemini failed");
+    }
+
+    @Test
+    void savingATextOnANoneChapterKeepsItNone() {
+        long id = wattpadChapter(1, "p1");
+
+        assertThat(service.update(id, text("Bản dịch tay")).translationStatus())
+                .isEqualTo(ChapterTranslationStatus.NONE);
+    }
+
+    @Test
+    void savingATextOnATranslatedChapterKeepsItTranslated() {
+        long id = wattpadChapter(1, "p1");
+        setFailed(id, ChapterTranslationStatus.TRANSLATED);
+
+        assertThat(service.update(id, text("Sửa lại")).translationStatus())
+                .isEqualTo(ChapterTranslationStatus.TRANSLATED);
+    }
+
     private long wattpadChapter(int no, String partId) {
         return service.addFromSource(novel.getId(), "Part " + no, "Original text " + no, partId, NOW);
     }
