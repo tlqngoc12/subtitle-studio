@@ -606,6 +606,18 @@ class ChapterServiceTest {
     }
 
     @Test
+    void anImageUsedTwiceInTheOriginalMayBeSavedTwiceOnceButNotThreeTimes() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a, a);
+        String m = "[[image:" + a + "]]";
+
+        assertThat(service.update(id, text("Chữ\n\n" + m + "\n\nChữ\n\n" + m)).text()).contains(m + "\n\nChữ\n\n" + m);
+        assertThat(service.update(id, text("Chữ\n\n" + m)).text()).isEqualTo("Chữ\n\n" + m);
+        assertThatThrownBy(() -> service.update(id, text(m + "\n\n" + m + "\n\n" + m)))
+                .isInstanceOf(ChapterImageMarkersException.class);
+    }
+
+    @Test
     void savingATextWithADuplicatedMarkerIsRefused() {
         long a = mediaService.store("a.png", TestImages.png()).getId();
         long id = chapterWithMarkers(1, a);

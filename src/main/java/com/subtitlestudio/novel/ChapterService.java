@@ -290,8 +290,7 @@ public class ChapterService {
         if (owned.isEmpty()) {
             return;
         }
-        List<Long> given = ImageMarkers.ids(newText);
-        if (!new HashSet<>(owned).containsAll(given) || given.size() != new HashSet<>(given).size()) {
+        if (!ImageMarkers.isSubMultiset(owned, ImageMarkers.ids(newText))) {
             throw new ChapterImageMarkersException();
         }
     }

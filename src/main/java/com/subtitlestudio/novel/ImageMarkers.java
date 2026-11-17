@@ -54,6 +54,21 @@ public final class ImageMarkers {
         return out;
     }
 
+    /**
+     * True when every id occurs in {@code given} at most as often as in {@code owned} (so none outside it). The same
+     * image used twice in a chapter has one media id twice.
+     */
+    public static boolean isSubMultiset(List<Long> owned, List<Long> given) {
+        java.util.Map<Long, Integer> left = new java.util.HashMap<>();
+        owned.forEach(id -> left.merge(id, 1, Integer::sum));
+        for (long id : given) {
+            if (left.merge(id, -1, Integer::sum) < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static boolean hasMarkers(String text) {
         return !ids(text).isEmpty();
     }
@@ -85,8 +100,7 @@ public final class ImageMarkers {
     public static java.util.Optional<String> restore(String source, String answer) {
         List<Long> sourceIds = ids(source);
         List<Long> answerIds = ids(answer);
-        if (!new java.util.HashSet<>(sourceIds).containsAll(answerIds)
-                || answerIds.size() != new java.util.HashSet<>(answerIds).size()) {
+        if (!isSubMultiset(sourceIds, answerIds)) {
             return java.util.Optional.empty();
         }
         List<String> sourceParagraphs = TextSplitter.paragraphs(source);
