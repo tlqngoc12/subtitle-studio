@@ -271,6 +271,12 @@ public class ChapterService {
         }
         if (textChanged) {
             c.setEditedAfterTranslation(true);
+            if (c.getTranslationStatus() == ChapterTranslationStatus.FAILED
+                    && ChapterText.complete(c, pages.findByChapterIdOrderByPosition(id))) {
+                // the text was written by hand: the failed Gemini run no longer matters
+                c.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
+                c.setTranslationError(null);
+            }
         }
         touch(c);
         return detail(c);
