@@ -490,9 +490,22 @@ class NovelServiceTest {
     }
 
     @Test
-    void theSourceLanguageMustBeThaiOrEnglish() {
+    void theSourceLanguageMustBeThaiEnglishOrSpanish() {
         assertThat(errorsOf(wattpad("5", "fr", NovelSourceType.WATTPAD))).extracting(FieldError::field)
                 .containsExactly("sourceLanguage");
+        assertThat(errorsOf(wattpad("5", "fr", NovelSourceType.WATTPAD))).extracting(FieldError::message)
+                .containsExactly("Choose Thai, English or Spanish.");
+    }
+
+    @Test
+    void aWattpadNovelStoresSpanishOnCreateAndUpdate() {
+        NovelDetail d = service.create(wattpad("5", "ES", NovelSourceType.WATTPAD));
+        assertThat(d.sourceLanguage()).isEqualTo("es");
+
+        NovelDetail u = service.update(d.id(), wattpad("5", "en", NovelSourceType.WATTPAD));
+        assertThat(u.sourceLanguage()).isEqualTo("en");
+        NovelDetail back = service.update(d.id(), wattpad("5", "es", NovelSourceType.WATTPAD));
+        assertThat(back.sourceLanguage()).isEqualTo("es");
     }
 
     @Test

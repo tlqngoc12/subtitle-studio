@@ -90,6 +90,17 @@ class WattpadNovelServiceTest {
     }
 
     @Test
+    void guessesTheLanguageFromTheWattpadName() {
+        assertThat(WattpadNovelService.guessLanguage("Español")).isEqualTo("es");
+        assertThat(WattpadNovelService.guessLanguage("  espanol ")).isEqualTo("es");
+        assertThat(WattpadNovelService.guessLanguage("Spanish")).isEqualTo("es");
+        assertThat(WattpadNovelService.guessLanguage("Thai")).isEqualTo("th");
+        assertThat(WattpadNovelService.guessLanguage("English")).isEqualTo("en");
+        assertThat(WattpadNovelService.guessLanguage("Français")).isEqualTo("en");
+        assertThat(WattpadNovelService.guessLanguage(null)).isEqualTo("en");
+    }
+
+    @Test
     void previewBuildsThePrefillAndGuessesEnglish() {
         when(wattpad.storyWithParts("396487502")).thenReturn(story("English"));
 

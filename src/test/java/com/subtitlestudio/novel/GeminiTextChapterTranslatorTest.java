@@ -69,6 +69,16 @@ class GeminiTextChapterTranslatorTest {
     }
 
     @Test
+    void aSpanishChapterNamesSpanishAndHasNoThaiRule() {
+        server.replyText(answer(GOOD), "STOP");
+        translator(List.of()).translate(prompt("es", null, null), m -> {});
+        String body = server.lastBody();
+
+        assertThat(body).contains("tiếng Tây Ban Nha").doesNotContain("Không để sót chữ Thái")
+                .doesNotContain("tiếng Thái").doesNotContain("tiếng Anh");
+    }
+
+    @Test
     void thaiRulesAreOnlySentForThai() {
         server.replyText(answer(GOOD), "STOP");
         translator(List.of()).translate(prompt("th", null, null), m -> {});

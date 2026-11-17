@@ -46,8 +46,18 @@ class NovelProfileTemplateTest {
     }
 
     @Test
+    void aSpanishNovelGetsTheSpanishTemplateAndOthersKeepTheirs() {
+        String es = NovelProfileTemplate.render("es", "T", "A", List.of(), "d");
+        assertThat(es).contains("tiếng Tây Ban Nha").doesNotContain("tiếng Anh").doesNotContain("{{");
+        assertThat(NovelProfileTemplate.render("en", "T", "A", List.of(), "d")).contains("tiếng Anh")
+                .doesNotContain("Tây Ban Nha");
+        assertThat(NovelProfileTemplate.render("fr", "T", "A", List.of(), "d")).contains("tiếng Anh");
+        assertThat(NovelProfileTemplate.render("th", "T", "A", List.of(), "d")).doesNotContain("Tây Ban Nha");
+    }
+
+    @Test
     void carriesNothingFromAnotherStory() {
-        for (String lang : List.of("th", "en")) {
+        for (String lang : List.of("th", "en", "es")) {
             assertThat(NovelProfileTemplate.render(lang, "T", "A", List.of(), "d"))
                     .doesNotContain("Perth", "Pipim", "Sugar");
         }
@@ -55,7 +65,7 @@ class NovelProfileTemplateTest {
 
     @Test
     void bothTemplatesCarryTheBonnieAndEmiPronounRuleBeforeTheSpecificPairs() {
-        for (String lang : List.of("en", "th")) {
+        for (String lang : List.of("en", "th", "es")) {
             String text = NovelProfileTemplate.render(lang, "T", "A", List.of(), "d");
             int section = text.indexOf("## Xưng hô");
             int bonnie = text.indexOf("- Bonnie: ");

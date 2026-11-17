@@ -348,7 +348,8 @@ export function NovelForm({
             children: (a) => (
               <Select id={a.id} value={sourceLanguage} aria-invalid={a.invalid} aria-describedby={a.describedBy}
                 onChange={(v) => setSourceLanguage(v as SourceLanguage)}
-                options={[{ value: 'th', label: 'Thai' }, { value: 'en', label: 'English' }]} />
+                options={[{ value: 'th', label: 'Thai' }, { value: 'en', label: 'English' },
+                  { value: 'es', label: 'Spanish' }]} />
             ),
           })}
         {renderField({

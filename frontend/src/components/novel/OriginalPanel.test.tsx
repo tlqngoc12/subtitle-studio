@@ -42,6 +42,14 @@ describe('OriginalPanel on a wide screen', () => {
     expect(document.querySelector('details')).toBeNull();
   });
 
+  it('labels a Spanish original', () => {
+    stubWidth(true);
+    render(<OriginalPanel language="es" text="Hola" activeIndex={null} />);
+
+    expect(screen.getByRole('heading', { name: 'Original (Spanish)' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Original text' })).toHaveAttribute('lang', 'es');
+  });
+
   it('labels a Thai original', () => {
     stubWidth(true);
     render(<OriginalPanel language="th" text="สวัสดี" activeIndex={null} />);
