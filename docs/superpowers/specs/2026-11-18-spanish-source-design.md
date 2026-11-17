@@ -20,7 +20,7 @@ Add `es` (Spanish) next to `th` and `en`. Each place that knows the language cod
 | `WattpadNovelService.guessLanguage` | Wattpad language name starting with "thai" → `th`; starting with "español", "espanol" or "spanish" (case-insensitive, after strip) → `es`; anything else → `en` |
 | `GeminiTextChapterTranslator` | unchanged: `THAI_RULE` stays for `th` only |
 | `TextChapterTranslation` (Thai-share check) | unchanged: `th` only |
-| `NovelProfileTemplate` | unchanged: anything but `th` already uses the English template, which suits Spanish |
+| `NovelProfileTemplate` | new `_novel_template_es.md` (the English template with the English-specific lines made Spanish); selection: `th` → th, `es` → es, anything else → en |
 | Frontend `api/novels.ts` | `SourceLanguage = 'th' \| 'en' \| 'es'` |
 | `NovelForm.tsx` select | options Thai, English, Spanish |
 | `OriginalPanel.tsx` | `language: SourceLanguage`; the heading names come from one map: `{ th: 'Thai', en: 'English', es: 'Spanish' }`; `lang={language}` already works for `es` |

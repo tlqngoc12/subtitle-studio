@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-/** Fills the Thai or English novel profile template with the details of a Wattpad story. */
+/** Fills the Thai, English or Spanish novel profile template with the details of a Wattpad story. */
 public final class NovelProfileTemplate {
 
     static final int MAX_BYTES = 20 * 1024;
@@ -15,18 +15,19 @@ public final class NovelProfileTemplate {
     private static final String NO_SUMMARY = "Chưa có tóm tắt.";
     private static final Map<String, String> TEMPLATES = Map.of(
             "th", load("prompts/_novel_template_th.md"),
-            "en", load("prompts/_novel_template_en.md"));
+            "en", load("prompts/_novel_template_en.md"),
+            "es", load("prompts/_novel_template_es.md"));
 
     private NovelProfileTemplate() {
     }
 
     /**
-     * The profile Markdown, at most 20 KB of UTF-8. {@code th} uses the Thai template, anything else the English one.
+     * The profile Markdown, at most 20 KB of UTF-8. {@code th} uses the Thai template, {@code es} the Spanish one, anything else the English one.
      * The description is trimmed at a sentence boundary when it would not fit.
      */
     public static String render(String sourceLanguage, String title, String author, List<String> tags,
                                 String description) {
-        String template = TEMPLATES.get("th".equals(sourceLanguage) ? "th" : "en");
+        String template = TEMPLATES.get("th".equals(sourceLanguage) || "es".equals(sourceLanguage) ? sourceLanguage : "en");
         String genre = tags == null ? "" : String.join(", ", tags.stream().map(NovelProfileTemplate::oneLine)
                 .filter(t -> !t.isEmpty()).toList());
         String base = template
