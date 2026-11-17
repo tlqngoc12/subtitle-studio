@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
  * Remembers, in memory only, which Gemini models answered HTTP 429 and until when. {@link GeminiCaller} records every
  * 429 here and skips models whose daily quota is used up, so one run does not keep mixing models. Entries expire at
  * their reset time; nothing survives a restart (a model may then be tried once more and recorded again).
+ * It also remembers 503 rests: a model that answered "overloaded" is not asked again until its rest ends. Rests are in
+ * memory only, cleared by a restart, and not shown in {@code /api/gemini/quota}.
  */
 @Component
 public class GeminiQuotaTracker {
@@ -34,6 +36,7 @@ public class GeminiQuotaTracker {
 
     private final Clock clock;
     private final Map<String, QuotaEntry> entries = new ConcurrentHashMap<>();
+    private final Map<String, Instant> restingUntil = new ConcurrentHashMap<>();
 
     @Autowired
     public GeminiQuotaTracker(Clock clock) {
@@ -88,9 +91,42 @@ public class GeminiQuotaTracker {
         return earliest;
     }
 
-    /** Forgets every entry (tests that share one tracker bean). */
+    /** Rests {@code model} until {@code until}; a later rest end is never shortened by an earlier one. */
+    public void recordOverloaded(String model, Instant until) {
+        restingUntil.merge(model, until, (old, next) -> next.isAfter(old) ? next : old);
+    }
+
+    /** True while {@code model} is resting after a 503. */
+    public boolean isResting(String model) {
+        Instant until = restingUntil.get(model);
+        return until != null && until.isAfter(clock.instant());
+    }
+
+    /** When the rest of {@code model} ends, or null when it is not resting. */
+    public Instant restingUntil(String model) {
+        return isResting(model) ? restingUntil.get(model) : null;
+    }
+
+    public void clearRest(String model) {
+        restingUntil.remove(model);
+    }
+
+    /** The earliest end among the active rests of {@code models}, or null when none is resting. */
+    public Instant earliestRestEnd(List<String> models) {
+        Instant earliest = null;
+        for (String model : models) {
+            Instant until = restingUntil(model);
+            if (until != null && (earliest == null || until.isBefore(earliest))) {
+                earliest = until;
+            }
+        }
+        return earliest;
+    }
+
+    /** Forgets every entry and rest (tests that share one tracker bean). */
     void clear() {
         entries.clear();
+        restingUntil.clear();
     }
 
     public Instant now() {

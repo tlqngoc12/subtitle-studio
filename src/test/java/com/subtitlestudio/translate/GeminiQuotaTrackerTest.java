@@ -179,4 +179,63 @@ class GeminiQuotaTrackerTest {
         tracker.record("m3", QuotaKind.DAILY, Instant.parse("2026-01-16T08:00:00Z"));
         assertThat(tracker.firstAvailable(List.of("m1", "m2", "m3"))).isNull();
     }
+
+    @Test
+    void aModelRestsUntilTheGivenTime() {
+        var clock = new MutableClock(Instant.parse("2026-01-15T12:00:00Z"));
+        var tracker = new GeminiQuotaTracker(clock);
+        tracker.recordOverloaded("m1", clock.instant().plusSeconds(600));
+
+        assertThat(tracker.isResting("m1")).isTrue();
+        assertThat(tracker.isResting("m2")).isFalse();
+        clock.advance(Duration.ofSeconds(599));
+        assertThat(tracker.isResting("m1")).isTrue();
+        clock.advance(Duration.ofSeconds(1));
+        assertThat(tracker.isResting("m1")).isFalse();
+    }
+
+    @Test
+    void anEarlierRestNeverShortensALaterOne() {
+        var clock = new MutableClock(Instant.parse("2026-01-15T12:00:00Z"));
+        var tracker = new GeminiQuotaTracker(clock);
+        Instant later = clock.instant().plusSeconds(600);
+        tracker.recordOverloaded("m1", later);
+        tracker.recordOverloaded("m1", clock.instant().plusSeconds(60));
+
+        assertThat(tracker.restingUntil("m1")).isEqualTo(later);
+    }
+
+    @Test
+    void earliestRestEndIsTheSoonestActiveRestOrNull() {
+        var clock = new MutableClock(Instant.parse("2026-01-15T12:00:00Z"));
+        var tracker = new GeminiQuotaTracker(clock);
+        assertThat(tracker.earliestRestEnd(List.of("m1", "m2"))).isNull();
+        Instant soon = clock.instant().plusSeconds(60);
+        tracker.recordOverloaded("m1", clock.instant().plusSeconds(600));
+        tracker.recordOverloaded("m2", soon);
+
+        assertThat(tracker.earliestRestEnd(List.of("m1", "m2", "m3"))).isEqualTo(soon);
+        assertThat(tracker.earliestRestEnd(List.of("m3"))).isNull();
+        clock.advance(Duration.ofSeconds(61));
+        assertThat(tracker.earliestRestEnd(List.of("m1", "m2"))).isEqualTo(Instant.parse("2026-01-15T12:10:00Z"));
+    }
+
+    @Test
+    void clearForgetsRests() {
+        var clock = new MutableClock(Instant.parse("2026-01-15T12:00:00Z"));
+        var tracker = new GeminiQuotaTracker(clock);
+        tracker.recordOverloaded("m1", clock.instant().plusSeconds(600));
+        tracker.clear();
+
+        assertThat(tracker.isResting("m1")).isFalse();
+    }
+
+    @Test
+    void firstAvailableIgnoresRests() {
+        var clock = new MutableClock(Instant.parse("2026-01-15T12:00:00Z"));
+        var tracker = new GeminiQuotaTracker(clock);
+        tracker.recordOverloaded("m1", clock.instant().plusSeconds(600));
+
+        assertThat(tracker.firstAvailable(List.of("m1", "m2"))).isEqualTo("m1");
+    }
 }
