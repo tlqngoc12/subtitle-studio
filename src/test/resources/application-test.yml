@@ -5,3 +5,4 @@ spring:
 subtitle-studio:
   gemini:
     api-key: test-key # dummy, tests never call Gemini
+    overload-cooldown: 0 # no rests between tests that share one tracker bean

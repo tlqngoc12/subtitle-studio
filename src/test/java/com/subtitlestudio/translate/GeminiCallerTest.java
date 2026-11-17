@@ -406,4 +406,107 @@ class GeminiCallerTest {
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Could not translate: connection to Gemini failed."));
         assertThat(tried).containsExactly(MAIN);
     }
+
+    // ---- 503 rest (overload-cooldown) ----
+
+    private static final String OK_BODY = "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":"
+            + "[{\"text\":\"ok\"}]},\"finishReason\":\"STOP\"}]}";
+
+    private GeminiCaller restCaller(Duration cooldown) {
+        var gemini = new SubtitleStudioProperties.Gemini("secret-key", "m1", Duration.ofSeconds(10),
+                Duration.ofMinutes(60), Duration.ofMinutes(45), 0.3, List.of("m2"), null, cooldown);
+        return new GeminiCaller(gemini, server.baseUrl(), tracker);
+    }
+
+    private GeminiCaller restCaller() {
+        return restCaller(Duration.ofMinutes(10));
+    }
+
+    @Test
+    void aModelThatAnswered503RestsAndTheNextCallSkipsIt() {
+        server.replyForModel("m1", 503, BUSY);
+        server.replyForModel("m2", 200, OK_BODY);
+        restCaller().generate(HI, NO_CONFIG);
+        int before = server.requests();
+        List<String> tried = new ArrayList<>();
+
+        GeminiCaller.Answer answer = restCaller().generate(HI, NO_CONFIG, tried::add);
+
+        assertThat(tried).containsExactly("m2");
+        assertThat(answer.model()).isEqualTo("m2");
+        assertThat(server.requests()).isEqualTo(before + 1);
+    }
+
+    @Test
+    void aModelIsAskedAgainWhenItsRestHasEnded() {
+        server.replyForModel("m1", 503, BUSY);
+        server.replyForModel("m2", 200, OK_BODY);
+        restCaller().generate(HI, NO_CONFIG);
+        clock.now = clock.now.plus(Duration.ofMinutes(10)).plusSeconds(1);
+        List<String> tried = new ArrayList<>();
+
+        restCaller().generate(HI, NO_CONFIG, tried::add);
+
+        assertThat(tried).containsExactly("m1", "m2");
+    }
+
+    @Test
+    void everyModelRestingFailsAtOnceWithoutAnyRequest() {
+        server.reply(503, BUSY);
+        assertThatThrownBy(() -> restCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy right now (high demand), try again in a few minutes.");
+        int before = server.requests();
+
+        assertThatThrownBy(() -> restCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is overloaded right now. Try again after 19:10 (Vietnam time).");
+        assertThat(server.requests()).isEqualTo(before);
+    }
+
+    @Test
+    void aRestingModelAndAnExhaustedOneGiveTheBusyMessageWithoutAnyRequest() {
+        tracker.recordOverloaded("m1", clock.now.plus(Duration.ofMinutes(10)));
+        tracker.record("m2", GeminiQuotaTracker.QuotaKind.DAILY, Instant.parse("2026-01-16T08:00:00Z"));
+
+        assertThatThrownBy(() -> restCaller().generate(HI, NO_CONFIG)).isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini is busy: m1 is overloaded; m2 is out of free quota until 15:00 (Vietnam time). "
+                        + "Try again in a few minutes.");
+        assertThat(server.requests()).isZero();
+    }
+
+    @Test
+    void withoutACooldownAModelIsAskedOnEveryCall() {
+        server.replyForModel("m1", 503, BUSY);
+        server.replyForModel("m2", 200, OK_BODY);
+        List<String> tried = new ArrayList<>();
+
+        restCaller(Duration.ZERO).generate(HI, NO_CONFIG, tried::add);
+        restCaller(Duration.ZERO).generate(HI, NO_CONFIG, tried::add);
+
+        assertThat(tried).containsExactly("m1", "m2", "m1", "m2");
+        assertThat(tracker.isResting("m1")).isFalse();
+    }
+
+    @Test
+    void aModelThatAnswersAfterItsRestIsNoLongerResting() {
+        tracker.recordOverloaded("m1", clock.now.plus(Duration.ofMinutes(10)));
+        clock.now = clock.now.plus(Duration.ofMinutes(11));
+        server.replyText("ok", "STOP");
+
+        GeminiCaller.Answer answer = restCaller().generate(HI, NO_CONFIG);
+
+        assertThat(answer.model()).isEqualTo("m1");
+        assertThat(tracker.isResting("m1")).isFalse();
+    }
+
+    @Test
+    void skippingARestingModelIsLoggedWithoutTheRequestText(CapturedOutput output) {
+        server.replyForModel("m1", 503, BUSY);
+        server.replyForModel("m2", 200, OK_BODY);
+        List<Part> secret = List.of(Part.fromText("PROMPT-TEXT-MUST-NOT-BE-LOGGED"));
+        restCaller().generate(secret, NO_CONFIG);
+        restCaller().generate(secret, NO_CONFIG);
+
+        assertThat(output.getAll()).contains("Gemini model m1 is resting after a 503 until ")
+                .contains("; skipped").doesNotContain("PROMPT-TEXT-MUST-NOT-BE-LOGGED").doesNotContain("secret-key");
+    }
 }

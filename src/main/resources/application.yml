@@ -45,11 +45,12 @@ subtitle-studio:
     api-key: ${GEMINI_API_KEY:}
     # gemini-3.8-flash was answering HTTP 503 ("high demand") on the free tier even for tiny requests.
     model: gemini-3.6-flash
-    # Tried in order when the model above is overloaded (503) or out of free quota (429: the free tier allows
-    # about 20 requests per day per model). The same model is never retried.
+    # Tried in order when the model above is overloaded (503), resting after a 503 or out of free quota (429: the
+    # free tier allows about 20 requests per day per model). The same model is never retried.
+    # gemini-3.5-flash was removed on 2026-11-17: it shares gemini-3.6-flash's free quota (its 429 names
+    # gemini-3.6-flash) and is overloaded at the same moments, so it is not a real fallback.
     fallback-models:
       - gemini-3.5-flash-lite
-      - gemini-3.5-flash
     timeout: 3m
     # Longer videos are not translated automatically.
     max-duration: 180m
@@ -60,6 +61,9 @@ subtitle-studio:
     # Lower = fewer output tokens, faster, less risk of hitting the output limit or the timeout.
     # Blank = send nothing (the model's own default, which is to think).
     thinking-level: low
+    # After a 503 ("overloaded") the model is not asked again for this long: on the free tier a 503 still uses one of
+    # the 20 daily requests, and overloads after the 15:00 (Vietnam time) reset can last hours. 0 = off.
+    overload-cooldown: 10m
   # Public read-only site on Cloudflare Pages (Publish button). Empty token, account id or project = off.
   publish:
     cloudflare-api-token: ${CLOUDFLARE_API_TOKEN:}

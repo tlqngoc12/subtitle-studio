@@ -29,7 +29,9 @@ import org.springframework.stereotype.Component;
 /**
  * One Gemini generateContent call with the official SDK: the main model, then the fallback models while each answers
  * "overloaded" (503), time out or are "out of quota" (429; free-tier quotas are counted per model), no automatic retries of the same
- * model. Every failure becomes a {@link TranslationFailedException} whose message can be shown to the user; request
+ * model. A model that answers 503 then rests for {@code overload-cooldown} (the free tier counts a 503 against the daily
+ * quota): it is skipped until the rest ends, and when every model is resting the call fails at once without any
+ * request. Every failure becomes a {@link TranslationFailedException} whose message can be shown to the user; request
  * and answer text never reach the log.
  */
 @Component
@@ -124,9 +126,25 @@ public class GeminiCaller {
         boolean onlyPerMinuteLimits = true;
         List<String> all = modelOrder(settings);
         try (Client client = client()) {
-            List<String> models = all.stream().filter(m -> !quota.isDailyExhausted(m)).toList();
-            all.stream().filter(m -> !models.contains(m)).forEach(outOfQuota::add);
+            List<String> exhaustedModels = all.stream().filter(quota::isDailyExhausted).toList();
+            outOfQuota.addAll(exhaustedModels);
+            List<String> restingModels = all.stream()
+                    .filter(m -> !exhaustedModels.contains(m) && quota.isResting(m)).toList();
+            for (String model : restingModels) {
+                log.info("Gemini model {} is resting after a 503 until {}; skipped", model, quota.restingUntil(model));
+                overloaded.add(model);
+                busy = true;
+            }
+            List<String> models = all.stream()
+                    .filter(m -> !exhaustedModels.contains(m) && !restingModels.contains(m)).toList();
             if (models.isEmpty()) {
+                if (!restingModels.isEmpty() && outOfQuota.isEmpty()) {
+                    throw new TranslationFailedException("Gemini is overloaded right now. Try again after "
+                            + RESET_FORMAT.format(quota.earliestRestEnd(all)) + " (Vietnam time).");
+                }
+                if (!restingModels.isEmpty()) {
+                    throw new TranslationFailedException(busyMessage(all, overloaded, noAnswer, outOfQuota));
+                }
                 Instant reset = quota.earliestDailyReset(all);
                 throw new TranslationFailedException(reset == null
                         ? "Gemini free quota is used up, try again later."
@@ -143,6 +161,9 @@ public class GeminiCaller {
                         log.warn("Gemini model {} is overloaded (HTTP 503)", model);
                         busy = true;
                         overloaded.add(model);
+                        if (settings.overloadCooldown().isPositive()) {
+                            quota.recordOverloaded(model, quota.now().plus(settings.overloadCooldown()));
+                        }
                     } else if (e.code() == 429) {
                         GeminiQuotaTracker.Classification kind = GeminiQuotaTracker.classify(e.message());
                         logQuota(model, e.message(), kind.kind());
@@ -183,6 +204,7 @@ public class GeminiCaller {
                     ? "Gemini's per-minute limit was reached, try again in a minute."
                     : "Gemini free quota is used up, try again later.");
         }
+        quota.clearRest(answeredBy);
         if (allowTruncated && isMaxTokens(response)) {
             String partial = textOrNull(response, true);
             return new Answer(partial == null ? "" : partial, answeredBy, true);

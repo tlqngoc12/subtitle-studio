@@ -153,21 +153,29 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
     /** Gemini translation. A blank {@code apiKey} turns the feature off. Never log the key. */
     public record Gemini(String apiKey, @NotBlank String model, @NotNull Duration timeout,
                          @NotNull Duration maxDuration, @NotNull Duration partDuration, double temperature,
-                         List<String> fallbackModels, String thinkingLevel) {
+                         List<String> fallbackModels, String thinkingLevel, Duration overloadCooldown) {
 
         /** Videos up to this long are translated in one request; longer ones in parts of at most this length. */
         public static final Duration DEFAULT_PART_DURATION = Duration.ofMinutes(45);
 
-        /** Same, with the default part duration. */
+        /** Same, with the default part duration (and no overload cooldown, so tests behave as before the cooldown existed). */
         public Gemini(String apiKey, String model, Duration timeout, Duration maxDuration, double temperature,
                       List<String> fallbackModels) {
-            this(apiKey, model, timeout, maxDuration, DEFAULT_PART_DURATION, temperature, fallbackModels, null);
+            this(apiKey, model, timeout, maxDuration, DEFAULT_PART_DURATION, temperature, fallbackModels, null,
+                    Duration.ZERO);
         }
 
-        /** Same, without a thinking level (the model's default). */
+        /** Same, without a thinking level (the model's default) and without an overload cooldown (tests). */
         public Gemini(String apiKey, String model, Duration timeout, Duration maxDuration, Duration partDuration,
                       double temperature, List<String> fallbackModels) {
-            this(apiKey, model, timeout, maxDuration, partDuration, temperature, fallbackModels, null);
+            this(apiKey, model, timeout, maxDuration, partDuration, temperature, fallbackModels, null, Duration.ZERO);
+        }
+
+        /** Same, with a thinking level and without an overload cooldown (tests). */
+        public Gemini(String apiKey, String model, Duration timeout, Duration maxDuration, Duration partDuration,
+                      double temperature, List<String> fallbackModels, String thinkingLevel) {
+            this(apiKey, model, timeout, maxDuration, partDuration, temperature, fallbackModels, thinkingLevel,
+                    Duration.ZERO);
         }
 
         /** Models tried in order when the previous one is overloaded (HTTP 503); never null. */
@@ -178,6 +186,11 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
             if (!thinkingLevel.isEmpty() && thinkingLevelOrNull(thinkingLevel) == null) {
                 throw new IllegalArgumentException("subtitle-studio.gemini.thinking-level must be blank, minimal, low, "
                         + "medium or high, not '" + thinkingLevel + "'");
+            }
+            overloadCooldown = overloadCooldown == null ? Duration.ofMinutes(10) : overloadCooldown;
+            if (overloadCooldown.isNegative() || overloadCooldown.compareTo(Duration.ofHours(1)) > 0) {
+                throw new IllegalArgumentException("subtitle-studio.gemini.overload-cooldown must be from 0 to 1 hour, "
+                        + "not '" + overloadCooldown + "'");
             }
         }
 
