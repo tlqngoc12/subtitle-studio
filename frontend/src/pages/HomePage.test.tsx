@@ -29,6 +29,7 @@ const autoVideo: VideoDto = {
   translationError: null,
   translationProfile: null,
   translationModel: null,
+  translatedByFallback: false,
   editStatus: null,
 };
 
@@ -451,6 +452,17 @@ describe('HomePage', () => {
       render(<MemoryRouter><HomePage /></MemoryRouter>);
       const result = await openFromHistory();
       expect(within(result).getByText('Translated by gemini-x, gemini-y')).toBeInTheDocument();
+    });
+
+    it('adds (fallback model) to Translated by only when a fallback model translated it', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/videos', status: 200, body: [{ ...done, translationModel: 'gemini-lite', translatedByFallback: true }] },
+        profiles,
+        cuesRoute,
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const result = await openFromHistory();
+      expect(within(result).getByText('Translated by gemini-lite (fallback model)')).toBeInTheDocument();
     });
 
     it('polls every 3 s and shows the AUTO Vietsub when done', async () => {

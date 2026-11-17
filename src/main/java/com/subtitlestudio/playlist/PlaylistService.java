@@ -1,5 +1,6 @@
 package com.subtitlestudio.playlist;
 
+import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.video.Video;
 import com.subtitlestudio.video.VideoDto;
@@ -35,9 +36,11 @@ public class PlaylistService {
     private final PlaylistItemRepository items;
     private final VideoRepository videos;
     private final Clock clock;
+    private final String mainModel;
 
     public PlaylistService(PlaylistRepository playlists, PlaylistItemRepository items, VideoRepository videos,
-                           Clock clock) {
+                           Clock clock, SubtitleStudioProperties properties) {
+        this.mainModel = properties.gemini().model();
         this.playlists = playlists;
         this.items = items;
         this.videos = videos;
@@ -180,7 +183,7 @@ public class PlaylistService {
 
     private PlaylistDetail detail(Playlist p) {
         List<VideoDto> ordered = items.findByPlaylist_IdOrderByPositionAsc(p.getId()).stream()
-                .map(i -> VideoDto.from(i.getVideo())).toList();
+                .map(i -> VideoDto.from(i.getVideo(), null, null, mainModel)).toList();
         return new PlaylistDetail(p.getId(), p.getName(), p.getDescription(), p.getUpdatedAt(), ordered);
     }
 

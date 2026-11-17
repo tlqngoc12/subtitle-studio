@@ -1045,3 +1045,10 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Trang chương: nút copy (icon `Copy` → `Check` 1,5 giây, toast "Copied" / "Could not copy") ở góc trên bên phải, bên trong khung của hộp Original (bọc trong `.chapter-original__box`, nút nằm ngoài vùng cuộn) và hộp Chapter text (`.chapter-text__box`, textarea thêm `padding-right: 3rem`; lớp highlight tìm kiếm copy padding từ textarea nên vẫn khớp).
 - Chỉ copy văn bản: bỏ đoạn `[[image:N]]` (`stripImageMarkers` trong `lib/chapterText.ts`); Chapter text copy giá trị hiện tại, kể cả phần chưa lưu. Text rỗng vẫn copy chuỗi rỗng (nút không bị disable).
 - Component mới `components/chapter/CopyTextButton.tsx` (dùng `IconButton`); test: `stripImageMarkers`, OriginalPanel (copy, đổi icon, lỗi, rỗng, CSS), ChapterPage (copy bản sửa chưa lưu, CSS padding). 1807 test + build xanh.
+
+### 2026-11-17: Chẩn đoán Gemini từ chối, thinking/độ phân giải cấu hình được, đánh dấu model dự phòng ✅ (không có migration)
+- Khi Gemini không trả text, log `finishReason`/`blockReason`/safety rating bị gắn cờ (không log nội dung) và báo lý do trong lỗi hiển thị cho user.
+- `subtitle-studio.gemini.thinking-level` (mặc định `low`; rỗng = không gửi, model tự quyết; giá trị lạ làm app báo lỗi khi khởi động) gửi `thinkingConfig.thinkingLevel` chỉ cho request dịch (`GeminiTranslatorImpl`, `GeminiChapterTranslator`, `GeminiTextChapterTranslator`), không áp cho `ProfileAnalyzer`/`NovelProfileAnalyzer`. Giảm token đầu ra, bớt nguy cơ MAX_TOKENS và quá 3 phút.
+- `subtitle-studio.novel.media-resolution` (`low|medium|high`, mặc định `high` = như cũ) thay giá trị cố định `MEDIA_RESOLUTION_HIGH` khi dịch ảnh chương.
+- Cờ `translatedByFallback` (tính ở Java bằng `GeminiCaller.translatedByFallback`, không đổi DB) trên `ChapterSummary`, `ChapterDetail`, `VideoDto`: true khi `translationModel` có model khác model chính. UI: badge tím "Fallback model" cạnh Translated trong danh sách chương (tooltip gợi ý dịch lại), và "(fallback model)" sau "Translated by ..." ở chi tiết chương và Vietsub.
+- Test: backend 1616 (mvn test), frontend 1809 (vitest) + tsc xanh; không có script lint trong `frontend/package.json`.

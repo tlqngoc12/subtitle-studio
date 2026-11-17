@@ -29,7 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({PlaylistService.class, PlaylistServiceTest.Config.class})
+@Import({PlaylistService.class, PlaylistServiceTest.Config.class, com.subtitlestudio.config.MainModelTestConfig.class})
 class PlaylistServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-11-04T10:00:00Z");

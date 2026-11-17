@@ -80,6 +80,23 @@ public class GeminiCaller {
         return models;
     }
 
+    /**
+     * True when {@code translationModel} (one model name, or several joined by commas for a translation done in parts)
+     * names any model other than {@code mainModel}, i.e. a fallback model translated at least part of it.
+     * Blank or null means unknown, not fallback.
+     */
+    public static boolean translatedByFallback(String translationModel, String mainModel) {
+        if (translationModel == null || translationModel.isBlank()) {
+            return false;
+        }
+        for (String name : translationModel.split(",")) {
+            if (!name.isBlank() && !name.strip().equals(mainModel)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Answer generate(List<Part> parts, GenerateContentConfig config) {
         return generate(parts, config, model -> {});
     }

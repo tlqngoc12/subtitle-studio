@@ -1,5 +1,6 @@
 package com.subtitlestudio.video;
 
+import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -23,15 +24,17 @@ import org.springframework.web.multipart.MultipartFile;
 public class VietsubController {
 
     private final VietsubService service;
+    private final String mainModel;
 
-    public VietsubController(VietsubService service) {
+    public VietsubController(VietsubService service, SubtitleStudioProperties properties) {
         this.service = service;
+        this.mainModel = properties.gemini().model();
     }
 
     /** Adds or replaces the Vietsub of a video; {@code url} may also be a bare video id. */
     @PostMapping(path = "/api/vietsub", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public VideoDto add(@RequestParam("url") String url, @RequestPart("file") MultipartFile file) throws IOException {
-        return VideoDto.from(service.add(url, file.getBytes()));
+        return dto(service.add(url, file.getBytes()));
     }
 
     @GetMapping("/api/videos/{id}/vietsub")
@@ -42,13 +45,13 @@ public class VietsubController {
     /** The live editor's save: edited text of every line; the Vietsub becomes MANUAL. */
     @PutMapping("/api/videos/{id}/vietsub/text")
     public VideoDto saveText(@PathVariable String id, @RequestBody VietsubTextRequest request) {
-        return VideoDto.from(service.saveText(id, request));
+        return dto(service.saveText(id, request));
     }
 
     /** Marks the Vietsub as DONE or back to IN_PROGRESS. */
     @PutMapping("/api/videos/{id}/edit-status")
     public VideoDto setEditStatus(@PathVariable String id, @RequestBody EditStatusRequest request) {
-        return VideoDto.from(service.setEditStatus(id, request.status()));
+        return dto(service.setEditStatus(id, request.status()));
     }
 
     @GetMapping("/api/videos/{id}/subtitle.vi.srt")
@@ -67,5 +70,9 @@ public class VietsubController {
     public ResponseEntity<Void> clear(@PathVariable String id) {
         service.clear(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private VideoDto dto(Video v) {
+        return VideoDto.from(v, null, null, mainModel);
     }
 }

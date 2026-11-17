@@ -4,5 +4,13 @@ package com.subtitlestudio.novel;
 public record ChapterSummary(long id, int chapterNo, String title, String label,
                              ChapterTranslationStatus translationStatus,
                              String translationError, String translationModel, ChapterPublishStatus publishStatus, int pageCount,
-                             int suspectPages) {
+                             int suspectPages, boolean translatedByFallback) {
+
+    /** Without the fallback flag (false). */
+    public ChapterSummary(long id, int chapterNo, String title, String label,
+                          ChapterTranslationStatus translationStatus, String translationError, String translationModel,
+                          ChapterPublishStatus publishStatus, int pageCount, int suspectPages) {
+        this(id, chapterNo, title, label, translationStatus, translationError, translationModel, publishStatus,
+                pageCount, suspectPages, false);
+    }
 }

@@ -594,7 +594,8 @@ class NovelServiceTest {
         List<ChapterSummary> old = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(id).stream()
                 .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
                         c.getTranslationStatus(), c.getTranslationError(), c.getTranslationModel(),
-                        c.getPublishStatus(), (int) pages.countByChapterId(c.getId()), 0))
+                        c.getPublishStatus(), (int) pages.countByChapterId(c.getId()), 0,
+                        c.getTranslationModel() != null)) // "gemini-x" is not the main model "m"
                 .toList();
         em.clear();
 

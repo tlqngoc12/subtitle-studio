@@ -14,4 +14,13 @@ describe('StatusBadges', () => {
     expect(screen.getByText('Translated').querySelector('svg')).toBeNull();
     expect(screen.getByText('Draft').querySelector('svg')).toBeNull();
   });
+
+  it('shows a Fallback model badge only when a fallback model translated the chapter', () => {
+    const { rerender } = render(
+      <StatusBadges translation="TRANSLATED" publish="DRAFT" model="gemini-3.5-flash-lite" fallback />,
+    );
+    expect(screen.getByText('Fallback model')).toBeTruthy();
+    rerender(<StatusBadges translation="TRANSLATED" publish="DRAFT" model="gemini-3.6-flash" fallback={false} />);
+    expect(screen.queryByText('Fallback model')).toBeNull();
+  });
 });

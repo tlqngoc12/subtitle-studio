@@ -26,18 +26,21 @@ function content({ icon: Icon, label }: Badge) {
 }
 
 /**
- * A chapter's translation and publish state: purple while in progress, orange once published, red when failed.
+ * A chapter's translation and publish state (plus a purple "Fallback model" badge when a fallback model translated it): purple while in progress, orange once published, red when failed.
  * The orange and purple badges carry an icon, so the state does not depend on colour.
  */
 export function StatusBadges({
   translation,
   publish,
   model,
+  fallback = false,
 }: {
   translation: ChapterTranslationStatus;
   publish: ChapterPublishStatus;
   /** The Gemini model(s) that translated it; shown as a tooltip on the Translated badge. */
   model?: string | null;
+  /** True when a fallback model translated it: adds a "Fallback model" badge next to Translated. */
+  fallback?: boolean;
 }) {
   const t = TRANSLATION[translation];
   const p = PUBLISH[publish];
@@ -49,6 +52,11 @@ export function StatusBadges({
         </Tip>
       ) : (
         <span className={`badge ${t.tone}`}>{content(t)}</span>
+      )}
+      {translation === 'TRANSLATED' && fallback && (
+        <Tip label={`Translated by ${model} — re-translate for better quality`}>
+          <span className="badge badge--info" tabIndex={0}>Fallback model</span>
+        </Tip>
       )}
       <span className={`badge ${p.tone}`}>{content(p)}</span>
     </span>
