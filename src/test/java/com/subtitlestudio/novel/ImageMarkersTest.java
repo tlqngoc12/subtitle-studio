@@ -53,4 +53,22 @@ class ImageMarkersTest {
         assertThat(ImageMarkers.hasMarkers("a")).isFalse();
         assertThat(ImageMarkers.hasMarkers(null)).isFalse();
     }
+
+    @Test
+    void restorePutsEverySourceMarkerBackAtItsPlace() {
+        String source = "[[image:1]]\n\n[[image:2]]\n\nA\n\n[[image:3]]\n\nB\n\n[[image:4]]";
+        assertThat(ImageMarkers.restore(source, "a\n\nb")).contains(
+                "[[image:1]]\n\n[[image:2]]\n\na\n\n[[image:3]]\n\nb\n\n[[image:4]]");
+        assertThat(ImageMarkers.restore(source, "[[image:4]]\n\na\n\n[[image:1]]\n\nb")).contains(
+                "[[image:1]]\n\n[[image:2]]\n\na\n\n[[image:3]]\n\nb\n\n[[image:4]]");
+    }
+
+    @Test
+    void restoreRefusesWhenItCannotAlign() {
+        String source = "A\n\n[[image:1]]\n\nB";
+        assertThat(ImageMarkers.restore(source, "a")).isEmpty();
+        assertThat(ImageMarkers.restore(source, "a\n\nb\n\nc")).isEmpty();
+        assertThat(ImageMarkers.restore(source, "a\n\n[[image:9]]\n\nb")).isEmpty();
+        assertThat(ImageMarkers.restore(source, "a\n\n[[image:1]]\n\n[[image:1]]\n\nb")).isEmpty();
+    }
 }

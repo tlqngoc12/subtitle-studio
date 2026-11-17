@@ -277,8 +277,9 @@ public class ChapterService {
     }
 
     /**
-     * A chapter with images keeps every one of them: the new text must hold exactly the marker lines the chapter owns
-     * (the original's, else its image rows'), in any order. A chapter without images is not checked.
+     * A chapter with images may lose or move marker lines but not gain or change any: the marker ids of the new text
+     * must be a subset of those the chapter owns (the original's, else its image rows'), each at most once. The image
+     * rows stay, so a removed line does not delete the media. A chapter without images is not checked.
      */
     private void requireSameImageMarkers(Chapter c, String newText) {
         List<Long> owned = ImageMarkers.ids(c.getSourceText());
@@ -289,9 +290,8 @@ public class ChapterService {
         if (owned.isEmpty()) {
             return;
         }
-        List<Long> expected = owned.stream().sorted().toList();
-        List<Long> given = ImageMarkers.ids(newText).stream().sorted().toList();
-        if (!expected.equals(given)) {
+        List<Long> given = ImageMarkers.ids(newText);
+        if (!new HashSet<>(owned).containsAll(given) || given.size() != new HashSet<>(given).size()) {
             throw new ChapterImageMarkersException();
         }
     }

@@ -575,17 +575,23 @@ class ChapterServiceTest {
     }
 
     @Test
-    void savingATextThatLacksAMarkerIsRefused() {
+    void savingATextWithARemovedMarkerIsAccepted() {
         long a = mediaService.store("a.png", TestImages.png()).getId();
         long b = mediaService.store("b.png", TestImages.png()).getId();
         long id = chapterWithMarkers(1, a, b);
 
-        assertThatThrownBy(() -> service.update(id, text("Văn bản\n\n[[image:" + a + "]]")))
-                .isInstanceOf(ChapterImageMarkersException.class);
-        assertThatThrownBy(() -> service.update(id, text("Chỉ chữ"))).isInstanceOf(ChapterImageMarkersException.class);
-        service.update(id, text("[[image:" + a + "]]\n\n[[image:" + b + "]]"));
-        assertThatThrownBy(() -> service.update(id, text("  "))).isInstanceOf(ChapterImageMarkersException.class);
-        assertThat(service.get(id).text()).isNotEqualTo("Chỉ chữ");
+        String one = "Văn bản\n\n[[image:" + a + "]]";
+        assertThat(service.update(id, text(one)).text()).isEqualTo(one);
+    }
+
+    @Test
+    void savingATextWithEveryMarkerRemovedIsAccepted() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long b = mediaService.store("b.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a, b);
+
+        assertThat(service.update(id, text("Chỉ chữ")).text()).isEqualTo("Chỉ chữ");
+        assertThat(service.update(id, text("[[image:" + b + "]]")).text()).isEqualTo("[[image:" + b + "]]");
     }
 
     @Test
@@ -597,6 +603,13 @@ class ChapterServiceTest {
                 .isInstanceOf(ChapterImageMarkersException.class);
         assertThatThrownBy(() -> service.update(id, text("[[image:" + (a + 1) + "]]")))
                 .isInstanceOf(ChapterImageMarkersException.class);
+    }
+
+    @Test
+    void savingATextWithADuplicatedMarkerIsRefused() {
+        long a = mediaService.store("a.png", TestImages.png()).getId();
+        long id = chapterWithMarkers(1, a);
+
         assertThatThrownBy(() -> service.update(id, text("[[image:" + a + "]]\n\n[[image:" + a + "]]")))
                 .isInstanceOf(ChapterImageMarkersException.class);
     }

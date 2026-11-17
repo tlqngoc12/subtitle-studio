@@ -7,6 +7,6 @@ package com.subtitlestudio.novel;
 public class ChapterImageMarkersException extends RuntimeException {
 
     public ChapterImageMarkersException() {
-        super("Keep every [[image:…]] line of this chapter unchanged.");
+        super("You can move or remove [[image:…]] lines, but not edit them or add new ones.");
     }
 }
