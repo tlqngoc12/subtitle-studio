@@ -109,6 +109,21 @@ describe('NovelForm', () => {
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/novels');
   });
 
+  it('offers Spanish as a source language and submits es', async () => {
+    fakeFetch([profiles]);
+    const onSubmit = vi.fn(async () => {});
+    renderForm({ onSubmit, initial: novelDetail({ sourceType: 'WATTPAD', wattpadStoryId: '5' }) });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText('Source language'));
+    const list = await screen.findByRole('listbox');
+    expect(within(list).getAllByRole('option').map((o) => o.textContent)).toEqual(['Thai', 'English', 'Spanish']);
+    await user.click(within(list).getByRole('option', { name: 'Spanish' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ sourceLanguage: 'es' }));
+  });
+
   it('sends the tags as an array, from chips', async () => {
     fakeFetch([profiles]);
     const onSubmit = vi.fn(async () => {});

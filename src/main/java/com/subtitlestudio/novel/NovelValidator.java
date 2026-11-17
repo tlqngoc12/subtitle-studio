@@ -20,7 +20,7 @@ public class NovelValidator {
     static final int MAX_CREDIT = 200;
     static final int MAX_URL = 1_000;
 
-    static final java.util.Set<String> LANGUAGES = java.util.Set.of("th", "en");
+    static final java.util.Set<String> LANGUAGES = java.util.Set.of("th", "en", "es");
 
     private static final Pattern STORY_ID = Pattern.compile("\\d{1,19}");
     private static final Pattern SLUG = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*");
@@ -69,7 +69,7 @@ public class NovelValidator {
             errors.add(new FieldError("promptProfile", "Unknown translation profile."));
         }
         if (!LANGUAGES.contains(n.sourceLanguage())) {
-            errors.add(new FieldError("sourceLanguage", "Choose Thai or English."));
+            errors.add(new FieldError("sourceLanguage", "Choose Thai, English or Spanish."));
         }
         if (n.sourceType() == NovelSourceType.WATTPAD) {
             if (n.wattpadStoryId() == null || !STORY_ID.matcher(n.wattpadStoryId()).matches()) {

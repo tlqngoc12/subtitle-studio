@@ -8,7 +8,7 @@ export type ChapterTranslationStatus = 'NONE' | 'TRANSLATING' | 'TRANSLATED' | '
 export type ChapterPublishStatus = 'DRAFT' | 'PUBLISHED';
 export type NovelSourceType = 'SCREENSHOTS' | 'WATTPAD';
 /** The language of a novel's original text. */
-export type SourceLanguage = 'th' | 'en';
+export type SourceLanguage = 'th' | 'en' | 'es';
 
 export interface NovelInput {
   slug: string;

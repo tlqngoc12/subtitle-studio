@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import type { SourceLanguage } from '../../api/novels';
 import { imageMarkerId, paragraphs } from '../../lib/chapterText';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { CopyTextButton } from '../chapter/CopyTextButton';
@@ -6,6 +7,7 @@ import { DisclosureSummary } from '../ui/DisclosureSummary';
 import './OriginalPanel.css';
 
 const WIDE = '(min-width: 1024px)';
+const LANGUAGE_NAMES: Record<SourceLanguage, string> = { th: 'Thai', en: 'English', es: 'Spanish' };
 
 /** A marker paragraph shows its image; any other paragraph shows its text. */
 function imageOf(paragraph: string): ReactNode {
@@ -25,7 +27,7 @@ export function OriginalPanel({
   activeIndex,
   footer,
 }: {
-  language: 'en' | 'th';
+  language: SourceLanguage;
   text: string;
   activeIndex: number | null;
   footer?: ReactNode;
@@ -33,7 +35,7 @@ export function OriginalPanel({
   const wide = useMediaQuery(WIDE);
   const parts = useMemo(() => paragraphs(text), [text]);
   const active = useRef<HTMLParagraphElement>(null);
-  const heading = `Original (${language === 'en' ? 'English' : 'Thai'})`;
+  const heading = `Original (${LANGUAGE_NAMES[language]})`;
 
   useEffect(() => {
     if (activeIndex !== null) active.current?.scrollIntoView({ block: 'nearest' });

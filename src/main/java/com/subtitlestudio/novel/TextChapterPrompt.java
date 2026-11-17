@@ -36,7 +36,12 @@ public record TextChapterPrompt(String novelTitle, int chapterNo, String chapter
     }
 
     public String languageName() {
-        return "en".equals(sourceLanguage) ? "tiếng Anh" : "tiếng Thái";
+        return switch (sourceLanguage == null ? "" : sourceLanguage) {
+            case "th" -> "tiếng Thái";
+            case "en" -> "tiếng Anh";
+            case "es" -> "tiếng Tây Ban Nha";
+            default -> throw new IllegalStateException("Unknown source language: " + sourceLanguage);
+        };
     }
 
     /** The prompt for one piece of the chapter: only the images whose markers the piece holds, in marker order. */

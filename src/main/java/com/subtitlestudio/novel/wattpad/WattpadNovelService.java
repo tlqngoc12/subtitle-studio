@@ -432,7 +432,10 @@ public class WattpadNovelService {
     }
 
     static String guessLanguage(String languageName) {
-        return languageName != null && languageName.strip().toLowerCase(Locale.ROOT).startsWith("thai") ? "th" : "en";
+        String name = languageName == null ? "" : languageName.strip().toLowerCase(Locale.ROOT);
+        if (name.startsWith("thai")) return "th";
+        if (name.startsWith("español") || name.startsWith("espanol") || name.startsWith("spanish")) return "es";
+        return "en";
     }
 
     private Media downloadCover(String coverUrl) {
