@@ -1,5 +1,6 @@
 package com.subtitlestudio.video;
 
+import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.subtitle.Cue;
 import com.subtitlestudio.subtitle.SrtWriter;
 import com.subtitlestudio.translate.PromptProfileStore;
@@ -34,9 +35,11 @@ public class VideoController {
     private final SrtWriter srtWriter;
     private final PromptProfileStore profiles;
     private final TranslationService translation;
+    private final String mainModel;
 
     public VideoController(SubtitleService service, SrtWriter srtWriter, PromptProfileStore profiles,
-                           TranslationService translation) {
+                           TranslationService translation, SubtitleStudioProperties properties) {
+        this.mainModel = properties.gemini().model();
         this.service = service;
         this.srtWriter = srtWriter;
         this.profiles = profiles;
@@ -86,7 +89,7 @@ public class VideoController {
     }
 
     private VideoDto dto(Video v) {
-        return VideoDto.from(v, translation.activeModel(v.getId()), translation.activePart(v.getId()));
+        return VideoDto.from(v, translation.activeModel(v.getId()), translation.activePart(v.getId()), mainModel);
     }
 
     @GetMapping("/{id}/cues")

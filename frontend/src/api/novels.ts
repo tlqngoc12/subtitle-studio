@@ -67,6 +67,8 @@ export interface ChapterSummary {
   pageCount: number;
   /** Pages whose translation looks much shorter than the Thai text read from the image. */
   suspectPages: number;
+  /** True when a fallback model (not the main one) translated it, so it may be worth translating again. */
+  translatedByFallback: boolean;
 }
 
 export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 'sourceType' | 'sourceLanguage' | 'wattpadStoryId' | 'coverUrl'> {
@@ -107,6 +109,8 @@ export interface ChapterDetail {
   translationError: string | null;
   /** Gemini model(s) translating now, or that translated it; null = unknown. */
   translationModel: string | null;
+  /** True when a fallback model (not the main one) translated it, so it may be worth translating again. */
+  translatedByFallback: boolean;
   translatedAt: string | null;
   editedAfterTranslation: boolean;
   publishStatus: ChapterPublishStatus;

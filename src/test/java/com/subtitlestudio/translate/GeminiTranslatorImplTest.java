@@ -43,6 +43,12 @@ class GeminiTranslatorImplTest {
         return translator(timeout, List.of());
     }
 
+    private GeminiTranslatorImpl translatorThinking(String level) {
+        var gemini = new SubtitleStudioProperties.Gemini(KEY, "gemini-test-flash", Duration.ofSeconds(10),
+                Duration.ofMinutes(60), Duration.ofMinutes(45), 0.3, List.of(), level);
+        return new GeminiTranslatorImpl(gemini, new ObjectMapper(), server.baseUrl());
+    }
+
     private GeminiTranslatorImpl translator() {
         return translator(Duration.ofSeconds(10), List.of());
     }
@@ -225,8 +231,31 @@ class GeminiTranslatorImplTest {
     }
 
     @Test
-    void safetyBlockFails() {
-        server.reply(200, "{\"candidates\":[{\"finishReason\":\"SAFETY\"}]}");
+    void safetyBlockNamesTheFinishReasonAndLogsTheRatings(CapturedOutput output) {
+        server.reply(200, "{\"candidates\":[{\"finishReason\":\"SAFETY\",\"safetyRatings\":["
+                + "{\"category\":\"HARM_CATEGORY_HARASSMENT\",\"probability\":\"HIGH\",\"blocked\":true},"
+                + "{\"category\":\"HARM_CATEGORY_HATE_SPEECH\",\"probability\":\"LOW\"}]}]}");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e))
+                        .isEqualTo("Gemini refused to translate this content (SAFETY)."));
+        assertThat(output).contains("returned no usable text: finishReason=SAFETY, blockReason=none, "
+                + "flagged=HARM_CATEGORY_HARASSMENT:HIGH");
+    }
+
+    @Test
+    void blockedPromptNamesTheBlockReason(CapturedOutput output) {
+        server.reply(200, "{\"promptFeedback\":{\"blockReason\":\"PROHIBITED_CONTENT\"}}");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .satisfies(e -> assertThat(userMessage(e))
+                        .isEqualTo("Gemini blocked this content (PROHIBITED_CONTENT)."));
+        assertThat(output).contains("finishReason=none, blockReason=PROHIBITED_CONTENT, flagged=none");
+    }
+
+    @Test
+    void emptyTextWithStopKeepsThePlainMessage() {
+        server.reply(200, "{\"candidates\":[{\"finishReason\":\"STOP\"}]}");
 
         assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
                 .satisfies(e -> assertThat(userMessage(e)).isEqualTo("Gemini refused to translate this content."));
@@ -281,5 +310,23 @@ class GeminiTranslatorImplTest {
                     assertThat(userMessage(e)).startsWith("Could not translate: ").doesNotContain(KEY);
                     assertThat(e.getMessage()).doesNotContain(KEY);
                 });
+    }
+
+    @Test
+    void sendsTheConfiguredThinkingLevel() {
+        server.replyText(GOOD, "STOP");
+
+        translatorThinking("low").translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.lastBody()).contains("thinkingConfig").contains("\"thinkingLevel\":\"LOW\"");
+    }
+
+    @Test
+    void sendsNoThinkingConfigWhenTheLevelIsBlank() {
+        server.replyText(GOOD, "STOP");
+
+        translatorThinking("").translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.lastBody()).doesNotContain("thinkingConfig");
     }
 }

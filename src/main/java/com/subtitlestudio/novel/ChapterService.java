@@ -2,6 +2,7 @@ package com.subtitlestudio.novel;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.novel.render.RenderCache;
+import com.subtitlestudio.translate.GeminiCaller;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.ImageSniffer;
 import com.subtitlestudio.profile.ImageType;
@@ -43,6 +44,7 @@ public class ChapterService {
     private final long maxImageBytes;
     private final Clock clock;
     private final TranslatingModels models;
+    private final String mainModel;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           ChapterImageRepository chapterImages, MediaRepository mediaRepository,
@@ -59,6 +61,7 @@ public class ChapterService {
         this.renderCache = renderCache;
         this.rotator = rotator;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
+        this.mainModel = properties.gemini().model();
         this.clock = clock;
         this.models = models;
     }
@@ -513,10 +516,12 @@ public class ChapterService {
                 next = i < all.size() - 1 ? all.get(i + 1).getId() : null;
             }
         }
+        String shownModel = models.shown(c);
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
-                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), models.shown(c), c.getTranslatedAt(),
+                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), shownModel, c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
-                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage());
+                c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())
+                .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, mainModel));
     }
 }

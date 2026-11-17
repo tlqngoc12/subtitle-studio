@@ -150,7 +150,7 @@ export function ChapterDetails({
           {originalParagraphs !== null && <ParagraphShare have={counts.paragraphs} of={originalParagraphs} />}
         </p>
         {!translating && chapter.translationStatus === 'TRANSLATED' && chapter.translationModel && (
-          <p className="muted chapter-details__model">Translated by {chapter.translationModel}</p>
+          <p className="muted chapter-details__model">Translated by {chapter.translationModel}{chapter.translatedByFallback ? ' (fallback model)' : ''}</p>
         )}
       </div>
     </details>

@@ -841,4 +841,23 @@ class ChapterServiceTest {
     void reloadablePartIdIsTheWattpadPart() {
         assertThat(service.reloadablePartId(wattpadChapter(1, "777"))).isEqualTo("777");
     }
+
+    @Test
+    void detailFlagsAChapterTranslatedByAFallbackModel() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        Chapter row = chapters.findById(c.id()).orElseThrow();
+        row.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
+
+        row.setTranslationModel("m");
+        chapters.saveAndFlush(row);
+        assertThat(service.get(c.id()).translatedByFallback()).isFalse();
+
+        row.setTranslationModel("m, gemini-lite");
+        chapters.saveAndFlush(row);
+        assertThat(service.get(c.id()).translatedByFallback()).isTrue();
+
+        row.setTranslationModel(null);
+        chapters.saveAndFlush(row);
+        assertThat(service.get(c.id()).translatedByFallback()).isFalse();
+    }
 }

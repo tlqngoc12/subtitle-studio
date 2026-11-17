@@ -48,7 +48,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(VideoController.class)
-@Import({SrtWriter.class, ApiExceptionHandler.class})
+@Import({SrtWriter.class, ApiExceptionHandler.class, com.subtitlestudio.config.MainModelTestConfig.class})
 class VideoControllerTest {
 
     private static final String ID = "dQw4w9WgXcQ";

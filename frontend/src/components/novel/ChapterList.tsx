@@ -114,7 +114,7 @@ function ChapterRow({
         <Link className="chapter-list__open" to={`/novels/${novelId}/chapters/${c.id}`}>
           <span className="chapter-list__title">{name}</span>
           <span className="chapter-list__meta">
-            <StatusBadges translation={c.translationStatus} publish={c.publishStatus} model={c.translationModel} />
+            <StatusBadges translation={c.translationStatus} publish={c.publishStatus} model={c.translationModel} fallback={c.translatedByFallback} />
             <span className="meta">
               {fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`}
             </span>

@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @WebMvcTest(VietsubController.class)
-@Import(ApiExceptionHandler.class)
+@Import({ApiExceptionHandler.class, com.subtitlestudio.config.MainModelTestConfig.class})
 class VietsubControllerTest {
 
     private static final String ID = "dQw4w9WgXcQ";

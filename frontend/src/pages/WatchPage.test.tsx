@@ -49,6 +49,7 @@ const video: VideoDto = {
   translationError: null,
   translationProfile: null,
   translationModel: null,
+  translatedByFallback: false,
   editStatus: null,
 };
 

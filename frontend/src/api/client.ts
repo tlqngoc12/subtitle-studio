@@ -42,6 +42,8 @@ export interface VideoDto {
   translationProfile: string | null;
   /** Gemini model translating now (while TRANSLATING) or that translated the AUTO Vietsub; null = unknown. */
   translationModel: string | null;
+  /** True when a fallback model (not the main one) translated the AUTO Vietsub, so it may be worth translating again. */
+  translatedByFallback: boolean;
   /** How far the hand-editing of the Vietsub has got; null = not edited yet. Only DONE videos are published. */
   editStatus: EditStatus | null;
   /** "2/3" while part 2 of 3 of a long video is being translated; null/absent otherwise. */

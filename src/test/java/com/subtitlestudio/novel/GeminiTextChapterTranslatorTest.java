@@ -34,6 +34,12 @@ class GeminiTextChapterTranslatorTest {
         return new GeminiTextChapterTranslator(new GeminiCaller(gemini, server.baseUrl()), gemini, new ObjectMapper());
     }
 
+    private GeminiTextChapterTranslator translatorThinking(String level) {
+        var gemini = new SubtitleStudioProperties.Gemini("k", "gemini-test-flash", Duration.ofSeconds(10),
+                Duration.ofMinutes(60), Duration.ofMinutes(45), 0.3, List.of(), level);
+        return new GeminiTextChapterTranslator(new GeminiCaller(gemini, server.baseUrl()), gemini, new ObjectMapper());
+    }
+
     private static TextChapterPrompt prompt(String language, String carrySource, String carryTranslation) {
         return new TextChapterPrompt("Warm", 3, null, "Hồ sơ: dịch mượt", "Chương trước đây",
                 language, carrySource, carryTranslation, SOURCE);
@@ -336,5 +342,23 @@ class GeminiTextChapterTranslatorTest {
 
         assertThatThrownBy(() -> translator(List.of()).translate(prompt("en", null, null), m -> {}))
                 .isInstanceOf(TranslationFailedException.class);
+    }
+
+    @Test
+    void sendsTheConfiguredThinkingLevel() {
+        server.replyText(answer(GOOD), "STOP");
+
+        translatorThinking("minimal").translate(prompt("en", null, null), m -> {});
+
+        assertThat(server.lastBody()).contains("thinkingConfig").contains("\"thinkingLevel\":\"MINIMAL\"");
+    }
+
+    @Test
+    void sendsNoThinkingConfigWhenTheLevelIsBlank() {
+        server.replyText(answer(GOOD), "STOP");
+
+        translatorThinking(" ").translate(prompt("en", null, null), m -> {});
+
+        assertThat(server.lastBody()).doesNotContain("thinkingConfig");
     }
 }

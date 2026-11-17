@@ -62,7 +62,7 @@ export function VietsubStatus({ video, profile, skipReason, onTranslate }: Props
       {video.viSource === 'AUTO' && (
         <p className="vietsub-status__line">
           <span>Vietsub: AI</span>
-          {video.translationModel && <span className="meta">Translated by {video.translationModel}</span>}
+          {video.translationModel && <span className="meta">Translated by {video.translationModel}{video.translatedByFallback ? ' (fallback model)' : ''}</span>}
           {watch}
           <a className="vietsub-status__link" href={viSrtUrl(video.id)} download>
             Download Vietsub
