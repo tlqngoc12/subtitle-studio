@@ -105,6 +105,7 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.gemini.api-key` | `GEMINI_API_KEY` | (trống = tắt) | Key Gemini để dịch Vietsub tự động |
 | `subtitle-studio.gemini.model` | `SUBTITLESTUDIO_GEMINI_MODEL` | `gemini-3.6-flash` | Model Gemini (nên dùng bản Flash có free tier) |
 | `subtitle-studio.gemini.fallback-models` | `SUBTITLESTUDIO_GEMINI_FALLBACKMODELS` | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.8-flash` | Thử lần lượt khi model trước quá tải (HTTP 503) hoặc hết quota free (HTTP 429, quota tính riêng từng model, khoảng 20 request/ngày); không thử lại cùng model |
+| `subtitle-studio.backup.cron` | `SUBTITLESTUDIO_BACKUP_CRON` | `0 0 12 * * *` | Lịch sao lưu hằng ngày của app (cron Spring, giây trước, múi giờ `Asia/Ho_Chi_Minh`); để trống = không chạy hằng ngày (nút Backup now vẫn dùng được) |
 | `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
 | `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `180m` | Video dài hơn không dịch tự động |
 | `subtitle-studio.gemini.part-duration` | `SUBTITLESTUDIO_GEMINI_PARTDURATION` | `45m` | Video tới độ dài này dịch bằng một request; dài hơn thì chia theo ranh giới câu thành các đoạn tối đa bằng này, dịch lần lượt |
@@ -165,7 +166,11 @@ Quy tắc:
 
 Lưu ý free tier: nội dung gửi lên có thể được Google dùng để cải thiện sản phẩm; giới hạn số request xem trong AI Studio. Hết lượt thì app báo "Hết lượt miễn phí của Gemini, thử lại sau."
 
+> **Cài đặt trong app (Settings, chỉ admin):** các trường Gemini `model`, `fallback-models`, `thinking-level`, `temperature`, `timeout`, `overload-cooldown` ở bảng trên chỉ là **giá trị mặc định**; có thể ghi đè ở Settings › Gemini (lưu trong bảng `t_app_setting`, có hiệu lực ngay ở yêu cầu kế tiếp, nút Reset quay về giá trị trong `application.yml`). Khoá API vẫn chỉ ở `.env`.
+
 ## Sao lưu và khôi phục database (Oracle)
+
+> **Từ 2026-11-18 app tự sao lưu** (Settings › Backups): nút **Backup now** và lịch hằng ngày `subtitle-studio.backup.cron` làm một bản dump Data Pump của schema (`ss-<giờ>.dmp`, giữ 14 bản) và một file zip của `./data` (`data-<giờ>.zip`, giữ 7 bản; không gồm `backups/`, `logs/`, `translate-partial/`, `dev.mv.db`), cả hai trong `data/backups`. Oracle ghi dump qua thư mục bind mount `./data/backups` (`docker/oracle-startdb/10-backup-dir.sql` tạo thư mục Oracle `SS_BACKUP_DIR` mỗi lần container khởi động). Tác vụ Windows `SubtitleStudio DB backup` và các script bên dưới vẫn dùng được như công cụ tay; sau khi deploy nên gỡ tác vụ: `Unregister-ScheduledTask -TaskName 'SubtitleStudio DB backup' -Confirm:$false`.
 
 Dữ liệu chính (video, Vietsub, truyện, profile) nằm trong schema `SUBTITLE_STUDIO` của container Oracle, trong volume Docker `subtitle-studio_oracle-data`. Script sao lưu bằng Oracle Data Pump (`expdp`) chạy **trong container**, chép file `.dmp` ra máy rồi xoá bản trong container (volume không phình ra). Chỉ chạy trên Windows PowerShell 5.1 trở lên; Docker Desktop phải đang chạy và container `oracle` phải `healthy`.
 
