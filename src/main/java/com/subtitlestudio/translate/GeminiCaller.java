@@ -184,7 +184,7 @@ public class GeminiCaller {
                                     GeminiQuotaTracker.nextDailyReset(now));
                         }
                     } else {
-                        throw fromApi(e);
+                        throw fromApi(e, model);
                     }
                 } catch (GenAiIOException e) {
                     if (!causedByTimeout(e)) {
@@ -309,9 +309,14 @@ public class GeminiCaller {
         return Client.builder().apiKey(settings.apiKey()).httpOptions(http.build()).build();
     }
 
-    private TranslationFailedException fromApi(ApiException e) {
+    private TranslationFailedException fromApi(ApiException e, String model) {
         return switch (e.code()) {
             case 401, 403 -> new TranslationFailedException("GEMINI_API_KEY is not valid.");
+            case 504 -> {
+                log.warn("Gemini request failed with HTTP 504 (model {})", model);
+                yield new TranslationFailedException("Gemini took too long to answer (HTTP 504, a timeout on "
+                    + "Google's side). Translate again; it usually works on the next try.");
+            }
             default -> {
                 // Error text from the API may echo request details; keep it out of the message and the log.
                 log.warn("Gemini request failed with HTTP {}", e.code());
