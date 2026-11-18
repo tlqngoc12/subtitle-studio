@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applySuggestion, findIssues, parseCheckRules, type CheckRule } from './checkRules';
+import { addCheckRule, applySuggestion, findIssues, formatCheckRule, parseCheckRules, type CheckRule } from './checkRules';
 
 const section = (...lines: string[]) => `# Hồ sơ\n\n## Nhân vật\n- Emi\n\n## Kiểm tra\n${lines.join('\n')}\n\n## Tóm tắt nội dung chính\n- "x" → "y"\n`;
 
@@ -141,5 +141,72 @@ describe('applySuggestion', () => {
     const [issue] = findIssues(text, [rule('mẹ cô')]);
     expect(applySuggestion(text, issue, 'Mẹ Em')).toBe('và Mẹ Em nói');
     expect(applySuggestion(text, issue, '')).toBe('và  nói');
+  });
+});
+
+describe('formatCheckRule', () => {
+  it('formats suggestions and reason', () => {
+    expect(formatCheckRule(rule('cô ta', ['cô', 'em'], 'Emi là cô'))).toBe('- "cô ta" → "cô" | "em" (Emi là cô)');
+  });
+
+  it('formats flag-only', () => {
+    expect(formatCheckRule(rule('ả'))).toBe('- "ả" → (tránh dùng)');
+    expect(formatCheckRule(rule('ả', [], 'xúc phạm'))).toBe('- "ả" → (tránh dùng) (xúc phạm)');
+  });
+
+  it('formatted rule round-trips through parseCheckRules', () => {
+    for (const r of [rule('mẹ cô', ['mẹ em']), rule('cô ta', ['cô', 'em'], 'lý do'), rule('ả'), rule('ả', [], 'lý do')]) {
+      expect(parseCheckRules(section(formatCheckRule(r))).rules).toEqual([r]);
+    }
+  });
+
+  it('formatted rule round-trips NFC', () => {
+    const decomposed = 'mệ cô'; // "mệ cô" typed with combining marks
+    const line = formatCheckRule(rule(decomposed, [decomposed]));
+    expect(line).toBe(line.normalize('NFC'));
+    const nfc = decomposed.normalize('NFC');
+    expect(parseCheckRules(section(line)).rules).toEqual([rule(nfc, [nfc])]);
+  });
+});
+
+describe('addCheckRule', () => {
+  it('addCheckRule appends inside section', () => {
+    const out = addCheckRule(section('- "a" → "b"', '- "c" → "d"'), rule('e', ['f']));
+    expect(out).toBe(section('- "a" → "b"', '- "c" → "d"', '- "e" → "f"'));
+  });
+
+  it('addCheckRule creates section before Tóm tắt', () => {
+    const profile = '# Hồ sơ\n\n## Nhân vật\n- Emi\n\n## Tóm tắt nội dung chính\n- x\n';
+    expect(addCheckRule(profile, rule('e', ['f']))).toBe(
+      '# Hồ sơ\n\n## Nhân vật\n- Emi\n\n## Kiểm tra\n- "e" → "f"\n\n## Tóm tắt nội dung chính\n- x\n',
+    );
+  });
+
+  it('addCheckRule creates section at end', () => {
+    expect(addCheckRule('# Hồ sơ\n\n## Nhân vật\n- Emi\n', rule('e', ['f']))).toBe(
+      '# Hồ sơ\n\n## Nhân vật\n- Emi\n\n## Kiểm tra\n- "e" → "f"\n',
+    );
+    expect(addCheckRule('', rule('e', ['f']))).toBe('## Kiểm tra\n- "e" → "f"\n');
+  });
+
+  it('addCheckRule replaces same wrong phrase case-insensitively', () => {
+    const out = addCheckRule(section('- "Mẹ cô" → "mẹ em"', '- "c" → "d"'), rule('mẹ CÔ', ['mẹ tôi'], 'x'));
+    expect(out).toBe(section('- "mẹ CÔ" → "mẹ tôi" (x)', '- "c" → "d"'));
+  });
+
+  it('addCheckRule keeps later sections', () => {
+    const profile = '## Nhân vật\n- Emi\n\n## Kiểm tra\n- "a" → "b"\n\n## Tóm tắt nội dung chính\n- x\n\n## Khác\n- y\n';
+    expect(addCheckRule(profile, rule('e', ['f']))).toBe(
+      '## Nhân vật\n- Emi\n\n## Kiểm tra\n- "a" → "b"\n- "e" → "f"\n\n## Tóm tắt nội dung chính\n- x\n\n## Khác\n- y\n',
+    );
+  });
+
+  it('addCheckRule works when the section is last and has no trailing newline', () => {
+    expect(addCheckRule('## A\n- x\n\n## Kiểm tra\n- "a" → "b"', rule('e', ['f']))).toBe('## A\n- x\n\n## Kiểm tra\n- "a" → "b"\n- "e" → "f"');
+  });
+
+  it('addCheckRule keeps CRLF files CRLF', () => {
+    const out = addCheckRule('## A\r\n- x\r\n\r\n## Kiểm tra\r\n- "a" → "b"\r\n', rule('e', ['f']));
+    expect(out).toBe('## A\r\n- x\r\n\r\n## Kiểm tra\r\n- "a" → "b"\r\n- "e" → "f"\r\n');
   });
 });
