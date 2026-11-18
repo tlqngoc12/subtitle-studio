@@ -416,6 +416,17 @@ class GeminiCallerTest {
     }
 
     @Test
+    void http504GivesClearMessage(CapturedOutput output) {
+        server.reply(504, "{}");
+
+        assertThatThrownBy(() -> caller(List.of()).generate(HI, NO_CONFIG))
+                .isInstanceOf(TranslationFailedException.class)
+                .hasMessage("Gemini took too long to answer (HTTP 504, a timeout on Google's side). "
+                        + "Translate again; it usually works on the next try.");
+        assertThat(output).contains("Gemini request failed with HTTP 504").contains("m1");
+    }
+
+    @Test
     void aConnectionErrorDoesNotFallBack() {
         String deadUrl = server.baseUrl();
         server.close();

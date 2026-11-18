@@ -74,6 +74,14 @@ class ChapterControllerTest {
     }
 
     @Test
+    void translateIsRefusedForAnOriginalStory() throws Exception {
+        when(translation.start(4L)).thenThrow(new NovelNotTranslatableException(1));
+
+        mvc.perform(post("/api/chapters/4/translate")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("NOVEL_NOT_TRANSLATABLE"));
+    }
+
+    @Test
     void addsChapter() throws Exception {
         when(service.add(eq(3L), any())).thenReturn(DETAIL);
 

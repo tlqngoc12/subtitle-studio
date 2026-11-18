@@ -6,9 +6,10 @@ import { send, type PromptProfiles } from './client';
 export type NovelStatus = 'ONGOING' | 'COMPLETED';
 export type ChapterTranslationStatus = 'NONE' | 'TRANSLATING' | 'TRANSLATED' | 'FAILED';
 export type ChapterPublishStatus = 'DRAFT' | 'PUBLISHED';
-export type NovelSourceType = 'SCREENSHOTS' | 'WATTPAD';
-/** The language of a novel's original text. */
-export type SourceLanguage = 'th' | 'en' | 'es';
+/** ORIGINAL: the owner's own story, written chapter by chapter (no translation). */
+export type NovelSourceType = 'SCREENSHOTS' | 'WATTPAD' | 'ORIGINAL';
+/** The language of a novel's original text (vi only for an ORIGINAL story). */
+export type SourceLanguage = 'th' | 'en' | 'es' | 'vi';
 
 export interface NovelInput {
   slug: string;
@@ -42,6 +43,8 @@ export interface NovelSummary {
   updatedAt: string;
   /** Set for novels translated from Wattpad. */
   wattpadStoryId?: string | null;
+  /** Where its chapters come from; ORIGINAL novels have their own tab. */
+  sourceType: NovelSourceType;
   /** Picked for the public banner (at most 5). */
   featured: boolean;
   createdAt: string;
@@ -127,6 +130,8 @@ export interface ChapterDetail {
   sourceLanguage: SourceLanguage;
   /** Images a Wattpad fetch could not download (only set by the fetch and reload calls). */
   skippedImages?: number;
+  /** The novel's kind; ORIGINAL chapters are written by hand and are never translated. */
+  sourceType: NovelSourceType;
 }
 
 function json(method: string, body: unknown): RequestInit {

@@ -77,6 +77,9 @@ export default function ChapterPage() {
   const published = chapter.publishStatus === 'PUBLISHED';
   // A Wattpad chapter: the original is text on the left, there are no page screenshots.
   const fromText = chapter.sourceText !== null;
+  // An original story: the owner writes the text here. Nothing is translated, so there is no Translate, no status chip,
+  // no Original panel and no page screenshots; Check and Add to check rules work as for any chapter.
+  const original = chapter.sourceType === 'ORIGINAL';
   // The Original column is a draft tool: once published, a text chapter looks and behaves like a screenshot chapter.
   const showOriginal = fromText && !published;
   const suspectNumbers = chapter.pages.flatMap((p, i) => (p.suspect ? [i + 1] : []));
@@ -94,7 +97,9 @@ export default function ChapterPage() {
             onSelect: () => void actions.unpublish(),
           },
         ]
-      : [
+      : original
+        ? []
+        : [
           {
             label: chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again',
             // Translating again replaces the text, edits included.
@@ -126,7 +131,7 @@ export default function ChapterPage() {
         }
         // Short: the H1 above already shows the full title.
         title={chapter.label?.trim() || `Chapter ${chapter.chapterNo}`}
-        badges={<StatusBadges translation={chapter.translationStatus} publish={chapter.publishStatus} />}
+        badges={<StatusBadges translation={original ? undefined : chapter.translationStatus} publish={chapter.publishStatus} />}
         saveState={saveState}
         canSave={canSave}
         onSave={() => void editor.save()}
@@ -183,13 +188,13 @@ export default function ChapterPage() {
       )}
 
       <ChapterDetails
-        chapter={chapter} idBase={ids} published={published} fromText={fromText} locked={locked} translating={translating}
+        chapter={chapter} idBase={ids} published={published} fromText={fromText} original={original} locked={locked} translating={translating}
         number={number} label={label} title={title}
         onNumberChange={setNumber} onLabelChange={setLabel} onTitleChange={setTitle}
         counts={counts} originalParagraphs={originalParagraphs}
       />
 
-      {!published && !fromText && (
+      {!published && !fromText && !original && (
         <ChapterPagesSection
           pages={chapter.pages} headingId={`${ids}-pages`} translating={translating} locked={locked}
           uploading={pages.uploading} onFiles={(files) => void pages.upload(files)}

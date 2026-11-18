@@ -317,6 +317,21 @@ class PersistenceOracleIT {
     }
 
     @Test
+    void anOriginalNovelIsAcceptedByTheSourceTypeConstraintOnOracle() {
+        com.subtitlestudio.novel.Novel n = new com.subtitlestudio.novel.Novel("original-it", "Mine",
+                com.subtitlestudio.novel.NovelStatus.ONGOING, java.time.Instant.parse("2026-11-18T10:00:00Z"));
+        n.setSourceType(com.subtitlestudio.novel.NovelSourceType.ORIGINAL);
+        n.setSourceLanguage("vi");
+        n = novelRepository.save(n);
+        try {
+            assertThat(novelRepository.findById(n.getId()).orElseThrow().getSourceType())
+                    .isEqualTo(com.subtitlestudio.novel.NovelSourceType.ORIGINAL);
+        } finally {
+            novelRepository.deleteById(n.getId());
+        }
+    }
+
+    @Test
     void chapterImageTableCascadesWithItsChapterOnOracle() throws IOException {
         java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
         javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(20, 30, java.awt.image.BufferedImage.TYPE_INT_RGB),

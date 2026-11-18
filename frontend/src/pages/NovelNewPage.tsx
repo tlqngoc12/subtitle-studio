@@ -11,11 +11,39 @@ import { PageHeader } from '../components/ui/PageHeader';
 
 type Source = 'screenshots' | 'wattpad';
 
+/** Novels › New story (`?kind=original`): the form alone, in original mode; the new story opens on its chapters. */
+function NewStoryPage() {
+  const navigate = useNavigate();
+  return (
+    <Page width="narrow">
+      <PageHeader
+        breadcrumbs={[{ label: 'Novels', to: '/novels?tab=originals' }, { label: 'New story' }]}
+        title="New story"
+      />
+      <NovelForm
+        kind="original"
+        cancelTo="/novels?tab=originals"
+        submitLabel="Create story"
+        pendingLabel="Creating…"
+        onSubmit={async (input) => {
+          const created = await createNovel(input);
+          navigate(`/novels/${created.id}`);
+        }}
+      />
+    </Page>
+  );
+}
+
 /**
  * Novels › New novel: from page screenshots (the form alone) or from a Wattpad story (paste the link, Fetch, then the
  * same form prefilled). `?wattpad=<link>` opens on From Wattpad and fetches that story at once.
  */
 export default function NovelNewPage() {
+  const [params] = useSearchParams();
+  return params.get('kind') === 'original' ? <NewStoryPage /> : <NewNovelPage />;
+}
+
+function NewNovelPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const wattpadLink = params.get('wattpad');

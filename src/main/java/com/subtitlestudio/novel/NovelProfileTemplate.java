@@ -16,18 +16,21 @@ public final class NovelProfileTemplate {
     private static final Map<String, String> TEMPLATES = Map.of(
             "th", load("prompts/_novel_template_th.md"),
             "en", load("prompts/_novel_template_en.md"),
-            "es", load("prompts/_novel_template_es.md"));
+            "es", load("prompts/_novel_template_es.md"),
+            "vi", load("prompts/_novel_template_original.md"));
 
     private NovelProfileTemplate() {
     }
 
     /**
-     * The profile Markdown, at most 20 KB of UTF-8. {@code th} uses the Thai template, {@code es} the Spanish one, anything else the English one.
+     * The profile Markdown, at most 20 KB of UTF-8. {@code th} uses the Thai template, {@code es} the Spanish one,
+     * {@code vi} (an original story) the original-story one, anything else the English one.
      * The description is trimmed at a sentence boundary when it would not fit.
      */
     public static String render(String sourceLanguage, String title, String author, List<String> tags,
                                 String description) {
-        String template = TEMPLATES.get("th".equals(sourceLanguage) || "es".equals(sourceLanguage) ? sourceLanguage : "en");
+        String template = TEMPLATES.get("th".equals(sourceLanguage) || "es".equals(sourceLanguage) || "vi".equals(sourceLanguage)
+                ? sourceLanguage : "en");
         String genre = tags == null ? "" : String.join(", ", tags.stream().map(NovelProfileTemplate::oneLine)
                 .filter(t -> !t.isEmpty()).toList());
         String base = template

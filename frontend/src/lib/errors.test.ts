@@ -23,6 +23,7 @@ describe('errorMessage', () => {
     ['WATTPAD_PART_IMAGES_FAILED', 'images for this part could not be downloaded'],
     ['WATTPAD_PART_NOT_FOUND', 'not in the story'],
     ['WATTPAD_NOTHING_NEXT', 'already translated'],
+    ['NOVEL_NOT_TRANSLATABLE', 'original story'],
     ['PLAYLIST_NOT_FOUND', 'This playlist no longer exists.'],
     ['INVALID_PLAYLIST', 'Check the playlist name and description.'],
     ['VIDEO_HAS_NO_VIETSUB', 'Only videos with Vietsub can be added to a playlist.'],

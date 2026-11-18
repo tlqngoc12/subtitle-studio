@@ -20,16 +20,25 @@ public final class NovelProfileNames {
      * {@code taken} accepts the name, {@code -2}, {@code -3}, ... is appended, still within 40 characters.
      */
     public static String fromTitle(String title, String storyId, Predicate<String> taken) {
+        return name(title, "Wattpad" + storyId, "Wattpad", taken);
+    }
+
+    /** Same rule for an original story: {@code Original} when the title has no Latin letters or digits at all. */
+    public static String forOriginal(String title, Predicate<String> taken) {
+        return name(title, "Original", "Original", taken);
+    }
+
+    private static String name(String title, String idName, String lastResort, Predicate<String> taken) {
         String text = title == null ? "" : title;
         String name = pascal(beforeSeparator(text));
         if (name.isEmpty()) {
             name = pascal(text);
         }
         if (name.isEmpty()) {
-            name = pascal("Wattpad" + storyId);
+            name = pascal(idName);
         }
         if (name.isEmpty()) {
-            name = "Wattpad";
+            name = lastResort;
         }
         if (name.length() > MAX_LENGTH) {
             name = name.substring(0, MAX_LENGTH);

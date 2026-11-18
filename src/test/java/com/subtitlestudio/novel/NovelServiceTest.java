@@ -118,6 +118,97 @@ class NovelServiceTest {
                 r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), trailerUrl);
     }
 
+    private static NovelRequest original(String slug, String title, String author, String profile) {
+        return new NovelRequest(slug, title, null, author, "Một câu chuyện", List.of("GL", "romance"),
+                NovelStatus.ONGOING, "ignored credit", "https://example.com/x", profile, null,
+                NovelSourceType.ORIGINAL, "th", null, null);
+    }
+
+    @Test
+    void validatorAcceptsOriginalWithVi() {
+        NovelDetail d = service.create(original("my-story", "Câu chuyện của tôi", "EmiBonnie", null));
+
+        assertThat(d.sourceType()).isEqualTo(NovelSourceType.ORIGINAL);
+        assertThat(d.sourceLanguage()).isEqualTo("vi");
+        assertThat(d.translatorCredit()).isNull();
+        assertThat(d.sourceUrl()).isNull();
+        assertThat(d.wattpadStoryId()).isNull();
+    }
+
+    @Test
+    void theListAndTheChapterDetailCarryTheKind() {
+        NovelDetail d = service.create(original("kind-list", "Kind", "A", "SummerLove"));
+
+        assertThat(service.list()).filteredOn(s -> s.id() == d.id()).extracting(NovelSummary::sourceType)
+                .containsExactly(NovelSourceType.ORIGINAL);
+        assertThat(service.list()).extracting(NovelSummary::sourceType).doesNotContainNull();
+    }
+
+    @Test
+    void validatorRejectsViForOthers() {
+        NovelRequest r = valid();
+        NovelRequest vi = new NovelRequest(r.slug(), r.title(), null, r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), null,
+                NovelSourceType.SCREENSHOTS, "vi", null, null);
+
+        assertThat(errorsOf(vi)).extracting(FieldError::field).containsExactly("sourceLanguage");
+    }
+
+    @Test
+    void originalRequiresAuthor() {
+        assertThat(errorsOf(original("my-story", "Truyện", " ", null)))
+                .containsExactly(new FieldError("originalAuthor", "Author is required."));
+    }
+
+    @Test
+    void createOriginalMakesProfileFromOriginalTemplate() throws IOException {
+        NovelDetail d = service.create(original("my-story", "Truyện Của Tôi", "EmiBonnie", null));
+
+        assertThat(d.promptProfile()).isEqualTo("TruyenCuaToi");
+        String profile = Files.readString(dataDir.resolve("prompts/novels/TruyenCuaToi.md"));
+        assertThat(profile).contains("## Kiểm tra", "Truyện Của Tôi", "EmiBonnie")
+                .doesNotContain("## Ngôn ngữ gốc").doesNotContain("{{");
+    }
+
+    @Test
+    void originalProfileNameAvoidsCollision() throws IOException {
+        NovelDetail first = service.create(original("story-1", "Cùng Tên", "A", null));
+        NovelDetail second = service.create(original("story-2", "Cùng Tên", "B", null));
+
+        assertThat(first.promptProfile()).isEqualTo("CungTen");
+        assertThat(second.promptProfile()).isEqualTo("CungTen-2");
+        assertThat(Files.readString(dataDir.resolve("prompts/novels/CungTen-2.md"))).contains("B");
+    }
+
+    @Test
+    void anOriginalWithAChosenProfileKeepsIt() {
+        NovelDetail d = service.create(original("chosen", "Truyện", "A", "SummerLove"));
+
+        assertThat(d.promptProfile()).isEqualTo("SummerLove");
+    }
+
+    @Test
+    void theNewProfileIsRemovedWhenTheNovelCannotBeCreated() {
+        service.create(original("dup", "Truyện Một", "A", null));
+
+        assertThatThrownBy(() -> service.create(original("dup", "Truyện Hai", "A", null)))
+                .isInstanceOf(DuplicateNovelSlugException.class);
+        assertThat(dataDir.resolve("prompts/novels/TruyenHai.md")).doesNotExist();
+    }
+
+    @Test
+    void editingAnOriginalKeepsItsKindAndLanguage() {
+        NovelDetail d = service.create(original("edit-me", "Truyện", "A", null));
+        NovelRequest edit = new NovelRequest("edit-me", "Truyện mới", null, "B", "d", List.of(), NovelStatus.COMPLETED,
+                null, null, d.promptProfile(), null, null, null, null, null);
+
+        NovelDetail edited = service.update(d.id(), edit);
+
+        assertThat(edited.sourceType()).isEqualTo(NovelSourceType.ORIGINAL);
+        assertThat(edited.sourceLanguage()).isEqualTo("vi");
+        assertThat(edited.originalAuthor()).isEqualTo("B");
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ",

@@ -252,6 +252,50 @@ describe('PublicNovelsPage tabs', () => {
     expect(await screen.findByRole('list', { name: 'Danh sách truyện' })).toBeInTheDocument();
   });
 
+  function renderMixed(path: string, list: PublicNovelSummary[]) {
+    const site = publicSite(fakeSource({ listFanfics: async () => [fanfic({ title: 'Warm Story' })] }));
+    return render(
+      <SiteProvider value={site}>
+        <MemoryRouter initialEntries={[path]}>
+          <PublicNovelsPage source={sourceOf(list)} />
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+  }
+
+  const MIXED = [novel(1), novel(2, { original: true, title: 'Truyện Sáng Tác' }), novel(3, { original: false })];
+
+  it('tabsSplitByKind: Truyện dịch and Sáng tác list their own novels', async () => {
+    renderMixed('/novels', MIXED);
+
+    expect(screen.getByRole('tab', { name: 'Sáng tác' })).toBeInTheDocument();
+    const translated = await screen.findByRole('list', { name: 'Danh sách truyện' });
+    expect(within(translated).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(translated).queryByText('Truyện Sáng Tác')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Sáng tác' }));
+    const originals = await screen.findByRole('list', { name: 'Danh sách truyện sáng tác' });
+    expect(within(originals).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(originals).getByText('Truyện Sáng Tác')).toBeInTheDocument();
+  });
+
+  it('originalsTabFromQuery: opens on Sáng tác from ?tab=originals', async () => {
+    renderMixed('/novels?tab=originals', MIXED);
+
+    expect(screen.getByRole('tab', { name: 'Sáng tác' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('list', { name: 'Danh sách truyện sáng tác' })).toBeInTheDocument();
+  });
+
+  it('publicLegacyDataCountsAsTranslated: novels without the field stay in Truyện dịch', async () => {
+    renderMixed('/novels', EIGHT);
+
+    const translated = await screen.findByRole('list', { name: 'Danh sách truyện' });
+    expect(within(translated).getAllByRole('listitem')).toHaveLength(8);
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Sáng tác' }));
+    expect(await screen.findByText('Chưa có truyện sáng tác nào. Quay lại sau nhé.')).toBeInTheDocument();
+  });
+
   it('shows the read-only Fanfics tab from ?tab=fanfics', async () => {
     renderAt('/novels?tab=fanfics');
 
