@@ -137,6 +137,7 @@ export function Combobox({
         role="presentation"
         align="start"
         sideOffset={4}
+        onMouseDown={(e) => e.preventDefault()} // keep the focus in the input, also when the scrollbar is pressed
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
@@ -151,7 +152,6 @@ export function Combobox({
               role="option"
               aria-selected={i === active}
               className="combobox__option"
-              onMouseDown={(e) => e.preventDefault()} // keep the focus in the input
               onMouseMove={() => setActive(i)}
               onClick={() => pick(option)}
             >
