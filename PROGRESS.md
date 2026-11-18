@@ -1066,3 +1066,6 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 
 ### 2026-11-18: Tiếng Tây Ban Nha làm ngôn ngữ nguồn của truyện Wattpad ✅ (không có migration)
 - `source_language` nhận thêm `es` (`NovelValidator`, `TextChapterPrompt.languageName` ném `IllegalStateException` với mã lạ thay vì rơi về tiếng Thái, `WattpadNovelService.guessLanguage` đoán `es` từ "Español"/"Espanol"/"Spanish", form chọn Spanish, tiêu đề panel "Original (Spanish)"); `THAI_RULE` và kiểm tra tỉ lệ chữ Thái vẫn chỉ cho `th`. Truyện đã lưu là English có thể đổi sang Spanish ở form sửa. Spec [docs/superpowers/specs/2026-11-18-spanish-source-design.md](docs/superpowers/specs/2026-11-18-spanish-source-design.md).
+
+### 2026-11-18: Hồ sơ dịch truyện luôn giữ cấu trúc đoạn văn gốc ✅
+- Mẫu hồ sơ (`_novel_template_*.md`), 10 hồ sơ trong `data/prompts/novels` và `SYSTEM_RULES` của `NovelProfileAnalyzer` có quy tắc "mỗi đoạn gốc dịch thành đúng một đoạn, không tự ý xuống dòng, tách hay gộp đoạn" thay cho "mỗi lời thoại một dòng"; AI phân tích hồ sơ không được xoá hay làm yếu quy tắc này.
