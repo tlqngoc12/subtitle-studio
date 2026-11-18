@@ -29,7 +29,7 @@ Topbar
 | Toolbar | Trang danh sách | Xem mục 3. |
 | FormActions | Trang form | Xem mục 4. |
 
-**Cấp trang:** cấp 1 = trang mở từ menu trên cùng (kể cả các tab-route của một mục, vd Vietsub › Videos/Playlists/Profiles). Cấp ≥ 2 = trang chi tiết, trang sửa, trang tạo mới, trang con.
+**Cấp trang:** cấp 1 = trang mở từ menu trên cùng (kể cả các tab-route của một mục, vd Vietsub › Get Engsub/Videos/Playlists/Profiles/List và Showcase › Profile/Works/Photos; hàng tab chỉ hiện ở admin). Cấp ≥ 2 = trang chi tiết, trang sửa, trang tạo mới, trang con.
 
 **Khoảng cách dọc:** breadcrumbs → H1 16 px (`--space-4`) · header → tabs/toolbar/nội dung 24 px (`--space-6`) ·
 tabs → toolbar 16 px · toolbar → nội dung 16 px · giữa các section 48 px (`--space-12`). Lề ngang `--gutter`

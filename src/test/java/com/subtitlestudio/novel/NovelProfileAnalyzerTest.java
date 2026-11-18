@@ -319,4 +319,9 @@ class NovelProfileAnalyzerTest {
         assertThat(next).isEqualTo(store().sha("P")).isNotEqualTo(sha);
         assertThat(store().read("P")).isEqualTo("# New");
     }
+
+    @Test
+    void systemRulesAskForCheckRules() {
+        assertThat(NovelProfileAnalyzer.SYSTEM_RULES).contains("## Kiểm tra").contains("ít nhất 2 đoạn");
+    }
 }

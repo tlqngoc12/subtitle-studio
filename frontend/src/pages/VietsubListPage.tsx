@@ -20,6 +20,7 @@ import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { VietsubTabs } from '../components/VietsubTabs';
 import { SearchBar } from '../components/ui/SearchBar';
 import { Toolbar } from '../components/ui/Toolbar';
 import './VietsubListPage.css';
@@ -138,45 +139,47 @@ export default function VietsubListPage() {
         title={pageName}
         lede={t('Choose a video to watch with Vietsub.', 'Chọn một video để xem cùng Vietsub.')}
       />
+      <VietsubTabs>
 
-      {!tabsShown && search}
+        {!tabsShown && search}
 
-      {waitingForPlaylist ? (
-        <LoadingText>{t('Loading playlist…', 'Đang tải danh sách phát…')}</LoadingText>
-      ) : active ? (
-        <>
-          <PlaylistHeader playlist={active} />
-          <VideoSection
-            entries={active.videos.map((video, i) => ({ video, position: i + 1 }))}
-            query={query}
-            linkFor={(e) => `/vietsub/${e.video.id}?playlist=${active.id}`}
-            empty={
-              <EmptyState icon={ListVideo}>
-                {t('This playlist has no videos yet.', 'Danh sách phát này chưa có video.')}
-                {!readOnly && <> <Link to={`/vietsub/playlists/${active.id}`}>Manage playlist</Link></>}
-              </EmptyState>
-            }
-          />
-        </>
-      ) : (
-        <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
-          <Tabs.List className="tabs__list" aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
-            <TabTrigger className="tabs__tab" value="playlists">
-              {t('Playlists', 'Danh sách phát')}
-            </TabTrigger>
-            <TabTrigger className="tabs__tab" value="all">
-              {t('All videos', 'Tất cả video')}
-            </TabTrigger>
-          </Tabs.List>
-          {search}
-          <Tabs.Content value="playlists">
-            <PlaylistsTab query={query} playlists={playlists} />
-          </Tabs.Content>
-          <Tabs.Content value="all">
-            <AllVideosTab query={query} videos={videos} error={videosError} />
-          </Tabs.Content>
-        </Tabs.Root>
-      )}
+        {waitingForPlaylist ? (
+          <LoadingText>{t('Loading playlist…', 'Đang tải danh sách phát…')}</LoadingText>
+        ) : active ? (
+          <>
+            <PlaylistHeader playlist={active} />
+            <VideoSection
+              entries={active.videos.map((video, i) => ({ video, position: i + 1 }))}
+              query={query}
+              linkFor={(e) => `/vietsub/${e.video.id}?playlist=${active.id}`}
+              empty={
+                <EmptyState icon={ListVideo}>
+                  {t('This playlist has no videos yet.', 'Danh sách phát này chưa có video.')}
+                  {!readOnly && <> <Link to={`/vietsub/playlists/${active.id}`}>Manage playlist</Link></>}
+                </EmptyState>
+              }
+            />
+          </>
+        ) : (
+          <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
+            <Tabs.List className="tabs__list" aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
+              <TabTrigger className="tabs__tab" value="playlists">
+                {t('Playlists', 'Danh sách phát')}
+              </TabTrigger>
+              <TabTrigger className="tabs__tab" value="all">
+                {t('All videos', 'Tất cả video')}
+              </TabTrigger>
+            </Tabs.List>
+            {search}
+            <Tabs.Content value="playlists">
+              <PlaylistsTab query={query} playlists={playlists} />
+            </Tabs.Content>
+            <Tabs.Content value="all">
+              <AllVideosTab query={query} videos={videos} error={videosError} />
+            </Tabs.Content>
+          </Tabs.Root>
+        )}
+      </VietsubTabs>
     </Page>
   );
 }

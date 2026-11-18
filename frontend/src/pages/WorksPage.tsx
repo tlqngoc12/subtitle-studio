@@ -13,6 +13,7 @@ import { FilterPills } from '../components/ui/FilterPills';
 import { IconLink } from '../components/ui/IconButton';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ShowcaseTabs } from '../components/ShowcaseTabs';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -102,40 +103,42 @@ export default function WorksPage() {
           )
         }
       />
+      <ShowcaseTabs>
 
-      <div className="works-filters">
-        {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
-        <FilterPills label={t('Filter by category', 'Lọc theo thể loại')} options={categoryOptions(readOnly)} value={cat} onChange={(c) => setFilter('cat', c)} />
-      </div>
+        <div className="works-filters">
+          {people.length > 0 && <PeopleFilter people={people} value={who} onChange={(slug) => setFilter('who', slug)} />}
+          <FilterPills label={t('Filter by category', 'Lọc theo thể loại')} options={categoryOptions(readOnly)} value={cat} onChange={(c) => setFilter('cat', c)} />
+        </div>
 
-      {error && <Alert title={error.title} hint={error.hint} />}
-      {works === null && !error && <SkeletonGrid count={8} aspect="4/5" />}
-      {works !== null && visible.length === 0 && !error && (
-        <EmptyState icon={Clapperboard}>{t('No works here yet.', 'Chưa có tác phẩm nào.')}</EmptyState>
-      )}
+        {error && <Alert title={error.title} hint={error.hint} />}
+        {works === null && !error && <SkeletonGrid count={8} aspect="4/5" />}
+        {works !== null && visible.length === 0 && !error && (
+          <EmptyState icon={Clapperboard}>{t('No works here yet.', 'Chưa có tác phẩm nào.')}</EmptyState>
+        )}
 
-      {groups.map((group) => {
-        const headingId = `works-year-${group.year ?? 'soon'}`;
-        return (
-          <section key={headingId} className="works-year" aria-labelledby={headingId}>
-            <h2 id={headingId} className="group-label works-year__label">
-              {group.year === null ? t('Coming Soon', 'Sắp ra mắt') : group.label}
-            </h2>
-            <ul className="work-grid">
-              {group.items.map((w, i) => (
-                <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
-                  {!readOnly && (
-                    <div className="work-card__edit">
-                      <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />
-                    </div>
-                  )}
-                </WorkCard>
-              ))}
-            </ul>
-          </section>
-        );
-      })}
-      {!readOnly && <PeopleDialog open={peopleOpen} onOpenChange={setPeopleOpen} />}
+        {groups.map((group) => {
+          const headingId = `works-year-${group.year ?? 'soon'}`;
+          return (
+            <section key={headingId} className="works-year" aria-labelledby={headingId}>
+              <h2 id={headingId} className="group-label works-year__label">
+                {group.year === null ? t('Coming Soon', 'Sắp ra mắt') : group.label}
+              </h2>
+              <ul className="work-grid">
+                {group.items.map((w, i) => (
+                  <WorkCard key={w.id} work={w} index={i} badge={w.profile ? (nameOf.get(w.profile) ?? null) : null}>
+                    {!readOnly && (
+                      <div className="work-card__edit">
+                        <IconLink to={`/works/${w.id}/edit`} label={`Edit ${w.title}`} icon={Pencil} />
+                      </div>
+                    )}
+                  </WorkCard>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+        {!readOnly && <PeopleDialog open={peopleOpen} onOpenChange={setPeopleOpen} />}
+      </ShowcaseTabs>
     </Page>
   );
 }

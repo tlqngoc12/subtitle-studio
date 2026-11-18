@@ -1079,3 +1079,9 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - **Dịch chương Wattpad không còn ảnh:** bản dịch không có marker `[[image:N]]` và không dịch chữ trong ảnh; thêm lại `[[image:N]]` bằng tay từ panel Original khi cần. Marker vẫn nằm ở bản gốc, Original panel, trang public và bước lưu (chỉ cho phép bớt/đổi chỗ marker của chính chương).
 - **Sửa Original panel lệch khi bản dịch không có ảnh:** `alignParagraph` chỉ dùng marker `[[image:N]]` có ở cả hai bên làm mốc (marker gốc không có ở bản dịch bị bỏ qua), nên đoạn dịch thứ k ứng với đoạn gốc thứ k không tính marker; test trong `chapterText.test.ts`.
 
+
+### 2026-11-18: Menu admin theo nhóm + thêm luật Check ✅
+- **Menu admin** còn 4 mục: Vietsub, Showcase, Novels, Settings (nhãn "Showcase" là tên tạm, một hằng `SHOWCASE_LABEL` trong `NavBar.tsx`). Vietsub có tab Get Engsub · Videos · Playlists · Profiles · List; Showcase có tab Profile · Works · Photos (`RouteTabs`, `VietsubTabs`, `ShowcaseTabs`). Route không đổi; site public giữ 5 mục và không hiện hàng tab.
+- **Thêm luật Check từ trang chương:** bôi đen một cụm (1 đến 60 ký tự, không xuống dòng, không dấu ngoặc kép) rồi bấm "Add to check rules"; hộp thoại có Wrong phrase, Suggestions (ngăn bằng `|`), Reason. `formatCheckRule`/`addCheckRule` trong `lib/checkRules.ts` ghi dòng vào `## Kiểm tra` (tạo mục nếu thiếu, thay dòng cùng cụm sai); lưu kèm sha, lệch sha thì đọc lại và thử thêm một lần.
+- **Analyzer** (`NovelProfileAnalyzer.SYSTEM_RULES`) thêm một dòng đề xuất luật `## Kiểm tra` cho cụm bị sửa giống nhau ở ít nhất 2 đoạn; hai hồ sơ BreathlessLesson và MyGrumpyVampire được thêm mục `## Kiểm tra` ban đầu (3 luật mỗi hồ sơ).
+- Spec [docs/superpowers/specs/2026-11-18-admin-menu-check-rules-design.md](docs/superpowers/specs/2026-11-18-admin-menu-check-rules-design.md), plan [docs/superpowers/plans/2026-11-18-admin-menu-check-rules.md](docs/superpowers/plans/2026-11-18-admin-menu-check-rules.md).

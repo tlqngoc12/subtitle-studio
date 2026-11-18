@@ -6,6 +6,14 @@
   gap: var(--space-3);
 }
 
+.chapter-text__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 .check-bar {
   display: flex;
   align-items: center;

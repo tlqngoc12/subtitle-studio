@@ -113,28 +113,28 @@ describe('NavBar', () => {
     expect(css).toMatch(/\.topbar__name\s*\{[^}]*clip/);
   });
 
-  it('links to the four sections', () => {
+  it('adminTopbarHasFourGroups: Vietsub, Showcase, Novels, Settings in order', () => {
     render(
       <MemoryRouter>
         <NavBar />
       </MemoryRouter>,
     );
     const nav = screen.getByRole('navigation');
-    expect(within(nav).getByRole('link', { name: 'Get Engsub' })).toHaveAttribute('href', '/');
+    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Vietsub', 'Showcase', 'Novels', 'Settings']);
     expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
-    expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
-    expect(within(nav).getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profiles');
+    expect(within(nav).getByRole('link', { name: 'Showcase' })).toHaveAttribute('href', '/profiles');
   });
 
-  it('lists the sections in order with Photos between Profile and Novels', () => {
+  it('publicTopbarUnchanged: Vietsub, Profile, Works, Photos, Novels', () => {
     render(
-      <MemoryRouter>
-        <NavBar />
-      </MemoryRouter>,
+      <SiteProvider value={publicSite(fakeSource({}))}>
+        <MemoryRouter initialEntries={['/']}>
+          <NavBar />
+        </MemoryRouter>
+      </SiteProvider>,
     );
     const links = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
-    expect(links.slice(-7)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Works', 'Photos', 'Novels', 'Settings']);
-    expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Photos' })).toHaveAttribute('href', '/photos');
+    expect(links).toEqual(['Vietsub', 'Profile', 'Works', 'Photos', 'Novels']);
   });
 
   it('calls the list "Vietsub" on the public site and keeps it current on the list and watch pages', () => {
@@ -153,12 +153,10 @@ describe('NavBar', () => {
     expect(within(nav).queryByRole('link', { name: 'Vietsub list' })).not.toBeInTheDocument();
   });
 
-  it('lists Novels after Photos and marks it current on chapter pages', () => {
+  it('marks Novels current on chapter pages', () => {
     expect(currentAt('/novels/3/chapters/9')).toEqual(['Novels']);
     cleanup();
     expect(currentAt('/novels')).toEqual(['Novels']);
-    const links = within(screen.getAllByRole('navigation')[0]).getAllByRole('link').map((a) => a.textContent);
-    expect(links.indexOf('Novels')).toBe(links.indexOf('Photos') + 1);
   });
 
   it('navShowsSettingsInAdminOnly: Settings is the last admin section and is not on the public site', () => {
@@ -194,35 +192,21 @@ describe('NavBar', () => {
   });
 
   it.each([
-    ['/', 'Get Engsub'],
+    ['/', 'Vietsub'],
     ['/vietsub', 'Vietsub'],
-    ['/vietsub/list', 'Vietsub list'],
-    ['/vietsub/dQw4w9WgXcQ', 'Vietsub list'],
-    ['/profiles', 'Profile'],
-    ['/profiles/emi', 'Profile'],
-    ['/photos', 'Photos'],
-    ['/works', 'Works'],
-    ['/works/3', 'Works'],
-  ])('marks exactly one current section at %s', (path, expected) => {
+    ['/vietsub/list', 'Vietsub'],
+    ['/vietsub/123', 'Vietsub'],
+    ['/vietsub/playlists', 'Vietsub'],
+    ['/vietsub/playlists/7', 'Vietsub'],
+    ['/vietsub/profiles', 'Vietsub'],
+    ['/profiles', 'Showcase'],
+    ['/profiles/emi', 'Showcase'],
+    ['/works', 'Showcase'],
+    ['/works/5/edit', 'Showcase'],
+    ['/photos', 'Showcase'],
+    ['/settings/backups', 'Settings'],
+  ])('navCurrentForDeepLinks: %s lights %s', (path, expected) => {
     expect(currentAt(path)).toEqual([expected]);
-  });
-  it.each(['/vietsub/playlists', '/vietsub/playlists/3', '/vietsub/playlists/3/'])(
-    'marks Vietsub as current on the playlist pages (%s)',
-    (path) => {
-      expect(currentAt(path)).toEqual(['Vietsub']);
-    },
-  );
-
-  it.each(['/vietsub/profiles', '/vietsub/profiles/'])('marks Vietsub, not Vietsub list, at %s', (path) => {
-    expect(currentAt(path)).toEqual(['Vietsub']);
-  });
-
-  it('marks no section on the Vietsub editor (unchanged)', () => {
-    expect(currentAt('/vietsub/abc123/edit')).toEqual([]);
-  });
-
-  it('still marks Vietsub list as current on the watch page', () => {
-    expect(currentAt('/vietsub/abc123')).toEqual(['Vietsub list']);
   });
 
   it('puts the logo (decorative, the name follows) before the app name in the brand link', () => {

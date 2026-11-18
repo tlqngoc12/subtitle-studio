@@ -210,3 +210,57 @@ export function applySuggestion(text: string, issue: Issue, suggestion: string):
   const replacement = adaptCase(text.slice(issue.start, issue.end), suggestion);
   return text.slice(0, issue.start) + replacement + text.slice(issue.end);
 }
+
+/** The profile line for `rule`, in the form `parseCheckRules` reads back (NFC). */
+export function formatCheckRule(rule: CheckRule): string {
+  const quoted = (t: string) => `"${t.normalize('NFC')}"`;
+  const target = rule.suggestions.length > 0 ? rule.suggestions.map(quoted).join(' | ') : '(tránh dùng)';
+  const reason = rule.reason && rule.reason.trim() !== '' ? ` (${rule.reason.normalize('NFC')})` : '';
+  return `- ${quoted(rule.wrong)} → ${target}${reason}`;
+}
+
+const SUMMARY = /^##\s+Tóm tắt nội dung chính\s*$/iu;
+
+/**
+ * `profile` with `rule` added to its `## Kiểm tra` section: a rule with the same wrong phrase (NFC, case-insensitive)
+ * is replaced, otherwise the line goes after the last non-blank line of the section. A missing section is created
+ * before `## Tóm tắt nội dung chính`, or at the end. Every other line is left as it was.
+ */
+export function addCheckRule(profile: string, rule: CheckRule): string {
+  const eol = profile.includes('\r\n') ? '\r\n' : '\n';
+  const lines = profile.split(/\r?\n/);
+  const line = formatCheckRule(rule);
+  const start = lines.findIndex((l) => SECTION.test(l.normalize('NFC').trim()));
+  if (start < 0) {
+    const summary = lines.findIndex((l) => SUMMARY.test(l.normalize('NFC').trim()));
+    if (summary >= 0) {
+      lines.splice(summary, 0, '## Kiểm tra', line, '');
+      return lines.join(eol);
+    }
+    // At the end, after one blank line; `lines` ends with '' when the file ends with a newline.
+    const endsWithNewline = lines[lines.length - 1] === '';
+    const body = endsWithNewline ? lines.slice(0, -1) : lines;
+    const out = [...body, ...(body.length > 0 ? [''] : []), '## Kiểm tra', line].join(eol);
+    return endsWithNewline || body.length === 0 ? out + eol : out;
+  }
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('## ')) {
+      end = i;
+      break;
+    }
+  }
+  const wanted = fold(rule.wrong.normalize('NFC').trim());
+  let last = start;
+  for (let i = start + 1; i < end; i++) {
+    if (lines[i].trim() !== '') last = i;
+    const bullet = /^\s*[-*]\s+(.*)$/u.exec(lines[i].normalize('NFC'));
+    const parsed = bullet ? parseRule(bullet[1].trim()) : null;
+    if (parsed && fold(parsed.wrong) === wanted) {
+      lines[i] = line;
+      return lines.join(eol);
+    }
+  }
+  lines.splice(last + 1, 0, line);
+  return lines.join(eol);
+}

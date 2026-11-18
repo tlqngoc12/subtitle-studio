@@ -12,6 +12,7 @@ import { PhotoTileMenu } from '../components/photos/PhotoTileMenu';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ShowcaseTabs } from '../components/ShowcaseTabs';
 import { PeopleFilter, type Person } from '../components/ui/PeopleFilter';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
@@ -112,51 +113,53 @@ export default function PhotosPage() {
           )
         }
       />
+      <ShowcaseTabs>
 
-      {people.length > 0 && (
-        <PeopleFilter
-          people={people}
-          value={who}
-          onChange={(slug) => setParams(slug ? { who: slug } : {}, { replace: true })}
-        />
-      )}
+        {people.length > 0 && (
+          <PeopleFilter
+            people={people}
+            value={who}
+            onChange={(slug) => setParams(slug ? { who: slug } : {}, { replace: true })}
+          />
+        )}
 
-      {error && <Alert title={error.title} hint={error.hint} />}
-      {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
-      {posts === null && !error && <SkeletonGrid count={8} aspect="1/1" />}
+        {error && <Alert title={error.title} hint={error.hint} />}
+        {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
+        {posts === null && !error && <SkeletonGrid count={8} aspect="1/1" />}
 
-      {posts !== null && visible.length === 0 && !error && (
-        <EmptyState icon={Camera}>{t('No photos here yet.', 'Chưa có ảnh nào.')}</EmptyState>
-      )}
+        {posts !== null && visible.length === 0 && !error && (
+          <EmptyState icon={Camera}>{t('No photos here yet.', 'Chưa có ảnh nào.')}</EmptyState>
+        )}
 
-      {visible.length > 0 && (
-        <ul className="photo-grid" aria-label={t('Photos', 'Hình ảnh')}>
-          {visible.slice(0, shown).map((post, i) => (
-            <PhotoTile key={post.id} post={post} index={i}>
-              {!readOnly && (
-                <PhotoTileMenu post={post} onEdit={() => setDialog({ post })} onDelete={() => void remove(post)} />
-              )}
-            </PhotoTile>
-          ))}
-        </ul>
-      )}
+        {visible.length > 0 && (
+          <ul className="photo-grid" aria-label={t('Photos', 'Hình ảnh')}>
+            {visible.slice(0, shown).map((post, i) => (
+              <PhotoTile key={post.id} post={post} index={i}>
+                {!readOnly && (
+                  <PhotoTileMenu post={post} onEdit={() => setDialog({ post })} onDelete={() => void remove(post)} />
+                )}
+              </PhotoTile>
+            ))}
+          </ul>
+        )}
 
-      {visible.length > shown && (
-        <div className="photo-more">
-          <button type="button" className="button" onClick={() => setShown((n) => n + PAGE_SIZE)}>
-            {t('Load more', 'Xem thêm')}
-          </button>
-        </div>
-      )}
-      {!readOnly && (
-        <PhotoPostDialog
-          open={dialog !== null}
-          post={dialog?.post}
-          people={people}
-          onSaved={saved}
-          onOpenChange={(open) => !open && setDialog(null)}
-        />
-      )}
+        {visible.length > shown && (
+          <div className="photo-more">
+            <button type="button" className="button" onClick={() => setShown((n) => n + PAGE_SIZE)}>
+              {t('Load more', 'Xem thêm')}
+            </button>
+          </div>
+        )}
+        {!readOnly && (
+          <PhotoPostDialog
+            open={dialog !== null}
+            post={dialog?.post}
+            people={people}
+            onSaved={saved}
+            onOpenChange={(open) => !open && setDialog(null)}
+          />
+        )}
+      </ShowcaseTabs>
     </Page>
   );
 }
