@@ -157,6 +157,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'This novel does not come from Wattpad.' };
     case 'NOVEL_WATTPAD_EXISTS':
       return { title: error.detail || 'This Wattpad story is already translated.', hint: 'Open that novel instead.' };
+    case 'NOTHING_TO_EXPORT':
+      return { title: 'No chapter has text to export yet.' };
     case 'CHAPTER_NOT_TRANSLATED':
       return { title: 'Every page needs a translation before publishing.' };
     case 'PUBLISH_IN_PROGRESS':

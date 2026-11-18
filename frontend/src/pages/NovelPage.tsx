@@ -1,12 +1,13 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { CloudDownload, Plus } from 'lucide-react';
+import { CloudDownload, Download, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   addChapter,
   deleteNovel,
+  exportNovel,
   fetchTranslateNext,
   getNovel,
   reorderChapters,
@@ -47,6 +48,7 @@ export default function NovelPage() {
   });
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [adding, setAdding] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     getNovel(novelId)
@@ -89,6 +91,26 @@ export default function NovelPage() {
     } catch (e) {
       toastError(errorMessage(e));
       setAdding(false);
+    }
+  }
+
+  /** Downloads the chapters as a zip: the blob is saved through a temporary link. */
+  async function exportChapters() {
+    setExporting(true);
+    try {
+      const { blob, fileName } = await exportNovel(novelId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toastError(errorMessage(e));
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -170,7 +192,13 @@ export default function NovelPage() {
               <Toolbar
                 className="toolbar--above-list"
                 actions={
-                  novel.sourceType === 'WATTPAD' ? (
+                  <>
+                    <button className="button" type="button" onClick={() => void exportChapters()}
+                      disabled={exporting || novel.chapters.length === 0}>
+                      <Download className="icon" aria-hidden="true" />
+                      {exporting ? 'Exporting…' : 'Export'}
+                    </button>
+                  {novel.sourceType === 'WATTPAD' ? (
                     // Wattpad chapters come from Wattpad: screenshot chapters would mix the two sources.
                     // The reason shows before the click: a disabled button swallows hover, so the tip sits on a span.
                     <Tip label={busy ? busyTitle(busy) : ''} disabled={!busy}>
@@ -187,7 +215,8 @@ export default function NovelPage() {
                       <Plus className="icon" aria-hidden="true" />
                       Add chapter
                     </button>
-                  )
+                  )}
+                  </>
                 }
               />
               <ChapterList novelId={novelId} chapters={novel.chapters} fromText={novel.sourceType === 'WATTPAD'}

@@ -217,6 +217,13 @@ export async function reorderChapters(novelId: number, chapterIds: number[]): Pr
   return (await send(`/api/novels/${novelId}/chapters/order`, json('PUT', { chapterIds }))).json();
 }
 
+/** Downloads every chapter that has text as a zip (.md + paste-ready .html each); 409 NOTHING_TO_EXPORT when none has. */
+export async function exportNovel(id: number): Promise<{ blob: Blob; fileName: string }> {
+  const res = await send(`/api/novels/${id}/export`);
+  const match = /filename="?([^";]+)"?/.exec(res.headers.get('Content-Disposition') ?? '');
+  return { blob: await res.blob(), fileName: match ? match[1] : `novel-${id}.zip` };
+}
+
 export async function deletePage(id: number, pageId: number): Promise<void> {
   await send(`/api/chapters/${id}/pages/${pageId}`, { method: 'DELETE' });
 }

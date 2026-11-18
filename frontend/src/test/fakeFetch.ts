@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-export type Route = { method: string; path: string; status: number; body?: unknown; delay?: Promise<void> };
+export type Route = { method: string; path: string; status: number; body?: unknown; delay?: Promise<void>; headers?: Record<string, string> };
 export type Call = { method: string; path: string; body?: BodyInit | null };
 
 /** Minimal fetch fake: first matching route wins; unmatched requests fail like a network error. */
@@ -17,7 +17,10 @@ export function fakeFetch(routes: Route[]): Call[] {
       if (route.delay) await route.delay;
       return new Response(route.body === undefined ? null : JSON.stringify(route.body), {
         status: route.status,
-        headers: { 'Content-Type': route.status >= 400 ? 'application/problem+json' : 'application/json' },
+        headers: {
+          'Content-Type': route.status >= 400 ? 'application/problem+json' : 'application/json',
+          ...route.headers,
+        },
       });
     }),
   );
