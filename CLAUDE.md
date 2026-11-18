@@ -194,3 +194,5 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 
 - Trả lời bằng tiếng Việt có dấu đầy đủ. Tên kỹ thuật và identifier giữ nguyên.
 - Mọi thứ trong code đều viết **tiếng Anh**: comment, Javadoc, tên class/method/biến, comment trong file config, message trong exception và log. Chuỗi hiển thị cho người dùng trên frontend cũng bằng tiếng Anh (xem mục Frontend).
+- **Menu admin theo nhóm:** thanh trên của admin có 4 mục Vietsub / Showcase / Novels / Settings; Vietsub (`/`, `/vietsub…`) có tab Get Engsub · Videos · Playlists · Profiles · List, Showcase (`/profiles`, `/works`, `/photos`) có tab Profile · Works · Photos (`RouteTabs`; hàng tab chỉ hiện ở admin, site public giữ 5 mục cũ). Nhãn "Showcase" là hằng `SHOWCASE_LABEL` trong `NavBar.tsx`.
+- **Thêm luật Check từ trang chương:** nút "Add to check rules" cạnh nút Check (chọn 1 đến 60 ký tự, không xuống dòng, không dấu `"`) mở `AddCheckRuleDialog`; `addCheckRule` (`lib/checkRules.ts`) ghi vào `## Kiểm tra` của hồ sơ qua `saveNovelProfile` (lệch sha thì đọc lại, thử thêm một lần). Nút Analyze của hồ sơ cũng đề xuất dòng `## Kiểm tra`.
