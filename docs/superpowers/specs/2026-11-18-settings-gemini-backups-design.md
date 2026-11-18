@@ -140,6 +140,7 @@ Form (one column, `FormActions` sticky at the bottom with Save / Cancel):
    - `dev.mv.db`, `dev.trace.db` (H2 dev)
    - `logs/`
    - `translate-partial/`
+   - `novel-render/` (regenerable cache of public chapter images, far bigger than everything else)
 
    The zip is written to `.zip.part` and renamed when it is complete. Files that change while zipping are copied
    as read; a run never fails because of that.

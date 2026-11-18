@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 public class DataZipper {
 
     /** Folders directly under the data folder that are not backed up. */
-    static final Set<String> EXCLUDED_DIRS = Set.of("backups", "logs", "translate-partial");
+    static final Set<String> EXCLUDED_DIRS = Set.of("backups", "logs", "translate-partial", "novel-render");
     /** H2 dev database files directly under the data folder. */
     static final Set<String> EXCLUDED_FILES = Set.of("dev.mv.db", "dev.trace.db");
 

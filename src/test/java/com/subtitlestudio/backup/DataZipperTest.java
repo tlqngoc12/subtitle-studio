@@ -41,6 +41,7 @@ class DataZipperTest {
         write("backups/backup.log", "log");
         write("logs/app.log", "log");
         write("translate-partial/v.json", "{}");
+        write("novel-render/1/x.png", "png");
         write("dev.mv.db", "h2");
         write("dev.trace.db", "h2");
         write("prompts/logs/keep.txt", "a folder named logs deeper down is kept");
