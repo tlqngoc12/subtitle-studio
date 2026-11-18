@@ -157,6 +157,21 @@ export function useChapterCheck({
     else reveal();
   }
 
+  // F8 / Shift+F8 step through the issues while Check is on (not while a dialog is open).
+  const goToRef = useRef(goTo);
+  goToRef.current = goTo;
+  useEffect(() => {
+    if (!active) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'F8' || e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      e.preventDefault();
+      goToRef.current(e.shiftKey ? -1 : 1);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [active]);
+
   return {
     on: active,
     requested: on,

@@ -7,7 +7,8 @@ import type { FindHits } from '../../lib/useChapterEditor';
 import { useAutoGrow } from '../../lib/useAutoGrow';
 import { AddCheckRuleDialog, ruleSelectionProblem } from './AddCheckRuleDialog';
 import { CheckPopover } from './CheckPopover';
-import { CheckToggle } from './CheckToggle';
+import { createPortal } from 'react-dom';
+import { CheckNavigator, CheckToggle } from './CheckToggle';
 import { CopyTextButton } from './CopyTextButton';
 import { useChapterCheck } from './useChapterCheck';
 import { CheckHighlights } from '../novel/CheckHighlights';
@@ -27,10 +28,12 @@ interface Props {
   /** The matches of the open find panel; painted behind the textarea. */
   hits: FindHits;
   finding: boolean;
+  /** The slot in the sticky chapter bar where the Check navigator is shown while Check is on. */
+  barSlot?: HTMLElement | null;
 }
 
 /** The chapter's text box, with the original beside it for a chapter that has one. */
-export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextChange, textRef, locked, hits, finding }: Props) {
+export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextChange, textRef, locked, hits, finding, barSlot }: Props) {
   useAutoGrow(textRef, text);
   const showHits = finding && hits.matches.length > 0;
   const checkBox = useRef<HTMLDivElement>(null);
@@ -53,6 +56,10 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
 
   return (
     <div className={showOriginal ? 'chapter-columns' : undefined}>
+      {check.on && barSlot && createPortal(
+        <CheckNavigator count={check.issues.length} onPrev={() => check.goTo(-1)} onNext={() => check.goTo(1)} />,
+        barSlot,
+      )}
       {showOriginal && (
         <OriginalPanel
           language={chapter.sourceLanguage}
