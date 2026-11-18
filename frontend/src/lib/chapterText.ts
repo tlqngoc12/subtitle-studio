@@ -61,6 +61,38 @@ export function stripImageMarkers(text: string): string {
  * (the translation of the text inside the image) map to the marker itself. The result stays inside the original.
  */
 export function alignParagraph(source: string[], translated: string[], index: number): number {
+  // Only markers present in both texts are anchors: drop the original's markers the translation lacks (the n-th
+  // occurrence of an id needs an n-th occurrence in the translation), align against what is left, map the index back.
+  const seen = new Map<number, number>();
+  const have = new Map<number, number>();
+  for (const p of translated) {
+    const id = imageMarkerId(p);
+    if (id !== null) have.set(id, (have.get(id) ?? 0) + 1);
+  }
+  const keep: number[] = [];
+  source.forEach((p, i) => {
+    const id = imageMarkerId(p);
+    if (id === null) return keep.push(i);
+    const n = seen.get(id) ?? 0;
+    seen.set(id, n + 1);
+    if (n < (have.get(id) ?? 0)) keep.push(i);
+  });
+  if (keep.length === source.length) return alignAnchored(source, translated, index);
+  const last = source.length - 1;
+  const target = translated[index];
+  if (target === undefined) return Math.min(Math.max(index, 0), last);
+  const targetId = imageMarkerId(target);
+  if (targetId !== null && !source.some((p) => imageMarkerId(p) === targetId)) return Math.min(index, last);
+  if (keep.length === 0) return Math.min(index, last);
+  const inner = alignAnchored(
+    keep.map((i) => source[i]),
+    translated,
+    index,
+  );
+  return keep[Math.min(Math.max(inner, 0), keep.length - 1)];
+}
+
+function alignAnchored(source: string[], translated: string[], index: number): number {
   const markerAt = source.map(imageMarkerId);
   if (source.length === 0 || markerAt.every((m) => m === null)) return index;
   const last = source.length - 1;

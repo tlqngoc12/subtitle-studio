@@ -143,6 +143,24 @@ describe('alignParagraph', () => {
   it('falls back to the position when the translation names a marker the original lacks', () => {
     expect(alignParagraph(['A', '[[image:1]]', 'B'], ['a', '[[image:9]]', 'b'], 1)).toBe(1);
   });
+
+  const withTwoImages = ['p0', 'p1', '[[image:1]]', 'p2', 'p3', '[[image:2]]', 'p4'];
+
+  it('ignores source images missing from the translation', () => {
+    const translated = ['t0', 't1', 't2', 't3', 't4'];
+    expect(translated.map((_, i) => alignParagraph(withTwoImages, translated, i))).toEqual([0, 1, 3, 4, 6]);
+  });
+
+  it('keeps the images the translator added back as anchors', () => {
+    const translated = ['t0', 't1', '[[image:1]]', 't2', 't3', 't4'];
+    expect(alignParagraph(withTwoImages, translated, 3)).toBe(3);
+    expect(alignParagraph(withTwoImages, translated, 5)).toBe(6);
+    expect(alignParagraph(withTwoImages, translated, 2)).toBe(2);
+  });
+
+  it('clamps an index past the end to the last original paragraph when images are missing', () => {
+    expect(alignParagraph(withTwoImages, ['t0', 't1', 't2'], 9)).toBe(6);
+  });
 });
 
 describe('stripImageMarkers', () => {
