@@ -324,4 +324,12 @@ class NovelProfileAnalyzerTest {
     void systemRulesAskForCheckRules() {
         assertThat(NovelProfileAnalyzer.SYSTEM_RULES).contains("## Kiểm tra").contains("ít nhất 2 đoạn");
     }
+
+    @Test
+    void systemRulesAskForCharactersAndAddressingPairs() {
+        assertThat(NovelProfileAnalyzer.SYSTEM_RULES)
+                .contains("## Nhân vật")
+                .contains("sổ tay truyện")
+                .contains("A → B: xưng …, gọi …");
+    }
 }
