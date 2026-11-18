@@ -31,7 +31,9 @@
   - Emi: "she / her / herself" chỉ Emi → "cô" (ví dụ "cô ấy", "của cô", "chính cô"). Ví dụ: "She sighed" → "Cô thở dài".
   - Bản gốc gọi tên ("Bonnie", "Emi") thì giữ nguyên tên, không đổi tên thành đại từ "em" / "cô".
   - Khi một câu nhắc cả hai người bằng "she" / "her", dựa vào ngữ cảnh để biết ai là ai. Nếu dùng "em" / "cô" vẫn dễ nhầm thì dùng tên cho rõ.
-- Cặp xưng hô cụ thể giữa các nhân vật chính: bổ sung ở đây khi đã rõ (A → B gọi là gì, xưng gì).
+- Cặp xưng hô cụ thể giữa các nhân vật chính:
+  - Emi → Bonnie: trong lời thoại xưng "tôi", gọi "em".
+  - Bonnie → Emi: trong lời thoại xưng "em", gọi "cô".
 
 ## Tên riêng và thuật ngữ
 - Giữ nguyên tên người tiếng Anh, không Việt hoá; biệt danh giữ như bản gốc.
