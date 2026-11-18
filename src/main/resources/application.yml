@@ -69,6 +69,10 @@ subtitle-studio:
     # After a 503 ("overloaded") the model is not asked again for this long: on the free tier a 503 still uses one of
     # the 20 daily requests, and overloads after the 15:00 (Vietnam time) reset can last hours. 0 = off.
     overload-cooldown: 10m
+  # Backups run by the app (Settings > Backups): a Data Pump dump of the database plus a zip of ./data, written to
+  # ./data/backups. Daily schedule as a Spring cron (seconds first) in Asia/Ho_Chi_Minh; blank = no daily run.
+  backup:
+    cron: "0 0 12 * * *"
   # Public read-only site on Cloudflare Pages (Publish button). Empty token, account id or project = off.
   publish:
     cloudflare-api-token: ${CLOUDFLARE_API_TOKEN:}
