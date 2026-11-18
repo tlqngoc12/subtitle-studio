@@ -77,8 +77,8 @@ export class ApiError extends Error {
     readonly code: string | null,
     readonly detail: string,
     readonly fieldErrors: FieldError[] = [],
-    /** Extra ProblemDetail properties some codes carry (NOVEL_TRANSLATION_BUSY: `reason`, `chapterNo`). */
-    readonly extra: { reason?: string; chapterNo?: number } = {},
+    /** Extra ProblemDetail properties some codes carry (NOVEL_TRANSLATION_BUSY: `reason`, `chapterNo`; INVALID_SETTING: `field`). */
+    readonly extra: { reason?: string; chapterNo?: number; field?: string } = {},
   ) {
     super(detail);
     this.name = 'ApiError';
@@ -96,7 +96,7 @@ export async function send(path: string, init?: RequestInit): Promise<Response> 
     let code: string | null = null;
     let detail = res.statusText || `HTTP ${res.status}`;
     let fieldErrors: FieldError[] = [];
-    const extra: { reason?: string; chapterNo?: number } = {};
+    const extra: { reason?: string; chapterNo?: number; field?: string } = {};
     try {
       const problem = await res.json();
       code = typeof problem.code === 'string' ? problem.code : null;
@@ -104,6 +104,7 @@ export async function send(path: string, init?: RequestInit): Promise<Response> 
       if (Array.isArray(problem.errors)) fieldErrors = problem.errors;
       if (typeof problem.reason === 'string') extra.reason = problem.reason;
       if (typeof problem.chapterNo === 'number') extra.chapterNo = problem.chapterNo;
+      if (typeof problem.field === 'string') extra.field = problem.field;
     } catch {
       // body was not JSON; keep the status text
     }

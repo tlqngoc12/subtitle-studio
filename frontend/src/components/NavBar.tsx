@@ -29,6 +29,9 @@ const PHOTOS: Section = { to: '/photos', label: 'Photos', isCurrent: (p) => p ==
 
 const NOVELS: Section = { to: '/novels', label: 'Novels', isCurrent: (p) => p === '/novels' || p.startsWith('/novels/') };
 
+/** Admin only: Gemini and backup settings. */
+const SETTINGS: Section = { to: '/settings', label: 'Settings', isCurrent: (p) => p === '/settings' || p.startsWith('/settings/') };
+
 /** Guests only read: no Get Engsub, no Vietsub management, so the list is simply "Vietsub" for them. */
 const PUBLIC_SECTIONS: Section[] = [{ ...VIETSUB_LIST, label: 'Vietsub' }, PROFILE, WORKS, PHOTOS, NOVELS];
 
@@ -41,6 +44,7 @@ const ADMIN_SECTIONS: Section[] = [
   WORKS,
   PHOTOS,
   NOVELS,
+  SETTINGS,
 ];
 
 /** The scrollLeft that centres `item` in the nav, clamped so the row never scrolls past its ends. */
