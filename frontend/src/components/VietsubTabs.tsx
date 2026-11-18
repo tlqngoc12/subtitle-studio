@@ -1,33 +1,19 @@
 import type { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router';
+import { RouteTabs, type RouteTab } from './RouteTabs';
 
-const TABS = [
-  { to: '/vietsub', label: 'Videos', isCurrent: (p: string) => p === '/vietsub' || p === '/vietsub/' },
-  { to: '/vietsub/playlists', label: 'Playlists', isCurrent: (p: string) => p.startsWith('/vietsub/playlists') },
-  { to: '/vietsub/profiles', label: 'Profiles', isCurrent: (p: string) => p.startsWith('/vietsub/profiles') },
+const TABS: RouteTab[] = [
+  { to: '/', label: 'Get Engsub', isCurrent: (p) => p === '/' },
+  { to: '/vietsub', label: 'Videos', isCurrent: (p) => p === '/vietsub' || p === '/vietsub/' },
+  { to: '/vietsub/playlists', label: 'Playlists', isCurrent: (p) => p.startsWith('/vietsub/playlists') },
+  { to: '/vietsub/profiles', label: 'Profiles', isCurrent: (p) => p.startsWith('/vietsub/profiles') },
+  { to: '/vietsub/list', label: 'List', isCurrent: (p) => p === '/vietsub/list' || p === '/vietsub/list/' },
 ];
 
-/**
- * Videos · Playlists · Profiles under the Vietsub heading. Each is its own page (links, so Back and new tabs work),
- * drawn as the same underline tabs as the Vietsub list page; the open one is underlined in orchid.
- */
+/** Get Engsub · Videos · Playlists · Profiles · List: the tab row of the Vietsub group (admin only). */
 export function VietsubTabs({ children }: { children?: ReactNode }) {
-  const { pathname } = useLocation();
   return (
-    <div className="tabs">
-      <nav className="tabs__list" aria-label="Vietsub">
-        {TABS.map((t) => (
-          <Link
-            key={t.to}
-            className="tabs__tab"
-            to={t.to}
-            aria-current={t.isCurrent(pathname) ? 'page' : undefined}
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="tabs__body">{children}</div>
-    </div>
+    <RouteTabs label="Vietsub" tabs={TABS}>
+      {children}
+    </RouteTabs>
   );
 }

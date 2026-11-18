@@ -23,6 +23,7 @@ import { useTranslationPolling } from '../lib/useTranslationPolling';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { VietsubTabs } from '../components/VietsubTabs';
 
 interface Current {
   video: VideoDto;
@@ -194,45 +195,47 @@ export default function HomePage() {
         title="Get Engsub"
         lede="Paste a YouTube link to get cleaned-up English subtitles, then download the .srt file to translate."
       />
+      <VietsubTabs>
 
-      <UrlForm
-        pending={pending}
-        onSubmit={handleFetch}
-        profiles={profiles.profiles}
-        configured={profiles.configured}
-        profile={profile}
-        onProfileChange={chooseProfile}
-      />
-
-      {error && (
-        <Alert title={error.title} hint={error.hint} />
-      )}
-
-      {current && (
-        <ResultPanel
-          video={current.video}
-          cues={current.cues}
+        <UrlForm
+          pending={pending}
+          onSubmit={handleFetch}
+          profiles={profiles.profiles}
+          configured={profiles.configured}
           profile={profile}
-          skipReason={skipReason}
-          onTranslate={handleTranslate}
-          ref={resultRef}
+          onProfileChange={chooseProfile}
         />
-      )}
 
-      <VideoList
-        videos={pager.items}
-        footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
-        busyId={busyId}
-        highlightId={highlightId}
-        listKey={pager.page}
-        onOpen={(v) => {
-          setError(null);
-          setSkipReason(null); // only describes the video just fetched
-          void show(v);
-          setScrollRequest((n) => n + 1); // scroll up to the cue timeline
-        }}
-        onDelete={handleDelete}
-      />
+        {error && (
+          <Alert title={error.title} hint={error.hint} />
+        )}
+
+        {current && (
+          <ResultPanel
+            video={current.video}
+            cues={current.cues}
+            profile={profile}
+            skipReason={skipReason}
+            onTranslate={handleTranslate}
+            ref={resultRef}
+          />
+        )}
+
+        <VideoList
+          videos={pager.items}
+          footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
+          busyId={busyId}
+          highlightId={highlightId}
+          listKey={pager.page}
+          onOpen={(v) => {
+            setError(null);
+            setSkipReason(null); // only describes the video just fetched
+            void show(v);
+            setScrollRequest((n) => n + 1); // scroll up to the cue timeline
+          }}
+          onDelete={handleDelete}
+        />
+      </VietsubTabs>
     </Page>
   );
 }

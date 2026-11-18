@@ -35,17 +35,24 @@ const SETTINGS: Section = { to: '/settings', label: 'Settings', isCurrent: (p) =
 /** Guests only read: no Get Engsub, no Vietsub management, so the list is simply "Vietsub" for them. */
 const PUBLIC_SECTIONS: Section[] = [{ ...VIETSUB_LIST, label: 'Vietsub' }, PROFILE, WORKS, PHOTOS, NOVELS];
 
-const ADMIN_SECTIONS: Section[] = [
-  { to: '/', label: 'Get Engsub', isCurrent: (p: string) => p === '/' },
-  // The playlist pages (/vietsub/playlists, /vietsub/playlists/:id) are part of managing Vietsub.
-  { to: '/vietsub', label: 'Vietsub', isCurrent: (p: string) => /^\/vietsub(\/|\/playlists(\/.*)?|\/profiles\/?)?$/.test(p) },
-  VIETSUB_LIST,
-  PROFILE,
-  WORKS,
-  PHOTOS,
-  NOVELS,
-  SETTINGS,
-];
+/** The label of the admin group that holds Profile, Works and Photos (a placeholder name; change it here only). */
+export const SHOWCASE_LABEL = 'Showcase';
+
+/** Admin group: Get Engsub, Videos, Playlists, Profiles and List are its tabs; the watch page belongs to it too. */
+const VIETSUB_GROUP: Section = {
+  to: '/vietsub',
+  label: 'Vietsub',
+  isCurrent: (p) => p === '/' || p === '/vietsub' || p.startsWith('/vietsub/'),
+};
+
+/** Admin group: Profile, Works and Photos are its tabs. */
+const SHOWCASE_GROUP: Section = {
+  to: '/profiles',
+  label: SHOWCASE_LABEL,
+  isCurrent: (p) => PROFILE.isCurrent(p) || WORKS.isCurrent(p) || PHOTOS.isCurrent(p),
+};
+
+const ADMIN_SECTIONS: Section[] = [VIETSUB_GROUP, SHOWCASE_GROUP, NOVELS, SETTINGS];
 
 /** The scrollLeft that centres `item` in the nav, clamped so the row never scrolls past its ends. */
 export function centredScrollLeft(

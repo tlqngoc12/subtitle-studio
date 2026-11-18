@@ -22,6 +22,7 @@ import { Alert } from '../components/ui/Alert';
 import { LoadingText } from '../components/ui/LoadingText';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ShowcaseTabs } from '../components/ShowcaseTabs';
 import { PopoverPanel } from '../components/ui/PopoverPanel';
 import { Reveal } from '../components/ui/Reveal';
 import { useConfirmDialog } from '../components/useConfirmDialog';
@@ -158,67 +159,69 @@ export default function ProfilePage() {
           )
         }
       />
+      <ShowcaseTabs>
 
-      {error && <Alert title={error.title} hint={error.hint} />}
-      {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
-      {data === null && !error && <LoadingText>{t('Loading profile…', 'Đang tải hồ sơ…')}</LoadingText>}
+        {error && <Alert title={error.title} hint={error.hint} />}
+        {actionError && <Alert title={actionError.title} hint={actionError.hint} />}
+        {data === null && !error && <LoadingText>{t('Loading profile…', 'Đang tải hồ sơ…')}</LoadingText>}
 
-      {data && (
-        <>
-          <Reveal>
-            <ProfileBanner images={banner} />
-          </Reveal>
-          {editing && admin && (
-            <div className="pgroup">
-              <BannerEditor slug={data.group.slug} images={banner} onChange={setBanner} />
-              {groupHeaderOpen ? (
-                <MemberHeaderEditor
-                  profile={data.group}
-                  onSaved={(saved) => {
-                    setData((d) => (d ? { ...d, group: { ...saved, banner: d.group.banner } } : d));
-                    setGroupHeaderOpen(false);
-                  }}
-                  onCancel={() => setGroupHeaderOpen(false)}
-                />
+        {data && (
+          <>
+            <Reveal>
+              <ProfileBanner images={banner} />
+            </Reveal>
+            {editing && admin && (
+              <div className="pgroup">
+                <BannerEditor slug={data.group.slug} images={banner} onChange={setBanner} />
+                {groupHeaderOpen ? (
+                  <MemberHeaderEditor
+                    profile={data.group}
+                    onSaved={(saved) => {
+                      setData((d) => (d ? { ...d, group: { ...saved, banner: d.group.banner } } : d));
+                      setGroupHeaderOpen(false);
+                    }}
+                    onCancel={() => setGroupHeaderOpen(false)}
+                  />
+                ) : (
+                  <button type="button" className="button button--s" onClick={() => setGroupHeaderOpen(true)}>
+                    <Pencil className="icon" aria-hidden="true" />
+                    Edit EmiBonnie avatar
+                  </button>
+                )}
+              </div>
+            )}
+
+            {data.members.length === 0 ? (
+              admin ? (
+                <EmptyState icon={SquarePlus}>No members yet. Choose Add member to add the first one.</EmptyState>
               ) : (
-                <button type="button" className="button button--s" onClick={() => setGroupHeaderOpen(true)}>
-                  <Pencil className="icon" aria-hidden="true" />
-                  Edit EmiBonnie avatar
-                </button>
-              )}
-            </div>
-          )}
-
-          {data.members.length === 0 ? (
-            admin ? (
-              <EmptyState icon={SquarePlus}>No members yet. Choose Add member to add the first one.</EmptyState>
+                <EmptyState icon={Sparkles}>{t('Nothing here yet — check back soon.', 'Chưa có gì ở đây, hãy quay lại sau nhé.')}</EmptyState>
+              )
             ) : (
-              <EmptyState icon={Sparkles}>{t('Nothing here yet — check back soon.', 'Chưa có gì ở đây, hãy quay lại sau nhé.')}</EmptyState>
-            )
-          ) : (
-            <div className="pmembers">
-              {data.members.map((m, i) => (
-                <MemberSection
-                  key={m.slug}
-                  profile={m}
-                  side={i % 2 === 0 ? 'left' : 'right'}
-                  onChange={replaceMember}
-                  admin={
-                    editing && admin
-                      ? {
-                          isFirst: i === 0,
-                          isLast: i === data.members.length - 1,
-                          onMove: (d) => void moveMember(m.slug, d),
-                          onDelete: () => void removeMember(m),
-                        }
-                      : undefined
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+              <div className="pmembers">
+                {data.members.map((m, i) => (
+                  <MemberSection
+                    key={m.slug}
+                    profile={m}
+                    side={i % 2 === 0 ? 'left' : 'right'}
+                    onChange={replaceMember}
+                    admin={
+                      editing && admin
+                        ? {
+                            isFirst: i === 0,
+                            isLast: i === data.members.length - 1,
+                            onMove: (d) => void moveMember(m.slug, d),
+                            onDelete: () => void removeMember(m),
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </ShowcaseTabs>
     </Page>
   );
 }
