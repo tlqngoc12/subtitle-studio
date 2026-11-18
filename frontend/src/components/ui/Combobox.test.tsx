@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -188,5 +188,19 @@ describe('Combobox', () => {
     await user.tab();
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('mouseDownOnThePanelKeepsFocusAndList', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const box = screen.getByRole('combobox', { name: 'Role' });
+    await user.click(box);
+    const panel = screen.getByRole('listbox').parentElement as HTMLElement;
+
+    const notPrevented = fireEvent.mouseDown(panel); // like pressing the panel's scrollbar
+
+    expect(notPrevented).toBe(false); // defaultPrevented: the input keeps the focus
+    expect(box).toHaveFocus();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 });
