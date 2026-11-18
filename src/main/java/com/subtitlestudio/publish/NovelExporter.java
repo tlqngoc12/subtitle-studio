@@ -8,6 +8,7 @@ import com.subtitlestudio.novel.ChapterPublishStatus;
 import com.subtitlestudio.novel.ChapterRepository;
 import com.subtitlestudio.novel.Novel;
 import com.subtitlestudio.novel.NovelRepository;
+import com.subtitlestudio.novel.NovelSourceType;
 import com.subtitlestudio.novel.render.PageFormat;
 import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.novel.render.RenderInput;
@@ -70,6 +71,7 @@ public class NovelExporter {
                 continue;
             }
             String cover = n.getCover() == null ? null : coverUrl.apply(n.getCover().getId());
+            boolean original = n.getSourceType() == NovelSourceType.ORIGINAL;
             List<String> tags = n.getTags() == null ? List.of() : Arrays.asList(n.getTags().split(","));
             for (int i = 0; i < published.size(); i++) {
                 Chapter c = published.get(i);
@@ -85,10 +87,10 @@ public class NovelExporter {
                     n.getTitle(), cover, n.getOriginalAuthor(), n.getDescription(), tags, n.getNovelStatus(),
                     n.getTranslatorCredit(), n.getSourceUrl(), n.getTrailerVideoId(),
                     published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle(), c.getLabel(),
-                            c.getPublishedAt())).toList()));
+                            c.getPublishedAt())).toList(), original));
             summaries.add(new PublicNovelSummary(n.getSlug(), n.getTitle(), cover, n.getOriginalAuthor(), tags,
                     n.getNovelStatus(), published.size(), all.size(), lastPublishedAt(published), n.getUpdatedAt(), n.isFeatured(),
-                    n.getCreatedAt(), n.getDescription()));
+                    n.getCreatedAt(), n.getDescription(), original));
         }
         write.accept(dir.resolve("data/novels.json"), summaries);
     }

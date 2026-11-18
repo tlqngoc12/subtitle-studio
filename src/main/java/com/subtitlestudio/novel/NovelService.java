@@ -38,13 +38,15 @@ public class NovelService {
     private final TranslatingModels models;
     private final MediaFiler mediaFiler;
     private final GeminiSettings gemini;
+    private final NovelProfileStore profiles;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                         ChapterImageRepository chapterImages, MediaRepository media, MediaService mediaService,
                         NovelValidator validator, RenderCache renderCache, Clock clock,
                         TranslatingModels models, MediaFiler mediaFiler,
-                        GeminiSettings gemini) {
+                        GeminiSettings gemini, NovelProfileStore profiles) {
         this.gemini = gemini;
+        this.profiles = profiles;
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -73,7 +75,7 @@ public class NovelService {
         Instant lastPublishedAt = stats == null ? null : stats.lastPublishedAt();
         return new NovelSummary(n.getId(), n.getSlug(), n.getTitle(), coverUrl(n), n.getNovelStatus(),
                 (int) chapterCount, (int) publishedCount, n.getUpdatedAt(), n.getWattpadStoryId(), n.isFeatured(), n.getCreatedAt(),
-                lastPublishedAt, n.getOriginalAuthor(), n.getDescription(), tags(n));
+                lastPublishedAt, n.getOriginalAuthor(), n.getDescription(), tags(n), n.getSourceType());
     }
 
     /** Picks or unpicks a novel for the public banner (at most 5). Does not touch updatedAt. */
@@ -103,17 +105,57 @@ public class NovelService {
                 throw new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
             });
         }
-        Novel n = new Novel(r.slug(), r.title(), r.novelStatus(), clock.instant());
-        n.setSourceType(r.sourceType());
-        n.setWattpadStoryId(r.wattpadStoryId());
-        apply(n, r);
-        return detail(novels.save(n));
+        // An original story with no profile chosen gets one made from the original-story template.
+        String createdProfile = null;
+        if (r.sourceType() == NovelSourceType.ORIGINAL && r.promptProfile() == null) {
+            createdProfile = NovelProfileNames.forOriginal(r.title(), profiles::exists);
+            profiles.create(createdProfile, NovelProfileTemplate.render(r.sourceLanguage(), r.title(),
+                    r.originalAuthor(), r.tags(), r.description()));
+            r = withProfile(r, createdProfile);
+        }
+        try {
+            Novel n = new Novel(r.slug(), r.title(), r.novelStatus(), clock.instant());
+            n.setSourceType(r.sourceType());
+            n.setWattpadStoryId(r.wattpadStoryId());
+            apply(n, r);
+            return detail(novels.save(n));
+        } catch (RuntimeException e) {
+            if (createdProfile != null) {
+                profiles.delete(createdProfile);
+            }
+            throw e;
+        }
+    }
+
+    private static NovelRequest withProfile(NovelRequest r, String profile) {
+        return new NovelRequest(r.slug(), r.title(), r.coverMediaId(), r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), r.translatorCredit(), r.sourceUrl(), profile, r.trailerUrl(), r.sourceType(),
+                r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl());
+    }
+
+    /** The kind of a novel never changes: an original stays original, and no other novel becomes one. */
+    private static NovelRequest keepingKind(Novel n, NovelRequest r) {
+        boolean original = n.getSourceType() == NovelSourceType.ORIGINAL;
+        if (original) {
+            return withKind(r, NovelSourceType.ORIGINAL);
+        }
+        if (r.sourceType() == NovelSourceType.ORIGINAL) {
+            throw new InvalidNovelException(List.of(new FieldError("sourceType",
+                    "A translated novel cannot become an original story.")));
+        }
+        return r;
+    }
+
+    private static NovelRequest withKind(NovelRequest r, NovelSourceType type) {
+        return new NovelRequest(r.slug(), r.title(), r.coverMediaId(), r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), r.trailerUrl(), type,
+                r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl());
     }
 
     @Transactional
     public NovelDetail update(long id, NovelRequest request) {
         Novel n = find(id);
-        NovelRequest r = validator.validate(request);
+        NovelRequest r = validator.validate(keepingKind(n, request));
         if (!r.slug().equals(n.getSlug()) && novels.existsBySlug(r.slug())) {
             throw new DuplicateNovelSlugException(r.slug());
         }

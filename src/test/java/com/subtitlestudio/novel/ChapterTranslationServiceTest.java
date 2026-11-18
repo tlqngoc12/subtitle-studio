@@ -234,6 +234,33 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
+    void translateRefusedForOriginal() {
+        novel.setSourceType(NovelSourceType.ORIGINAL);
+        ChapterDetail c = chapter(1, 0);
+
+        assertThatThrownBy(() -> service.start(c.id())).isInstanceOf(NovelNotTranslatableException.class);
+        assertThat(translator.prompts).isEmpty();
+        assertThat(textTranslator.prompts).isEmpty();
+        assertThat(reload(c.id()).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.NONE);
+    }
+
+    @Test
+    void addEmptyTextChapterToOriginal() {
+        novel.setSourceType(NovelSourceType.ORIGINAL);
+
+        ChapterDetail c = chapter(1, 0);
+        assertThat(c.chapterNo()).isEqualTo(1);
+        assertThat(c.sourceType()).isEqualTo(NovelSourceType.ORIGINAL);
+        assertThat(pages.findByChapterIdOrderByPosition(c.id())).isEmpty();
+        assertThat(reload(c.id()).hasSourceText()).isFalse();
+
+        ChapterDetail written = chapterService.update(c.id(),
+                new ChapterUpdateRequest(null, "Mở đầu", null, "Đoạn một.\n\nĐoạn hai."));
+        assertThat(written.text()).isEqualTo("Đoạn một.\n\nĐoạn hai.");
+        assertThat(service.publish(c.id()).publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
+    }
+
+    @Test
     void geminiNotConfiguredComesFirst() {
         ChapterTranslationService off = new ChapterTranslationService(propertiesWithKey(""), profiles, translator, textTranslation, preparer,
                 mediaService, chapters, pages, chapterService, tx, Runnable::run,

@@ -655,6 +655,22 @@ class SiteExporterTest {
     }
 
     @Test
+    void exporterMarksOriginals() throws IOException {
+        long mine = novel("mine", null, 1, 1);
+        novel("translated", null, 1, 1);
+        tx.executeWithoutResult(s -> novels.findById(mine).orElseThrow()
+                .setSourceType(com.subtitlestudio.novel.NovelSourceType.ORIGINAL));
+
+        exporter.export(out, NOW);
+
+        for (JsonNode n : readJson("data/novels.json")) {
+            assertThat(n.get("original").asBoolean()).isEqualTo(n.get("slug").asText().equals("mine"));
+        }
+        assertThat(readJson("data/novels/mine.json").get("original").asBoolean()).isTrue();
+        assertThat(readJson("data/novels/translated.json").get("original").asBoolean()).isFalse();
+    }
+
+    @Test
     void aNovelWithOnePublishedChapterStillAppearsWithItsDates() throws IOException {
         novel("solo", null, 1, 1);
 
