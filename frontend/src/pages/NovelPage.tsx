@@ -106,7 +106,8 @@ export default function NovelPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      // revoking at once can cancel the download in some browsers
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
       toastError(errorMessage(e));
     } finally {
@@ -198,24 +199,24 @@ export default function NovelPage() {
                       <Download className="icon" aria-hidden="true" />
                       {exporting ? 'Exporting…' : 'Export'}
                     </button>
-                  {novel.sourceType === 'WATTPAD' ? (
-                    // Wattpad chapters come from Wattpad: screenshot chapters would mix the two sources.
-                    // The reason shows before the click: a disabled button swallows hover, so the tip sits on a span.
-                    <Tip label={busy ? busyTitle(busy) : ''} disabled={!busy}>
-                      <span className="novel-busy__tip">
-                        <button className="button button--primary" type="button" onClick={() => void startNext()}
-                          disabled={adding || busy !== null}>
-                          <CloudDownload className="icon" aria-hidden="true" />
-                          {adding ? 'Starting…' : 'Fetch & translate next'}
-                        </button>
-                      </span>
-                    </Tip>
-                  ) : (
-                    <button className="button button--primary" type="button" onClick={add} disabled={adding}>
-                      <Plus className="icon" aria-hidden="true" />
-                      Add chapter
-                    </button>
-                  )}
+                    {novel.sourceType === 'WATTPAD' ? (
+                      // Wattpad chapters come from Wattpad: screenshot chapters would mix the two sources.
+                      // The reason shows before the click: a disabled button swallows hover, so the tip sits on a span.
+                      <Tip label={busy ? busyTitle(busy) : ''} disabled={!busy}>
+                        <span className="novel-busy__tip">
+                          <button className="button button--primary" type="button" onClick={() => void startNext()}
+                            disabled={adding || busy !== null}>
+                            <CloudDownload className="icon" aria-hidden="true" />
+                            {adding ? 'Starting…' : 'Fetch & translate next'}
+                          </button>
+                        </span>
+                      </Tip>
+                    ) : (
+                      <button className="button button--primary" type="button" onClick={add} disabled={adding}>
+                        <Plus className="icon" aria-hidden="true" />
+                        Add chapter
+                      </button>
+                    )}
                   </>
                 }
               />

@@ -104,7 +104,7 @@ class NovelExportServiceTest {
 
         NovelExportService.NovelExport export = service.export(novel.getId());
 
-        assertThat(export.fileName()).isEqualTo("summer-love-2026-11-18.zip");
+        assertThat(export.fileName()).isEqualTo("summer-love-" + java.time.LocalDate.ofInstant(NOW, java.time.ZoneId.systemDefault()) + ".zip");
         Map<String, String> files = unzip(export.zip());
         assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chapter 1.md", "001 - Chapter 1.html",
                 "002 - Chapter 3.md", "002 - Chapter 3.html");

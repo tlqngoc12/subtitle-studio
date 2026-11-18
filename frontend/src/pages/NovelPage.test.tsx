@@ -609,7 +609,7 @@ describe('NovelPage export', () => {
     await waitFor(() => expect(downloads).toEqual(['summer-love-2026-11-18.zip']));
     expect(calls.some((c) => c.path === '/api/novels/3/export')).toBe(true);
     expect(create).toHaveBeenCalled();
-    expect(revoke).toHaveBeenCalledWith('blob:zip');
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:zip'));
     expect(await screen.findByRole('button', { name: 'Export' })).toBeEnabled();
   });
 
