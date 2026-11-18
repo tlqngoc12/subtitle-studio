@@ -202,6 +202,31 @@ describe('Chapter Check', () => {
     expect(area.selectionStart).toBe(TEXT.lastIndexOf('mẹ cô'));
   });
 
+  it('nextScrollsTheHitIntoView: scrolls the hit mark, not the whole text box', async () => {
+    const user = userEvent.setup();
+    fakeFetch([profile()]);
+    const long = `${'Một dòng dài không có gì.'.repeat(400).split('.').join('.\n\n')}Chàng đến.`;
+    render(<Harness initial={long} />);
+    await checkOn(user);
+    await screen.findByRole('button', { name: 'Check · 1' });
+    const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
+    area.setSelectionRange(0, 0);
+    const spy = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = spy;
+    try {
+      await user.click(screen.getByRole('button', { name: /^Next issue/ }));
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      const target = spy.mock.instances[0] as HTMLElement;
+      expect(target).not.toBe(area);
+      expect(target.tagName).toBe('MARK');
+      expect(target.textContent).toBe('Chàng');
+      expect(spy).toHaveBeenCalledWith({ block: 'center' });
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it('ignoredLinesNoticeShown', async () => {
     const user = userEvent.setup();
     fakeFetch([profile()]);

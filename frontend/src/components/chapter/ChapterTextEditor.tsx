@@ -33,8 +33,8 @@ interface Props {
 export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextChange, textRef, locked, hits, finding }: Props) {
   useAutoGrow(textRef, text);
   const showHits = finding && hits.matches.length > 0;
-  const check = useChapterCheck({ novelId: chapter.novelId, text, locked, textRef, onTextChange });
   const checkBox = useRef<HTMLDivElement>(null);
+  const check = useChapterCheck({ novelId: chapter.novelId, text, locked, textRef, boxRef: checkBox, onTextChange });
   const layered = showHits || check.on; // the marks sit behind a see-through textarea
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);

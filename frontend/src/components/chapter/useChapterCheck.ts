@@ -18,12 +18,15 @@ export function useChapterCheck({
   text,
   locked,
   textRef,
+  boxRef,
   onTextChange,
 }: {
   novelId: number;
   text: string;
   locked: boolean;
   textRef: RefObject<HTMLTextAreaElement | null>;
+  /** The Check overlay's box; the hit's mark (`[data-index]`) is what Next/Previous scroll into view. */
+  boxRef?: RefObject<HTMLDivElement | null>;
   onTextChange: (text: string) => void;
 }) {
   const [profile, setProfile] = useState<Profile>({ state: 'loading' });
@@ -145,7 +148,13 @@ export function useChapterCheck({
     el.setSelectionRange(target.start, target.start);
     setDismissed(null);
     setCaret(target.start);
-    el.scrollIntoView?.({ block: 'center' });
+    // The textarea grows with its text, so centring it would miss the hit on a long chapter: centre the hit's own mark.
+    const reveal = () => {
+      const mark = boxRef?.current?.querySelector<HTMLElement>(`[data-index="${issues.indexOf(target)}"]`);
+      (mark ?? el).scrollIntoView?.({ block: 'center' });
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(reveal);
+    else reveal();
   }
 
   return {
