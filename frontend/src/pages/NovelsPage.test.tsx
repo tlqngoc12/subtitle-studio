@@ -116,6 +116,48 @@ describe('NovelsPage tabs', () => {
     expect(screen.queryByRole('link', { name: 'New novel' })).not.toBeInTheDocument();
   });
 
+  const mine = novelSummary({ id: 7, slug: 'my-story', title: 'Truyện Của Tôi', sourceType: 'ORIGINAL' });
+  const mixedRoute = { method: 'GET', path: '/api/novels', status: 200, body: [novelSummary(), mine] };
+
+  it('tabsSplitByKind: Translated lists translated novels and Originals lists original ones', async () => {
+    fakeFetch([mixedRoute, fanficsRoute]);
+    renderAt('/novels');
+
+    expect(await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Truyện Của Tôi/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Originals' }));
+    const story = await screen.findByRole('link', { name: /Truyện Của Tôi/ });
+    expect(story).toHaveAttribute('href', '/novels/7');
+    expect(screen.queryByRole('link', { name: /Tình Yêu Mùa Hạ/ })).not.toBeInTheDocument();
+  });
+
+  it('originalsTabFromQuery: opens on Originals from ?tab=originals', async () => {
+    fakeFetch([mixedRoute, fanficsRoute]);
+    renderAt('/novels?tab=originals');
+
+    expect(screen.getByRole('tab', { name: 'Originals' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('link', { name: /Truyện Của Tôi/ })).toBeInTheDocument();
+  });
+
+  it('newStoryOpensOriginalForm: New story is the tab action and links to the original form', async () => {
+    fakeFetch([mixedRoute, fanficsRoute]);
+    renderAt('/novels?tab=originals');
+
+    const action = await screen.findByRole('link', { name: 'New story' });
+    expect(action).toHaveAttribute('href', '/novels/new?kind=original');
+    expect(action).toHaveClass('button--primary');
+    expect(action.closest('.toolbar')).not.toBeNull();
+    expect(screen.queryByRole('link', { name: 'New novel' })).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state for Originals with the next step', async () => {
+    fakeFetch([novelsRoute, fanficsRoute]);
+    renderAt('/novels?tab=originals');
+
+    expect(await screen.findByText(/No stories yet/)).toBeInTheDocument();
+  });
+
   it('switches tabs by clicking', async () => {
     fakeFetch([novelsRoute, fanficsRoute]);
     renderAt('/novels');

@@ -1,5 +1,5 @@
-import { BookOpen, SearchX } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { BookOpen, PenLine, SearchX } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { EmptyState } from '../../components/EmptyState';
 import { NovelsTabs, useNovelsTab } from '../../components/fanfics/NovelsTabs';
 import { NovelCard } from '../../components/novel/NovelCard';
@@ -33,18 +33,19 @@ const SORTS: { value: NovelSort; label: string }[] = [
   { value: 'title', label: 'Tên A–Z' },
 ];
 
+/** Files published before the field existed have no value: such a novel is a translation. */
+const isOriginal = (n: PublicNovelSummary) => n.original === true;
+
 /**
- * Public Novels home: the banner (novels picked by hand), the reader's Tủ sách in one row, then every novel as
- * Fanfics-style cards with search, a status filter and a sort. Copy is Vietnamese.
+ * Public Novels home: the banner (novels picked by hand), the reader's Tủ sách in one row, then the translated novels
+ * as Fanfics-style cards with search, a status filter and a sort; the Sáng tác tab lists the owner's own stories the
+ * same way. Copy is Vietnamese.
  */
 export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   const reads = useReadCounts();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
   const [tab, setTab] = useNovelsTab();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<NovelStatusFilter>('all');
-  const [sort, setSort] = useState<NovelSort>('updated');
   useDocumentTitle('Truyện');
 
   useEffect(() => {
@@ -58,10 +59,8 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   }, [source]);
 
   const featured = useMemo(() => (novels === null ? [] : bannerNovels(novels)), [novels]);
-  const visible = useMemo(
-    () => sortNovels(filterNovels(novels ?? [], query, status), sort, reads),
-    [novels, query, status, sort, reads],
-  );
+  const translated = useMemo(() => (novels ?? []).filter((n) => !isOriginal(n)), [novels]);
+  const originals = useMemo(() => (novels ?? []).filter(isOriginal), [novels]);
 
   const shelved = useMemo(() => {
     if (novels === null) return [];
@@ -75,7 +74,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
       <NovelsTabs
         tab={tab}
         onTabChange={setTab}
-        labels={{ translated: 'Truyện dịch', fanfics: 'Fanfic' }}
+        labels={{ translated: 'Truyện dịch', originals: 'Sáng tác', fanfics: 'Fanfic' }}
         translated={
           <>
             {error && <Alert title={error.title} hint={error.hint} />}
@@ -87,43 +86,100 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
               <>
                 <FeaturedNovels novels={featured} source={source} />
                 <ShelfRow novels={shelved} />
-                <section className="fanfics" aria-labelledby="all-novels-heading">
-                  {/* Its own heading, like Tủ sách above, so the search reads as part of this list, not the shelf. */}
-                  <h2 className="history__heading" id="all-novels-heading">
-                    Tất cả truyện
-                  </h2>
-                  <ListToolbar
-                    searchLabel="Tìm truyện"
-                    searchPlaceholder="Tìm theo tên, tác giả, thẻ…"
-                    query={query}
-                    onQueryChange={setQuery}
-                    statusLabel="Trạng thái"
-                    statuses={STATUSES}
-                    status={status}
-                    onStatusChange={setStatus}
-                    sortId="novels-sort"
-                    sortLabel="Sắp xếp theo"
-                    sorts={SORTS}
-                    sort={sort}
-                    onSortChange={setSort}
-                  />
-                  {visible.length === 0 ? (
-                    <EmptyState icon={SearchX}>Không tìm thấy truyện nào.</EmptyState>
-                  ) : (
-                    <ul className="fanfic-list" aria-label="Danh sách truyện">
-                      {visible.map((n) => (
-                        <li key={n.slug}>
-                          <NovelCard novel={n} href={`/novels/${n.slug}`} reads={reads?.[n.slug]} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
+                <NovelListSection
+                  novels={translated}
+                  reads={reads}
+                  headingId="all-novels-heading"
+                  heading="Tất cả truyện"
+                  listLabel="Danh sách truyện"
+                  sortId="novels-sort"
+                  empty={<EmptyState icon={BookOpen}>Chưa có truyện dịch nào. Quay lại sau nhé.</EmptyState>}
+                />
               </>
+            )}
+          </>
+        }
+        originals={
+          <>
+            {error && <Alert title={error.title} hint={error.hint} />}
+            {novels === null ? (
+              <LoadingText>Đang tải…</LoadingText>
+            ) : (
+              <NovelListSection
+                novels={originals}
+                reads={reads}
+                headingId="all-originals-heading"
+                heading="Truyện sáng tác"
+                listLabel="Danh sách truyện sáng tác"
+                sortId="originals-sort"
+                empty={<EmptyState icon={PenLine}>Chưa có truyện sáng tác nào. Quay lại sau nhé.</EmptyState>}
+              />
             )}
           </>
         }
       />
     </Page>
+  );
+}
+
+/** A heading, the search toolbar and the cards of `novels`; `empty` shows when the list itself is empty. */
+function NovelListSection({
+  novels,
+  reads,
+  headingId,
+  heading,
+  listLabel,
+  sortId,
+  empty,
+}: {
+  novels: PublicNovelSummary[];
+  reads: Record<string, number> | null;
+  headingId: string;
+  heading: string;
+  listLabel: string;
+  sortId: string;
+  empty: ReactNode;
+}) {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<NovelStatusFilter>('all');
+  const [sort, setSort] = useState<NovelSort>('updated');
+  const visible = useMemo(
+    () => sortNovels(filterNovels(novels, query, status), sort, reads),
+    [novels, query, status, sort, reads],
+  );
+  if (novels.length === 0) return <>{empty}</>;
+  return (
+    <section className="fanfics" aria-labelledby={headingId}>
+      {/* Its own heading, like Tủ sách above, so the search reads as part of this list, not the shelf. */}
+      <h2 className="history__heading" id={headingId}>
+        {heading}
+      </h2>
+      <ListToolbar
+        searchLabel="Tìm truyện"
+        searchPlaceholder="Tìm theo tên, tác giả, thẻ…"
+        query={query}
+        onQueryChange={setQuery}
+        statusLabel="Trạng thái"
+        statuses={STATUSES}
+        status={status}
+        onStatusChange={setStatus}
+        sortId={sortId}
+        sortLabel="Sắp xếp theo"
+        sorts={SORTS}
+        sort={sort}
+        onSortChange={setSort}
+      />
+      {visible.length === 0 ? (
+        <EmptyState icon={SearchX}>Không tìm thấy truyện nào.</EmptyState>
+      ) : (
+        <ul className="fanfic-list" aria-label={listLabel}>
+          {visible.map((n) => (
+            <li key={n.slug}>
+              <NovelCard novel={n} href={`/novels/${n.slug}`} reads={reads?.[n.slug]} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

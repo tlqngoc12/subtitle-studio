@@ -20,6 +20,8 @@ export interface PublicNovelSummary {
   /** When the novel was added; missing in files published earlier. */
   createdAt?: string;
   description?: string | null;
+  /** An original story by the owner (the Sáng tác tab). Missing in files published earlier: a translation. */
+  original?: boolean;
 }
 
 export interface PublicChapterRef {
@@ -44,6 +46,8 @@ export interface PublicNovelDetail {
   /** YouTube video id of the trailer; null or missing without one (and in files published before trailers). */
   trailerVideoId?: string | null;
   chapters: PublicChapterRef[];
+  /** An original story; there is no translator credit. Missing in files published earlier. */
+  original?: boolean;
 }
 
 /** One rendering of a chapter's pages at a given size. */
