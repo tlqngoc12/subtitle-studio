@@ -26,12 +26,19 @@
 - Khi đã thân mật hoặc thành người yêu: đổi cách xưng một cách tự nhiên và nhất quán ("anh - em"), không quay lại cách cũ nếu không có lý do.
 - Mr. / Mrs. / Ms. / Miss + họ: "anh / ông", "bà / cô", "cô" theo tuổi và ngữ cảnh; Sir / Ma'am → "thưa ngài" / "thưa bà" hoặc "thưa thầy / cô" theo ngữ cảnh.
 - Mom / Dad / Grandma / Grandpa → "mẹ", "bố", "bà", "ông".
-- Đại từ ngôi thứ ba mặc định cho Bonnie và Emi (nếu truyện có hai nhân vật này), áp dụng cả trong lời dẫn lẫn khi nhân vật khác nhắc tới họ. Quy tắc này ưu tiên hơn quy tắc he / she chung:
-  - Bonnie: "she / her / herself" chỉ Bonnie → "em" (ví dụ "em ấy", "của em", "chính em"). Ví dụ: "She smiled" → "Em mỉm cười".
+- Đại từ ngôi thứ ba mặc định cho Bonnie và Emi, áp dụng cả trong lời dẫn lẫn khi nhân vật khác nhắc tới họ. Quy tắc này ưu tiên hơn quy tắc he / she chung:
+  - Bonnie: "she / her / herself" chỉ Bonnie → "em" (ví dụ "em ấy", "của em", "chính em", "mẹ em"). Tuyệt đối không dùng "cô" hay "Mẹ cô" để chỉ Bonnie trong lời dẫn.
   - Emi: "she / her / herself" chỉ Emi → "cô" (ví dụ "cô ấy", "của cô", "chính cô"). Ví dụ: "She sighed" → "Cô thở dài".
   - Bản gốc gọi tên ("Bonnie", "Emi") thì giữ nguyên tên, không đổi tên thành đại từ "em" / "cô".
-  - Khi một câu nhắc cả hai người bằng "she" / "her", dựa vào ngữ cảnh để biết ai là ai. Nếu dùng "em" / "cô" vẫn dễ nhầm thì dùng tên cho rõ.
-- Cặp xưng hô cụ thể giữa các nhân vật chính: bổ sung ở đây khi đã rõ (A → B gọi là gì, xưng gì).
+  - Tiền tố xưng hô tiếng Thái: Emi gọi Bonnie là "N'Bonnie" hoặc "Nong Bonnie"; Bonnie gọi Emi là "P'Emi" hoặc "chị".
+- Cặp xưng hô cụ thể giữa các nhân vật chính:
+  - Emi → Bonnie: trong lời thoại xưng "tôi", gọi "cô".
+  - Bonnie → Emi: trong lời thoại xưng "tôi", gọi "cô".
+  - Bonnie → Mommy: xưng "con", gọi "mẹ".
+  - Emi → Earth: trong lời thoại xưng "tôi", gọi "cô".
+  - Emi → Tawan: trong lời thoại xưng "tôi", gọi "cậu".
+  - Tawan → Emi: trong lời thoại xưng "em", gọi "sếp" (từ gốc là "boss") hoặc "chị".
+  - Eart → Emi: trong lời thoại xưng "tớ", gọi "cậu"
 
 ## Tên riêng và thuật ngữ
 - Giữ nguyên tên người tiếng Anh, không Việt hoá; biệt danh giữ như bản gốc.
@@ -42,7 +49,8 @@
 ## Văn phong
 - Văn xuôi tiếng Việt tự nhiên, mượt mà; không dịch từng chữ.
 - Câu thoại ngắn, có cảm xúc, đúng giọng từng nhân vật.
-- Giữ ngắt đoạn của bản gốc; mỗi lời thoại một dòng, đặt trong ngoặc kép “…”.
+- Giữ nguyên cấu trúc đoạn văn của bản gốc: mỗi đoạn gốc dịch thành đúng một đoạn, không tự ý xuống dòng, tách hay gộp đoạn. Lời thoại nằm chung đoạn với lời dẫn thì để nguyên trong đoạn đó.
+- Lời thoại đặt trong ngoặc kép “…”.
 - Giữ các đoạn suy nghĩ nội tâm ở dạng in nghiêng nếu bản gốc tách riêng; nếu không thì để như văn dẫn.
 - Cảnh thân mật: dịch tinh tế, đúng mức độ bản gốc, không thêm thắt hay làm thô hơn.
 - Hạn chế từ Hán Việt nặng; ưu tiên từ thuần Việt, dễ đọc.

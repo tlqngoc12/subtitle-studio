@@ -53,7 +53,8 @@
 ## Văn phong
 - Văn xuôi tiếng Việt tự nhiên, mượt mà; không dịch từng chữ.
 - Câu thoại ngắn, có cảm xúc, đúng giọng từng nhân vật (người trầm thì nói ít, người lém lỉnh thì nói nhanh, đùa nhiều).
-- Giữ ngắt đoạn của bản gốc; mỗi lời thoại một dòng, đặt trong ngoặc kép “…”.
+- Giữ nguyên cấu trúc đoạn văn của bản gốc: mỗi đoạn gốc dịch thành đúng một đoạn, không tự ý xuống dòng, tách hay gộp đoạn. Lời thoại nằm chung đoạn với lời dẫn thì để nguyên trong đoạn đó.
+- Lời thoại đặt trong ngoặc kép “…”.
 - Giữ các đoạn suy nghĩ nội tâm ở dạng in nghiêng nếu bản gốc tách riêng; nếu không thì để như văn dẫn.
 - Cảnh thân mật: dịch tinh tế, đúng mức độ bản gốc, không thêm thắt hay làm thô hơn.
 - Hạn chế từ Hán Việt nặng; ưu tiên từ thuần Việt, dễ đọc.
