@@ -1608,3 +1608,54 @@ describe('ChapterPage polling', () => {
     expect(getCalls(calls)).toBe(before);
   });
 });
+
+describe('ChapterPage of an original story', () => {
+  const story = (over: Partial<ChapterDetail> = {}): FakeRoute =>
+    get({
+      sourceType: 'ORIGINAL',
+      sourceLanguage: 'vi',
+      pages: [],
+      text: 'Đoạn một.\n\nĐoạn hai.',
+      translationStatus: 'NONE',
+      translationModel: null,
+      sourceText: null,
+      ...over,
+    });
+
+  it('originalChapterHasNoOriginalPanelOrTranslate: no Original panel, pages, Translate or translation chip', async () => {
+    stubWide(true);
+    renderPage([story()]);
+    await loaded();
+
+    expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Pages' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Not translated')).not.toBeInTheDocument();
+    expect(screen.queryByText('Translated')).not.toBeInTheDocument();
+    expect(screen.getByText('Draft')).toBeInTheDocument();
+    // Nothing in the bar's menu can translate: on a wide screen the menu is only a phone shortcut to Publish.
+    expect(screen.getByRole('button', { name: 'Chapter actions' })).toHaveClass('chapter-bar__menu--phone-only');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Chapter actions' }));
+    expect(screen.queryByRole('button', { name: /Translate/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reload original' })).not.toBeInTheDocument();
+  });
+
+  it('originalChapterHasCheckAndAddRule: Check, Add to check rules, Find and Save stay', async () => {
+    renderPage([story()]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: 'Check' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to check rules' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Find and replace' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeInTheDocument();
+    expect(textBox()).toHaveValue('Đoạn một.\n\nĐoạn hai.');
+  });
+
+  it('keeps Unpublish in the menu of a published original chapter', async () => {
+    renderPage([story({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+
+    expect(await menuItem('Unpublish')).toBeInTheDocument();
+    expect(screen.queryByText(/Unpublish to change pages or translate again/)).not.toBeInTheDocument();
+  });
+});

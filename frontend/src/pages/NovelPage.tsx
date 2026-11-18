@@ -111,7 +111,10 @@ export default function NovelPage() {
     if (!novel) return;
     const ok = await confirm({
       title: `Delete the novel "${novel.title}"?`,
-      description: 'Every chapter, screenshot and translation are deleted. This cannot be undone.',
+      description:
+        novel.sourceType === 'ORIGINAL'
+          ? 'Every chapter is deleted. This cannot be undone.'
+          : 'Every chapter, screenshot and translation are deleted. This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
     });
@@ -188,6 +191,7 @@ export default function NovelPage() {
                 }
               />
               <ChapterList novelId={novelId} chapters={novel.chapters} fromText={novel.sourceType === 'WATTPAD'}
+                original={novel.sourceType === 'ORIGINAL'}
                 onReorder={(next) => void reorder(next)} />
             </Tabs.Content>
 

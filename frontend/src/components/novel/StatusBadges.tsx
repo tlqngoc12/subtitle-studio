@@ -35,18 +35,19 @@ export function StatusBadges({
   model,
   fallback = false,
 }: {
-  translation: ChapterTranslationStatus;
+  /** Omitted for an original story: it is never translated, so only the publish state shows. */
+  translation?: ChapterTranslationStatus;
   publish: ChapterPublishStatus;
   /** The Gemini model(s) that translated it; shown as a tooltip on the Translated badge. */
   model?: string | null;
   /** True when a fallback model translated it: adds a "Fallback model" badge next to Translated. */
   fallback?: boolean;
 }) {
-  const t = TRANSLATION[translation];
+  const t = translation ? TRANSLATION[translation] : null;
   const p = PUBLISH[publish];
   return (
     <span className="badges">
-      {translation === 'TRANSLATED' && model ? (
+      {t === null ? null : translation === 'TRANSLATED' && model ? (
         <Tip label={`Translated by ${model}`}>
           <span className={`badge ${t.tone}`} tabIndex={0}>{content(t)}</span>
         </Tip>

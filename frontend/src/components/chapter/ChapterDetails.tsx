@@ -55,6 +55,8 @@ interface Props {
   idBase: string;
   published: boolean;
   fromText: boolean;
+  /** An original story: nothing to translate. */
+  original?: boolean;
   locked: boolean;
   translating: boolean;
   number: string;
@@ -69,7 +71,7 @@ interface Props {
 
 /** The collapsible "Chapter details": number, label, title, the counts and the model that translated it. */
 export function ChapterDetails({
-  chapter, idBase, published, fromText, locked, translating,
+  chapter, idBase, published, fromText, original = false, locked, translating,
   number, label, title, onNumberChange, onLabelChange, onTitleChange, counts, originalParagraphs,
 }: Props) {
   // The details (number, label, title, translated by) start closed on a phone so the text comes first; the person's
@@ -103,9 +105,11 @@ export function ChapterDetails({
       </DisclosureSummary>
       {published && (
         <p className="chapter-note muted">
-          {`This chapter is published: only the text, label and title can be edited. ${
-            fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'
-          }`}
+          {original
+            ? 'This chapter is published: only the text, label and title can be edited. Unpublish to change its number.'
+            : `This chapter is published: only the text, label and title can be edited. ${
+                fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'
+              }`}
         </p>
       )}
       <div className="chapter-meta">

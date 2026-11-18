@@ -52,11 +52,14 @@ function blankToNull(value: string): string | null {
 
 /**
  * The eight novel fields plus slug and translation profile (create and edit). `wattpad` prefills a new novel from a
- * Wattpad story and adds the Source language field; an existing Wattpad novel shows that field too.
+ * Wattpad story and adds the Source language field; an existing Wattpad novel shows that field too. An original story
+ * (`kind="original"`, or an existing ORIGINAL novel) has a required author and no source language, original link or
+ * translator credit; its kind is sent on every save so editing never changes it.
  */
 export function NovelForm({
   initial,
   wattpad,
+  kind,
   onSubmit,
   submitLabel,
   pendingLabel,
@@ -65,6 +68,8 @@ export function NovelForm({
 }: {
   initial?: NovelDetail;
   wattpad?: WattpadNovelPreview;
+  /** A new original story (the owner's own writing). An existing ORIGINAL novel is detected from `initial`. */
+  kind?: 'original';
   onSubmit: (input: NovelInput) => Promise<void>;
   submitLabel: string;
   pendingLabel: string;
@@ -90,6 +95,8 @@ export function NovelForm({
     initial?.novelStatus ?? (wattpad?.completed ? 'COMPLETED' : 'ONGOING'),
   );
   const fromWattpad = Boolean(wattpad) || initial?.sourceType === 'WATTPAD';
+  const original = kind === 'original' || initial?.sourceType === 'ORIGINAL';
+  const [authorMissing, setAuthorMissing] = useState(false);
   const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>(
     initial?.sourceLanguage ?? wattpad?.sourceLanguage ?? 'th',
   );
@@ -129,6 +136,10 @@ export function NovelForm({
       setTitleMissing(true);
       return;
     }
+    if (original && !author.trim()) {
+      setAuthorMissing(true);
+      return;
+    }
     setPending(true);
     setError(null);
     setFieldErrors([]);
@@ -141,10 +152,11 @@ export function NovelForm({
         description: blankToNull(description),
         tags,
         novelStatus: status,
-        translatorCredit: blankToNull(credit),
-        sourceUrl: blankToNull(sourceUrl),
+        translatorCredit: original ? null : blankToNull(credit),
+        sourceUrl: original ? null : blankToNull(sourceUrl),
         promptProfile: blankToNull(profile),
         trailerUrl: blankToNull(trailer),
+        ...(original ? { sourceType: 'ORIGINAL' as const } : {}),
         ...(fromWattpad ? { sourceLanguage } : {}),
         ...(wattpad
           ? {
@@ -165,6 +177,7 @@ export function NovelForm({
 
   const fieldError = (field: string) =>
     (field === 'title' && titleMissing && !title.trim() ? 'Title is required.' : undefined) ??
+    (field === 'originalAuthor' && authorMissing && !author.trim() ? 'Author is required.' : undefined) ??
     fieldErrors.find((f) => f.field === field)?.message;
 
   /**
@@ -270,10 +283,10 @@ export function NovelForm({
             })}
             {renderField({
               name: 'originalAuthor',
-              label: 'Original author (optional)',
+              label: original ? 'Author' : 'Original author (optional)',
               children: (a) => (
                 <input id={a.id} type="text" maxLength={200} value={author} aria-invalid={a.invalid}
-                  aria-describedby={a.describedBy} onChange={(e) => setAuthor(e.target.value)} />
+                  required={original} aria-describedby={a.describedBy} onChange={(e) => setAuthor(e.target.value)} />
               ),
             })}
             {renderField({
@@ -317,7 +330,8 @@ export function NovelForm({
         <h2 className="form-section__title" id={`${ids}-links`}>
           Links
         </h2>
-        {renderField({
+        {!original &&
+          renderField({
           name: 'sourceUrl',
           label: 'Original book link (optional)',
           children: (a) => (
@@ -338,7 +352,7 @@ export function NovelForm({
 
       <section className="form-section" aria-labelledby={`${ids}-translation`}>
         <h2 className="form-section__title" id={`${ids}-translation`}>
-          Translation
+          {original ? 'Profile' : 'Translation'}
         </h2>
         {fromWattpad &&
           renderField({
@@ -352,7 +366,8 @@ export function NovelForm({
                   { value: 'es', label: 'Spanish' }]} />
             ),
           })}
-        {renderField({
+        {!original &&
+          renderField({
           name: 'translatorCredit',
           label: 'Translator credit (optional)',
           children: (a) => (
@@ -362,15 +377,19 @@ export function NovelForm({
         })}
         {renderField({
           name: 'promptProfile',
-          label: 'Translation profile (optional)',
-          hint: wattpad && !initial && !profile
-            ? `Leave empty to create ${wattpad.suggestedProfile}.md from the Wattpad details.`
-            : 'A .md file in ./data/prompts/novels: source language, names, how characters address each other.',
+          label: original ? 'Profile (optional)' : 'Translation profile (optional)',
+          hint: original
+            ? !initial && !profile
+              ? 'Leave empty to create a profile from the story details. It holds the characters, how they address each other and the check rules.'
+              : 'A .md file in ./data/prompts/novels: characters, names, how they address each other, check rules.'
+            : wattpad && !initial && !profile
+              ? `Leave empty to create ${wattpad.suggestedProfile}.md from the Wattpad details.`
+              : 'A .md file in ./data/prompts/novels: source language, names, how characters address each other.',
           children: (a) => (
             <Select id={a.id} value={profile} aria-invalid={a.invalid} aria-describedby={a.describedBy}
               onChange={setProfile}
               options={[
-                { value: '', label: 'None (Translate is off)' },
+                { value: '', label: original ? (initial ? 'None' : 'Create a new profile') : 'None (Translate is off)' },
                 ...profiles.map((p) => ({ value: p, label: p })),
                 ...(profile && !profiles.includes(profile) ? [{ value: profile, label: profile }] : []),
               ]} />

@@ -90,6 +90,11 @@
     display: none;
   }
 
+  /* A menu that holds only Publish (an original story's draft) is for phones: the bar shows Publish itself. */
+  .chapter-bar__menu--phone-only {
+    display: none;
+  }
+
   .chapter-bar__state {
     order: 0;
     flex: 0 1 auto;
