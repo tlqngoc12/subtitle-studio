@@ -4,6 +4,7 @@ import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.translate.PromptProfileStore;
 import com.subtitlestudio.translate.UnknownProfileException;
 import java.util.List;
+import java.util.function.UnaryOperator;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -51,6 +52,11 @@ public class NovelProfileStore {
      */
     public String write(String name, String text, String baseSha) {
         return store.write(name, text, baseSha);
+    }
+
+    /** Renames a profile with its history, applying {@code edit} to the text; see {@link PromptProfileStore#rename}. */
+    public void rename(String from, String to, UnaryOperator<String> edit) {
+        store.rename(from, to, edit);
     }
 
     public boolean exists(String name) {

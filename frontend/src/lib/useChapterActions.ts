@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import {
+  addChapter,
   fetchTranslateNext,
   publishChapter,
   reloadChapterOriginal,
@@ -78,6 +79,28 @@ export function useChapterActions({
     }
   }
 
+  /** Creates the next (empty) chapter of an original or screenshot novel, then opens it. */
+  async function addNext() {
+    if (!chapter) return;
+    if (dirty) {
+      const ok = await confirm({
+        title: 'Leave without saving?',
+        description: 'Your changes to this chapter are not saved yet.',
+        confirmLabel: 'Leave',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    setStarting(true);
+    try {
+      const next = await addChapter(chapter.novelId, {});
+      openChapter(next.id);
+    } catch (e) {
+      toastError(errorMessage(e));
+      setStarting(false);
+    }
+  }
+
   async function reloadOriginal() {
     const ok = await confirm({
       title: 'Reload the original text?',
@@ -97,5 +120,5 @@ export function useChapterActions({
   const publish = () => run(async () => load(await publishChapter(chapterId)));
   const unpublish = () => run(async () => load(await unpublishChapter(chapterId)));
 
-  return { translate, startNext, reloadOriginal, publish, unpublish };
+  return { translate, startNext, addNext, reloadOriginal, publish, unpublish };
 }

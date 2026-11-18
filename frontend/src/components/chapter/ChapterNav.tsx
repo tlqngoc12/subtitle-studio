@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, CloudDownload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CloudDownload, Plus } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import type { ChapterDetail } from '../../api/novels';
 import { busyTitle, type NovelBusy } from '../../lib/novelBusy';
@@ -15,10 +15,11 @@ interface Props {
   locked: boolean;
   starting: boolean;
   onStartNext: () => void;
+  onAddNext: () => void;
 }
 
-/** Previous / next chapter, and "Fetch & translate next" on the last chapter of a Wattpad novel. */
-export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, starting, onStartNext }: Props) {
+/** Previous / next chapter, "Fetch & translate next" on the last chapter of a Wattpad novel, "New chapter" on the last of an original or screenshot novel. */
+export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, starting, onStartNext, onAddNext }: Props) {
   return (
     <>
       {chapter.prevChapterId !== null && (
@@ -40,6 +41,14 @@ export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, startin
             </button>
           </span>
         </Tip>
+      )}
+      {chapter.nextChapterId === null && (chapter.sourceType === 'ORIGINAL' || chapter.sourceType === 'SCREENSHOTS') && (
+        <span className="chapter-head__next">
+          <button className="button" type="button" disabled={locked || starting} onClick={onAddNext}>
+            <Plus className="icon" aria-hidden="true" />
+            {starting ? 'Creating…' : 'New chapter'}
+          </button>
+        </span>
       )}
     </>
   );

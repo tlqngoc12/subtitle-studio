@@ -231,6 +231,39 @@ describe('NovelPage', () => {
     expect(sent).toMatchObject({ title: 'Mới', slug: 'summer-love', tags: ['romance', 'BL'] });
   });
 
+  describe('profile follows the title', () => {
+    const renamedProfiles = { ...profiles, body: { configured: true, profiles: ['SummerLove', 'Unknown', 'MuaHe'] } };
+
+    async function saveTitle(putBody: unknown, profile: string) {
+      fakeFetch([
+        { ...getNovel, body: novelDetail({ promptProfile: profile }) },
+        renamedProfiles,
+        { method: 'PUT', path: '/api/novels/3', status: 200, body: putBody },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+      await user.click(screen.getByRole('tab', { name: 'Details' }));
+      const title = screen.getByLabelText('Title');
+      await user.clear(title);
+      await user.type(title, 'Mua He');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Novel saved'));
+    }
+
+    it('toasts when the profile was renamed', async () => {
+      await saveTitle(novelDetail({ title: 'Mua He', promptProfile: 'MuaHe' }), 'Unknown');
+
+      expect(toast.info).toHaveBeenCalledWith('Profile renamed to MuaHe.md');
+    });
+
+    it('no toast when the user picked another profile', async () => {
+      await saveTitle(novelDetail({ title: 'Mua He', promptProfile: 'Unknown' }), 'Unknown');
+
+      expect(toast.info).not.toHaveBeenCalled();
+    });
+  });
+
   describe('trailer field', () => {
     const withTrailer = { ...getNovel, body: novelDetail({ trailerVideoId: 'dQw4w9WgXcQ' }) };
 

@@ -23,6 +23,7 @@ import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,6 +176,100 @@ public class PromptProfileStore {
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Renames a profile: writes {@code edit(text)} to {@code <to>.md}, moves the matching {@code .history/<from>-<stamp>.md}
+     * files to {@code <to>-<stamp>.md} and removes {@code <from>.md}. With {@code from == to} the file is rewritten in
+     * place. The rename is not a history entry.
+     *
+     * @throws UnknownProfileException when {@code from} is missing
+     * @throws ProfileExistsException when {@code to} is another existing file
+     */
+    public synchronized void rename(String from, String to, UnaryOperator<String> edit) {
+        String text = read(from);
+        if (to == null || !NAME.matcher(to).matches() || to.startsWith("_")) {
+            throw new InvalidProfileTextException("Invalid profile name");
+        }
+        String edited = edit.apply(text);
+        if (edited == null || edited.isBlank()) {
+            throw new InvalidProfileTextException("The profile text is empty");
+        }
+        byte[] bytes = encode(edited);
+        if (bytes.length > MAX_BYTES) {
+            throw new InvalidProfileTextException("The profile text is larger than " + MAX_BYTES / 1024 + " KB");
+        }
+        Path source = dir.resolve(from + ".md");
+        Path target = dir.resolve(to + ".md");
+        boolean sameName = from.equals(to);
+        boolean caseOnly = !sameName && from.equalsIgnoreCase(to);
+        try {
+            if (!sameName && Files.exists(target) && !(caseOnly && Files.isSameFile(source, target))) {
+                throw new ProfileExistsException(to);
+            }
+            Path temp = Files.createTempFile(dir, "." + to + "-", ".tmp");
+            try {
+                Files.write(temp, bytes);
+                if (sameName) {
+                    try {
+                        Files.move(temp, source, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                    } catch (AtomicMoveNotSupportedException e) {
+                        Files.move(temp, source, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    return;
+                }
+                if (caseOnly) {
+                    // Keep the old file until the new one is in place, so a failed move loses nothing.
+                    Path aside = Files.createTempFile(dir, "." + from + "-", ".bak");
+                    Files.move(source, aside, StandardCopyOption.REPLACE_EXISTING);
+                    try {
+                        Files.move(temp, target);
+                    } catch (IOException | RuntimeException e) {
+                        Files.move(aside, source, StandardCopyOption.REPLACE_EXISTING);
+                        throw e;
+                    }
+                    Files.delete(aside);
+                } else {
+                    Files.move(temp, target);
+                    Files.delete(source);
+                }
+            } catch (FileAlreadyExistsException e) {
+                throw new ProfileExistsException(to);
+            } finally {
+                Files.deleteIfExists(temp);
+            }
+            moveHistory(from, to, caseOnly);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void moveHistory(String from, String to, boolean caseOnly) throws IOException {
+        Path history = dir.resolve(".history");
+        if (!Files.isDirectory(history)) {
+            return;
+        }
+        Pattern pattern = Pattern.compile(Pattern.quote(from) + "(-\\d{8}-\\d{6}(?:-\\d+)?\\.md)");
+        List<Path> matches = new ArrayList<>();
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(history, "*.md")) {
+            for (Path file : files) {
+                if (pattern.matcher(file.getFileName().toString()).matches()) {
+                    matches.add(file);
+                }
+            }
+        }
+        for (Path file : matches) {
+            String rest = file.getFileName().toString().substring(from.length());
+            Path moved = history.resolve(to + rest);
+            if (caseOnly) {
+                Path temp = Files.move(file, history.resolve(file.getFileName() + ".tmp"));
+                Files.move(temp, moved);
+            } else if (Files.exists(moved)) {
+                Files.move(file, backupPath(history, to));
+            } else {
+                Files.move(file, moved);
+            }
         }
     }
 

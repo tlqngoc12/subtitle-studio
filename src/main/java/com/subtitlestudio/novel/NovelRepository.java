@@ -15,4 +15,6 @@ public interface NovelRepository extends JpaRepository<Novel, Long> {
     List<Novel> findAllByOrderByUpdatedAtDesc();
 
     long countByFeaturedTrue();
+
+    long countByPromptProfile(String promptProfile);
 }

@@ -127,7 +127,8 @@ export default function ChapterPage() {
       <ChapterBar
         nav={
           <ChapterNav chapter={chapter} chapterPath={chapterPath} onLeave={(e, to) => void leave(e, to)} why={why}
-            locked={locked} starting={starting} onStartNext={() => void actions.startNext()} />
+            locked={locked} starting={starting} onStartNext={() => void actions.startNext()}
+            onAddNext={() => void actions.addNext()} />
         }
         // Short: the H1 above already shows the full title.
         title={chapter.label?.trim() || `Chapter ${chapter.chapterNo}`}

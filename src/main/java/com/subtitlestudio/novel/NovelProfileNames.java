@@ -2,6 +2,7 @@ package com.subtitlestudio.novel;
 
 import java.text.Normalizer;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** The file name of an auto-created novel profile, derived from the novel title. */
@@ -10,6 +11,8 @@ public final class NovelProfileNames {
     static final int MAX_LENGTH = 40;
     private static final String[] SEPARATORS = {"|", " - ", " – ", " — ", "(", "["};
     private static final Pattern NON_ALNUM = Pattern.compile("[^A-Za-z0-9]+");
+
+    private static final Pattern NUMBERED = Pattern.compile("(.+)-(\\d+)");
 
     private NovelProfileNames() {
     }
@@ -26,6 +29,22 @@ public final class NovelProfileNames {
     /** Same rule for an original story: {@code Original} when the title has no Latin letters or digits at all. */
     public static String forOriginal(String title, Predicate<String> taken) {
         return name(title, "Original", "Original", taken);
+    }
+
+    /** True when {@code name} is {@code derived} or {@code derived} with a {@code -N} suffix (as {@code name} adds it). */
+    public static boolean isDerived(String name, String derived) {
+        if (name == null || derived == null) {
+            return false;
+        }
+        if (name.equals(derived)) {
+            return true;
+        }
+        Matcher m = NUMBERED.matcher(name);
+        if (!m.matches()) {
+            return false;
+        }
+        String suffix = "-" + m.group(2);
+        return m.group(1).equals(derived.substring(0, Math.min(derived.length(), MAX_LENGTH - suffix.length())));
     }
 
     private static String name(String title, String idName, String lastResort, Predicate<String> taken) {

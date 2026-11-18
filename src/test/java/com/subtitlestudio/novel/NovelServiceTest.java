@@ -737,4 +737,145 @@ class NovelServiceTest {
         assertThat(chapters.findRowsByNovel(id)).extracting(ChapterRow::chapterNo).containsExactly(1, 2, 3);
         assertThat(chapters.chapterStats()).extracting(NovelChapterStats::novelId).contains(id).doesNotContain(empty);
     }
+
+    // ---- the profile follows the novel title ----
+
+    private static NovelRequest retitled(NovelDetail d, String title, String profile) {
+        return new NovelRequest(d.slug(), title, null, "A", "d", List.of(), NovelStatus.COMPLETED, null, null, profile,
+                null, null, null, null, null);
+    }
+
+    private String profileText(String name) throws IOException {
+        return Files.readString(dataDir.resolve("prompts/novels/" + name + ".md"));
+    }
+
+    private void saveProfile(String name, String text) throws IOException {
+        Files.writeString(dataDir.resolve("prompts/novels/" + name + ".md"), text);
+    }
+
+    @Test
+    void renamesAutoProfileWithTitle() throws IOException {
+        NovelDetail d = service.create(original("rn-auto", "Unknown Rn", "A", null));
+        assertThat(d.promptProfile()).isEqualTo("UnknownRn");
+        saveProfile("UnknownRn", "# Hồ sơ truyện: Unknown Rn\n- Tên truyện: \"Unknown Rn\"\nGiữ Unknown Rn ở đây\n");
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Mua He Rn", "UnknownRn"));
+
+        assertThat(edited.promptProfile()).isEqualTo("MuaHeRn");
+        assertThat(dataDir.resolve("prompts/novels/UnknownRn.md")).doesNotExist();
+        assertThat(profileText("MuaHeRn")).isEqualTo(
+                "# Hồ sơ truyện: Mua He Rn\n- Tên truyện: \"Mua He Rn\"\nGiữ Unknown Rn ở đây\n");
+    }
+
+    @Test
+    void renamesWattpadProfile() throws IOException {
+        saveProfile("OldWattpadRn", "# Hồ sơ dịch: Old Wattpad Rn\n- Tên truyện: \"Old Wattpad Rn\" (giữ)\n");
+        NovelRequest create = new NovelRequest("wp-rn", "Old Wattpad Rn", null, "A", "d", List.of(),
+                NovelStatus.ONGOING, null, null, "OldWattpadRn", null, NovelSourceType.WATTPAD, "en", "4242", null);
+        NovelDetail d = service.create(create);
+        NovelRequest edit = new NovelRequest("wp-rn", "New Wattpad Rn", null, "A", "d", List.of(),
+                NovelStatus.ONGOING, null, null, "OldWattpadRn", null, NovelSourceType.WATTPAD, "en", "4242", null);
+
+        NovelDetail edited = service.update(d.id(), edit);
+
+        assertThat(edited.promptProfile()).isEqualTo("NewWattpadRn");
+        assertThat(profileText("NewWattpadRn"))
+                .isEqualTo("# Hồ sơ dịch: New Wattpad Rn\n- Tên truyện: \"New Wattpad Rn\" (giữ)\n");
+    }
+
+    @Test
+    void wattpadFallsBackToTheStoryIdLikeCreation() throws IOException {
+        saveProfile("Wattpad7777", "# Hồ sơ dịch: ねこ\n- Tên truyện: \"ねこ\"\n");
+        NovelRequest create = new NovelRequest("wp-id", "ねこ", null, "A", "d", List.of(),
+                NovelStatus.ONGOING, null, null, "Wattpad7777", null, NovelSourceType.WATTPAD, "en", "7777", null);
+        NovelDetail d = service.create(create);
+        NovelRequest edit = new NovelRequest("wp-id", "いぬ", null, "A", "d", List.of(),
+                NovelStatus.ONGOING, null, null, "Wattpad7777", null, NovelSourceType.WATTPAD, "en", "7777", null);
+
+        NovelDetail edited = service.update(d.id(), edit);
+
+        assertThat(edited.promptProfile()).isEqualTo("Wattpad7777");
+        assertThat(profileText("Wattpad7777")).isEqualTo("# Hồ sơ dịch: いぬ\n- Tên truyện: \"いぬ\"\n");
+    }
+
+    @Test
+    void skipsSharedProfile() throws IOException {
+        NovelDetail d = service.create(original("sh-1", "Shared Rn", "A", null));
+        service.create(original("sh-2", "Other Shared", "A", "SharedRn"));
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Shared Renamed", "SharedRn"));
+
+        assertThat(edited.promptProfile()).isEqualTo("SharedRn");
+        assertThat(dataDir.resolve("prompts/novels/SharedRenamed.md")).doesNotExist();
+        assertThat(profileText("SharedRn")).contains("Shared Rn").doesNotContain("Shared Renamed");
+    }
+
+    @Test
+    void skipsHandPickedProfile() throws IOException {
+        NovelDetail d = service.create(original("hp-1", "Hand Picked Rn", "A", "SummerLove"));
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Hand Picked Renamed", "SummerLove"));
+
+        assertThat(edited.promptProfile()).isEqualTo("SummerLove");
+        assertThat(profileText("SummerLove")).isEqualTo("Ngôn ngữ gốc: tiếng Thái");
+    }
+
+    @Test
+    void skipsWhenProfileChangedInSameRequest() throws IOException {
+        NovelDetail d = service.create(original("ch-1", "Changed Rn", "A", null));
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Changed Renamed", "SummerLove"));
+
+        assertThat(edited.promptProfile()).isEqualTo("SummerLove");
+        assertThat(dataDir.resolve("prompts/novels/ChangedRn.md")).exists();
+        assertThat(dataDir.resolve("prompts/novels/ChangedRenamed.md")).doesNotExist();
+    }
+
+    @Test
+    void skipsWhenTitleUnchanged() throws IOException {
+        NovelDetail d = service.create(original("tu-1", "Same Title Rn", "A", null));
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Same Title Rn", "SameTitleRn"));
+
+        assertThat(edited.promptProfile()).isEqualTo("SameTitleRn");
+        assertThat(dataDir.resolve("prompts/novels/SameTitleRn.md")).exists();
+    }
+
+    @Test
+    void addsSuffixWhenTaken() throws IOException {
+        NovelDetail d = service.create(original("sx-1", "Suffix Old", "A", null));
+        saveProfile("SuffixNew", "đã có");
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Suffix New", "SuffixOld"));
+
+        assertThat(edited.promptProfile()).isEqualTo("SuffixNew-2");
+        assertThat(profileText("SuffixNew")).isEqualTo("đã có");
+        assertThat(profileText("SuffixNew-2")).contains("# Hồ sơ truyện: Suffix New");
+    }
+
+    @Test
+    void sameDerivedNameOnlyRetitles() throws IOException {
+        NovelDetail d = service.create(original("sd-1", "Same Derived | Old", "A", null));
+        assertThat(d.promptProfile()).isEqualTo("SameDerived");
+        saveProfile("SameDerived", "# Hồ sơ truyện: Same Derived | Old\n- Tên truyện: \"Same Derived | Old\"\n");
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Same Derived | New", "SameDerived"));
+
+        assertThat(edited.promptProfile()).isEqualTo("SameDerived");
+        assertThat(profileText("SameDerived"))
+                .isEqualTo("# Hồ sơ truyện: Same Derived | New\n- Tên truyện: \"Same Derived | New\"\n");
+    }
+
+    @Test
+    void renameFailureKeepsOldTitle() throws IOException {
+        NovelDetail d = service.create(original("rf-1", "Fail Old", "A", null));
+        // The target name is free for the "taken" check (a directory is not a profile) but cannot be written.
+        Files.createDirectories(dataDir.resolve("prompts/novels/FailNew.md"));
+
+        assertThatThrownBy(() -> service.update(d.id(), retitled(d, "Fail New", "FailOld")))
+                .isInstanceOf(RuntimeException.class);
+
+        assertThat(dataDir.resolve("prompts/novels/FailOld.md")).exists();
+        assertThat(profileText("FailOld")).contains("# Hồ sơ truyện: Fail Old");
+    }
 }
