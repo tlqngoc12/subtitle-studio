@@ -239,8 +239,13 @@ export default function NovelPage() {
                 pendingLabel="Saving…"
                 onDelete={() => void remove()}
                 onSubmit={async (input) => {
-                  setNovel(await updateNovel(novelId, input));
+                  const saved = await updateNovel(novelId, input);
+                  setNovel(saved);
                   toast.success('Novel saved');
+                  // The server renames an auto-created profile with the title; say so when we did not ask for it.
+                  if (saved.promptProfile && saved.promptProfile !== input.promptProfile) {
+                    toast.info(`Profile renamed to ${saved.promptProfile}.md`);
+                  }
                 }}
               />
             </Tabs.Content>

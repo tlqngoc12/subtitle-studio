@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NovelService {
 
     static final int MAX_BANNER = 5;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NovelService.class);
 
     private final NovelRepository novels;
     private final ChapterRepository chapters;
@@ -161,12 +162,19 @@ public class NovelService {
         }
         Long oldCover = n.getCover() == null ? null : n.getCover().getId();
         boolean renamed = !r.slug().equals(n.getSlug());
+        String oldTitle = n.getTitle();
+        String oldProfile = n.getPromptProfile();
+        boolean followTitle = !r.title().equals(oldTitle) && oldProfile != null
+                && oldProfile.equals(r.promptProfile());
         n.setSlug(r.slug());
         n.setTitle(r.title());
         n.setNovelStatus(r.novelStatus());
         apply(n, r);
         n.touch(clock.instant());
         novels.flush();
+        if (followTitle) {
+            followTitle(n, oldTitle, oldProfile);
+        }
         if (renamed) {
             // Page screenshots live in novels/<slug>/, so a new slug means a new folder.
             mediaFiler.fileNovelPagesAfterCommit(n.getId());
@@ -175,6 +183,31 @@ public class NovelService {
             mediaService.deleteIfUnreferenced(List.of(oldCover));
         }
         return detail(n);
+    }
+
+    /**
+     * Renames an auto-created profile (and its history) to match the new title, and updates the title lines inside it.
+     * Leaves a shared or hand-picked profile alone. A failure propagates so the novel is not saved with the new title.
+     */
+    private void followTitle(Novel n, String oldTitle, String oldProfile) {
+        if (novels.countByPromptProfile(oldProfile) > 1) {
+            return;
+        }
+        if (!NovelProfileNames.isDerived(oldProfile, derivedName(n, oldTitle, name -> false))) {
+            return;
+        }
+        String newTitle = n.getTitle();
+        String newName = derivedName(n, newTitle,
+                name -> !name.equalsIgnoreCase(oldProfile) && profiles.exists(name));
+        profiles.rename(oldProfile, newName, text -> ProfileTitleLines.retitle(text, oldTitle, newTitle));
+        n.setPromptProfile(newName);
+        log.info("Renamed profile {} to {} for novel {}", oldProfile, newName, n.getId());
+    }
+
+    private static String derivedName(Novel n, String title, java.util.function.Predicate<String> taken) {
+        return n.getSourceType() == NovelSourceType.WATTPAD && n.getWattpadStoryId() != null
+                ? NovelProfileNames.fromTitle(title, n.getWattpadStoryId(), taken)
+                : NovelProfileNames.forOriginal(title, taken);
     }
 
     /** Deletes the novel, its chapters and pages, and the images nothing else uses. */
