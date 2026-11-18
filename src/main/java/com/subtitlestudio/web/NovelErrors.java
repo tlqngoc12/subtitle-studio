@@ -40,6 +40,11 @@ class NovelErrors {
     }
 
 
+    @ExceptionHandler(com.subtitlestudio.novel.NothingToExportException.class)
+    ProblemDetail nothingToExport(com.subtitlestudio.novel.NothingToExportException e) {
+        return ProblemDetails.problem(HttpStatus.CONFLICT, "NOTHING_TO_EXPORT", "No chapter has text to export yet.");
+    }
+
     @ExceptionHandler(com.subtitlestudio.novel.NoNovelProfileException.class)
     ProblemDetail noNovelProfile(com.subtitlestudio.novel.NoNovelProfileException e) {
         return ProblemDetails.problem(HttpStatus.NOT_FOUND, "NO_PROFILE", "This novel has no translation profile.");

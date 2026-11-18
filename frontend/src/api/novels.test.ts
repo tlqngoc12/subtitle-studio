@@ -5,6 +5,7 @@ import {
   addChapter,
   createNovel,
   deletePage,
+  exportNovel,
   getNovelProfiles,
   publishChapter,
   reorderPages,
@@ -18,6 +19,30 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('novels API', () => {
+  it('exportNovel reads the blob and the file name', async () => {
+    const calls = fakeFetch([
+      {
+        method: 'GET',
+        path: '/api/novels/3/export',
+        status: 200,
+        body: 'zip bytes',
+        headers: { 'Content-Disposition': 'attachment; filename="summer-love-2026-11-18.zip"' },
+      },
+    ]);
+
+    const { blob, fileName } = await exportNovel(3);
+
+    expect(fileName).toBe('summer-love-2026-11-18.zip');
+    expect(blob.size).toBeGreaterThan(0);
+    expect(calls[0].path).toBe('/api/novels/3/export');
+  });
+
+  it('exportNovel falls back to novel-<id>.zip without a header', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/novels/3/export', status: 200, body: 'x' }]);
+
+    expect((await exportNovel(3)).fileName).toBe('novel-3.zip');
+  });
+
   it('uploads several screenshots as "files" form fields', async () => {
     const calls = fakeFetch([{ method: 'POST', path: '/api/chapters/7/pages', status: 201, body: [] }]);
     const a = new File(['a'], 'p1.png', { type: 'image/png' });

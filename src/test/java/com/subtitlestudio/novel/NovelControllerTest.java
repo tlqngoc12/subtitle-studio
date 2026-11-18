@@ -51,6 +51,31 @@ class NovelControllerTest {
     @MockitoBean
     private NovelProfileAnalyzer profileAnalyzer;
 
+    @MockitoBean
+    private NovelExportService exports;
+
+    @Test
+    void exportsZip() throws Exception {
+        when(exports.export(3L)).thenReturn(new NovelExportService.NovelExport("s-2026-11-18.zip", new byte[] {1, 2}));
+
+        mvc.perform(get("/api/novels/3/export")).andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .contentType("application/zip"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Disposition",
+                                org.hamcrest.Matchers.containsString("filename=\"s-2026-11-18.zip\"")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .bytes(new byte[] {1, 2}));
+    }
+
+    @Test
+    void exportNothingIs409() throws Exception {
+        when(exports.export(3L)).thenThrow(new NothingToExportException(3));
+
+        mvc.perform(get("/api/novels/3/export")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOTHING_TO_EXPORT"));
+    }
+
     @Test
     void reordersChapters()throws Exception {
         ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null, null,

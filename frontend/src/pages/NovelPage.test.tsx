@@ -574,6 +574,71 @@ describe('NovelPage', () => {
   });
 });
 
+describe('NovelPage export', () => {
+  const exportRoute = {
+    method: 'GET',
+    path: '/api/novels/3/export',
+    status: 200,
+    body: 'zip',
+    headers: { 'Content-Disposition': 'attachment; filename="summer-love-2026-11-18.zip"' },
+  };
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('exports the chapters', async () => {
+    let release!: () => void;
+    const delay = new Promise<void>((resolve) => (release = resolve));
+    const calls = fakeFetch([getNovel, { ...exportRoute, delay }]);
+    const create = vi.fn(() => 'blob:zip');
+    const revoke = vi.fn();
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke }));
+    const downloads: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(this.download);
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    const button = await screen.findByRole('button', { name: 'Export' });
+    expect(button.querySelector('svg.lucide-download')).not.toBeNull();
+    await user.click(button);
+
+    const pending = await screen.findByRole('button', { name: 'Exporting…' });
+    expect(pending).toBeDisabled();
+    release();
+    await waitFor(() => expect(downloads).toEqual(['summer-love-2026-11-18.zip']));
+    expect(calls.some((c) => c.path === '/api/novels/3/export')).toBe(true);
+    expect(create).toHaveBeenCalled();
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:zip'));
+    expect(await screen.findByRole('button', { name: 'Export' })).toBeEnabled();
+  });
+
+  it('export errors show a toast', async () => {
+    fakeFetch([
+      getNovel,
+      {
+        method: 'GET',
+        path: '/api/novels/3/export',
+        status: 409,
+        body: problem(409, 'NOTHING_TO_EXPORT', 'No chapter has text to export yet.'),
+      },
+    ]);
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Export' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No chapter has text to export yet', undefined));
+  });
+
+  it('export is disabled without chapters', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [] }) }]);
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Export' })).toBeDisabled();
+  });
+});
+
 describe('NovelPage busy novel', () => {
   const wattpad = (over: Partial<ReturnType<typeof novelDetail>> = {}) =>
     novelDetail({
