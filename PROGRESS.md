@@ -1067,5 +1067,8 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 ### 2026-11-18: Tiếng Tây Ban Nha làm ngôn ngữ nguồn của truyện Wattpad ✅ (không có migration)
 - `source_language` nhận thêm `es` (`NovelValidator`, `TextChapterPrompt.languageName` ném `IllegalStateException` với mã lạ thay vì rơi về tiếng Thái, `WattpadNovelService.guessLanguage` đoán `es` từ "Español"/"Espanol"/"Spanish", form chọn Spanish, tiêu đề panel "Original (Spanish)"); `THAI_RULE` và kiểm tra tỉ lệ chữ Thái vẫn chỉ cho `th`. Truyện đã lưu là English có thể đổi sang Spanish ở form sửa. Spec [docs/superpowers/specs/2026-11-18-spanish-source-design.md](docs/superpowers/specs/2026-11-18-spanish-source-design.md).
 
+### 2026-11-18: Hồ sơ dịch truyện luôn giữ cấu trúc đoạn văn gốc ✅
+- Mẫu hồ sơ (`_novel_template_*.md`), 10 hồ sơ trong `data/prompts/novels` và `SYSTEM_RULES` của `NovelProfileAnalyzer` có quy tắc "mỗi đoạn gốc dịch thành đúng một đoạn, không tự ý xuống dòng, tách hay gộp đoạn" thay cho "mỗi lời thoại một dòng"; AI phân tích hồ sơ không được xoá hay làm yếu quy tắc này.
+
 ### 2026-11-18: Thêm model dự phòng Gemini ✅
 - `fallback-models` thêm `gemini-3.1-flash-lite` (có thể dùng chung quota free với `gemini-3.5-flash-lite`, chưa kiểm chứng; nếu 429 của nó nêu tên `gemini-3.5-flash-lite` thì bỏ) và `gemini-3.8-flash` (đặt cuối vì free tier hay trả 503); README và `SubtitleStudioApplicationTests` cập nhật theo. Cần build lại image: `docker compose up -d --build app`.

@@ -48,6 +48,7 @@ public class NovelProfileAnalyzer {
             - Phân tích các chỗ người dịch sửa bản AI (xưng hô, tên riêng, thuật ngữ, giọng văn, lỗi lặp lại...).
             - Chỉ thêm hoặc sửa quy tắc khi có ít nhất 2 đoạn sửa ủng hộ. Ghi số đoạn ủng hộ vào count của quy tắc đó.
             - Giữ nguyên cấu trúc và các mục của hồ sơ. Không xoá quy tắc cũ, trừ khi các đoạn sửa mâu thuẫn rõ với nó.
+            - Luôn giữ quy tắc "Giữ nguyên cấu trúc đoạn văn của bản gốc..." trong mục Văn phong; không xoá, không làm yếu, không thêm quy tắc cho phép tách đoạn hay xuống dòng mỗi lời thoại.
             - Tên riêng và thuật ngữ viết vào mục "## Tên riêng và thuật ngữ"; cách xưng hô viết vào mục "## Xưng hô". \
             Nếu mục chưa có thì tạo mới.
             - terms liệt kê các gợi ý tên riêng/thuật ngữ (kind = "term") và xưng hô (kind = "addressing") mà bạn đã viết \
