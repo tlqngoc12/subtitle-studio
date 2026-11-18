@@ -7,7 +7,7 @@ import { DisclosureSummary } from '../ui/DisclosureSummary';
 import './OriginalPanel.css';
 
 const WIDE = '(min-width: 1024px)';
-const LANGUAGE_NAMES: Record<SourceLanguage, string> = { th: 'Thai', en: 'English', es: 'Spanish' };
+const LANGUAGE_NAMES: Record<SourceLanguage, string> = { th: 'Thai', en: 'English', es: 'Spanish', vi: 'Vietnamese' };
 
 /** A marker paragraph shows its image; any other paragraph shows its text. */
 function imageOf(paragraph: string): ReactNode {

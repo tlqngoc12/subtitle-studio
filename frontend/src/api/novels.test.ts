@@ -3,6 +3,7 @@ import { fakeFetch } from '../test/fakeFetch';
 import { chapterDetail, novelDetail } from '../test/novelFixtures';
 import {
   addChapter,
+  createNovel,
   deletePage,
   getNovelProfiles,
   publishChapter,
@@ -62,6 +63,39 @@ describe('novels API', () => {
     ]);
     expect(JSON.parse(calls[0].body as string)).toEqual({ title: 'Mở đầu' });
     expect(JSON.parse(calls[4].body as string)).toEqual({ pages: [{ id: 11, textVi: 'Chào' }] });
+  });
+
+  it('creates an original story with its kind and no source fields', async () => {
+    const calls = fakeFetch([
+      { method: 'POST', path: '/api/novels', status: 201, body: novelDetail({ sourceType: 'ORIGINAL', sourceLanguage: 'vi' }) },
+    ]);
+
+    const created = await createNovel({
+      slug: 'my-story',
+      title: 'My story',
+      coverMediaId: null,
+      originalAuthor: 'EmiBonnie',
+      description: null,
+      tags: [],
+      novelStatus: 'ONGOING',
+      translatorCredit: null,
+      sourceUrl: null,
+      promptProfile: null,
+      trailerUrl: null,
+      sourceType: 'ORIGINAL',
+    });
+
+    expect(created.sourceType).toBe('ORIGINAL');
+    expect(JSON.parse(calls[0].body as string)).toMatchObject({ sourceType: 'ORIGINAL', originalAuthor: 'EmiBonnie' });
+  });
+
+  it('adds an empty chapter to a novel with no body fields', async () => {
+    const calls = fakeFetch([{ method: 'POST', path: '/api/novels/3/chapters', status: 201, body: chapterDetail() }]);
+
+    await addChapter(3, {});
+
+    expect(calls[0].path).toBe('/api/novels/3/chapters');
+    expect(JSON.parse(calls[0].body as string)).toEqual({});
   });
 
   it('lists novel profiles from their own endpoint', async () => {

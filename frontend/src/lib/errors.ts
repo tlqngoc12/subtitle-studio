@@ -151,6 +151,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'This part is not in the story.' };
     case 'WATTPAD_NOTHING_NEXT':
       return { title: 'Every Wattpad part is already translated.' };
+    case 'NOVEL_NOT_TRANSLATABLE':
+      return { title: 'This is an original story, so there is nothing to translate.' };
     case 'NOVEL_NOT_WATTPAD':
       return { title: 'This novel does not come from Wattpad.' };
     case 'NOVEL_WATTPAD_EXISTS':
