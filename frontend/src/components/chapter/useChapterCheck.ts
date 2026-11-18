@@ -18,12 +18,15 @@ export function useChapterCheck({
   text,
   locked,
   textRef,
+  boxRef,
   onTextChange,
 }: {
   novelId: number;
   text: string;
   locked: boolean;
   textRef: RefObject<HTMLTextAreaElement | null>;
+  /** The Check overlay's box; the hit's mark (`[data-index]`) is what Next/Previous scroll into view. */
+  boxRef?: RefObject<HTMLDivElement | null>;
   onTextChange: (text: string) => void;
 }) {
   const [profile, setProfile] = useState<Profile>({ state: 'loading' });
@@ -145,8 +148,29 @@ export function useChapterCheck({
     el.setSelectionRange(target.start, target.start);
     setDismissed(null);
     setCaret(target.start);
-    el.scrollIntoView?.({ block: 'center' });
+    // The textarea grows with its text, so centring it would miss the hit on a long chapter: centre the hit's own mark.
+    const reveal = () => {
+      const mark = boxRef?.current?.querySelector<HTMLElement>(`[data-index="${issues.indexOf(target)}"]`);
+      (mark ?? el).scrollIntoView?.({ block: 'center' });
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(reveal);
+    else reveal();
   }
+
+  // F8 / Shift+F8 step through the issues while Check is on (not while a dialog is open).
+  const goToRef = useRef(goTo);
+  goToRef.current = goTo;
+  useEffect(() => {
+    if (!active) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'F8' || e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      e.preventDefault();
+      goToRef.current(e.shiftKey ? -1 : 1);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [active]);
 
   return {
     on: active,

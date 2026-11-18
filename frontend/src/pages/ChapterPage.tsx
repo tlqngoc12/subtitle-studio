@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react';
-import { useId, useRef, type MouseEvent } from 'react';
+import { useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
@@ -35,6 +35,7 @@ export default function ChapterPage() {
   const ids = useId();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const [checkSlot, setCheckSlot] = useState<HTMLElement | null>(null);
   const editor = useChapterEditor(chapterId);
   const {
     chapter, text, setText, number, setNumber, label, setLabel, title, setTitle, error, busy, starting,
@@ -142,6 +143,7 @@ export default function ChapterPage() {
               }
         }
         menuItems={menuItems}
+        checkSlotRef={setCheckSlot}
         tools={
           <IconButton label="Find and replace" icon={Search} className="button--ghost" disabled={locked} aria-pressed={finding}
             onClick={() => setFinding((f) => !f)} />
@@ -201,7 +203,7 @@ export default function ChapterPage() {
 
       <ChapterTextEditor
         chapter={chapter} idBase={ids} showOriginal={showOriginal} text={text} onTextChange={setText}
-        textRef={textRef} locked={locked} hits={hits} finding={finding}
+        textRef={textRef} locked={locked} hits={hits} finding={finding} barSlot={checkSlot}
       />
 
       <ChapterLightbox pages={chapter.pages} index={pages.enlarged} onClose={() => pages.setEnlarged(null)} />

@@ -143,3 +143,12 @@
   border-color: var(--brand-2-ink);
   color: var(--on-brand);
 }
+
+.chapter-bar__check {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chapter-bar__check:empty {
+  display: none;
+}

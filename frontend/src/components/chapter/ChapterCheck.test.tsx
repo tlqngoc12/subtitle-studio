@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,10 +27,13 @@ const noProfile: Route = { method: 'GET', path: '/api/novels/3/profile', status:
 
 const TEXT = 'Mẹ cô cười.\n\nChàng đến, và mẹ cô khóc.';
 
-function Harness({ initial = TEXT, locked = false, onText }: { initial?: string; locked?: boolean; onText?: (t: string) => void }) {
+function Harness({ initial = TEXT, locked = false, onText, slot = false }: { initial?: string; locked?: boolean; onText?: (t: string) => void; slot?: boolean }) {
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
   const [text, setText] = useState(initial);
   const ref = useRef<HTMLTextAreaElement>(null);
   return (
+    <>
+      {slot && <div data-testid="bar" ref={setBarSlot} />}
     <ChapterTextEditor
       chapter={chapterDetail()}
       idBase="c"
@@ -44,7 +47,9 @@ function Harness({ initial = TEXT, locked = false, onText }: { initial?: string;
       locked={locked}
       hits={{ matches: [], current: null }}
       finding={false}
+      barSlot={barSlot}
     />
+    </>
   );
 }
 
@@ -190,16 +195,82 @@ describe('Chapter Check', () => {
     const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
     area.setSelectionRange(0, 0);
 
-    await user.click(screen.getByRole('button', { name: 'Next issue' }));
+    await user.click(screen.getByRole('button', { name: /^Next issue/ }));
     expect(area.selectionStart).toBe(TEXT.indexOf('Chàng'));
-    await user.click(screen.getByRole('button', { name: 'Next issue' }));
+    await user.click(screen.getByRole('button', { name: /^Next issue/ }));
     expect(area.selectionStart).toBe(TEXT.lastIndexOf('mẹ cô'));
-    await user.click(screen.getByRole('button', { name: 'Previous issue' }));
+    await user.click(screen.getByRole('button', { name: /^Previous issue/ }));
     expect(area.selectionStart).toBe(TEXT.indexOf('Chàng'));
     // Wraps around at both ends.
-    await user.click(screen.getByRole('button', { name: 'Previous issue' }));
-    await user.click(screen.getByRole('button', { name: 'Previous issue' }));
+    await user.click(screen.getByRole('button', { name: /^Previous issue/ }));
+    await user.click(screen.getByRole('button', { name: /^Previous issue/ }));
     expect(area.selectionStart).toBe(TEXT.lastIndexOf('mẹ cô'));
+  });
+
+  it('nextScrollsTheHitIntoView: scrolls the hit mark, not the whole text box', async () => {
+    const user = userEvent.setup();
+    fakeFetch([profile()]);
+    const long = `${'Một dòng dài không có gì.'.repeat(400).split('.').join('.\n\n')}Chàng đến.`;
+    render(<Harness initial={long} />);
+    await checkOn(user);
+    await screen.findByRole('button', { name: 'Check · 1' });
+    const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
+    area.setSelectionRange(0, 0);
+    const spy = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = spy;
+    try {
+      await user.click(screen.getByRole('button', { name: /^Next issue/ }));
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      const target = spy.mock.instances[0] as HTMLElement;
+      expect(target).not.toBe(area);
+      expect(target.tagName).toBe('MARK');
+      expect(target.textContent).toBe('Chàng');
+      expect(spy).toHaveBeenCalledWith({ block: 'center' });
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it('stickyBarShowsCheckNavigatorWhenOn', async () => {
+    const user = userEvent.setup();
+    fakeFetch([profile()]);
+    render(<Harness slot />);
+    const bar = screen.getByTestId('bar');
+    expect(bar).toBeEmptyDOMElement();
+    await checkOn(user);
+    await screen.findByRole('button', { name: 'Check · 3' });
+    expect(within(bar).getByText('Check · 3')).toBeInTheDocument();
+    const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
+    area.setSelectionRange(0, 0);
+    await user.click(within(bar).getByRole('button', { name: /^Next issue/ }));
+    expect(area.selectionStart).toBe(TEXT.indexOf('Chàng'));
+    await user.click(screen.getByRole('button', { name: /^Check · 3$/ }));
+    expect(bar).toBeEmptyDOMElement();
+  });
+
+  it('f8GoesToNextIssue', async () => {
+    const user = userEvent.setup();
+    fakeFetch([profile()]);
+    render(<Harness />);
+    await checkOn(user);
+    await screen.findByRole('button', { name: 'Check · 3' });
+    const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
+    area.setSelectionRange(0, 0);
+    fireEvent.keyDown(document.body, { key: 'F8' });
+    expect(area.selectionStart).toBe(TEXT.indexOf('Chàng'));
+  });
+
+  it('shiftF8GoesToPrevious', async () => {
+    const user = userEvent.setup();
+    fakeFetch([profile()]);
+    render(<Harness />);
+    await checkOn(user);
+    await screen.findByRole('button', { name: 'Check · 3' });
+    const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
+    area.setSelectionRange(TEXT.indexOf('Chàng'), TEXT.indexOf('Chàng'));
+    fireEvent.keyDown(document.body, { key: 'F8', shiftKey: true });
+    expect(area.selectionStart).toBe(0);
   });
 
   it('ignoredLinesNoticeShown', async () => {

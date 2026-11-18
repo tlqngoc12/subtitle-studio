@@ -52,6 +52,8 @@ export interface ChapterBarProps {
   tools?: ReactNode;
   /** A full-width row inside the sticky bar, under everything else (the find and replace panel). */
   below?: ReactNode;
+  /** Receives the empty slot where the Check navigator is portalled in while Check is on. */
+  checkSlotRef?: (el: HTMLDivElement | null) => void;
 }
 
 /**
@@ -70,6 +72,7 @@ export function ChapterBar({
   menuItems,
   tools,
   below,
+  checkSlotRef,
 }: ChapterBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -109,6 +112,7 @@ export function ChapterBar({
         {text}
       </p>
       <div className="chapter-bar__actions">
+        <div ref={checkSlotRef} className="chapter-bar__check" />
         {tools}
         <button
           type="button"

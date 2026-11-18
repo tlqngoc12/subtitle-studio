@@ -87,3 +87,23 @@
   color: var(--on-brand);
   border-color: var(--brand-2-ink);
 }
+
+/* The navigator in the sticky bar: one short row, purple "selected" look, same height as the 32 px buttons. */
+.check-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.check-nav__count {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--brand-2-ink);
+  border-radius: var(--radius, 8px);
+  background: var(--brand-2);
+  color: var(--on-brand);
+  font-weight: 700;
+  white-space: nowrap;
+}
