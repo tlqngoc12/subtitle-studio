@@ -142,6 +142,73 @@ describe('NovelPage', () => {
     expect(calls.find((c) => c.method === 'POST')!.body).toBe('{}');
   });
 
+  describe('an original story', () => {
+    const story = novelDetail({
+      sourceType: 'ORIGINAL',
+      sourceLanguage: 'vi',
+      translatorCredit: null,
+      sourceUrl: null,
+      originalAuthor: 'EmiBonnie',
+      chapters: [chapterSummary({ translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT' })],
+    });
+    const getStory = { method: 'GET', path: '/api/novels/3', status: 200, body: story };
+
+    it('originalNovelHasNoWattpadTab: Chapters, Details, Profile and no translation chip or page count', async () => {
+      fakeFetch([getStory]);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      const tabs = within(screen.getByRole('tablist', { name: 'Novel sections' })).getAllByRole('tab');
+      expect(tabs.map((t) => t.textContent)).toEqual(['Chapters', 'Details', 'Profile']);
+      const row = within(screen.getByRole('list', { name: 'Chapters' })).getAllByRole('listitem')[0];
+      expect(within(row).getByText('Draft')).toBeInTheDocument();
+      expect(within(row).queryByText('Not translated')).not.toBeInTheDocument();
+      expect(within(row).queryByText(/page/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Fetch & translate next/ })).not.toBeInTheDocument();
+    });
+
+    it('addChapterCreatesTextChapter: Add chapter posts an empty chapter and opens it', async () => {
+      const calls = fakeFetch([
+        getStory,
+        { method: 'POST', path: '/api/novels/3/chapters', status: 201, body: chapterDetail({ id: 44, sourceType: 'ORIGINAL' }) },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Add chapter' }));
+
+      expect(await screen.findByText('chapter 44')).toBeInTheDocument();
+      expect(calls.find((c) => c.method === 'POST')!.body).toBe('{}');
+    });
+
+    it('editOriginalKeepsKind: the form asks for no source fields and saves as ORIGINAL', async () => {
+      const calls = fakeFetch([
+        getStory,
+        profiles,
+        { method: 'PUT', path: '/api/novels/3', status: 200, body: { ...story, title: 'Mới' } },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('tab', { name: 'Details' }));
+      expect(screen.getByLabelText('Author')).toHaveValue('EmiBonnie');
+      expect(screen.queryByLabelText('Source language')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Translator credit (optional)')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Original book link (optional)')).not.toBeInTheDocument();
+      const title = screen.getByLabelText('Title');
+      await user.clear(title);
+      await user.type(title, 'Mới');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByRole('heading', { name: 'Mới' })).toBeInTheDocument();
+      const sent = JSON.parse(calls.find((c) => c.method === 'PUT')!.body as string);
+      expect(sent).toMatchObject({ sourceType: 'ORIGINAL', originalAuthor: 'EmiBonnie', translatorCredit: null, sourceUrl: null });
+      expect(sent).not.toHaveProperty('sourceLanguage');
+    });
+  });
+
   it('saves details', async () => {
     const calls = fakeFetch([
       getNovel,

@@ -140,7 +140,8 @@ export function ChapterBar({
         <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <Tip label="Chapter actions">
             <Popover.Trigger asChild>
-              <button type="button" className="button button--icon" aria-label="Chapter actions">
+              <button type="button" aria-label="Chapter actions"
+                className={menuItems.length === 0 ? 'button button--icon chapter-bar__menu--phone-only' : 'button button--icon'}>
                 <Ellipsis className="icon" aria-hidden="true" />
               </button>
             </Popover.Trigger>

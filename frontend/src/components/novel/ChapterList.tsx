@@ -28,12 +28,15 @@ export function ChapterList({
   novelId,
   chapters,
   fromText = false,
+  original = false,
   onReorder,
 }: {
   novelId: number;
   chapters: ChapterSummary[];
   /** A Wattpad novel: chapters have original text instead of pages. */
   fromText?: boolean;
+  /** An original story: chapters are written here, so there are no pages and no translation. */
+  original?: boolean;
   onReorder: (next: ChapterSummary[]) => void;
 }) {
   const sensors = useSensors(
@@ -44,9 +47,11 @@ export function ChapterList({
   if (chapters.length === 0) {
     return (
       <EmptyState icon={FileText}>
-        {fromText
-          ? 'No chapters yet. Open the Wattpad tab and import the parts you want to translate.'
-          : 'No chapters yet. Choose Add chapter, then add its page screenshots.'}
+        {original
+          ? 'No chapters yet. Choose Add chapter to write the first one.'
+          : fromText
+            ? 'No chapters yet. Open the Wattpad tab and import the parts you want to translate.'
+            : 'No chapters yet. Choose Add chapter, then add its page screenshots.'}
       </EmptyState>
     );
   }
@@ -69,7 +74,7 @@ export function ChapterList({
       <SortableContext items={chapters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <ul className="chapter-list" aria-label="Chapters">
           {chapters.map((c, i) => (
-            <ChapterRow key={c.id} novelId={novelId} chapter={c} fromText={fromText} first={i === 0}
+            <ChapterRow key={c.id} novelId={novelId} chapter={c} fromText={fromText} original={original} first={i === 0}
               last={i === chapters.length - 1}
               onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)} />
           ))}
@@ -83,6 +88,7 @@ function ChapterRow({
   novelId,
   chapter: c,
   fromText,
+  original,
   first,
   last,
   onUp,
@@ -91,6 +97,7 @@ function ChapterRow({
   novelId: number;
   chapter: ChapterSummary;
   fromText: boolean;
+  original: boolean;
   first: boolean;
   last: boolean;
   onUp: () => void;
@@ -114,10 +121,12 @@ function ChapterRow({
         <Link className="chapter-list__open" to={`/novels/${novelId}/chapters/${c.id}`}>
           <span className="chapter-list__title">{name}</span>
           <span className="chapter-list__meta">
-            <StatusBadges translation={c.translationStatus} publish={c.publishStatus} model={c.translationModel} fallback={c.translatedByFallback} />
-            <span className="meta">
-              {fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`}
-            </span>
+            <StatusBadges translation={original ? undefined : c.translationStatus} publish={c.publishStatus} model={c.translationModel} fallback={c.translatedByFallback} />
+            {!original && (
+              <span className="meta">
+                {fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`}
+              </span>
+            )}
             {c.suspectPages > 0 && (
               <Tip label={`${c.suspectPages} page(s) may be incomplete`}>
                 <span className="badge badge--progress" tabIndex={0}
@@ -144,7 +153,7 @@ function ChapterRow({
           </Tip>
         </span>
       </div>
-      {c.translationStatus === 'FAILED' && c.translationError && (
+      {!original && c.translationStatus === 'FAILED' && c.translationError && (
         <p className="field__error chapter-list__error">{c.translationError}</p>
       )}
     </li>

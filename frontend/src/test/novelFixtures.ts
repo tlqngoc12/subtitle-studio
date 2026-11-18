@@ -21,6 +21,7 @@ export function novelSummary(over: Partial<NovelSummary> = {}): NovelSummary {
     originalAuthor: null,
     description: null,
     tags: [],
+    sourceType: 'SCREENSHOTS',
     ...over,
   };
 }
@@ -94,6 +95,7 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     wattpadPartId: null,
     sourceFetchedAt: null,
     sourceLanguage: 'th',
+    sourceType: 'SCREENSHOTS',
     ...over,
   };
 }

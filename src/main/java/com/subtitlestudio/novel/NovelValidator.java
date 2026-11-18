@@ -20,6 +20,9 @@ public class NovelValidator {
     static final int MAX_CREDIT = 200;
     static final int MAX_URL = 1_000;
 
+    /** The stored source language of an ORIGINAL story (the only kind that may use it). */
+    static final String ORIGINAL_LANGUAGE = "vi";
+
     static final java.util.Set<String> LANGUAGES = java.util.Set.of("th", "en", "es");
 
     private static final Pattern STORY_ID = Pattern.compile("\\d{1,19}");
@@ -36,12 +39,15 @@ public class NovelValidator {
      * {@code trailerUrl} holds the 11-character YouTube video id (or null), not the link.
      */
     public NovelRequest validate(NovelRequest r) {
+        NovelSourceType type = r.sourceType() == null ? NovelSourceType.SCREENSHOTS : r.sourceType();
+        boolean original = type == NovelSourceType.ORIGINAL;
+        // An original story is Vietnamese whatever the request says, and has no translator or source link.
         NovelRequest n = new NovelRequest(trim(r.slug()), trim(r.title()), r.coverMediaId(), trim(r.originalAuthor()),
-                trim(r.description()), tags(r.tags()), r.novelStatus(), trim(r.translatorCredit()),
-                trim(r.sourceUrl()), trim(r.promptProfile()), trim(r.trailerUrl()),
-                r.sourceType() == null ? NovelSourceType.SCREENSHOTS : r.sourceType(),
-                r.sourceLanguage() == null ? "th" : r.sourceLanguage().strip().toLowerCase(java.util.Locale.ROOT),
-                trim(r.wattpadStoryId()), trim(r.coverUrl()));
+                trim(r.description()), tags(r.tags()), r.novelStatus(), original ? null : trim(r.translatorCredit()),
+                original ? null : trim(r.sourceUrl()), trim(r.promptProfile()), trim(r.trailerUrl()), type,
+                original ? ORIGINAL_LANGUAGE
+                        : r.sourceLanguage() == null ? "th" : r.sourceLanguage().strip().toLowerCase(java.util.Locale.ROOT),
+                original ? null : trim(r.wattpadStoryId()), original ? null : trim(r.coverUrl()));
         List<FieldError> errors = new ArrayList<>();
         if (n.slug() == null || n.slug().length() > MAX_SLUG || !SLUG.matcher(n.slug()).matches()) {
             errors.add(new FieldError("slug", "Use lowercase letters, numbers and single hyphens."));
@@ -50,6 +56,9 @@ public class NovelValidator {
             errors.add(new FieldError("title", "Title is required."));
         } else if (n.title().length() > MAX_TITLE) {
             errors.add(new FieldError("title", "Use at most " + MAX_TITLE + " characters."));
+        }
+        if (original && n.originalAuthor() == null) {
+            errors.add(new FieldError("originalAuthor", "Author is required."));
         }
         tooLong(errors, "originalAuthor", n.originalAuthor(), MAX_AUTHOR);
         tooLong(errors, "description", n.description(), MAX_DESCRIPTION);
@@ -68,7 +77,7 @@ public class NovelValidator {
         if (n.promptProfile() != null && !profiles.list().contains(n.promptProfile())) {
             errors.add(new FieldError("promptProfile", "Unknown translation profile."));
         }
-        if (!LANGUAGES.contains(n.sourceLanguage())) {
+        if (!original && !LANGUAGES.contains(n.sourceLanguage())) {
             errors.add(new FieldError("sourceLanguage", "Choose Thai, English or Spanish."));
         }
         if (n.sourceType() == NovelSourceType.WATTPAD) {

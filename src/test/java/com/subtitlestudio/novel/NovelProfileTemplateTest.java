@@ -18,6 +18,19 @@ class NovelProfileTemplateTest {
     }
 
     @Test
+    void originalTemplate() {
+        String text = NovelProfileTemplate.render("vi", "Truyện Của Tôi", "EmiBonnie", List.of("GL", "romance"),
+                "Một câu chuyện ngắn.");
+        assertThat(text).contains("# Hồ sơ truyện: Truyện Của Tôi", "## Thông tin", "EmiBonnie", "GL, romance",
+                "## Bối cảnh", "## Nhân vật", "## Xưng hô", "## Tên riêng và thuật ngữ", "## Văn phong",
+                "## Không được làm", "## Kiểm tra", "## Tóm tắt nội dung chính", "Một câu chuyện ngắn.")
+                .doesNotContain("## Ngôn ngữ gốc").doesNotContain("{{").doesNotContain("không dịch từng chữ");
+        assertThat(text.indexOf("## Kiểm tra")).isLessThan(text.indexOf("## Tóm tắt nội dung chính"));
+        assertThat(text).contains("## Kiểm tra" + (char) 10
+                + "- (Thêm dòng dạng \"cụm sai\" → \"gợi ý\" | \"gợi ý khác\" (lý do).");
+    }
+
+    @Test
     void thaiTemplateFillsTheDetails() {
         String text = NovelProfileTemplate.render("th", "Moonshadow", "Khun A", List.of("GL", "romance"),
                 "A short blurb about two people.");

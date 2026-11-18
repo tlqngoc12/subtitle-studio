@@ -82,6 +82,9 @@ public class ChapterTranslationService {
         boolean[] resume = {false};
         ChapterDetail started = tx.execute(status -> {
             Chapter c = chapterService.find(chapterId);
+            if (c.getNovel().getSourceType() == NovelSourceType.ORIGINAL) {
+                throw new NovelNotTranslatableException(c.getNovel().getId());
+            }
             if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
                 throw new ChapterPublishedException(chapterId);
             }

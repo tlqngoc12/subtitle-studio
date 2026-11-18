@@ -46,6 +46,60 @@ describe('NovelNewPage', () => {
     expect(screen.getByRole('main')).toHaveClass('page--narrow');
   });
 
+  describe('original story (?kind=original)', () => {
+    it('originalFormHidesSourceFields: no source language, original link or translator credit', async () => {
+      fakeFetch([profiles]);
+      renderPage('/novels/new?kind=original');
+
+      const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels?tab=originals');
+      expect(screen.getByRole('heading', { level: 1, name: 'New story' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Author')).toBeRequired();
+      expect(screen.queryByLabelText('Source language')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Original book link (optional)')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Translator credit (optional)')).not.toBeInTheDocument();
+      expect(screen.queryByRole('radio', { name: 'From Wattpad' })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Trailer (YouTube link, optional)')).toBeInTheDocument();
+      expect(screen.getByLabelText('Profile (optional)')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/novels?tab=originals');
+    });
+
+    it('originalFormRequiresAuthor: nothing is sent without an author', async () => {
+      const calls = fakeFetch([profiles, { method: 'POST', path: '/api/novels', status: 201, body: novelDetail() }]);
+      renderPage('/novels/new?kind=original');
+      const user = userEvent.setup();
+
+      await user.type(screen.getByLabelText('Title'), 'Truyện Của Tôi');
+      await user.click(screen.getByRole('button', { name: 'Create story' }));
+
+      expect(await screen.findByText('Author is required.')).toBeInTheDocument();
+      expect(screen.getByLabelText('Author')).toHaveAttribute('aria-invalid', 'true');
+      expect(calls.some((c) => c.method === 'POST')).toBe(false);
+    });
+
+    it('creates the story as ORIGINAL with no source fields and opens it', async () => {
+      const calls = fakeFetch([profiles, { method: 'POST', path: '/api/novels', status: 201, body: novelDetail() }]);
+      renderPage('/novels/new?kind=original');
+      const user = userEvent.setup();
+
+      await user.type(screen.getByLabelText('Title'), 'Truyện Của Tôi');
+      await user.type(screen.getByLabelText('Author'), 'EmiBonnie');
+      await user.click(screen.getByRole('button', { name: 'Create story' }));
+
+      expect(await screen.findByText('novel 3')).toBeInTheDocument();
+      const sent = JSON.parse(calls.find((c) => c.method === 'POST')!.body as string);
+      expect(sent).toMatchObject({
+        slug: 'truyen-cua-toi',
+        originalAuthor: 'EmiBonnie',
+        sourceType: 'ORIGINAL',
+        translatorCredit: null,
+        sourceUrl: null,
+        promptProfile: null,
+      });
+      expect(sent).not.toHaveProperty('sourceLanguage');
+    });
+  });
+
   it('turns a Vietnamese title into a slug', () => {
     expect(slugify('Tình Yêu Mùa Hạ')).toBe('tinh-yeu-mua-ha');
     expect(slugify('  Đường về -- nhà!! ')).toBe('duong-ve-nha');

@@ -163,6 +163,13 @@ class NovelErrors {
     }
 
 
+    @ExceptionHandler(com.subtitlestudio.novel.NovelNotTranslatableException.class)
+    ProblemDetail novelNotTranslatable(com.subtitlestudio.novel.NovelNotTranslatableException e) {
+        return ProblemDetails.problem(HttpStatus.BAD_REQUEST, com.subtitlestudio.novel.NovelNotTranslatableException.CODE,
+                e.getMessage());
+    }
+
+
     @ExceptionHandler(NovelNotWattpadException.class)
     ProblemDetail novelNotWattpad(NovelNotWattpadException e) {
         return ProblemDetails.problem(HttpStatus.CONFLICT, "NOVEL_NOT_WATTPAD", e.getMessage());
