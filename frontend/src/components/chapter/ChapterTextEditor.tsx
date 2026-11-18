@@ -1,10 +1,14 @@
-import { useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import type { ChapterDetail } from '../../api/novels';
 import { alignParagraph, paragraphIndexAt, paragraphs } from '../../lib/chapterText';
 import { formatInstantWithTime } from '../../lib/dates';
 import type { FindHits } from '../../lib/useChapterEditor';
 import { useAutoGrow } from '../../lib/useAutoGrow';
+import { CheckPopover } from './CheckPopover';
+import { CheckToggle } from './CheckToggle';
 import { CopyTextButton } from './CopyTextButton';
+import { useChapterCheck } from './useChapterCheck';
+import { CheckHighlights } from '../novel/CheckHighlights';
 import { FindHighlights } from '../novel/FindHighlights';
 import { OriginalPanel } from '../novel/OriginalPanel';
 
@@ -26,6 +30,9 @@ interface Props {
 export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextChange, textRef, locked, hits, finding }: Props) {
   useAutoGrow(textRef, text);
   const showHits = finding && hits.matches.length > 0;
+  const check = useChapterCheck({ novelId: chapter.novelId, text, locked, textRef, onTextChange });
+  const checkBox = useRef<HTMLDivElement>(null);
+  const layered = showHits || check.on; // the marks sit behind a see-through textarea
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   function trackCaret(el: HTMLTextAreaElement) {
@@ -51,12 +58,37 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
         />
       )}
       <div className="field chapter-text">
-        <label htmlFor={`${idBase}-text`}>Chapter text</label>
-        <div className={showHits ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
+        <div className="chapter-text__head">
+          <label htmlFor={`${idBase}-text`}>Chapter text</label>
+          <CheckToggle
+            on={check.on}
+            count={check.issues.length}
+            disabledReason={check.disabledReason}
+            ignored={check.ignored}
+            onToggle={() => void check.toggle()}
+            onPrev={() => check.goTo(-1)}
+            onNext={() => check.goTo(1)}
+          />
+        </div>
+        <div className={layered ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
           <CopyTextButton label="Copy chapter text" text={text} />
           {showHits && <FindHighlights text={text} matches={hits.matches} current={hits.current} textareaRef={textRef} />}
+          {check.on && <CheckHighlights text={text} marks={check.marks} textareaRef={textRef} boxRef={checkBox} />}
           <textarea id={`${idBase}-text`} ref={textRef} rows={24} value={text} disabled={locked}
-            className={showHits ? 'chapter-text--finding' : undefined}
+            className={layered ? 'chapter-text--finding' : undefined}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && check.current) {
+                e.preventDefault();
+                check.close();
+              } else if (e.key === 'Tab' && !e.shiftKey && check.current) {
+                // Focus stays in the text while typing; Tab goes to the suggestions when there are some.
+                const chip = document.querySelector<HTMLElement>('.check-popover .check-chip');
+                if (chip) {
+                  e.preventDefault();
+                  chip.focus();
+                }
+              }
+            }}
             onChange={(e) => {
               onTextChange(e.target.value);
               trackCaret(e.currentTarget);
@@ -65,6 +97,13 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
             onKeyUp={(e) => trackCaret(e.currentTarget)}
             onClick={(e) => trackCaret(e.currentTarget)} />
         </div>
+        <CheckPopover
+          issue={check.current}
+          matched={check.current ? text.slice(check.current.start, check.current.end) : ''}
+          anchor={() => checkBox.current?.querySelector<HTMLElement>(`[data-index="${check.currentIndex}"]`) ?? null}
+          onApply={check.apply}
+          onClose={check.close}
+        />
       </div>
     </div>
   );

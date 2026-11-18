@@ -1,0 +1,81 @@
+/* The Check of the chapter text: purple only (no orange, no red). */
+.chapter-text__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.check-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.check-bar__note {
+  font-size: var(--step--1);
+}
+
+/* "On" is the app's one selected look: solid purple, bold dark text, a 1px ink border. */
+.check-toggle[aria-pressed='true'] {
+  background: var(--brand-2);
+  color: var(--on-brand);
+  border-color: var(--brand-2-ink);
+  font-weight: 700;
+}
+
+.check-toggle[aria-disabled='true'] {
+  border-color: var(--rule);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* The underline is painted in the mirror behind the textarea, whose own text is transparent. */
+.check-hit {
+  background: transparent;
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--brand-2-ink);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.check-popover {
+  display: grid;
+  gap: var(--space-2);
+  max-width: min(320px, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-3);
+}
+
+.check-popover p {
+  margin: 0;
+}
+
+.check-popover__reason,
+.check-popover__hint {
+  font-size: var(--step--1);
+}
+
+.check-popover__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.check-chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--brand-2-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.check-chip:hover,
+.check-chip:focus-visible {
+  background: var(--brand-2);
+  color: var(--on-brand);
+  border-color: var(--brand-2-ink);
+}
