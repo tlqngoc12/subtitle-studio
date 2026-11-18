@@ -8,7 +8,11 @@ import com.subtitlestudio.novel.wattpad.WattpadNovelService;
 import com.subtitlestudio.novel.wattpad.WattpadUrlRequest;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,13 +33,28 @@ public class NovelController {
     private final ChapterService chapterService;
     private final WattpadNovelService wattpadNovels;
     private final NovelProfileAnalyzer profileAnalyzer;
+    private final NovelExportService exports;
 
     public NovelController(NovelService service, ChapterService chapterService,
-                           WattpadNovelService wattpadNovels, NovelProfileAnalyzer profileAnalyzer) {
+                           WattpadNovelService wattpadNovels, NovelProfileAnalyzer profileAnalyzer,
+                           NovelExportService exports) {
+        this.exports = exports;
         this.profileAnalyzer = profileAnalyzer;
         this.wattpadNovels = wattpadNovels;
         this.service = service;
         this.chapterService = chapterService;
+    }
+
+    /** A zip with a .md and a paste-ready .html per chapter that has text. */
+    @GetMapping("/{id}/export")
+    public ResponseEntity<byte[]> export(@PathVariable long id) {
+        NovelExportService.NovelExport export = exports.export(id);
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(export.fileName()).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(export.zip());
     }
 
     @PutMapping("/{id}/chapters/order")
