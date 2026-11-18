@@ -49,8 +49,13 @@ subtitle-studio:
     # free tier allows about 20 requests per day per model). The same model is never retried.
     # gemini-3.5-flash was removed on 2026-11-17: it shares gemini-3.6-flash's free quota (its 429 names
     # gemini-3.6-flash) and is overloaded at the same moments, so it is not a real fallback.
+    # gemini-3.1-flash-lite may share gemini-3.5-flash-lite's free quota (unverified; remove it if its 429 names
+    # gemini-3.5-flash-lite, like gemini-3.5-flash did). gemini-3.8-flash is last because it often answers 503 on
+    # the free tier.
     fallback-models:
       - gemini-3.5-flash-lite
+      - gemini-3.1-flash-lite
+      - gemini-3.8-flash
     timeout: 3m
     # Longer videos are not translated automatically.
     max-duration: 180m
