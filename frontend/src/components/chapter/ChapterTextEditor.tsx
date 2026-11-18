@@ -1,9 +1,11 @@
+import { ListPlus } from 'lucide-react';
 import { useRef, useState, type RefObject } from 'react';
 import type { ChapterDetail } from '../../api/novels';
 import { alignParagraph, paragraphIndexAt, paragraphs } from '../../lib/chapterText';
 import { formatInstantWithTime } from '../../lib/dates';
 import type { FindHits } from '../../lib/useChapterEditor';
 import { useAutoGrow } from '../../lib/useAutoGrow';
+import { AddCheckRuleDialog, ruleSelectionProblem } from './AddCheckRuleDialog';
 import { CheckPopover } from './CheckPopover';
 import { CheckToggle } from './CheckToggle';
 import { CopyTextButton } from './CopyTextButton';
@@ -11,6 +13,7 @@ import { useChapterCheck } from './useChapterCheck';
 import { CheckHighlights } from '../novel/CheckHighlights';
 import { FindHighlights } from '../novel/FindHighlights';
 import { OriginalPanel } from '../novel/OriginalPanel';
+import { Tip } from '../Tip';
 
 interface Props {
   chapter: ChapterDetail;
@@ -35,7 +38,12 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
   const layered = showHits || check.on; // the marks sit behind a see-through textarea
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
+  // The selected text (kept after the textarea loses focus, so the "Add to check rules" button still sees it).
+  const [selection, setSelection] = useState('');
+  const [ruleOpen, setRuleOpen] = useState(false);
+  const ruleProblem = ruleSelectionProblem(selection, { hasProfile: check.hasProfile, locked });
   function trackCaret(el: HTMLTextAreaElement) {
+    setSelection(el.value.slice(el.selectionStart, el.selectionEnd));
     if (chapter.sourceText == null) return; // only a chapter with an original has paragraphs to match
     // Image markers are anchors: the paragraphs the translator wrote about an image belong to that image.
     setActiveParagraph(
@@ -60,15 +68,28 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
       <div className="field chapter-text">
         <div className="chapter-text__head">
           <label htmlFor={`${idBase}-text`}>Chapter text</label>
-          <CheckToggle
-            on={check.on}
-            count={check.issues.length}
-            disabledReason={check.disabledReason}
-            ignored={check.ignored}
-            onToggle={() => void check.toggle()}
-            onPrev={() => check.goTo(-1)}
-            onNext={() => check.goTo(1)}
-          />
+          <div className="chapter-text__tools">
+            <Tip label={ruleProblem ?? ''} disabled={ruleProblem === null}>
+              <button
+                type="button"
+                className="button button--s"
+                aria-disabled={ruleProblem !== null || undefined}
+                onClick={() => ruleProblem === null && setRuleOpen(true)}
+              >
+                <ListPlus className="icon" aria-hidden="true" />
+                Add to check rules
+              </button>
+            </Tip>
+            <CheckToggle
+              on={check.on}
+              count={check.issues.length}
+              disabledReason={check.disabledReason}
+              ignored={check.ignored}
+              onToggle={() => void check.toggle()}
+              onPrev={() => check.goTo(-1)}
+              onNext={() => check.goTo(1)}
+            />
+          </div>
         </div>
         <div className={layered ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
           <CopyTextButton label="Copy chapter text" text={text} />
@@ -97,6 +118,13 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
             onKeyUp={(e) => trackCaret(e.currentTarget)}
             onClick={(e) => trackCaret(e.currentTarget)} />
         </div>
+        <AddCheckRuleDialog
+          open={ruleOpen}
+          onOpenChange={setRuleOpen}
+          novelId={chapter.novelId}
+          selection={selection}
+          onAdded={() => void check.reloadRules()}
+        />
         <CheckPopover
           issue={check.current}
           matched={check.current ? text.slice(check.current.start, check.current.end) : ''}

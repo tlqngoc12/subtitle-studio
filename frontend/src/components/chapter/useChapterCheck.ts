@@ -151,6 +151,10 @@ export function useChapterCheck({
   return {
     on: active,
     requested: on,
+    /** The novel has a profile, so a rule can be added to it. */
+    hasProfile: profile.state === 'ok',
+    /** Reads the profile's rules again (after a rule was added). */
+    reloadRules: load,
     toggle,
     disabledReason,
     issues,
