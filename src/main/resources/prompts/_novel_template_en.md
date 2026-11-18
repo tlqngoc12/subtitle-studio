@@ -54,5 +54,8 @@
 - Không bỏ câu, không gộp hay đảo thứ tự đoạn.
 - Không dịch tên người, biệt danh sang nghĩa tiếng Việt.
 
+## Kiểm tra
+- (Thêm dòng dạng "cụm sai" → "gợi ý" | "gợi ý khác" (lý do). Nút Check ở trang chương dùng các dòng này.)
+
 ## Tóm tắt nội dung chính
 {{summary}}

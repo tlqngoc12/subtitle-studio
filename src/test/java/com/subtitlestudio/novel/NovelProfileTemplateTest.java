@@ -9,6 +9,15 @@ import org.junit.jupiter.api.Test;
 class NovelProfileTemplateTest {
 
     @Test
+    void everyTemplateHasTheCheckSectionBeforeTheSummary() {
+        for (String lang : List.of("th", "en", "es")) {
+            String text = NovelProfileTemplate.render(lang, "T", "A", List.of(), "d");
+            assertThat(text).contains("## Kiểm tra" + (char) 10 + "- (Thêm dòng dạng \"cụm sai\" → \"gợi ý\" | \"gợi ý khác\" (lý do).");
+            assertThat(text.indexOf("## Kiểm tra")).isLessThan(text.indexOf("## Tóm tắt nội dung chính"));
+        }
+    }
+
+    @Test
     void thaiTemplateFillsTheDetails() {
         String text = NovelProfileTemplate.render("th", "Moonshadow", "Khun A", List.of("GL", "romance"),
                 "A short blurb about two people.");

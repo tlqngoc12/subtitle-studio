@@ -35,7 +35,6 @@ public class ChapterTranslationService {
     static final int PREVIOUS_TEXT_CHARS = 4_000;
     static final int CARRY_OVER_CHARS = 2_000;
     /** Images go to Gemini with their long side at most this many pixels. */
-    static final int PROMPT_IMAGE_SIDE = 1_600;
     private static final int MAX_ERROR_LENGTH = 500;
     private static final Logger log = LoggerFactory.getLogger(ChapterTranslationService.class);
 
@@ -286,23 +285,7 @@ public class ChapterTranslationService {
         String profile = profiles.read(n.getPromptProfile() == null ? "" : n.getPromptProfile());
         return new TextJob(new TextChapterPrompt(n.getTitle(), c.getChapterNo(), c.getLabel(), profile,
                 previousText(n.getId(), c.getChapterNo()),
-                n.getSourceLanguage(), null, null, c.getSourceText(), promptImages(c.getSourceText())));
-    }
-
-    /** The chapter's images named by marker paragraphs of its original, shrunk for Gemini, in marker order. */
-    private List<PromptImage> promptImages(String sourceText) {
-        List<PromptImage> images = new ArrayList<>();
-        for (long id : new LinkedHashSet<>(ImageMarkers.ids(sourceText))) {
-            try {
-                images.add(new PromptImage(id, "image/jpeg",
-                        preparer.prepare(media.load(id).path(), PROMPT_IMAGE_SIDE)));
-            } catch (RuntimeException e) {
-                log.warn("An image of a chapter could not be read for translation: {}", e.getClass().getName());
-                throw new TranslationFailedException("An image of this chapter is missing or unreadable. "
-                        + "Reload the original text and translate again.");
-            }
-        }
-        return images;
+                n.getSourceLanguage(), null, null, c.getSourceText()));
     }
 
     private void saveText(long chapterId, String sourceText, TextChapterTranslation.Result result) {

@@ -133,7 +133,7 @@ describe('NavBar', () => {
       </MemoryRouter>,
     );
     const links = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
-    expect(links.slice(-6)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Works', 'Photos', 'Novels']);
+    expect(links.slice(-7)).toEqual(['Vietsub', 'Vietsub list', 'Profile', 'Works', 'Photos', 'Novels', 'Settings']);
     expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Photos' })).toHaveAttribute('href', '/photos');
   });
 
@@ -159,6 +159,29 @@ describe('NavBar', () => {
     expect(currentAt('/novels')).toEqual(['Novels']);
     const links = within(screen.getAllByRole('navigation')[0]).getAllByRole('link').map((a) => a.textContent);
     expect(links.indexOf('Novels')).toBe(links.indexOf('Photos') + 1);
+  });
+
+  it('navShowsSettingsInAdminOnly: Settings is the last admin section and is not on the public site', () => {
+    render(
+      <MemoryRouter initialEntries={['/settings/backups']}>
+        <NavBar />
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole('navigation');
+    const links = within(nav).getAllByRole('link');
+    expect(links[links.length - 1]).toHaveTextContent('Settings');
+    expect(links[links.length - 1]).toHaveAttribute('href', '/settings');
+    expect(links[links.length - 1]).toHaveAttribute('aria-current', 'page');
+    cleanup();
+
+    render(
+      <SiteProvider value={publicSite(fakeSource({}))}>
+        <MemoryRouter initialEntries={['/']}>
+          <NavBar />
+        </MemoryRouter>
+      </SiteProvider>,
+    );
+    expect(within(screen.getByRole('navigation')).queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
   });
 
   it('links the app name to the home page', () => {

@@ -8,6 +8,7 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.novel.NovelCorrections.Edit;
 import com.subtitlestudio.translate.AnalysisInvalidException;
@@ -88,19 +89,13 @@ public class NovelProfileAnalyzer {
     private final ChapterPageRepository pages;
     private final NovelProfileStore store;
     private final GeminiCaller caller;
-    private final SubtitleStudioProperties.Gemini settings;
+    private final GeminiSettings settings;
     private final ObjectMapper mapper;
 
     @Autowired
     public NovelProfileAnalyzer(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                                NovelProfileStore store, GeminiCaller caller, SubtitleStudioProperties properties,
+                                NovelProfileStore store, GeminiCaller caller, GeminiSettings settings,
                                 ObjectMapper mapper) {
-        this(novels, chapters, pages, store, caller, properties.gemini(), mapper);
-    }
-
-    NovelProfileAnalyzer(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
-                         NovelProfileStore store, GeminiCaller caller, SubtitleStudioProperties.Gemini settings,
-                         ObjectMapper mapper) {
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -108,6 +103,12 @@ public class NovelProfileAnalyzer {
         this.caller = caller;
         this.settings = settings;
         this.mapper = mapper;
+    }
+
+    NovelProfileAnalyzer(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
+                         NovelProfileStore store, GeminiCaller caller, SubtitleStudioProperties.Gemini settings,
+                         ObjectMapper mapper) {
+        this(novels, chapters, pages, store, caller, GeminiSettings.fixed(settings), mapper);
     }
 
     /** The profile text, its SHA and how much corrected material exists for it. */
@@ -119,7 +120,7 @@ public class NovelProfileAnalyzer {
         all.stream().filter(c -> c.novelId() != novelId).forEach(c -> others.add(c.novelTitle()));
         String text = store.read(name);
         return new Details(name, text, store.sha(name), new Stats(all.size(), edits, List.copyOf(others)),
-                settings.configured());
+                settings.current().configured());
     }
 
     /** One Gemini call; throws {@link NoCorrectionsException} before calling when no paragraph was corrected. */
@@ -135,7 +136,7 @@ public class NovelProfileAnalyzer {
         if (selection.edits().isEmpty()) {
             throw new NoCorrectionsException("No corrected paragraphs yet for novel " + novelId);
         }
-        if (!settings.configured()) {
+        if (!settings.current().configured()) {
             throw new GeminiNotConfiguredException("novel " + novelId);
         }
         GeminiCaller.Answer answer = caller.generate(
@@ -281,7 +282,7 @@ public class NovelProfileAnalyzer {
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
                 .responseMimeType("application/json")
                 .responseSchema(root)
-                .temperature((float) settings.temperature())
+                .temperature((float) settings.current().temperature())
                 .build();
     }
 }

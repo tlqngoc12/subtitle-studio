@@ -66,6 +66,11 @@ class PlaylistCleanupTest {
     @EnableConfigurationProperties(SubtitleStudioProperties.class)
     static class Config {
         @Bean
+        com.subtitlestudio.config.GeminiSettings geminiSettings(SubtitleStudioProperties properties) {
+            return com.subtitlestudio.config.GeminiSettings.fixed(properties.gemini());
+        }
+
+        @Bean
         MutableClock clock() {
             return new MutableClock(NOW);
         }

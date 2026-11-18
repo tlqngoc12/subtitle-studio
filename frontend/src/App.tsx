@@ -1,6 +1,6 @@
 import { MotionConfig } from 'motion/react';
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { AppToaster } from './components/AppToaster';
 import { BackToTop } from './components/BackToTop';
 import { NavBar } from './components/NavBar';
@@ -18,6 +18,7 @@ const NovelsPage = lazy(() => import('./pages/NovelsPage'));
 const PlaylistEditPage = lazy(() => import('./pages/PlaylistEditPage'));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage'));
 const PhotosPage = lazy(() => import('./pages/PhotosPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const WorkDetailPage = lazy(() => import('./pages/WorkDetailPage'));
 const WorkEditPage = lazy(() => import('./pages/WorkEditPage'));
 const WorksPage = lazy(() => import('./pages/WorksPage'));
@@ -40,7 +41,7 @@ export default function App() {
         <AppToaster />
         <BackToTop
           // Form pages with a sticky FormActions bar (the chapter editor's bar is at the top, so it needs nothing).
-          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/, /^\/novels\/\d+$/]}
+          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/, /^\/novels\/\d+$/, /^\/settings\/gemini$/]}
         />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
@@ -63,6 +64,9 @@ export default function App() {
             <Route path="/novels/new" element={<NovelNewPage />} />
             <Route path="/novels/:id" element={<NovelPage />} />
             <Route path="/novels/:id/chapters/:chapterId" element={<ChapterPage />} />
+            <Route path="/settings" element={<Navigate to="/settings/gemini" replace />} />
+            <Route path="/settings/gemini" element={<SettingsPage tab="gemini" />} />
+            <Route path="/settings/backups" element={<SettingsPage tab="backups" />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </Suspense>

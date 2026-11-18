@@ -1,0 +1,25 @@
+/* Settings › Gemini: one column of fields; a field's Reset button sits to the right of its control. */
+.settings-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 760px;
+}
+
+.settings-form__note {
+  margin: 0;
+}
+
+.settings-form__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.settings-form__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-form__control--short {
+  flex: 0 1 200px;
+}

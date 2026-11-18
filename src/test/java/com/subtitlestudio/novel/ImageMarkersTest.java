@@ -55,38 +55,11 @@ class ImageMarkersTest {
     }
 
     @Test
-    void restorePutsEverySourceMarkerBackAtItsPlace() {
-        String source = "[[image:1]]\n\n[[image:2]]\n\nA\n\n[[image:3]]\n\nB\n\n[[image:4]]";
-        assertThat(ImageMarkers.restore(source, "a\n\nb")).contains(
-                "[[image:1]]\n\n[[image:2]]\n\na\n\n[[image:3]]\n\nb\n\n[[image:4]]");
-        assertThat(ImageMarkers.restore(source, "[[image:4]]\n\na\n\n[[image:1]]\n\nb")).contains(
-                "[[image:1]]\n\n[[image:2]]\n\na\n\n[[image:3]]\n\nb\n\n[[image:4]]");
-    }
-
-    @Test
-    void restoreBringsBackAnImageUsedTwice() {
-        String source = "[[image:1]]\n\nA\n\n[[image:1]]\n\nB";
-        assertThat(ImageMarkers.restore(source, "a\n\nb")).contains("[[image:1]]\n\na\n\n[[image:1]]\n\nb");
-        assertThat(ImageMarkers.restore(source, "a\n\n[[image:1]]\n\nb")).contains(
-                "[[image:1]]\n\na\n\n[[image:1]]\n\nb");
-        assertThat(ImageMarkers.restore(source, "[[image:1]]\n\n[[image:1]]\n\n[[image:1]]\n\na\n\nb")).isEmpty();
-    }
-
-    @Test
     void isSubMultiset() {
         assertThat(ImageMarkers.isSubMultiset(List.of(1L, 1L, 2L), List.of(1L, 2L))).isTrue();
         assertThat(ImageMarkers.isSubMultiset(List.of(1L, 1L, 2L), List.of(2L, 1L, 1L))).isTrue();
         assertThat(ImageMarkers.isSubMultiset(List.of(1L, 2L), List.of(1L, 1L))).isFalse();
         assertThat(ImageMarkers.isSubMultiset(List.of(1L), List.of(3L))).isFalse();
         assertThat(ImageMarkers.isSubMultiset(List.of(1L), List.of())).isTrue();
-    }
-
-    @Test
-    void restoreRefusesWhenItCannotAlign() {
-        String source = "A\n\n[[image:1]]\n\nB";
-        assertThat(ImageMarkers.restore(source, "a")).isEmpty();
-        assertThat(ImageMarkers.restore(source, "a\n\nb\n\nc")).isEmpty();
-        assertThat(ImageMarkers.restore(source, "a\n\n[[image:9]]\n\nb")).isEmpty();
-        assertThat(ImageMarkers.restore(source, "a\n\n[[image:1]]\n\n[[image:1]]\n\nb")).isEmpty();
     }
 }

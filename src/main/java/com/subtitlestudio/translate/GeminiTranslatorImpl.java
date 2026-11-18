@@ -3,6 +3,7 @@ package com.subtitlestudio.translate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
@@ -41,20 +42,20 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
     private static final Logger log = LoggerFactory.getLogger(GeminiTranslatorImpl.class);
     private static final TypeReference<List<TranslatedLine>> LINES = new TypeReference<>() {};
 
-    private final SubtitleStudioProperties.Gemini settings;
+    private final GeminiSettings settings;
     private final ObjectMapper mapper;
     private final GeminiCaller caller;
 
     @Autowired
-    public GeminiTranslatorImpl(SubtitleStudioProperties properties, ObjectMapper mapper, GeminiCaller caller) {
-        this.settings = properties.gemini();
+    public GeminiTranslatorImpl(GeminiSettings settings, ObjectMapper mapper, GeminiCaller caller) {
+        this.settings = settings;
         this.mapper = mapper;
         this.caller = caller;
     }
 
     /** {@code baseUrl} points the SDK at a fake server in tests; null means the real Gemini API. */
     GeminiTranslatorImpl(SubtitleStudioProperties.Gemini settings, ObjectMapper mapper, String baseUrl) {
-        this.settings = settings;
+        this.settings = GeminiSettings.fixed(settings);
         this.mapper = mapper;
         this.caller = new GeminiCaller(settings, baseUrl);
     }
@@ -90,6 +91,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
     }
 
     private GenerateContentConfig config() {
+        var gemini = settings.current();
         Schema line = Schema.builder()
                 .type(Type.Known.OBJECT)
                 .properties(Map.of(
@@ -101,9 +103,9 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
                 .responseMimeType("application/json")
                 .responseSchema(Schema.builder().type(Type.Known.ARRAY).items(line).build())
-                .temperature((float) settings.temperature());
-        if (settings.translationThinking() != null) {
-            config.thinkingConfig(settings.translationThinking());
+                .temperature((float) gemini.temperature());
+        if (gemini.translationThinking() != null) {
+            config.thinkingConfig(gemini.translationThinking());
         }
         return config.build();
     }

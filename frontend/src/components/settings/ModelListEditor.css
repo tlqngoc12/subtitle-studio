@@ -1,0 +1,49 @@
+/* Fallback models of the Gemini settings: an ordered list with a row of small icon buttons, then the add box. */
+.model-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.model-list__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+
+.model-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.model-list__order {
+  min-width: var(--space-6);
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-align: center;
+}
+
+.model-list__name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-list__empty {
+  margin: 0;
+}
+
+.model-list__add {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.model-list__box {
+  flex: 1;
+  min-width: 0;
+}

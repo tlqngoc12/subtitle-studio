@@ -1,6 +1,6 @@
 package com.subtitlestudio.video;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.config.GeminiSettings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -24,11 +24,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class VietsubController {
 
     private final VietsubService service;
-    private final String mainModel;
+    private final GeminiSettings gemini;
 
-    public VietsubController(VietsubService service, SubtitleStudioProperties properties) {
+    public VietsubController(VietsubService service, GeminiSettings gemini) {
         this.service = service;
-        this.mainModel = properties.gemini().model();
+        this.gemini = gemini;
     }
 
     /** Adds or replaces the Vietsub of a video; {@code url} may also be a bare video id. */
@@ -73,6 +73,6 @@ public class VietsubController {
     }
 
     private VideoDto dto(Video v) {
-        return VideoDto.from(v, null, null, mainModel);
+        return VideoDto.from(v, null, null, gemini.current().model());
     }
 }

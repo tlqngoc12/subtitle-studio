@@ -49,9 +49,8 @@ class ProfileAnalyzerTest {
     private ProfileAnalyzer analyzer(String apiKey) {
         var gemini = new SubtitleStudioProperties.Gemini(apiKey, "gemini-test-flash", Duration.ofSeconds(10),
                 Duration.ofMinutes(60), 0.3, List.of());
-        var props = mock(SubtitleStudioProperties.class);
-        when(props.gemini()).thenReturn(gemini);
-        return new ProfileAnalyzer(store, videos, reader, new GeminiCaller(gemini, server.baseUrl()), props,
+        return new ProfileAnalyzer(store, videos, reader, new GeminiCaller(gemini, server.baseUrl()),
+                com.subtitlestudio.config.GeminiSettings.fixed(gemini),
                 new ObjectMapper());
     }
 

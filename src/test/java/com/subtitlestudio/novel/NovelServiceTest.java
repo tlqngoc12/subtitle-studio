@@ -51,6 +51,11 @@ class NovelServiceTest {
         }
 
         @Bean
+        com.subtitlestudio.config.GeminiSettings geminiSettings(SubtitleStudioProperties properties) {
+            return com.subtitlestudio.config.GeminiSettings.fixed(properties.gemini());
+        }
+
+        @Bean
         SubtitleStudioProperties properties() {
             return new SubtitleStudioProperties(
                     new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,

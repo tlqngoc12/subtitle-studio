@@ -21,8 +21,6 @@ public class TextChapterTranslation {
 
     static final int MAX_DEPTH = 3;
     static final int CARRY_CHARS = 1_500;
-    /** Gemini gets at most this many images in one request; a part with more is split like a too long one. */
-    static final int MAX_IMAGES = 20;
 
     /** The finished Vietnamese chapter and the models that answered, in order of use. */
     public record Result(String text, String model, int requests) {}
@@ -42,8 +40,13 @@ public class TextChapterTranslation {
 
     /** Nothing partial is returned: either the whole chapter, or a {@link TranslationFailedException}. */
     public Result translate(TextChapterPrompt prompt, Consumer<String> onTrying) {
+        // Images are ignored: only the text is translated, and the result has no image markers.
+        String text = ImageMarkers.strip(prompt.sourceText());
+        if (text == null || text.isBlank()) {
+            throw new TranslationFailedException("This chapter has no text to translate, only images.");
+        }
         Run run = new Run(prompt, onTrying);
-        run.piece(prompt.sourceText(), 0);
+        run.piece(text, 0);
         return new Result(String.join("\n\n", run.translated), String.join(", ", run.models), run.requests);
     }
 
@@ -61,16 +64,12 @@ public class TextChapterTranslation {
         }
 
         void piece(String text, int depth) {
-            int images = new java.util.HashSet<>(ImageMarkers.ids(text)).size();
-            if ((text.length() > maxSourceChars || images > MAX_IMAGES) && depth < MAX_DEPTH) {
+            if (text.length() > maxSourceChars && depth < MAX_DEPTH) {
                 List<String> halves = TextSplitter.split(text);
                 if (!halves.isEmpty()) {
                     halves.forEach(h -> piece(h, depth + 1));
                     return;
                 }
-            }
-            if (images > MAX_IMAGES) {
-                throw new TranslationFailedException("This chapter part has more than " + MAX_IMAGES + " images.");
             }
             String out;
             try {
@@ -91,7 +90,6 @@ public class TextChapterTranslation {
 
         private String ask(String text) {
             boolean later = !translated.isEmpty();
-            // The carried context is plain text: image markers mean nothing to Gemini without their pictures.
             TextChapterPrompt prompt = base.withText(text, later ? carry(sourceSoFar) : null,
                     later ? carry(String.join("\n\n", translated)) : null);
             TextAnswer answer = send(prompt);
@@ -114,10 +112,9 @@ public class TextChapterTranslation {
         }
     }
 
-    /** The end of the text before a later part, without image markers; null when nothing is left. */
+    /** The end of the text before a later part; null when nothing is left. */
     private static String carry(String text) {
-        String plain = ImageMarkers.strip(text);
-        return plain.isBlank() ? null : tail(plain);
+        return text.isBlank() ? null : tail(text);
     }
 
     private static String tail(String text) {

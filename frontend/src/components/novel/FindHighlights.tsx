@@ -44,13 +44,20 @@ export function FindHighlights({
   matches,
   current,
   textareaRef,
+  markClassName = 'find-hit',
+  boxRef,
 }: {
   text: string;
   matches: Hit[];
   current: number | null;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
+  /** The class of each mark; the Check paints its underlines with the same mirror. */
+  markClassName?: string;
+  /** Lets the caller find a mark's box (`[data-index]`) to anchor a popover to it. */
+  boxRef?: RefObject<HTMLDivElement | null>;
 }) {
-  const box = useRef<HTMLDivElement>(null);
+  const ownBox = useRef<HTMLDivElement>(null);
+  const box = boxRef ?? ownBox;
 
   const parts = useMemo(() => {
     const out: ReactNode[] = [];
@@ -58,7 +65,7 @@ export function FindHighlights({
     matches.forEach((m, i) => {
       if (m.start > last) out.push(text.slice(last, m.start));
       out.push(
-        <mark key={i} className={i === current ? 'find-hit find-hit--current' : 'find-hit'}>
+        <mark key={i} data-index={i} className={i === current ? `${markClassName} ${markClassName}--current` : markClassName}>
           {text.slice(m.start, m.end)}
         </mark>,
       );
@@ -95,7 +102,7 @@ export function FindHighlights({
       el.removeEventListener('scroll', onScroll);
       observer?.disconnect();
     };
-  }, [textareaRef]);
+  }, [textareaRef, box]);
 
   return (
     <div ref={box} className="find-hits" aria-hidden="true">

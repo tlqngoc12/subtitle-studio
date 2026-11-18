@@ -15,17 +15,40 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "subtitle-studio")
 public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Path dataDir, @Valid @NotNull Gemini gemini,
-                                       @Valid @NotNull Publish publish, @Valid Novel novel) {
+                                       @Valid @NotNull Publish publish, @Valid Novel novel, Backup backup) {
 
-    /** Missing {@code novel} settings fall back to {@link Novel#defaults()}. */
+    /** Missing {@code novel} settings fall back to {@link Novel#defaults()}, missing {@code backup} to {@link Backup#defaults()}. */
     @ConstructorBinding
     public SubtitleStudioProperties {
         novel = novel == null ? Novel.defaults() : novel;
+        backup = backup == null ? Backup.defaults() : backup;
+    }
+
+    /** Without {@code backup} settings (the daily schedule at its default); for tests and callers that do not care. */
+    public SubtitleStudioProperties(Ytdlp ytdlp, Path dataDir, Gemini gemini, Publish publish, Novel novel) {
+        this(ytdlp, dataDir, gemini, publish, novel, null);
     }
 
     /** For tests and callers that do not care about novels. */
     public SubtitleStudioProperties(Ytdlp ytdlp, Path dataDir, Gemini gemini, Publish publish) {
         this(ytdlp, dataDir, gemini, publish, Novel.defaults());
+    }
+
+    /**
+     * Backups run by the app: {@code cron} is a Spring cron expression (seconds first) in the Vietnam time zone for the
+     * daily run; blank turns the schedule off (Backup now in Settings still works).
+     */
+    public record Backup(String cron) {
+
+        public static final String DEFAULT_CRON = "0 0 12 * * *";
+
+        public Backup {
+            cron = cron == null ? "" : cron.strip();
+        }
+
+        public static Backup defaults() {
+            return new Backup(DEFAULT_CRON);
+        }
     }
 
     /** Directory holding the original downloaded .vtt files: {@code {dataDir}/subs}. */

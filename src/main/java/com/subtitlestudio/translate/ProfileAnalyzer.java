@@ -8,6 +8,7 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.translate.CorrectionReader.Correction;
 import com.subtitlestudio.video.Video;
@@ -66,17 +67,17 @@ public class ProfileAnalyzer {
     private final VideoRepository videos;
     private final CorrectionReader reader;
     private final GeminiCaller caller;
-    private final SubtitleStudioProperties.Gemini settings;
+    private final GeminiSettings settings;
     private final ObjectMapper mapper;
 
     @Autowired
     public ProfileAnalyzer(PromptProfileStore store, VideoRepository videos, CorrectionReader reader,
-                           GeminiCaller caller, SubtitleStudioProperties properties, ObjectMapper mapper) {
+                           GeminiCaller caller, GeminiSettings settings, ObjectMapper mapper) {
         this.store = store;
         this.videos = videos;
         this.reader = reader;
         this.caller = caller;
-        this.settings = properties.gemini();
+        this.settings = settings;
         this.mapper = mapper;
     }
 
@@ -99,7 +100,7 @@ public class ProfileAnalyzer {
         if (selection.lines().isEmpty()) {
             throw new NoCorrectionsException("No corrected lines yet for " + name);
         }
-        if (!settings.configured()) {
+        if (!settings.current().configured()) {
             throw new GeminiNotConfiguredException(name);
         }
         GeminiCaller.Answer answer = caller.generate(
@@ -198,7 +199,7 @@ public class ProfileAnalyzer {
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
                 .responseMimeType("application/json")
                 .responseSchema(root)
-                .temperature((float) settings.temperature())
+                .temperature((float) settings.current().temperature())
                 .build();
     }
 }

@@ -12,6 +12,10 @@ services:
     volumes:
       # Named volume: Oracle runs as uid 54321 and bind mounts on Windows hit permission errors.
       - oracle-data:/opt/oracle/oradata
+      # Data Pump dumps written by the app (BackupService) land in ./data/backups on the host.
+      - ./data/backups:/opt/oracle/backups
+      # Runs at every start: creates the SS_BACKUP_DIR directory object the app exports into.
+      - ./docker/oracle-startdb:/container-entrypoint-startdb.d:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
       interval: 10s

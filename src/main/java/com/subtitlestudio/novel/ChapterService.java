@@ -1,5 +1,6 @@
 package com.subtitlestudio.novel;
 
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.translate.GeminiCaller;
@@ -44,12 +45,12 @@ public class ChapterService {
     private final long maxImageBytes;
     private final Clock clock;
     private final TranslatingModels models;
-    private final String mainModel;
+    private final GeminiSettings gemini;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           ChapterImageRepository chapterImages, MediaRepository mediaRepository,
                           MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
-                          PageRotator rotator, SubtitleStudioProperties properties, Clock clock,
+                          PageRotator rotator, SubtitleStudioProperties properties, GeminiSettings gemini, Clock clock,
                           TranslatingModels models) {
         this.novels = novels;
         this.chapters = chapters;
@@ -61,7 +62,7 @@ public class ChapterService {
         this.renderCache = renderCache;
         this.rotator = rotator;
         this.maxImageBytes = properties.novel().maxPageImageSize().toBytes();
-        this.mainModel = properties.gemini().model();
+        this.gemini = gemini;
         this.clock = clock;
         this.models = models;
     }
@@ -527,6 +528,6 @@ public class ChapterService {
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
                 c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())
-                .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, mainModel));
+                .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, gemini.current().model()));
     }
 }
