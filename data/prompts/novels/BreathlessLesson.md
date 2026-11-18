@@ -62,5 +62,10 @@
 - Không bỏ câu, không gộp hay đảo thứ tự đoạn.
 - Không dịch tên người, biệt danh sang nghĩa tiếng Việt.
 
+## Kiểm tra
+- "cảm xúc trẻ con" → "cảm xúc bồng bột" (văn phong tiết chế)
+- "sự vâng lời" → "sự hợp tác" (văn phong tiết chế)
+- "mẹ cô" → "mẹ em" (lời dẫn về Bonnie dùng "em")
+
 ## Tóm tắt nội dung chính
 Một chuyện tình cuồng si, bị chi phối bởi sự ám ảnh giữa cô học trò ngạo mạn, đỏng đảnh và vị gia sư ưu tú lạnh lùng như băng — người luôn che giấu nỗi ám ảnh sâu kín sau những “hình phạt” học thuật tàn nhẫn. Mỗi khi điểm số sa sút, em lại phải trả một cái giá đắt nhất sau cánh cửa khép kín: những nụ hôn cuồng nhiệt đến nghẹt thở, khiến tâm trí hoàn toàn đảo lộn, cùng những đêm hoan ái bỏng cháy vắt kiệt mọi sức lực của em.

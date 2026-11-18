@@ -60,6 +60,11 @@
 - Không bỏ câu, không gộp hay đảo thứ tự đoạn.
 - Không dịch tên người, biệt danh sang nghĩa tiếng Việt.
 
+## Kiểm tra
+- "cô ta" → "cô" | "em" (Emi là "cô", Bonnie là "em"; không dùng "cô ta")
+- "bà ta" → "cô" (không dùng "bà ta" cho Emi)
+- "ả" → "cô" (không dùng "ả" cho Emi)
+
 ## Tóm tắt nội dung chính
 She's ancient, arrogant, and incredibly grumpy. But ever since her fangs were stripped away, Emi the vampire has found her match in Bonnie, a struggling student who refuses to be intimidated. 
 
