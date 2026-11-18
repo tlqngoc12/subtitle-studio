@@ -52,6 +52,10 @@ public class NovelProfileAnalyzer {
             - Luôn giữ quy tắc "Giữ nguyên cấu trúc đoạn văn của bản gốc..." trong mục Văn phong; không xoá, không làm yếu, không thêm quy tắc cho phép tách đoạn hay xuống dòng mỗi lời thoại.
             - Tên riêng và thuật ngữ viết vào mục "## Tên riêng và thuật ngữ"; cách xưng hô viết vào mục "## Xưng hô". \
             Nếu mục chưa có thì tạo mới.
+            - Cập nhật mục "## Nhân vật": mỗi nhân vật chính một dòng gồm tên, giới tính, vai trò và quan hệ với các nhân vật khác, chỉ ghi điều các đoạn cho thấy rõ. \
+            Giữ nguyên các dòng người dịch đã viết, chỉ bổ sung hoặc sửa khi có bằng chứng. Bỏ câu nhắc "sổ tay truyện" nếu còn, vì chức năng này không còn.
+            - Trong mục "## Xưng hô", ghi rõ cặp xưng hô giữa các nhân vật chính theo dạng "A → B: xưng …, gọi …" khi các đoạn sửa cho thấy rõ. \
+            Cập nhật khi cách xưng hô đổi theo quan hệ (ví dụ khi thành người yêu).
             - Cụm từ mà người dịch sửa GIỐNG NHAU ở ít nhất 2 đoạn và luôn sai trong truyện này (không phụ thuộc ai nói hay ngữ cảnh) thì thêm vào mục "## Kiểm tra" (tạo mới trước "## Tóm tắt nội dung chính" nếu chưa có), mỗi dòng đúng dạng: - "cụm sai" → "cụm đúng" (lý do). Không thêm cụm phụ thuộc ngữ cảnh; giữ nguyên các dòng đã có trong mục này.
             - terms liệt kê các gợi ý tên riêng/thuật ngữ (kind = "term") và xưng hô (kind = "addressing") mà bạn đã viết \
             vào proposed, kèm số đoạn ủng hộ.
