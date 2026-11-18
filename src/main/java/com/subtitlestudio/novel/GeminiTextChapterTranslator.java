@@ -54,17 +54,6 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
             tiếng Việt, không kèm chữ gốc trong ngoặc.
             """;
 
-    /** Only added to the rules when the request carries images, so a chapter without images asks exactly as before. */
-    static final String IMAGE_RULES = """
-            - Văn bản có các dòng ảnh dạng [[image:N]] (mỗi dòng là một đoạn riêng). Ảnh tương ứng được đính kèm ngay \
-            sau văn bản, mỗi ảnh có nhãn "Ảnh [[image:N]]:". Chép NGUYÊN VẸN từng dòng [[image:N]] vào đúng vị trí cũ, \
-            không đổi số, không bỏ, không thêm, không gộp vào đoạn khác.
-            - Nếu ảnh có chữ thuộc nội dung truyện (mô tả nhân vật, tin nhắn, thư từ... chứ không phải logo hay tên \
-            cuốn sách), dịch chữ đó sang tiếng Việt và đặt NGAY SAU dòng [[image:N]] của ảnh đó, thành một hoặc \
-            nhiều đoạn.
-            - Ảnh không có chữ như vậy thì không thêm gì sau dòng [[image:N]].
-            """;
-
     private static final Logger log = LoggerFactory.getLogger(GeminiTextChapterTranslator.class);
 
     private record Answer(String text) {}
@@ -89,16 +78,14 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
     @Override
     public TextAnswer translate(TextChapterPrompt prompt, Consumer<String> onTrying) {
         List<Part> parts = new ArrayList<>();
+        // Images are not part of the request: markers are dropped from the text and no picture is attached.
+        String source = ImageMarkers.strip(prompt.sourceText());
         parts.add(Part.fromText(context(prompt)));
-        parts.add(Part.fromText(prompt.sourceText()));
-        for (PromptImage image : prompt.images()) {
-            parts.add(Part.fromText("Ảnh " + ImageMarkers.marker(image.mediaId()) + ":"));
-            parts.add(Part.fromBytes(image.bytes(), image.mimeType()));
-        }
+        parts.add(Part.fromText(source));
         GeminiCaller.Answer answer = caller.generate(parts, config(prompt), onTrying, true);
         if (answer.truncated()) {
             log.warn("Gemini {} stopped at its output limit for chapter {} ({} source chars)", answer.model(),
-                    prompt.chapterNo(), prompt.sourceText().length());
+                    prompt.chapterNo(), source.length());
             throw new TextIncompleteException("Gemini's answer was cut off.");
         }
         Answer got;
@@ -109,28 +96,9 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                     prompt.chapterNo(), answer.text().length());
             throw new TextIncompleteException("Gemini's answer was cut off.");
         }
-        String text = got == null || got.text() == null ? "" : got.text().strip();
-        if (!ImageMarkers.ids(text).equals(ImageMarkers.ids(prompt.sourceText()))) {
-            int expected = ImageMarkers.ids(prompt.sourceText()).size();
-            int found = ImageMarkers.ids(text).size();
-            text = ImageMarkers.restore(prompt.sourceText(), text).orElseThrow(() -> {
-                log.warn("Gemini {} answer for chapter {} lost or changed an image marker ({} markers expected, "
-                        + "could not restore them)", answer.model(), prompt.chapterNo(), expected);
-                return new TranslationFailedException(
-                        "Gemini (" + answer.model() + ") dropped this chapter's images. Try again later.");
-            });
-            log.warn("Gemini {} answer for chapter {} lost or moved image markers ({} expected, {} found); "
-                    + "restored them by paragraph position", answer.model(), prompt.chapterNo(), expected, found);
-        }
-        // Marker paragraphs are not text: only the rest of the original is compared with the rest of the answer, and
-        // a chapter of images alone has nothing to compare.
-        String source = ImageMarkers.strip(prompt.sourceText());
-        String translated = ImageMarkers.strip(text);
-        if (source.isBlank()) {
-            log.info("Gemini {} translated chapter {} (images only, {} chars)", answer.model(), prompt.chapterNo(),
-                    text.length());
-            return new TextAnswer(text, answer.model());
-        }
+        // A marker Gemini writes anyway is dropped: the translated text never has image markers.
+        String text = got == null || got.text() == null ? "" : ImageMarkers.strip(got.text().strip());
+        String translated = text;
         int sourceParagraphs = TextSplitter.paragraphs(source).size();
         int answerParagraphs = TextSplitter.paragraphs(translated).size();
         if (answerParagraphs < Math.ceil(sourceParagraphs * MIN_PARAGRAPH_SHARE)) {
@@ -144,14 +112,13 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                     answer.model(), translated.length(), sourceChars, prompt.chapterNo());
             throw new TextIncompleteException("Gemini's answer is much shorter than the original.");
         }
-        // The text after a final image is the translation of that image: it has no original to compare with.
-        if (!endsWithMarker(prompt.sourceText()) && endsMidSentence(source, translated)) {
+        if (endsMidSentence(source, translated)) {
             log.warn("Gemini {} answer for chapter {} stops mid-sentence (ending check, {} to {} chars)",
                     answer.model(), prompt.chapterNo(), sourceChars, translated.length());
             throw new TextIncompleteException("Gemini's answer stops mid-sentence.");
         }
         log.info("Gemini {} translated chapter {} ({} chars to {})", answer.model(), prompt.chapterNo(),
-                prompt.sourceText().length(), text.length());
+                source.length(), text.length());
         return new TextAnswer(text, answer.model());
     }
 
@@ -161,11 +128,6 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
      */
     static boolean endsMidSentence(String source, String translated) {
         return endsSentence(lastParagraph(source)) && !endsSentence(lastParagraph(translated));
-    }
-
-    private static boolean endsWithMarker(String text) {
-        List<String> paragraphs = TextSplitter.paragraphs(text);
-        return !paragraphs.isEmpty() && ImageMarkers.mediaId(paragraphs.getLast()).isPresent();
     }
 
     private static String lastParagraph(String text) {
@@ -186,8 +148,8 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
         }
         if (p.carrySource() != null && p.carryTranslation() != null) {
             sb.append("# Đoạn ngay trước (để giữ mạch, KHÔNG dịch lại)\n")
-                    .append("Cuối phần gốc đã dịch:\n").append(p.carrySource()).append("\n\n")
-                    .append("Cuối bản dịch của phần đó:\n").append(p.carryTranslation()).append("\n\n");
+                    .append("Cuối phần gốc đã dịch:\n").append(ImageMarkers.strip(p.carrySource())).append("\n\n")
+                    .append("Cuối bản dịch của phần đó:\n").append(ImageMarkers.strip(p.carryTranslation())).append("\n\n");
         }
         sb.append("# ").append(p.chapterName()).append(": ").append(p.novelTitle()).append('\n')
                 .append("Văn bản gốc cần dịch ở ngay dưới.");
@@ -201,7 +163,7 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                 .required("text")
                 .build();
         String rules = String.format(java.util.Locale.ROOT, SYSTEM_RULES, p.languageName(),
-                ("th".equals(p.sourceLanguage()) ? THAI_RULE : "") + (p.images().isEmpty() ? "" : IMAGE_RULES));
+                ("th".equals(p.sourceLanguage()) ? THAI_RULE : ""));
         GenerateContentConfig.Builder config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(rules)))
                 .responseMimeType("application/json")

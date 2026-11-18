@@ -678,46 +678,32 @@ class ChapterTranslationServiceTest {
     }
 
     @Test
-    void aChapterWithImagesSendsThemShrunkAndInMarkerOrder() {
+    void aChapterWhoseSourceHasMarkersTranslatesWithoutThemAndSavesTextWithoutMarkers() {
         novel.setSourceLanguage("en");
         long id = chapterWithImages(1, 3);
 
         service.start(id);
 
-        assertThat(reload(id).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        Chapter c = reload(id);
+        assertThat(c.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
+        assertThat(c.getTranslationError()).isNull();
+        assertThat(c.getSourceText()).contains("[[image:"); // the original keeps its markers for the Original panel
         TextChapterPrompt prompt = textTranslator.prompts.getFirst();
-        assertThat(prompt.images()).extracting(PromptImage::mediaId)
-                .containsExactlyElementsOf(ImageMarkers.ids(prompt.sourceText()));
-        assertThat(prompt.images()).hasSize(3).allSatisfy(i -> {
-            assertThat(i.mimeType()).isEqualTo("image/jpeg");
-            assertThat(i.bytes()).isNotEmpty();
-        });
-        assertThat(reload(id).getTextVi()).isEqualTo("VI: " + reload(id).getSourceText());
+        assertThat(prompt.sourceText()).isEqualTo("Paragraph 1.\n\nParagraph 2.\n\nParagraph 3.");
+        assertThat(c.getTextVi()).isEqualTo("VI: Paragraph 1.\n\nParagraph 2.\n\nParagraph 3.")
+                .doesNotContain("[[image:");
+        assertThat(c.getAiText()).doesNotContain("[[image:");
     }
 
     @Test
-    void moreThanTwentyImagesAreSplitIntoRequestsOfAtMostTwenty() {
+    void aChapterWithManyImagesIsOneRequest() {
         novel.setSourceLanguage("en");
         long id = chapterWithImages(1, 25);
 
         service.start(id);
 
         assertThat(reload(id).getTranslationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
-        assertThat(textTranslator.prompts).hasSize(2);
-        assertThat(textTranslator.prompts).allSatisfy(p -> assertThat(p.images().size()).isLessThanOrEqualTo(20));
-    }
-
-    @Test
-    void anImageThatIsGoneFailsTheTranslationWithAClearMessage() {
-        novel.setSourceLanguage("en");
-        long id = textChapter(1, "Text.\n\n[[image:999999]]");
-
-        service.start(id);
-
-        Chapter c = reload(id);
-        assertThat(c.getTranslationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
-        assertThat(c.getTranslationError()).contains("image of this chapter is missing");
-        assertThat(textTranslator.prompts).isEmpty();
+        assertThat(textTranslator.prompts).hasSize(1);
     }
 
     @Test

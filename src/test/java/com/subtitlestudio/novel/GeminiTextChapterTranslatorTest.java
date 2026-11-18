@@ -228,14 +228,10 @@ class GeminiTextChapterTranslatorTest {
 
     // ---- images ----
 
-    private static final byte[] IMG = {1, 2, 3, 4};
+    private static final String NL = "\n\n";
 
-    private static TextChapterPrompt withImages(String source, long... ids) {
-        List<PromptImage> images = new ArrayList<>();
-        for (long id : ids) {
-            images.add(new PromptImage(id, "image/jpeg", IMG));
-        }
-        return new TextChapterPrompt("Warm", 3, null, "p", null, "en", null, null, source, images);
+    private static TextChapterPrompt withMarkers(String source) {
+        return new TextChapterPrompt("Warm", 3, null, "p", null, "en", null, null, source);
     }
 
     private static String readGolden(String name) throws java.io.IOException {
@@ -256,112 +252,39 @@ class GeminiTextChapterTranslatorTest {
     }
 
     @Test
-    void imagePartsFollowTheTextInMarkerOrder() throws Exception {
-        String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
-        server.replyText(answer("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:6]]\n\nChữ trong ảnh hai."), "STOP");
+    void sendsTextWithoutMarkersOrImages() throws Exception {
+        String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]\n\nAfter.";
+        server.replyText(answer("Trước đó.\n\nỞ giữa.\n\nSau đó."), "STOP");
 
-        translator(List.of()).translate(withImages(source, 5, 6), m -> {});
+        translator(List.of()).translate(new TextChapterPrompt("Warm", 3, null, "p", null, "en",
+                "carry one" + NL + "[[image:5]]" + NL + "carry src",
+                "carry two" + NL + "[[image:6]]" + NL + "carry tr", source), m -> {});
 
-        var contents = new ObjectMapper().readTree(server.lastBody()).get("contents").get(0).get("parts");
-        assertThat(contents).hasSize(6);
-        assertThat(contents.get(1).get("text").asText()).isEqualTo(source);
-        assertThat(contents.get(2).get("text").asText()).isEqualTo("Ảnh [[image:5]]:");
-        assertThat(contents.get(3).get("inlineData").get("mimeType").asText()).isEqualTo("image/jpeg");
-        assertThat(java.util.Base64.getDecoder().decode(contents.get(3).get("inlineData").get("data").asText()))
-                .containsExactly(IMG);
-        assertThat(contents.get(4).get("text").asText()).isEqualTo("Ảnh [[image:6]]:");
-        assertThat(contents.get(5).get("inlineData")).isNotNull();
-        String rules = new ObjectMapper().readTree(server.lastBody()).get("systemInstruction").get("parts").get(0)
-                .get("text").asText();
-        assertThat(rules).contains("[[image:N]]").contains("NGAY SAU");
+        var tree = new ObjectMapper().readTree(server.lastBody());
+        var parts = tree.get("contents").get(0).get("parts");
+        assertThat(parts).hasSize(2);
+        assertThat(parts.get(1).get("text").asText()).isEqualTo("Before.\n\nBetween.\n\nAfter.");
+        assertThat(server.lastBody()).doesNotContain("[[image:").doesNotContain("inlineData").doesNotContain("Ảnh ");
+        String rules = tree.get("systemInstruction").get("parts").get(0).get("text").asText();
+        assertThat(rules).doesNotContain("[[image:N]]").doesNotContain("NGAY SAU");
     }
 
     @Test
-    void theImageRulesAreOnlySentWithImages() throws Exception {
-        server.replyText(answer(GOOD), "STOP");
-        translator(List.of()).translate(prompt("en", null, null), m -> {});
-
-        assertThat(server.lastBody()).doesNotContain("[[image:N]]").doesNotContain("inlineData");
-    }
-
-    @Test
-    void anAnswerThatDropsAMarkerGetsItBackByParagraphPosition() {
-        String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
+    void translatedTextHasNoMarkersEvenIfGeminiAddsOne() {
+        String source = "Before.\n\n[[image:5]]\n\nBetween.";
         server.replyText(answer("Trước đó.\n\n[[image:5]]\n\nỞ giữa."), "STOP");
 
-        TextAnswer got = translator(List.of()).translate(withImages(source, 5, 6), m -> {});
+        TextAnswer got = translator(List.of()).translate(withMarkers(source), m -> {});
 
-        assertThat(got.text()).isEqualTo("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:6]]");
+        assertThat(got.text()).isEqualTo("Trước đó.\n\nỞ giữa.").doesNotContain("[[image:");
     }
 
     @Test
-    void anAnswerThatReordersMarkersGetsThemBackInPlace() {
-        String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
-        server.replyText(answer("Trước đó.\n\n[[image:6]]\n\nỞ giữa.\n\n[[image:5]]"), "STOP");
-
-        assertThat(translator(List.of()).translate(withImages(source, 5, 6), m -> {}).text())
-                .isEqualTo("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:6]]");
-    }
-
-    @Test
-    void anAnswerWithLeadingMarkersLostIsRestoredAtTheTop() {
-        String source = "[[image:5]]\n\n[[image:6]]\n\nHello there friend.";
-        server.replyText(answer("Xin chào người bạn."), "STOP");
-
-        assertThat(translator(List.of()).translate(withImages(source, 5, 6), m -> {}).text())
-                .isEqualTo("[[image:5]]\n\n[[image:6]]\n\nXin chào người bạn.");
-    }
-
-    @Test
-    void anUnknownMarkerOrAParagraphMismatchFailsWithoutBeingSplittable() {
-        String source = "Before.\n\n[[image:5]]\n\nBetween.\n\n[[image:6]]";
-        server.replyText(answer("Trước đó.\n\n[[image:5]]\n\nỞ giữa.\n\n[[image:7]]"), "STOP");
-        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TranslationFailedException.class).hasMessageContaining("dropped this chapter's images");
-
-        server.replyText(answer("Trước đó.\n\n[[image:5]]"), "STOP");
-        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TranslationFailedException.class);
-
-        server.replyText(answer("Trước đó.\n\n[[image:5]]\n\n[[image:5]]\n\nỞ giữa."), "STOP");
-        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 5, 6), m -> {}))
-                .isInstanceOf(TranslationFailedException.class);
-    }
-
-    @Test
-    void anImageOnlySourcePassesValidation() {
-        String source = "[[image:1]]\n\n[[image:2]]\n\n[[image:3]]\n\n[[image:4]]";
-        String answer = "[[image:1]]\n\n[[image:2]]\n\nThẻ nhân vật một.\n\n[[image:3]]\n\nThẻ nhân vật hai.\n\n"
-                + "[[image:4]]\n\nThẻ nhân vật ba";
-        server.replyText(answer(answer), "STOP");
-
-        TextAnswer got = translator(List.of()).translate(withImages(source, 1, 2, 3, 4), m -> {});
-
-        assertThat(got.text()).isEqualTo(answer);
-    }
-
-    @Test
-    void anImageOnlyAnswerWithNoTextAtAllIsAccepted() {
-        String source = "[[image:1]]\n\n[[image:2]]";
-        server.replyText(answer(source), "STOP");
-
-        assertThat(translator(List.of()).translate(withImages(source, 1, 2), m -> {}).text()).isEqualTo(source);
-    }
-
-    @Test
-    void markersDoNotCountInTheParagraphLengthAndEndingChecks() {
-        String source = "A paragraph that ends well.\n\n[[image:9]]";
-        server.replyText(answer("Một đoạn kết thúc tốt đẹp.\n\n[[image:9]]\n\nChữ trong ảnh không có dấu chấm"), "STOP");
-
-        assertThat(translator(List.of()).translate(withImages(source, 9), m -> {}).text()).contains("[[image:9]]");
-    }
-
-    @Test
-    void aTextNextToAnImageStillHasToBeTranslatedInFull() {
+    void markersDoNotCountInTheLengthAndEndingChecks() {
         String source = sourceOf(1000, ".") + "\n\n[[image:9]]";
-        server.replyText(answer(answerOf(300, ".") + "\n\n[[image:9]]"), "STOP");
+        server.replyText(answer(answerOf(300, ".")), "STOP");
 
-        assertThatThrownBy(() -> translator(List.of()).translate(withImages(source, 9), m -> {}))
+        assertThatThrownBy(() -> translator(List.of()).translate(withMarkers(source), m -> {}))
                 .isInstanceOf(TextIncompleteException.class).hasMessageContaining("shorter");
     }
 

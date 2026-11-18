@@ -471,6 +471,31 @@ Test files: the existing tests that build these classes (about 24 `new X(...)` s
 - [ ] **Step 4:** Run `cd frontend && npm test`. Expected: PASS.
 - [ ] **Step 5:** Commit `feat: Check button underlines profile rule hits in Chapter text`.
 
+### Task 14: Wattpad text chapters are translated without images
+
+Why: gemini-3.5-flash-lite dropped an `[[image:N]]` marker and the paragraph count differed, so `ImageMarkers.restore`
+failed and the whole chapter failed ("Gemini (model) dropped this chapter's images"). User decision: for text (Wattpad)
+chapters, images are ignored entirely during translation, and the translated Chapter text has NO image markers. The
+user re-adds markers by hand where wanted (the `ChapterService` save guard already allows any sub-multiset of the
+source's markers; keep it). Screenshot novels (`GeminiChapterTranslator`, page images) are unchanged.
+
+Changes:
+- `GeminiTextChapterTranslator`: send `ImageMarkers.strip(...)` of the source text and of the carry-over texts; attach
+  no image parts; drop `IMAGE_RULES` from the system prompt; remove the marker check/restore and the "ends with a
+  marker" check; strip any marker Gemini still emits. The translated text (`text_vi` and `ai_text`) has no markers.
+- `ChapterTranslationService`: stop loading image bytes for the prompt. `TextChapterTranslation` strips the markers
+  before splitting, so long chapters still split as before. A chapter of images only fails with "no text to translate".
+- Remove `TextChapterPrompt.images`, `PromptImage`, the image-count split rule and `ImageMarkers.restore`.
+- Keep `ImageMarkers` (save guard, strip, analyzer, renderer), the Original panel and the public renderer.
+
+Tests: `GeminiTextChapterTranslatorTest.sendsTextWithoutMarkersOrImages`, `translatedTextHasNoMarkersEvenIfGeminiAddsOne`;
+`TextChapterTranslationTest` (markers dropped, many images never split, carried context without markers, images-only
+fails); `ChapterTranslationServiceTest` (a chapter whose source has markers translates and saves text without them).
+
+- [ ] **Step 1:** Write the tests above. Expected: FAIL.
+- [ ] **Step 2:** Implement. Run `mvn test -Dskip.npm` and `cd frontend && npm test`. Expected: PASS.
+- [ ] **Step 3:** Commit `fix: translate Wattpad chapters without images`.
+
 ## Part E — Docs and PR
 
 ### Task 13: Docs, full verification, PR

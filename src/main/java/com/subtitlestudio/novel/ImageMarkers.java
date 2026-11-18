@@ -89,35 +89,4 @@ public final class ImageMarkers {
         }
         return String.join("\n\n", kept);
     }
-
-    /**
-     * The answer with every marker paragraph of the source put back at its source position, or empty when that cannot
-     * be done safely: the answer has a marker the source does not, repeats a marker, or does not have as many text
-     * paragraphs as the source (so a source paragraph has no counterpart to anchor to). A marker goes right before the
-     * answer paragraph that matches the source paragraph following it, or at the end when it was last; markers in a row
-     * keep their order. Markers the answer has are dropped first, so moved ones return to their place too.
-     */
-    public static java.util.Optional<String> restore(String source, String answer) {
-        List<Long> sourceIds = ids(source);
-        List<Long> answerIds = ids(answer);
-        if (!isSubMultiset(sourceIds, answerIds)) {
-            return java.util.Optional.empty();
-        }
-        List<String> sourceParagraphs = TextSplitter.paragraphs(source);
-        List<String> answerText = TextSplitter.paragraphs(answer).stream().filter(p -> mediaId(p).isEmpty()).toList();
-        int sourceText = (int) sourceParagraphs.stream().filter(p -> mediaId(p).isEmpty()).count();
-        if (sourceText != answerText.size()) {
-            return java.util.Optional.empty();
-        }
-        List<String> out = new ArrayList<>();
-        int next = 0;
-        for (String paragraph : sourceParagraphs) {
-            if (mediaId(paragraph).isPresent()) {
-                out.add(paragraph.strip());
-            } else {
-                out.add(answerText.get(next++));
-            }
-        }
-        return java.util.Optional.of(String.join("\n\n", out));
-    }
 }

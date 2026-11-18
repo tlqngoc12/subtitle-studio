@@ -228,15 +228,6 @@ class TextChapterTranslationTest {
                 .isEqualTo("model-a, model-b");
     }
 
-    private static TextChapterPrompt withImages(String source, int imageCount) {
-        List<PromptImage> images = new ArrayList<>();
-        for (int i = 1; i <= imageCount; i++) {
-            images.add(new PromptImage(i, "image/jpeg", new byte[] {(byte) i}));
-        }
-        return new TextChapterPrompt("Warm", 3, null, "profile", "previous", "en", null, null, source,
-                images);
-    }
-
     private static String textAndImages(int imageCount) {
         List<String> ps = new ArrayList<>();
         for (int i = 1; i <= imageCount; i++) {
@@ -247,85 +238,55 @@ class TextChapterTranslationTest {
     }
 
     @Test
-    void aChapterWithImagesSendsThemWithTheRequest() {
+    void imageMarkersAreDroppedBeforeAnythingIsSent() {
         String source = textAndImages(3);
 
-        new TextChapterTranslation(fake, 60_000).translate(withImages(source, 3), m -> {});
+        new TextChapterTranslation(fake, 60_000).translate(prompt("en", source), m -> {});
 
         assertThat(fake.prompts).hasSize(1);
-        assertThat(fake.prompts.getFirst().images()).extracting(PromptImage::mediaId).containsExactly(1L, 2L, 3L);
+        assertThat(fake.prompts.getFirst().sourceText()).isEqualTo("Paragraph 1.\n\nParagraph 2.\n\nParagraph 3.")
+                .doesNotContain("[[image:");
     }
 
     @Test
-    void aSplitPartOnlyGetsTheImagesItsMarkersName() {
-        String source = textAndImages(4);
-        fake.script = p -> {
-            if (p.sourceText().equals(source)) {
-                throw new TextIncompleteException("cut off");
-            }
-            return new TextAnswer("ok", "m");
-        };
-
-        new TextChapterTranslation(fake, 60_000).translate(withImages(source, 4), m -> {});
-
-        assertThat(fake.prompts).hasSize(3);
-        for (TextChapterPrompt p : fake.prompts.subList(1, 3)) {
-            assertThat(p.images()).extracting(PromptImage::mediaId).containsExactlyElementsOf(
-                    ImageMarkers.ids(p.sourceText()));
-        }
-        assertThat(fake.prompts.get(1).images().size() + fake.prompts.get(2).images().size()).isEqualTo(4);
-    }
-
-    @Test
-    void aPartWithMoreThanTwentyImagesIsSplitBeforeItIsSent() {
+    void manyImagesNeverSplitAChapter() {
         String source = textAndImages(25);
 
-        new TextChapterTranslation(fake, 600_000).translate(withImages(source, 25), m -> {});
+        new TextChapterTranslation(fake, 600_000).translate(prompt("en", source), m -> {});
 
-        assertThat(fake.prompts).hasSize(2);
-        assertThat(fake.prompts).allSatisfy(p -> assertThat(p.images().size()).isLessThanOrEqualTo(20));
-        assertThat(fake.prompts.stream().mapToInt(p -> p.images().size()).sum()).isEqualTo(25);
+        assertThat(fake.prompts).hasSize(1);
     }
 
     @Test
-    void aChapterThatCannotBeSplitIntoPartsOfTwentyImagesFailsClearly() {
-        String source = textAndImages(200);
-
-        assertThatThrownBy(() -> new TextChapterTranslation(fake, 600_000).translate(withImages(source, 200), m -> {}))
-                .isInstanceOf(TranslationFailedException.class).hasMessageContaining("more than 20 images");
-        assertThat(fake.prompts).isEmpty();
-    }
-
-    @Test
-    void theCarriedContextOfALaterPartHasNoMarkers() {
+    void aSplitPartsAndTheirCarriedContextHaveNoMarkers() {
         String first = textAndImages(2);
         String second = "Later paragraph.\n\n" + ImageMarkers.marker(3);
         String source = first + "\n\n***\n\n" + second;
+        String stripped = ImageMarkers.strip(source);
         fake.script = p -> {
-            if (p.sourceText().equals(source)) {
+            if (p.sourceText().equals(stripped)) {
                 throw new TextIncompleteException("cut off");
             }
-            return new TextAnswer(p.sourceText().contains("Later") ? "Sau." + "\n\n" + ImageMarkers.marker(3)
-                    : "Một.\n\n" + ImageMarkers.marker(1), "m");
+            return new TextAnswer(p.sourceText().contains("Later") ? "Sau." : "Một.", "m");
         };
 
-        new TextChapterTranslation(fake, 60_000).translate(withImages(source, 3), m -> {});
+        TextChapterTranslation.Result result = new TextChapterTranslation(fake, 60_000).translate(prompt("en", source),
+                m -> {});
 
+        assertThat(fake.prompts).hasSize(3);
+        assertThat(fake.prompts).allSatisfy(p -> assertThat(p.sourceText()).doesNotContain("[[image:"));
         TextChapterPrompt later = fake.prompts.get(2);
         assertThat(later.carrySource()).doesNotContain("[[image:").contains("Paragraph 1.");
         assertThat(later.carryTranslation()).doesNotContain("[[image:").contains("Một.");
+        assertThat(result.text()).doesNotContain("[[image:");
     }
 
     @Test
-    void lostImagesNeverSplitTheChapter() {
-        String source = textAndImages(2);
-        fake.script = p -> {
-            throw new TranslationFailedException("Gemini (m) dropped this chapter's images. Try again later.");
-        };
+    void aChapterOfImagesOnlyFailsClearlyWithoutAskingGemini() {
+        String source = textAndImages(0) + ImageMarkers.marker(1) + "\n\n" + ImageMarkers.marker(2);
 
-        assertThatThrownBy(() -> new TextChapterTranslation(fake, 60_000).translate(withImages(source, 2), m -> {}))
-                .isInstanceOf(TranslationFailedException.class)
-                .hasMessageContaining("dropped this chapter's images").hasMessageNotContaining("too long");
-        assertThat(fake.prompts).hasSize(1);
+        assertThatThrownBy(() -> new TextChapterTranslation(fake, 60_000).translate(prompt("en", source), m -> {}))
+                .isInstanceOf(TranslationFailedException.class).hasMessageContaining("no text to translate");
+        assertThat(fake.prompts).isEmpty();
     }
 }
