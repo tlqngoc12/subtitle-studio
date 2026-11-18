@@ -172,15 +172,16 @@ public class NovelService {
         apply(n, r);
         n.touch(clock.instant());
         novels.flush();
-        if (followTitle) {
-            followTitle(n, oldTitle, oldProfile);
-        }
         if (renamed) {
             // Page screenshots live in novels/<slug>/, so a new slug means a new folder.
             mediaFiler.fileNovelPagesAfterCommit(n.getId());
         }
         if (oldCover != null && !oldCover.equals(r.coverMediaId())) {
             mediaService.deleteIfUnreferenced(List.of(oldCover));
+        }
+        // Last, so a failure above (which rolls the transaction back) never leaves a renamed file behind.
+        if (followTitle) {
+            followTitle(n, oldTitle, oldProfile);
         }
         return detail(n);
     }

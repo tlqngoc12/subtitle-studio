@@ -220,10 +220,18 @@ public class PromptProfileStore {
                     return;
                 }
                 if (caseOnly) {
-                    Files.delete(source);
-                }
-                Files.move(temp, target);
-                if (!caseOnly) {
+                    // Keep the old file until the new one is in place, so a failed move loses nothing.
+                    Path aside = Files.createTempFile(dir, "." + from + "-", ".bak");
+                    Files.move(source, aside, StandardCopyOption.REPLACE_EXISTING);
+                    try {
+                        Files.move(temp, target);
+                    } catch (IOException | RuntimeException e) {
+                        Files.move(aside, source, StandardCopyOption.REPLACE_EXISTING);
+                        throw e;
+                    }
+                    Files.delete(aside);
+                } else {
+                    Files.move(temp, target);
                     Files.delete(source);
                 }
             } catch (FileAlreadyExistsException e) {
