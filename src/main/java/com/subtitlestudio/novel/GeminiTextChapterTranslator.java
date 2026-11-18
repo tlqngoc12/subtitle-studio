@@ -7,6 +7,7 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.translate.GeminiCaller;
 import com.subtitlestudio.translate.TranslationFailedException;
@@ -69,17 +70,19 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
     private record Answer(String text) {}
 
     private final GeminiCaller caller;
-    private final SubtitleStudioProperties.Gemini settings;
+    private final GeminiSettings settings;
     private final ObjectMapper mapper;
 
     @Autowired
-    public GeminiTextChapterTranslator(GeminiCaller caller, SubtitleStudioProperties properties, ObjectMapper mapper) {
-        this(caller, properties.gemini(), mapper);
+    public GeminiTextChapterTranslator(GeminiCaller caller, GeminiSettings settings, ObjectMapper mapper) {
+        this.caller = caller;
+        this.settings = settings;
+        this.mapper = mapper;
     }
 
     GeminiTextChapterTranslator(GeminiCaller caller, SubtitleStudioProperties.Gemini settings, ObjectMapper mapper) {
         this.caller = caller;
-        this.settings = settings;
+        this.settings = GeminiSettings.fixed(settings);
         this.mapper = mapper;
     }
 
@@ -203,9 +206,9 @@ public class GeminiTextChapterTranslator implements TextChapterTranslator {
                 .systemInstruction(Content.fromParts(Part.fromText(rules)))
                 .responseMimeType("application/json")
                 .responseSchema(root)
-                .temperature((float) settings.temperature());
-        if (settings.translationThinking() != null) {
-            config.thinkingConfig(settings.translationThinking());
+                .temperature((float) settings.current().temperature());
+        if (settings.current().translationThinking() != null) {
+            config.thinkingConfig(settings.current().translationThinking());
         }
         return config.build();
     }

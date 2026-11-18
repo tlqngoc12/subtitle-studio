@@ -49,6 +49,25 @@ class GeminiCallerTest {
         assertThat(answer.model()).isEqualTo("m2");
     }
 
+    @Test
+    void usesOneSnapshotPerCall() {
+        var a = new SubtitleStudioProperties.Gemini("k", "m1", Duration.ofSeconds(10), Duration.ofMinutes(60), 0.3,
+                List.of("m2"));
+        var b = new SubtitleStudioProperties.Gemini("k", "x1", Duration.ofSeconds(10), Duration.ofMinutes(60), 0.3,
+                List.of("x2"));
+        var settings = org.mockito.Mockito.mock(com.subtitlestudio.config.GeminiSettings.class);
+        org.mockito.Mockito.when(settings.current()).thenReturn(a, b);
+        server.replyText("ok", "STOP");
+        server.replyForModel("m1", 503, "{}");
+        List<String> tried = new ArrayList<>();
+
+        var answer = new GeminiCaller(settings, server.baseUrl(), new GeminiQuotaTracker(Clock.systemUTC()))
+                .generate(List.of(Part.fromText("hi")), GenerateContentConfig.builder().build(), tried::add);
+
+        assertThat(tried).containsExactly("m1", "m2");
+        assertThat(answer.model()).isEqualTo("m2");
+    }
+
     private static final Instant T0 = Instant.parse("2026-01-15T12:00:00Z");
 
     private static final class MutableClock extends Clock {

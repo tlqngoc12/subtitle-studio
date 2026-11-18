@@ -1,6 +1,6 @@
 package com.subtitlestudio.translate;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.config.GeminiSettings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,17 +16,17 @@ public class GeminiQuotaController {
     public record Quota(List<Exhausted> exhausted, String nowUsing) {}
 
     private final GeminiQuotaTracker tracker;
-    private final SubtitleStudioProperties properties;
+    private final GeminiSettings settings;
 
-    public GeminiQuotaController(GeminiQuotaTracker tracker, SubtitleStudioProperties properties) {
+    public GeminiQuotaController(GeminiQuotaTracker tracker, GeminiSettings settings) {
         this.tracker = tracker;
-        this.properties = properties;
+        this.settings = settings;
     }
 
     @GetMapping("/api/gemini/quota")
     public Quota quota() {
         List<Exhausted> exhausted = tracker.active().stream()
                 .map(e -> new Exhausted(e.model(), e.kind(), e.resetAt())).toList();
-        return new Quota(exhausted, tracker.firstAvailable(GeminiCaller.modelOrder(properties.gemini())));
+        return new Quota(exhausted, tracker.firstAvailable(GeminiCaller.modelOrder(settings.current())));
     }
 }

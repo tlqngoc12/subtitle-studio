@@ -1,5 +1,6 @@
 package com.subtitlestudio.translate;
 
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.google.genai.Client;
 import com.google.genai.errors.ApiException;
@@ -54,22 +55,26 @@ public class GeminiCaller {
             .ofPattern("HH:mm", java.util.Locale.ROOT).withZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
     private static final Pattern RETRY_SECONDS = Pattern.compile("retry in (\\d+(?:\\.\\d+)?)s\\b");
 
-    private final SubtitleStudioProperties.Gemini settings;
+    private final GeminiSettings source;
     private final String baseUrl;
     private final GeminiQuotaTracker quota;
 
     @Autowired
-    public GeminiCaller(SubtitleStudioProperties properties, GeminiQuotaTracker quota) {
-        this(properties.gemini(), null, quota);
+    public GeminiCaller(GeminiSettings settings, GeminiQuotaTracker quota) {
+        this(settings, null, quota);
     }
 
     /** {@code baseUrl} points the SDK at a fake server in tests; null means the real Gemini API. */
     public GeminiCaller(SubtitleStudioProperties.Gemini settings, String baseUrl) {
-        this(settings, baseUrl, new GeminiQuotaTracker(java.time.Clock.systemUTC()));
+        this(GeminiSettings.fixed(settings), baseUrl, new GeminiQuotaTracker(java.time.Clock.systemUTC()));
     }
 
     public GeminiCaller(SubtitleStudioProperties.Gemini settings, String baseUrl, GeminiQuotaTracker quota) {
-        this.settings = settings;
+        this(GeminiSettings.fixed(settings), baseUrl, quota);
+    }
+
+    public GeminiCaller(GeminiSettings settings, String baseUrl, GeminiQuotaTracker quota) {
+        this.source = settings;
         this.baseUrl = baseUrl;
         this.quota = quota;
     }
@@ -114,6 +119,8 @@ public class GeminiCaller {
      */
     public Answer generate(List<Part> parts, GenerateContentConfig config, Consumer<String> onTrying,
                            boolean allowTruncated) {
+        // One snapshot for the whole call, fallback loop included: a Save in the middle must not switch models.
+        var settings = source.current();
         GenerateContentResponse response = null;
         String answeredBy = null;
         Content content = Content.fromParts(parts.toArray(Part[]::new));
@@ -125,7 +132,7 @@ public class GeminiCaller {
         boolean timedOut = false;
         boolean onlyPerMinuteLimits = true;
         List<String> all = modelOrder(settings);
-        try (Client client = client()) {
+        try (Client client = client(settings)) {
             List<String> exhaustedModels = all.stream().filter(quota::isDailyExhausted).toList();
             outOfQuota.addAll(exhaustedModels);
             List<String> restingModels = all.stream()
@@ -292,7 +299,7 @@ public class GeminiCaller {
                 seconds == null ? "" : ", retry in " + retry.group(1) + "s", kind);
     }
 
-    private Client client() {
+    private Client client(SubtitleStudioProperties.Gemini settings) {
         HttpOptions.Builder http = HttpOptions.builder()
                 .timeout((int) settings.timeout().toMillis())
                 .retryOptions(HttpRetryOptions.builder().attempts(1));

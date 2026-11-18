@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.translate.GeminiQuotaTracker.QuotaKind;
 import java.time.Clock;
@@ -40,7 +41,7 @@ class GeminiQuotaControllerTest {
     private GeminiQuotaTracker tracker;
 
     @MockitoBean
-    private SubtitleStudioProperties properties;
+    private GeminiSettings settings;
 
     @org.junit.jupiter.api.BeforeEach
     void forget() {
@@ -48,7 +49,7 @@ class GeminiQuotaControllerTest {
     }
 
     private void models(String main, String... fallbacks) {
-        when(properties.gemini()).thenReturn(new SubtitleStudioProperties.Gemini("secret-key", main,
+        when(settings.current()).thenReturn(new SubtitleStudioProperties.Gemini("secret-key", main,
                 Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of(fallbacks)));
     }
 

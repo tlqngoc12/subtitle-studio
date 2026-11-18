@@ -1,6 +1,6 @@
 package com.subtitlestudio.novel;
 
-import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.novel.render.RenderCache;
 import com.subtitlestudio.translate.GeminiCaller;
 import com.subtitlestudio.profile.FieldError;
@@ -37,14 +37,14 @@ public class NovelService {
     private final Clock clock;
     private final TranslatingModels models;
     private final MediaFiler mediaFiler;
-    private final String mainModel;
+    private final GeminiSettings gemini;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                         ChapterImageRepository chapterImages, MediaRepository media, MediaService mediaService,
                         NovelValidator validator, RenderCache renderCache, Clock clock,
                         TranslatingModels models, MediaFiler mediaFiler,
-                        SubtitleStudioProperties properties) {
-        this.mainModel = properties.gemini().model();
+                        GeminiSettings gemini) {
+        this.gemini = gemini;
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -196,7 +196,7 @@ public class NovelService {
                         c.translationStatus(),
                         c.translationError(), models.shown(c), c.publishStatus(), pageCounts.getOrDefault(c.id(), 0),
                         suspect.getOrDefault(c.id(), 0),
-                        GeminiCaller.translatedByFallback(models.shown(c), mainModel)))
+                        GeminiCaller.translatedByFallback(models.shown(c), gemini.current().model())))
                 .toList();
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),

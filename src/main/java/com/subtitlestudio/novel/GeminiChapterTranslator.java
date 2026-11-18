@@ -2,6 +2,7 @@ package com.subtitlestudio.novel;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.subtitlestudio.config.GeminiSettings;
 import com.subtitlestudio.config.SubtitleStudioProperties;
 import com.subtitlestudio.translate.GeminiCaller;
 import com.subtitlestudio.translate.TranslationFailedException;
@@ -44,20 +45,26 @@ public class GeminiChapterTranslator implements ChapterTranslator {
     private record Answer(List<TranslatedPage> pages) {}
 
     private final GeminiCaller caller;
-    private final SubtitleStudioProperties.Gemini settings;
+    private final GeminiSettings settings;
     private final SubtitleStudioProperties.Novel novelSettings;
     private final ObjectMapper mapper;
 
     @Autowired
-    public GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties properties, ObjectMapper mapper) {
-        this(caller, properties.gemini(), properties.novel(), mapper);
+    public GeminiChapterTranslator(GeminiCaller caller, GeminiSettings settings, SubtitleStudioProperties properties,
+                                  ObjectMapper mapper) {
+        this(caller, settings, properties.novel(), mapper);
     }
 
     GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties.Gemini settings, ObjectMapper mapper) {
-        this(caller, settings, SubtitleStudioProperties.Novel.defaults(), mapper);
+        this(caller, GeminiSettings.fixed(settings), SubtitleStudioProperties.Novel.defaults(), mapper);
     }
 
     GeminiChapterTranslator(GeminiCaller caller, SubtitleStudioProperties.Gemini settings,
+                            SubtitleStudioProperties.Novel novelSettings, ObjectMapper mapper) {
+        this(caller, GeminiSettings.fixed(settings), novelSettings, mapper);
+    }
+
+    GeminiChapterTranslator(GeminiCaller caller, GeminiSettings settings,
                             SubtitleStudioProperties.Novel novelSettings, ObjectMapper mapper) {
         this.caller = caller;
         this.settings = settings;
@@ -164,9 +171,9 @@ public class GeminiChapterTranslator implements ChapterTranslator {
                 .responseMimeType("application/json")
                 .responseSchema(root)
                 .mediaResolution(novelSettings.mediaResolutionKnown())
-                .temperature((float) settings.temperature());
-        if (settings.translationThinking() != null) {
-            config.thinkingConfig(settings.translationThinking());
+                .temperature((float) settings.current().temperature());
+        if (settings.current().translationThinking() != null) {
+            config.thinkingConfig(settings.current().translationThinking());
         }
         return config.build();
     }

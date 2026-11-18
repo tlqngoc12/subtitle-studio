@@ -131,6 +131,11 @@ class ChapterTranslationServiceTest {
         }
 
         @Bean
+        com.subtitlestudio.config.GeminiSettings geminiSettings(SubtitleStudioProperties properties) {
+            return com.subtitlestudio.config.GeminiSettings.fixed(properties.gemini());
+        }
+
+        @Bean
         SubtitleStudioProperties properties() {
             return propertiesWithKey("key");
         }
