@@ -57,4 +57,23 @@ class NovelProfileNamesTest {
         String result = NovelProfileNames.fromTitle(base + "z", "1", Set.of(taken)::contains);
         assertThat(result).isEqualTo(taken.substring(0, 38) + "-2");
     }
+
+    @Test
+    void isDerivedAcceptsTheNameAndItsNumberedForms() {
+        assertThat(NovelProfileNames.isDerived("Unknown", "Unknown")).isTrue();
+        assertThat(NovelProfileNames.isDerived("Unknown-2", "Unknown")).isTrue();
+        assertThat(NovelProfileNames.isDerived("Unknown-12", "Unknown")).isTrue();
+        assertThat(NovelProfileNames.isDerived("BeMySugar", "Unknown")).isFalse();
+        assertThat(NovelProfileNames.isDerived("Unknown-x", "Unknown")).isFalse();
+        assertThat(NovelProfileNames.isDerived("UnknownTwo-2", "Unknown")).isFalse();
+    }
+
+    @Test
+    void isDerivedRespectsTheTruncationOfNumberedNames() {
+        String derived = "A".repeat(40);
+        String numbered = NovelProfileNames.fromTitle(derived, "1", n -> n.equals(derived));
+        assertThat(numbered).hasSize(40).endsWith("-2");
+        assertThat(NovelProfileNames.isDerived(numbered, derived)).isTrue();
+        assertThat(NovelProfileNames.isDerived("A".repeat(37) + "-2", derived)).isFalse();
+    }
 }

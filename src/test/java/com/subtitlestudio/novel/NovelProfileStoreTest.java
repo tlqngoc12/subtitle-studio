@@ -109,4 +109,16 @@ class NovelProfileStoreTest {
                 .isInstanceOf(com.subtitlestudio.translate.ProfileChangedException.class);
         assertThat(novels.read("MoonShadow")).isEqualTo("new text");
     }
+
+    @Test
+    void renameDelegatesToTheNovelFolder() throws IOException {
+        write("prompts/novels/Unknown.md", "# Hồ sơ dịch: Unknown");
+        SubtitleStudioProperties p = properties();
+        NovelProfileStore store = new NovelProfileStore(p, new PromptProfileStore(p));
+
+        store.rename("Unknown", "MuaHe", t -> t.replace("Unknown", "Mua He"));
+
+        assertThat(store.exists("Unknown")).isFalse();
+        assertThat(store.read("MuaHe")).isEqualTo("# Hồ sơ dịch: Mua He");
+    }
 }
