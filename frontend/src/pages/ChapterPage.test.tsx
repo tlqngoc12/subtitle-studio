@@ -1061,6 +1061,85 @@ describe('ChapterPage: Fetch & translate next', () => {
   });
 });
 
+describe('ChapterPage: New chapter', () => {
+  const NEW = 'New chapter';
+  const last = (over: Partial<ChapterDetail> = {}): FakeRoute =>
+    get({ sourceType: 'ORIGINAL', nextChapterId: null, ...over });
+  const created: FakeRoute = {
+    method: 'POST',
+    path: '/api/novels/3/chapters',
+    status: 201,
+    body: chapterDetail({ id: 99, title: 'Chương mới' }),
+  };
+  const posts = (calls: { method: string; path: string }[]) => calls.filter((c) => c.method === 'POST');
+
+  beforeEach(() => {
+    vi.mocked(toast.error).mockClear();
+  });
+
+  it('is shown on the last chapter of an original novel and opens the created chapter', async () => {
+    const calls = renderPage([last(), created]);
+    await loaded();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: NEW }));
+
+    expect(await screen.findByText('other chapter 99')).toBeInTheDocument();
+    expect(posts(calls)).toHaveLength(1);
+  });
+
+  it('is shown for screenshot novels too', async () => {
+    renderPage([last({ sourceType: 'SCREENSHOTS' })]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: NEW })).toBeInTheDocument();
+  });
+
+  it('is hidden on a middle chapter and on Wattpad novels', async () => {
+    renderPage([last({ nextChapterId: 12 })]);
+    await loaded();
+    expect(screen.queryByRole('button', { name: NEW })).not.toBeInTheDocument();
+    cleanup();
+
+    renderPage([last({ sourceType: 'WATTPAD', wattpadPartId: 'p1' })]);
+    await loaded();
+    expect(screen.queryByRole('button', { name: NEW })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fetch & translate next' })).toBeInTheDocument();
+  });
+
+  it('asks before leaving unsaved edits: Cancel creates nothing', async () => {
+    const calls = renderPage([last(), created]);
+    await loaded();
+
+    await user().type(textBox(), '!');
+    await user().click(screen.getByRole('button', { name: NEW }));
+    await answerConfirm('Cancel', 'Leave without saving?');
+
+    expect(posts(calls)).toHaveLength(0);
+    expect(screen.queryByText(/other chapter/)).not.toBeInTheDocument();
+  });
+
+  it('shows an error toast and stays on the chapter when creating fails', async () => {
+    renderPage([
+      last(),
+      { method: 'POST', path: '/api/novels/3/chapters', status: 500, body: problem(500, 'INTERNAL', 'x') },
+    ]);
+    await loaded();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: NEW }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.queryByText(/other chapter/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: NEW })).toBeEnabled();
+  });
+
+  it('is disabled while the chapter translates', async () => {
+    renderPage([last({ translationStatus: 'TRANSLATING' })]);
+    await loaded();
+
+    expect(screen.getByRole('button', { name: NEW })).toBeDisabled();
+  });
+});
+
 describe('ChapterPage status line', () => {
   afterEach(() => vi.useRealTimers());
   const edit = (value: string) => fireEvent.change(textBox(), { target: { value } });
