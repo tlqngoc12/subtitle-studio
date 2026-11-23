@@ -13,6 +13,10 @@ describe('findRepeatedPhrases', () => {
     expect(slices(text, groups[0])).toEqual(['Cô nhìn ra cửa sổ', 'Cô nhìn ra cửa sổ', 'cô nhìn ra cửa sổ']);
   });
 
+  it('ignores a 3-word phrase repeated 3 times', () => {
+    expect(findRepeatedPhrases('Anh cầm tập hồ sơ. Em đọc tập hồ sơ. Rồi tập hồ sơ rơi.', [])).toEqual([]);
+  });
+
   it('ignores a phrase repeated only twice', () => {
     expect(findRepeatedPhrases('Cô nhìn ra cửa sổ. Cô nhìn ra cửa sổ.', [])).toEqual([]);
   });

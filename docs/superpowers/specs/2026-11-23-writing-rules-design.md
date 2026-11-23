@@ -143,7 +143,7 @@ kinds. The existing toggle, ‹ › navigation, popover and count stay; the coun
 2. **Repeated phrase** — found automatically:
    - Words = runs of Unicode letters/digits, compared lower-case NFC. Sentence/line breaks end an n-gram (no
      n-gram crosses `.?!…` or a newline).
-   - Report an n-gram of 3–6 words that occurs **3 or more times** in the chapter.
+   - Report an n-gram of 4–6 words that occurs **3 or more times** in the chapter.
    - Keep only maximal ones: drop an n-gram when a longer reported n-gram contains it with the same count.
    - Skip n-grams made only of stop words (small built-in Vietnamese list: "của", "và", "là", "thì", "một", "cái",
      "những", "các", "đã", "đang", "sẽ", "không", "có", "này", "đó", "ấy"… — builder finalizes the list), and those
@@ -160,7 +160,7 @@ kinds. The existing toggle, ‹ › navigation, popover and count stay; the coun
 - Check is no longer disabled when the profile has no `## Kiểm tra` rules; it is disabled only when there are no
   global rules **and** no profile rules **and** the chapter is empty, or the editor is locked (translating).
 - Rules are reloaded when Check is switched on (global `writing-rules.md` + profile), as today for the profile.
-- Thresholds (3–6 words, ≥3 times, ≥3 sentences, 2 opening words) are constants in one place; not user-editable.
+- Thresholds (4–6 words, ≥3 times, ≥3 sentences, 2 opening words) are constants in one place; not user-editable.
 
 ## UI scope
 
@@ -203,7 +203,7 @@ UI; rule text and export text in Vietnamese. Icons from `lucide-react`.
 
 - File location `data/prompts/writing-rules.md`.
 - Bare quoted phrase = flag only; `bỏ luật chung:` / `bỏ qua lặp:` line syntax.
-- Thresholds 3–6 words, ≥3 occurrences, ≥3 sentences with the same 2 opening words.
+- Thresholds 4–6 words, ≥3 occurrences, ≥3 sentences with the same 2 opening words.
 - Orange dotted underline for repeats, purple wavy kept for banned phrases.
 - Export wording and the comma-joined phrase line; corrections exported as "Sửa đúng".
 

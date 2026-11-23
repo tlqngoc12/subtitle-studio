@@ -1,11 +1,11 @@
 /**
- * Repetition finders for the Check of original stories: phrases of 3 to 6 words that occur 3 or more times in a
+ * Repetition finders for the Check of original stories: phrases of 4 to 6 words that occur 3 or more times in a
  * chapter, and runs of 3 or more sentences that open with the same two words. Browser only, no Gemini.
  * Spec: docs/superpowers/specs/2026-11-23-writing-rules-design.md.
  */
 import { foldWithMap } from './checkRules';
 
-export const MIN_WORDS = 3;
+export const MIN_WORDS = 4;
 export const MAX_WORDS = 6;
 export const MIN_REPEATS = 3;
 export const MIN_OPENING_RUN = 3;
@@ -86,7 +86,7 @@ function wordsOf(phrase: string): string[] {
 
 const contains = (big: string, small: string) => ` ${big} `.includes(` ${small} `);
 
-/** Phrases of 3 to 6 words seen 3 or more times, longest first within the same count; `ignore` phrases are never reported. */
+/** Phrases of 4 to 6 words seen 3 or more times, longest first within the same count; `ignore` phrases are never reported. */
 export function findRepeatedPhrases(text: string, ignore: string[]): RepeatGroup[] {
   const tokens = tokenize(text);
   const seen = new Map<string, number[]>(); // folded phrase -> start token indexes

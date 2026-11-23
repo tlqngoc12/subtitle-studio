@@ -47,7 +47,7 @@ class PromptProfileStoreCreateTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"../x", "_hidden", "a b", "", "x/y"})
+    @ValueSource(strings = {"../x", "_hidden", "a b", "", "x/y", "writing-rules", "Writing-Rules"})
     void createRejectsBadNames(String name) {
         assertThatThrownBy(() -> store.create(name, "text")).isInstanceOf(RuntimeException.class);
         assertThat(store.list()).isEmpty();

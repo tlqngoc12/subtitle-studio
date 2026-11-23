@@ -92,6 +92,14 @@ class PromptProfileStoreRenameTest {
     }
 
     @Test
+    void renameRefusesTheReservedWritingRulesName() throws IOException {
+        file("A.md", "text");
+        assertThatThrownBy(() -> store.rename("A", "writing-rules", t -> t)).isInstanceOf(InvalidProfileTextException.class);
+        assertThat(prompts.resolve("A.md")).exists();
+        assertThat(prompts.resolve("writing-rules.md")).doesNotExist();
+    }
+
+    @Test
     void renameRefusesMissingSource() {
         assertThatThrownBy(() -> store.rename("A", "B", t -> t)).isInstanceOf(UnknownProfileException.class);
     }

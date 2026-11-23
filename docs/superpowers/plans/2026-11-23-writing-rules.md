@@ -16,7 +16,7 @@
 - Work in a worktree from latest `main`: `git -C D:/working/repositories/subtitle-studio worktree add ../subtitle-studio-writing-rules -b feat/writing-rules main`. The main checkout is on another branch with uncommitted work — do not touch it. First commit on the branch: copy the spec and this plan into the worktree and commit them (`docs: writing rules spec and plan`).
 - Commit messages, PR title/body in English; end commits with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - UI labels in English; rule/export text in Vietnamese. Colors: orange `--brand` `#F39A42`, purple `--brand-2` `#D9A1D9`, text on them `#1B2430`, red only for errors/delete. Icons from `lucide-react`. Layout per `docs/ui/screen-layout.md`.
-- Thresholds (one constants block in `lib/repetition.ts`): `MIN_WORDS = 3`, `MAX_WORDS = 6`, `MIN_REPEATS = 3`, `MIN_OPENING_RUN = 3`, `OPENING_WORDS = 2`.
+- Thresholds (one constants block in `lib/repetition.ts`): `MIN_WORDS = 4`, `MAX_WORDS = 6`, `MIN_REPEATS = 3`, `MIN_OPENING_RUN = 3`, `OPENING_WORDS = 2`.
 - Max rules text length: 20,000 characters.
 - Frontend tests: `cd frontend && npx vitest run <path>`; typecheck `npx tsc --noEmit`. Backend: `mvn -q test -Dtest=<Class>`.
 
@@ -112,7 +112,7 @@ Không lặp một cụm từ quá 2 lần trong một chương; không mở đ�
 
 Algorithm decisions (not determined by the tests alone):
 - Tokenize with `/[\p{L}\p{N}]+/gu` on the NFC-folded text (reuse the fold + index-map approach of `checkRules.ts`; export `foldWithMap` from there rather than copying it). A "segment" ends at `.`, `?`, `!`, `…`, `\n` (and `\r`); n-grams never cross a segment end. Lines that are only `[[image:N]]` are skipped.
-- Count every n-gram of 3–6 consecutive tokens by its folded word sequence; keep those with count ≥ 3. Drop a stop-word-only n-gram. Drop an n-gram whose folded text contains any folded `ignore` phrase (compare on word sequences: tokenize the ignore phrase the same way). Maximality: drop an n-gram if another kept n-gram with the **same count** contains it as a contiguous sub-sequence. Overlapping occurrences of the same n-gram count once each but ranges must not overlap (skip an occurrence that starts before the previous one ended).
+- Count every n-gram of 4–6 consecutive tokens by its folded word sequence; keep those with count ≥ 3. Drop a stop-word-only n-gram. Drop an n-gram whose folded text contains any folded `ignore` phrase (compare on word sequences: tokenize the ignore phrase the same way). Maximality: drop an n-gram if another kept n-gram with the **same count** contains it as a contiguous sub-sequence. Overlapping occurrences of the same n-gram count once each but ranges must not overlap (skip an occurrence that starts before the previous one ended).
 - Openings: sentences = segments split as above, excluding empty ones and image lines; a run = ≥3 consecutive sentences whose first 2 folded tokens are equal; one group per run, one range per sentence covering its first two words.
 
 - [ ] **Step 1: Failing tests:**
