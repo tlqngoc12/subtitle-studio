@@ -95,7 +95,7 @@
     - khi `indexable=false` vẫn có `X-Robots-Tag: noindex, nofollow` trong `/*`.
   - **`_redirects`:** dòng đầu là `/ /vietsub/list 301`, dòng cuối là `/* /index.html 200`.
   - **`robots.txt`:**
-    - `indexable=true` → đúng 5 dòng như spec, gồm `Sitemap: https://abc.pages.dev/sitemap.xml`;
+    - `indexable=true` → đúng 4 dòng như spec (không có `Disallow: /data/`, vì Google cần nạp JSON của SPA), gồm `Sitemap: https://abc.pages.dev/sitemap.xml`;
     - `indexable=false` → `User-agent: *\nDisallow: /\n` như cũ.
 - [ ] **Step 2: Chạy và xác nhận fail**
 

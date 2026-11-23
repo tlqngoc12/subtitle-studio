@@ -99,10 +99,10 @@ Mỗi trang có một file `<đường dẫn>.html` trong thư mục site. Ví d
   User-agent: *
   Allow: /
   Disallow: /novels/shelf
-  Disallow: /data/
   Sitemap: {SITE_URL}/sitemap.xml
   ```
-  Khi `false` thì giữ nguyên như hiện tại.
+  Khi `false` thì giữ nguyên như hiện tại. `/data/` phải để crawl được: Google render SPA, và SPA nạp JSON từ đó.
+  (Bản tiếng Anh: /data/ must stay crawlable: Google renders the SPA, which loads its JSON from there.)
 - **`sitemap.xml`:**
   - Liệt kê mọi URL có trang HTML riêng (gồm cả chương). Có `<lastmod>` nếu biết ngày cập nhật.
   - Nếu quá 50.000 URL thì tách thành sitemap index. Thực tế còn xa con số này, nhưng hàm ghi phải xử lý được.

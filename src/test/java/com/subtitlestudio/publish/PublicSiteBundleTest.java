@@ -65,8 +65,9 @@ class PublicSiteBundleTest {
 
         assertThat(read("index.html")).doesNotContain("robots");
         assertThat(read("_headers")).doesNotContain("noindex, nofollow");
-        assertThat(read("robots.txt")).isEqualTo("User-agent: *\nAllow: /\nDisallow: /novels/shelf\nDisallow: /data/\n"
+        assertThat(read("robots.txt")).isEqualTo("User-agent: *\nAllow: /\nDisallow: /novels/shelf\n"
                 + "Sitemap: https://abc.pages.dev/sitemap.xml\n");
+        assertThat(read("robots.txt")).doesNotContain("/data/");
     }
 
     @Test

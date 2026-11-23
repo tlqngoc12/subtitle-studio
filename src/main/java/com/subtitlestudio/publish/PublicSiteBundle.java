@@ -45,7 +45,7 @@ public class PublicSiteBundle {
         if (!indexable) {
             return "User-agent: *\nDisallow: /\n";
         }
-        return "User-agent: *\nAllow: /\nDisallow: /novels/shelf\nDisallow: /data/\nSitemap: " + siteUrl
+        return "User-agent: *\nAllow: /\nDisallow: /novels/shelf\nSitemap: " + siteUrl
                 + "/sitemap.xml\n";
     }
 
