@@ -151,4 +151,18 @@ describe('ChapterJump', () => {
 
     expect(screen.getAllByLabelText('Translated').length).toBeGreaterThan(0);
   });
+
+  it('holds no focusable element inside a chapter row besides the link', async () => {
+    fakeFetch([getNovel]);
+    setup();
+
+    await open();
+    await screen.findByRole('list', { name: 'Chapters' });
+
+    for (const row of rows()) {
+      expect(row.querySelectorAll('[tabindex="0"]')).toHaveLength(0);
+      expect(row.querySelectorAll('button, input, [tabindex]')).toHaveLength(0);
+    }
+    expect(screen.getAllByLabelText('Published').length).toBeGreaterThan(0);
+  });
 });

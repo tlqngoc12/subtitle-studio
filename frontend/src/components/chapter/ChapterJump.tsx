@@ -165,6 +165,7 @@ export function ChapterJump({
                     <span className="chapter-jump__name">{name}</span>
                     <StatusBadges
                       compact
+                      interactive={false}
                       translation={original ? undefined : c.translationStatus}
                       publish={c.publishStatus}
                       model={c.translationModel}

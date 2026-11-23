@@ -40,14 +40,30 @@ const COMPACT_PUBLISH: Record<ChapterPublishStatus, { icon: LucideIcon; tone: st
   PUBLISHED: { icon: Globe, tone: 'brand' },
 };
 
-function StatusIcon({ icon: Icon, tone, label, spin }: { icon: LucideIcon; tone: string; label: string; spin?: boolean }) {
-  return (
-    <Tip label={label}>
-      <span className={`status-icon status-icon--${tone}`} role="img" aria-label={label} tabIndex={0}>
-        <Icon className={spin ? 'icon status-icon__spin' : 'icon'} aria-hidden="true" />
-      </span>
-    </Tip>
+function StatusIcon({
+  icon: Icon,
+  tone,
+  label,
+  spin,
+  interactive,
+}: {
+  icon: LucideIcon;
+  tone: string;
+  label: string;
+  spin?: boolean;
+  interactive: boolean;
+}) {
+  const icon = (
+    <span
+      className={`status-icon status-icon--${tone}`}
+      role="img"
+      aria-label={label}
+      tabIndex={interactive ? 0 : undefined}
+    >
+      <Icon className={spin ? 'icon status-icon__spin' : 'icon'} aria-hidden="true" />
+    </span>
   );
+  return interactive ? <Tip label={label}>{icon}</Tip> : icon;
 }
 
 function content({ icon: Icon, label }: Badge) {
@@ -69,6 +85,7 @@ export function StatusBadges({
   model,
   fallback = false,
   compact = false,
+  interactive = true,
 }: {
   /** Omitted for an original story: it is never translated, so only the publish state shows. */
   translation?: ChapterTranslationStatus;
@@ -79,6 +96,8 @@ export function StatusBadges({
   fallback?: boolean;
   /** Icons only (each with a tooltip and an aria-label), for list rows. */
   compact?: boolean;
+  /** Compact only: false drops the tooltips and the tab stops, for icons inside a link or button. */
+  interactive?: boolean;
 }) {
   if (compact) {
     const t = translation ? COMPACT_TRANSLATION[translation] : null;
@@ -88,13 +107,14 @@ export function StatusBadges({
         {translation && t && (
           <StatusIcon
             {...t}
+            interactive={interactive}
             label={translation === 'TRANSLATED' && model ? `Translated by ${model}` : TRANSLATION[translation].label}
           />
         )}
         {translation === 'TRANSLATED' && fallback && (
-          <StatusIcon icon={Replace} tone="brand-2" label={`Translated by ${model} — re-translate for better quality`} />
+          <StatusIcon interactive={interactive} icon={Replace} tone="brand-2" label={`Translated by ${model} — re-translate for better quality`} />
         )}
-        <StatusIcon {...p} label={PUBLISH[publish].label} />
+        <StatusIcon interactive={interactive} {...p} label={PUBLISH[publish].label} />
       </span>
     );
   }
