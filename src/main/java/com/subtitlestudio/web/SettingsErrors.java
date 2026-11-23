@@ -1,6 +1,7 @@
 package com.subtitlestudio.web;
 
 import com.subtitlestudio.config.GeminiSettings;
+import com.subtitlestudio.writing.WritingRulesTooLongException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -22,5 +23,10 @@ class SettingsErrors {
         ProblemDetail pd = ProblemDetails.problem(HttpStatus.BAD_REQUEST, "INVALID_SETTING", e.getMessage());
         pd.setProperty("field", e.field());
         return pd;
+    }
+
+    @ExceptionHandler(WritingRulesTooLongException.class)
+    ProblemDetail writingRulesTooLong(WritingRulesTooLongException e) {
+        return ProblemDetails.problem(HttpStatus.BAD_REQUEST, "WRITING_RULES_TOO_LONG", e.getMessage());
     }
 }

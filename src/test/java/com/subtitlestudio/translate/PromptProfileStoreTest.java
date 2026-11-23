@@ -46,6 +46,15 @@ class PromptProfileStoreTest {
     }
 
     @Test
+    void writingRulesFileIsNotAProfile() throws IOException {
+        Files.writeString(dir().resolve("writing-rules.md"), "## Cụm cấm");
+        Files.writeString(dir().resolve("Emi.md"), "x");
+
+        assertThat(store().list()).containsExactly("Emi");
+        assertThatThrownBy(() -> store().read("writing-rules")).isInstanceOf(UnknownProfileException.class);
+    }
+
+    @Test
     void missingDirectoryListsNothing() {
         assertThat(store().list()).isEmpty();
     }

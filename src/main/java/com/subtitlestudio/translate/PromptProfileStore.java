@@ -41,6 +41,8 @@ public class PromptProfileStore {
 
     static final int MAX_BYTES = 20 * 1024;
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_-]{1,40}");
+    /** Files in this folder that are not translation profiles (the global writing rules). */
+    private static final java.util.Set<String> RESERVED = java.util.Set.of("writing-rules");
     static final String EXAMPLE = "prompts/_example.md";
     private static final Logger log = LoggerFactory.getLogger(PromptProfileStore.class);
 
@@ -332,7 +334,7 @@ public class PromptProfileStore {
     }
 
     private Optional<String> load(String name) {
-        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_")) {
+        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_") || RESERVED.contains(name)) {
             return Optional.empty();
         }
         Path file = dir.resolve(name + ".md");
