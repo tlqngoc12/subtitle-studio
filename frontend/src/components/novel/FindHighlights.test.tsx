@@ -34,4 +34,13 @@ describe('FindHighlights', () => {
     expect(backdrop.style.color).toBe('transparent');
     el.remove();
   });
+
+  it('paints a hit with its own class when it has one', () => {
+    const ref = createRef<HTMLTextAreaElement>();
+    const mixed = [{ ...matches[0], className: 'check-repeat' }, matches[1]];
+    const { container } = render(<FindHighlights text={text} matches={mixed} current={null} textareaRef={ref} markClassName="check-hit" />);
+
+    const marks = [...container.querySelectorAll('mark')];
+    expect(marks.map((m) => m.className)).toEqual(['check-repeat', 'check-hit']);
+  });
 });

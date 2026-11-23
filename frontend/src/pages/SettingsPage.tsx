@@ -1,6 +1,7 @@
 import { Archive, LoaderCircle } from 'lucide-react';
 import { BackupsPanel } from '../components/settings/BackupsPanel';
 import { GeminiSettingsForm } from '../components/settings/GeminiSettingsForm';
+import { WritingRulesForm } from '../components/settings/WritingRulesForm';
 import { SettingsTabs, type SettingsTab } from '../components/settings/SettingsTabs';
 import { useBackups } from '../components/settings/useBackups';
 import { Page } from '../components/ui/Page';
@@ -13,7 +14,7 @@ export default function SettingsPage({ tab }: { tab: SettingsTab }) {
     <Page>
       <PageHeader
         title="Settings"
-        lede="Change how the app translates and keeps backups."
+        lede="Change how the app translates, keeps backups and checks writing."
         actions={
           tab === 'backups' ? (
             <button type="button" className="button button--primary" disabled={backups.running} onClick={() => void backups.start()}>
@@ -29,6 +30,7 @@ export default function SettingsPage({ tab }: { tab: SettingsTab }) {
       />
       <SettingsTabs current={tab}>
         {tab === 'gemini' && <GeminiSettingsForm />}
+        {tab === 'writing-rules' && <WritingRulesForm />}
         {tab === 'backups' && <BackupsPanel status={backups.status} error={backups.error} />}
       </SettingsTabs>
     </Page>

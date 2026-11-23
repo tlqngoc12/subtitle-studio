@@ -1,4 +1,4 @@
-/* The Check of the chapter text: purple only (no orange, no red). */
+/* The Check of the chapter text: purple for rule hits, orange dotted for repeats (never red). */
 .chapter-text__head {
   display: flex;
   align-items: center;
@@ -47,6 +47,28 @@
   text-decoration-color: var(--brand-2-ink);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
+}
+
+/* A repeated phrase or sentence opening: orange dotted, so it reads differently from a banned phrase. */
+.check-repeat {
+  background: transparent;
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--brand);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.check-popover__repeat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.check-popover__steps {
+  display: inline-flex;
+  gap: var(--space-1, 4px);
 }
 
 .check-popover {

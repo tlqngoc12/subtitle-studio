@@ -8,10 +8,14 @@ import {
 } from '../../api/novelProfile';
 import { ApiError } from '../../api/client';
 import type { NovelSourceType } from '../../api/novels';
+import { getWritingRules } from '../../api/writingRules';
 import { errorMessage, type ErrorMessage } from '../../lib/errors';
+import { effectiveRules, exportForAi, parseGlobalRules } from '../../lib/writingRules';
+import { WRITING_RULES_SEED } from '../../lib/writingRulesSeed';
 import { ProfileAnalyzePanel } from '../profiles/ProfileAnalyzePanel';
 import { Alert } from '../ui/Alert';
 import { LoadingText } from '../ui/LoadingText';
+import { CopyForAiButton } from '../writing/CopyForAiButton';
 import './NovelProfileTab.css';
 
 function plural(n: number, one: string, many = `${one}s`): string {
@@ -49,12 +53,24 @@ export function NovelProfileTab({ novelId, sourceType }: { novelId: number; sour
     load();
   }, [load]);
 
+  /** The writing rules of an original story for an AI's instructions: global rules plus the saved profile, if any. */
+  const copyForAi = sourceType === 'ORIGINAL' && (
+    <CopyForAiButton
+      getText={async () =>
+        exportForAi(effectiveRules(parseGlobalRules((await getWritingRules()) ?? WRITING_RULES_SEED), details?.text ?? null), true)
+      }
+    />
+  );
+
   if (missing) {
     return (
-      <Alert
-        title="This novel has no translation profile."
-        hint="Choose a profile in the Details tab, then come back here."
-      />
+      <>
+        <Alert
+          title="This novel has no translation profile."
+          hint="Choose a profile in the Details tab, then come back here."
+        />
+        {copyForAi && <div className="novel-profile__copy">{copyForAi}</div>}
+      </>
     );
   }
   if (error) return <Alert title={error.title} hint={error.hint} />;
@@ -83,6 +99,7 @@ export function NovelProfileTab({ novelId, sourceType }: { novelId: number; sour
       picker={() => (
         <p className="novel-profile__name">
           <span className="meta">Profile</span> <strong>{details.name}.md</strong>
+          {copyForAi}
         </p>
       )}
       basedOnNote={(a) =>

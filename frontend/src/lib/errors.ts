@@ -111,6 +111,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'This chapter no longer exists.', hint: 'It may have been deleted. Reload the page.' };
     case 'PAGE_NOT_FOUND':
       return { title: 'This page no longer exists.', hint: 'Reload the page.' };
+    case 'WRITING_RULES_TOO_LONG':
+      return { title: 'The writing rules are too long (20,000 characters max).', hint: 'Shorten the text and save again.' };
     case 'INVALID_NOVEL':
       return { title: 'Check the highlighted fields.' };
     case 'INVALID_CHAPTER':

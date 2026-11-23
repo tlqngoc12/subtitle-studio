@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
-export type SettingsTab = 'gemini' | 'backups';
+export type SettingsTab = 'gemini' | 'writing-rules' | 'backups';
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'gemini', label: 'Gemini' },
+  { id: 'writing-rules', label: 'Writing rules' },
   { id: 'backups', label: 'Backups' },
 ];
 
 /**
- * Gemini · Backups under the Settings heading. Each tab is its own route (links, so Back and new tabs work), drawn
+ * Gemini · Writing rules · Backups under the Settings heading. Each tab is its own route (links, so Back and new tabs work), drawn
  * as the same underline tabs as the Vietsub pages; the open one is underlined.
  */
 export function SettingsTabs({ current, children }: { current: SettingsTab; children?: ReactNode }) {

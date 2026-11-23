@@ -31,6 +31,19 @@ class NovelProfileTemplateTest {
     }
 
     @Test
+    void onlyTheOriginalTemplateHasStoryPrinciplesAndTheNewCheckHint() {
+        String original = NovelProfileTemplate.render("vi", "T", "A", List.of(), "d");
+        assertThat(original).contains("## Nguyên tắc riêng");
+        assertThat(original.indexOf("## Nguyên tắc riêng")).isLessThan(original.indexOf("## Kiểm tra"));
+        String check = original.substring(original.indexOf("## Kiểm tra"), original.indexOf("## Tóm tắt nội dung chính"));
+        assertThat(check.lines().filter(l -> l.startsWith("- (")).toList()).hasSize(2)
+                .anyMatch(l -> l.contains("bỏ luật chung:") && l.contains("bỏ qua lặp:"));
+        for (String lang : List.of("th", "en", "es")) {
+            assertThat(NovelProfileTemplate.render(lang, "T", "A", List.of(), "d")).doesNotContain("## Nguyên tắc riêng");
+        }
+    }
+
+    @Test
     void thaiTemplateFillsTheDetails() {
         String text = NovelProfileTemplate.render("th", "Moonshadow", "Khun A", List.of("GL", "romance"),
                 "A short blurb about two people.");

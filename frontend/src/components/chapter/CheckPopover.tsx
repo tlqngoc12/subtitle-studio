@@ -1,7 +1,10 @@
 import * as Popover from '@radix-ui/react-popover';
-import { useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRef, type RefObject } from 'react';
+import { IconButton } from '../ui/IconButton';
 import { adaptCase, type Issue } from '../../lib/checkRules';
 import { PopoverPanel } from '../ui/PopoverPanel';
+import type { CheckIssue } from './useChapterCheck';
 import './Check.css';
 
 /**
@@ -14,14 +17,17 @@ export function CheckPopover({
   matched,
   anchor,
   onApply,
+  onStep,
   onClose,
 }: {
-  issue: Issue | null;
+  issue: CheckIssue | null;
   /** The text of the hit as written in the chapter (the suggestions follow its capital letter). */
   matched: string;
   /** The underlined mark the popover hangs under. */
   anchor: () => HTMLElement | null;
   onApply: (issue: Issue, suggestion: string) => void;
+  /** Jumps to the next or previous occurrence of the repeat shown (repeat issues only). */
+  onStep?: (step: 1 | -1) => void;
   onClose: () => void;
 }) {
   const first = useRef<HTMLButtonElement>(null);
@@ -44,6 +50,47 @@ export function CheckPopover({
           }}
           onInteractOutside={(e) => e.preventDefault()}
         >
+          {issue.kind === 'repeat' ? (
+            <div className="check-popover__repeat">
+              <p className="check-popover__wrong">
+                {issue.group.type === 'phrase' ? (
+                  <>
+                    Repeated {issue.group.ranges.length}× — <strong>&quot;{issue.group.label}&quot;</strong>
+                  </>
+                ) : (
+                  <>
+                    {issue.group.ranges.length} sentences in a row start with <strong>&quot;{issue.group.label}&quot;</strong>
+                  </>
+                )}
+              </p>
+              <div className="check-popover__steps">
+                <IconButton label="Previous occurrence" icon={ChevronLeft} size="s" onClick={() => onStep?.(-1)} />
+                <IconButton label="Next occurrence" icon={ChevronRight} size="s" onClick={() => onStep?.(1)} />
+              </div>
+            </div>
+          ) : (
+            <RuleBody issue={issue} matched={matched} first={first} onApply={onApply} />
+          )}
+        </PopoverPanel>
+      )}
+    </Popover.Root>
+  );
+}
+
+/** The body for a rule hit: the flagged words, the reason and one chip per suggestion. */
+function RuleBody({
+  issue,
+  matched,
+  first,
+  onApply,
+}: {
+  issue: Issue;
+  matched: string;
+  first: RefObject<HTMLButtonElement | null>;
+  onApply: (issue: Issue, suggestion: string) => void;
+}) {
+  return (
+    <>
           <p className="check-popover__wrong">
             <span className="visually-hidden">Flagged: </span>
             <strong>{matched}</strong>
@@ -75,8 +122,6 @@ export function CheckPopover({
               <p className="muted check-popover__hint">Double-click or press Enter to apply</p>
             </>
           )}
-        </PopoverPanel>
-      )}
-    </Popover.Root>
+    </>
   );
 }

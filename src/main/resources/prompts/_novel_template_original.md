@@ -33,8 +33,12 @@
 - Không đổi tên nhân vật hay cách xưng hô đã chọn.
 - Không thêm lời bình hay tóm tắt của người viết vào giữa truyện.
 
+## Nguyên tắc riêng
+- (Nguyên tắc văn phong riêng của truyện này, ví dụ đại từ cho từng nhân vật. Chỉ dùng khi Copy for AI.)
+
 ## Kiểm tra
 - (Thêm dòng dạng "cụm sai" → "gợi ý" | "gợi ý khác" (lý do). Nút Check ở trang chương dùng các dòng này.)
+- (Bỏ một luật chung: - bỏ luật chung: "tháo đồng hồ". Không báo lặp một cụm: - bỏ qua lặp: "Khun Emi".)
 
 ## Tóm tắt nội dung chính
 {{summary}}

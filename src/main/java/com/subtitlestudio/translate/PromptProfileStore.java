@@ -41,6 +41,8 @@ public class PromptProfileStore {
 
     static final int MAX_BYTES = 20 * 1024;
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_-]{1,40}");
+    /** Files in this folder that are not translation profiles (the global writing rules). */
+    private static final java.util.Set<String> RESERVED = java.util.Set.of("writing-rules");
     static final String EXAMPLE = "prompts/_example.md";
     private static final Logger log = LoggerFactory.getLogger(PromptProfileStore.class);
 
@@ -149,7 +151,7 @@ public class PromptProfileStore {
      * @throws ProfileExistsException when the file already exists
      */
     public synchronized void create(String name, String text) {
-        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_")) {
+        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_") || reserved(name)) {
             throw new InvalidProfileTextException("Invalid profile name");
         }
         if (text == null || text.isBlank()) {
@@ -189,7 +191,7 @@ public class PromptProfileStore {
      */
     public synchronized void rename(String from, String to, UnaryOperator<String> edit) {
         String text = read(from);
-        if (to == null || !NAME.matcher(to).matches() || to.startsWith("_")) {
+        if (to == null || !NAME.matcher(to).matches() || to.startsWith("_") || reserved(to)) {
             throw new InvalidProfileTextException("Invalid profile name");
         }
         String edited = edit.apply(text);
@@ -275,13 +277,13 @@ public class PromptProfileStore {
 
     /** True when a usable-named profile file is present. */
     public boolean exists(String name) {
-        return name != null && NAME.matcher(name).matches() && !name.startsWith("_")
+        return name != null && NAME.matcher(name).matches() && !name.startsWith("_") && !reserved(name)
                 && Files.isRegularFile(dir.resolve(name + ".md"));
     }
 
     /** Deletes the profile file if it is there; ignores invalid names. */
     public synchronized void delete(String name) {
-        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_")) {
+        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_") || reserved(name)) {
             return;
         }
         try {
@@ -289,6 +291,10 @@ public class PromptProfileStore {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static boolean reserved(String name) {
+        return RESERVED.stream().anyMatch(name::equalsIgnoreCase);
     }
 
     private static byte[] encode(String text) {
@@ -332,7 +338,7 @@ public class PromptProfileStore {
     }
 
     private Optional<String> load(String name) {
-        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_")) {
+        if (name == null || !NAME.matcher(name).matches() || name.startsWith("_") || reserved(name)) {
             return Optional.empty();
         }
         Path file = dir.resolve(name + ".md");

@@ -41,7 +41,7 @@ export default function App() {
         <AppToaster />
         <BackToTop
           // Form pages with a sticky FormActions bar (the chapter editor's bar is at the top, so it needs nothing).
-          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/, /^\/novels\/\d+$/, /^\/settings\/gemini$/]}
+          barOn={[/^\/works\/(new|\d+\/edit)$/, /^\/novels\/new$/, /^\/novels\/\d+$/, /^\/settings\/(gemini|writing-rules)$/]}
         />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
@@ -66,6 +66,7 @@ export default function App() {
             <Route path="/novels/:id/chapters/:chapterId" element={<ChapterPage />} />
             <Route path="/settings" element={<Navigate to="/settings/gemini" replace />} />
             <Route path="/settings/gemini" element={<SettingsPage tab="gemini" />} />
+            <Route path="/settings/writing-rules" element={<SettingsPage tab="writing-rules" />} />
             <Route path="/settings/backups" element={<SettingsPage tab="backups" />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

@@ -30,7 +30,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
 @Import({VideoErrors.class, TranslationErrors.class, ProfileErrors.class, PublishErrors.class,
-        PhotoFanficErrors.class, NovelErrors.class})
+        PhotoFanficErrors.class, NovelErrors.class, SettingsErrors.class})
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);

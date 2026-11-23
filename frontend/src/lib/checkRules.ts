@@ -15,6 +15,10 @@ export interface CheckRule {
 
 export interface CheckRules {
   rules: CheckRule[];
+  /** `- bỏ luật chung: "x"` lines: global banned phrases this story turns off (original stories). */
+  optOuts: string[];
+  /** `- bỏ qua lặp: "x"` lines: phrases the repetition finder must not report (original stories). */
+  repeatIgnores: string[];
   /** Lines of the section that look like rules (start with "- ") but could not be read. */
   ignored: number;
 }
@@ -30,6 +34,8 @@ const SECTION = /^##\s+Kiểm tra\s*$/iu;
 const QUOTE = '["“”]';
 const WRONG = new RegExp(`^${QUOTE}([^"“”]+)${QUOTE}\\s*(?:→|->)\\s*(.*)$`, 'u');
 const SUGGESTION = new RegExp(`^${QUOTE}([^"“”]+)${QUOTE}\\s*`, 'u');
+const BARE = new RegExp(`^${QUOTE}([^"“”]+)${QUOTE}\\s*(.*)$`, 'u');
+const SWITCH = new RegExp(`^(bỏ luật chung|bỏ qua lặp)\\s*:\\s*${QUOTE}([^"“”]+)${QUOTE}\\s*$`, 'iu');
 const FLAG_ONLY = /^tránh dùng$/iu;
 const IMAGE_LINE = /^\[\[image:\d+\]\]\s*$/;
 
@@ -38,24 +44,36 @@ export function parseCheckRules(profile: string): CheckRules {
   const lines = profile.normalize('NFC').split(/\r?\n/);
   const start = lines.findIndex((l) => SECTION.test(l.trim()));
   const rules: CheckRule[] = [];
+  const optOuts: string[] = [];
+  const repeatIgnores: string[] = [];
   let ignored = 0;
-  if (start < 0) return { rules, ignored };
+  if (start < 0) return { rules, optOuts, repeatIgnores, ignored };
   for (const raw of lines.slice(start + 1)) {
     if (raw.startsWith('## ')) break;
     const bullet = /^\s*[-*]\s+(.*)$/u.exec(raw);
     if (!bullet) continue;
     const text = bullet[1].trim();
     if (text === '' || text.startsWith('(')) continue; // the template's hint line, or an empty bullet
+    const sw = SWITCH.exec(text);
+    if (sw && sw[2].trim() !== '') {
+      (sw[1].toLowerCase() === 'bỏ luật chung' ? optOuts : repeatIgnores).push(sw[2].trim());
+      continue;
+    }
     const rule = parseRule(text);
     if (rule) rules.push(rule);
     else ignored += 1;
   }
-  return { rules, ignored };
+  return { rules, optOuts, repeatIgnores, ignored };
 }
 
-function parseRule(text: string): CheckRule | null {
-  const head = WRONG.exec(text);
-  if (!head) return null;
+/** One rule line without its "- ": `"wrong" → "right" (why)`, or a bare `"wrong" (why)` that only flags. */
+export function parseRule(text: string): CheckRule | null {
+  let head = WRONG.exec(text);
+  if (!head) {
+    const bare = BARE.exec(text);
+    if (!bare || (bare[2].trim() !== '' && !bare[2].startsWith('('))) return null;
+    head = [text, bare[1], bare[2]] as unknown as RegExpExecArray;
+  }
   const wrong = head[1].trim();
   if (wrong === '') return null;
   let rest = head[2].trim();
@@ -117,7 +135,7 @@ function isBoundaryAfter(s: string, index: number): boolean {
 }
 
 /** Lower case that never changes the length (a few characters such as "İ" would). */
-function fold(s: string): string {
+export function fold(s: string): string {
   let out = '';
   for (const ch of s) {
     const lower = ch.toLowerCase();
@@ -135,7 +153,7 @@ interface Folded {
 }
 
 /** NFC + lower case, with an index map back to the original when NFC changed the length. */
-function foldWithMap(original: string): Folded {
+export function foldWithMap(original: string): Folded {
   const nfc = original.normalize('NFC');
   if (nfc === original) return { text: fold(original), origStart: null, origEnd: null };
   const origStart: number[] = [];
