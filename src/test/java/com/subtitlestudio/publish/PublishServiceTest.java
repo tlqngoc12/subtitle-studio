@@ -35,6 +35,8 @@ class PublishServiceTest {
 
     private final SiteExporter exporter = mock(SiteExporter.class);
     private final PublicSiteBundle bundle = mock(PublicSiteBundle.class);
+    private final PublicPageRenderer pageRenderer = mock(PublicPageRenderer.class);
+    private final SitemapWriter sitemap = mock(SitemapWriter.class);
     private final WranglerClient wrangler = mock(WranglerClient.class);
     private final MutableClock clock = new MutableClock(NOW);
     private final HoldingExecutor executor = new HoldingExecutor();
@@ -64,7 +66,18 @@ class PublishServiceTest {
                 new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
                 new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of()),
                 new SubtitleStudioProperties.Publish(token, "acc", "fans", indexable, "wrangler", Duration.ofMinutes(5), d1Id));
-        return new PublishService(exporter, bundle, wrangler, new ReadCountsFunctions(props), props, clock, executor);
+        return new PublishService(exporter, bundle, pageRenderer, sitemap, wrangler, new ReadCountsFunctions(props),
+                props, clock, executor);
+    }
+
+    private PublishService realPagesService() {
+        var props = new SubtitleStudioProperties(
+                new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
+                new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of()),
+                new SubtitleStudioProperties.Publish("cf-secret-123", "acc", "fans", true, "wrangler",
+                        Duration.ofMinutes(5), "", "", "CODE9"));
+        return new PublishService(exporter, bundle, new PublicPageRenderer(new com.fasterxml.jackson.databind.ObjectMapper()),
+                new SitemapWriter(50_000), wrangler, new ReadCountsFunctions(props), props, clock, executor);
     }
 
     private PublishService service() {
@@ -147,6 +160,42 @@ class PublishServiceTest {
 
         assertThat(s.status().status()).isEqualTo("FAILED");
         assertThat(s.status().error()).isEqualTo("Could not publish: IllegalStateException.");
+    }
+
+    @Test
+    void publishWritesPagesAndSitemap() throws IOException {
+        doAnswer(inv -> {
+            Path dir = inv.getArgument(0);
+            Files.createDirectories(dir.resolve("data/novels"));
+            Files.writeString(dir.resolve("data/novels.json"), "[{\"slug\":\"sugar\",\"title\":\"Sugar\"}]");
+            Files.writeString(dir.resolve("data/novels/sugar.json"), "{\"slug\":\"sugar\",\"chapters\":[]}");
+            return null;
+        }).when(exporter).export(any(), any());
+        doAnswer(inv -> {
+            Path dir = inv.getArgument(0);
+            Files.writeString(dir.resolve("index.html"),
+                    "<html><head><title>x</title></head><body><div id=\"root\"></div></body></html>");
+            return null;
+        }).when(bundle).writeTo(any(), anyBoolean(), any());
+        AtomicReference<List<String>> deployed = new AtomicReference<>();
+        doAnswer(inv -> {
+            Path dir = inv.getArgument(0);
+            try (Stream<Path> all = Files.walk(dir)) {
+                deployed.set(all.filter(Files::isRegularFile).map(p -> dir.relativize(p).toString().replace(java.io.File.separatorChar, '/'))
+                        .toList());
+            }
+            assertThat(Files.readString(dir.resolve("sitemap.xml"))).contains("https://fans.pages.dev/novels/sugar");
+            assertThat(Files.readString(dir.resolve("novels/sugar.html"))).contains("google-site-verification");
+            return null;
+        }).when(wrangler).deploy(any());
+        PublishService s = realPagesService();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+        assertThat(deployed.get()).contains("sitemap.xml", "novels/sugar.html", "novels.html", "vietsub/list.html");
+        assertThat((long) s.status().fileCount()).isEqualTo(deployed.get().size());
     }
 
     @Test
