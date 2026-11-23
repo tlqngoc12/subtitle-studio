@@ -40,7 +40,7 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2) var(--space-4);
   align-items: center;
   justify-content: space-between;
@@ -51,14 +51,29 @@
 }
 
 .chapter-list__title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* The icons keep their width; only the title gives way. */
 .chapter-list__meta {
+  flex: none;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2);
   align-items: center;
+}
+
+.chapter-list__pages {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
 /* Public novel page: one bordered box of compact rows with thin dividers; two columns on wide screens for long lists. */

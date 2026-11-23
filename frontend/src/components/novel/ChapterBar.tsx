@@ -1,5 +1,5 @@
 import * as Popover from '@radix-ui/react-popover';
-import { Ellipsis, Send } from 'lucide-react';
+import { Ellipsis, Send, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatClock } from '../../lib/dates';
 import { Tip } from '../Tip';
@@ -21,6 +21,8 @@ export interface ChapterMenuItem {
   disabled?: boolean;
   /** Disabled, and why: shown in a tooltip before the click. */
   disabledReason?: string;
+  /** Shown before the label. */
+  icon?: LucideIcon;
 }
 
 export function saveStateText(state: SaveState): string {
@@ -45,7 +47,7 @@ export interface ChapterBarProps {
   saveState: SaveState;
   canSave: boolean;
   onSave: () => void;
-  /** Draft chapters: `disabledReason` is why Publish cannot run now (null = it can). */
+  /** Draft chapters: Publish is the menu's first item; `disabledReason` is why it cannot run now (null = it can). */
   publish?: { onPublish: () => void; disabledReason: string | null };
   menuItems: ChapterMenuItem[];
   /** Icon buttons shown before Save (find and replace). */
@@ -57,9 +59,9 @@ export interface ChapterBarProps {
 }
 
 /**
- * The sticky bar of the chapter editor: previous/next, the chapter's name and badges, the save state, Save, Publish
- * and a `⋯` menu for the rest. At most one button is primary: Save while there are unsaved changes, otherwise
- * Publish. On phones Publish moves into the menu and the save state drops under the bar.
+ * The sticky bar of the chapter editor: previous/next, the chapter's name and badges, the save state, Save and a `⋯`
+ * menu with the rest (Publish first). Save is primary while there are unsaved changes. On phones the save state drops
+ * under the bar.
  */
 export function ChapterBar({
   nav,
@@ -95,6 +97,13 @@ export function ChapterBar({
   const unsaved = saveState.kind === 'dirty' || saveState.kind === 'saving';
   const publishReason = publish ? (unsaved ? 'Save first' : publish.disabledReason) : null;
   const text = saveStateText(saveState);
+  // Publish is the menu's first item; the reason it cannot run now shows in its tooltip.
+  const items: ChapterMenuItem[] = [
+    ...(publish
+      ? [{ label: 'Publish', icon: Send, onSelect: publish.onPublish, disabledReason: publishReason ?? undefined }]
+      : []),
+    ...menuItems,
+  ];
 
   function choose(action: () => void) {
     setMenuOpen(false);
@@ -122,45 +131,17 @@ export function ChapterBar({
         >
           Save
         </button>
-        {publish && (
-          <Tip label={publishReason ?? ''} disabled={publishReason === null}>
-            <span className="chapter-bar__publish">
-              <button
-                type="button"
-                className={unsaved ? 'button' : 'button button--primary'}
-                disabled={publishReason !== null}
-                onClick={publish.onPublish}
-              >
-                <Send className="icon" aria-hidden="true" />
-                Publish
-              </button>
-            </span>
-          </Tip>
-        )}
         <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <Tip label="Chapter actions">
             <Popover.Trigger asChild>
-              <button type="button" aria-label="Chapter actions"
-                className={menuItems.length === 0 ? 'button button--icon chapter-bar__menu--phone-only' : 'button button--icon'}>
+              <button type="button" aria-label="Chapter actions" className="button button--icon">
                 <Ellipsis className="icon" aria-hidden="true" />
               </button>
             </Popover.Trigger>
           </Tip>
           <PopoverPanel className="member-menu">
             <div className="member-menu__list">
-              {publish && (
-                // Phones only: the bar has no room for a Publish button there.
-                <button
-                  type="button"
-                  className="member-menu__item chapter-bar__menu-publish"
-                  disabled={publishReason !== null}
-                  onClick={() => choose(publish.onPublish)}
-                >
-                  <Send className="icon" aria-hidden="true" />
-                  Publish
-                </button>
-              )}
-              {menuItems.map((item) => (
+              {items.map((item) => (
                 // A disabled button swallows hover, so the reason's tooltip sits on a span around it.
                 <Tip key={item.label} label={item.disabledReason ?? ''} disabled={!item.disabledReason}>
                   <span className="chapter-bar__item">
@@ -170,6 +151,7 @@ export function ChapterBar({
                       disabled={item.disabled || Boolean(item.disabledReason)}
                       onClick={() => choose(item.onSelect)}
                     >
+                      {item.icon && <item.icon className="icon" aria-hidden="true" />}
                       {item.label}
                     </button>
                   </span>

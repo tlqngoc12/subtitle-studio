@@ -7,6 +7,27 @@ import { useT } from '../../lib/i18n';
 
 export type NovelsTab = 'translated' | 'originals' | 'fanfics';
 
+export const ADMIN_NOVELS_TAB_LABELS: Record<NovelsTab, string> = {
+  translated: 'Translated',
+  originals: 'Originals',
+  fanfics: 'Fanfics',
+};
+
+export const PUBLIC_NOVELS_TAB_LABELS: Record<NovelsTab, string> = {
+  translated: 'Truyện dịch',
+  originals: 'Sáng tác',
+  fanfics: 'Fanfic',
+};
+
+/** The breadcrumb level between Novels and a novel: the tab the novel is listed under, as a link back to it. */
+export function novelsTabCrumb(
+  original: boolean,
+  labels: Record<NovelsTab, string>,
+): { label: string; to: string } {
+  const tab: NovelsTab = original ? 'originals' : 'translated';
+  return { label: labels[tab], to: `/novels?tab=${tab}` };
+}
+
 /** The selected Novels tab, kept in `?tab=` so it survives reload and can be linked; Translated is the default. */
 export function useNovelsTab(): [NovelsTab, (tab: NovelsTab) => void] {
   const [params, setParams] = useSearchParams();
@@ -23,7 +44,7 @@ export function NovelsTabs({
   onTabChange,
   translated,
   originals,
-  labels = { translated: 'Translated', originals: 'Originals', fanfics: 'Fanfics' },
+  labels = ADMIN_NOVELS_TAB_LABELS,
 }: {
   tab: NovelsTab;
   onTabChange: (tab: NovelsTab) => void;

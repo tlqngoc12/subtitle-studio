@@ -130,6 +130,18 @@ class ChapterServiceTest {
     }
 
     @Test
+    void detailCarriesPositionAndCount() {
+        service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        service.add(novel.getId(), new ChapterRequest(3, null));
+
+        ChapterDetail detail = service.get(c2.id());
+
+        assertThat(detail.position()).isEqualTo(2);
+        assertThat(detail.chapterCount()).isEqualTo(3);
+    }
+
+    @Test
     void reorderChangesTheListButNeverTheChapterNumbers() {
         ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
         ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));

@@ -39,11 +39,6 @@
   margin-left: auto;
 }
 
-/* Phones: Publish lives in the menu. */
-.chapter-bar__publish {
-  display: none;
-}
-
 .chapter-bar__state {
   order: 3;
   flex: 1 0 100%;
@@ -82,19 +77,6 @@
     display: inline-flex;
   }
 
-  .chapter-bar__publish {
-    display: inline-flex;
-  }
-
-  .chapter-bar__menu-publish {
-    display: none;
-  }
-
-  /* A menu that holds only Publish (an original story's draft) is for phones: the bar shows Publish itself. */
-  .chapter-bar__menu--phone-only {
-    display: none;
-  }
-
   .chapter-bar__state {
     order: 0;
     flex: 0 1 auto;
@@ -106,7 +88,7 @@
   }
 }
 
-/* Desktop: one row. Left: nav, short name, badges. Right: save state, tools, Save, Publish, menu. */
+/* Desktop: one row. Left: nav, short name, badges. Right: save state, tools, Save, menu. */
 @media (min-width: 761px) {
   .chapter-bar {
     flex-wrap: nowrap;

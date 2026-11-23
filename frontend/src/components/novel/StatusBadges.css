@@ -1,0 +1,32 @@
+/* Icon-only chapter states (StatusBadges compact). Ink tokens, so the icons read on the light and the dark surface. */
+.badges--compact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-icon--muted {
+  color: var(--muted);
+}
+
+.status-icon--brand-2 {
+  color: var(--brand-2-ink);
+}
+
+.status-icon--brand {
+  color: var(--brand-ink);
+}
+
+.status-icon--failed {
+  color: var(--danger);
+}
+
+/* --dur-spin is 0ms under prefers-reduced-motion (tokens.css), so the spinner stops there. */
+.status-icon__spin {
+  animation: spin var(--dur-spin) linear infinite;
+}

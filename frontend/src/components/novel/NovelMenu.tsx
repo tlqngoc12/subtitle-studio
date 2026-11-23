@@ -1,8 +1,9 @@
 import * as Popover from '@radix-ui/react-popover';
-import { Ellipsis, Star, StarOff } from 'lucide-react';
+import { Download, Ellipsis, Star, StarOff } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { setNovelFeatured, type NovelSummary } from '../../api/novels';
+import { exportNovel, setNovelFeatured, type NovelSummary } from '../../api/novels';
+import { saveBlob } from '../../lib/download';
 import { errorMessage } from '../../lib/errors';
 import { toastError } from '../../lib/toast';
 import { useConfirmDialog } from '../useConfirmDialog';
@@ -28,6 +29,7 @@ export function NovelMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { confirm, dialog } = useConfirmDialog();
 
   async function toggle() {
@@ -50,6 +52,18 @@ export function NovelMenu({
       toastError(errorMessage(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function exportAll() {
+    setExporting(true);
+    try {
+      const { blob, fileName } = await exportNovel(novel.id);
+      saveBlob(blob, fileName);
+    } catch (e) {
+      toastError(errorMessage(e));
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -76,6 +90,15 @@ export function NovelMenu({
                 <Star className="icon" aria-hidden="true" />
               )}
               {novel.featured ? 'Remove from banner' : 'Add to banner'}
+            </button>
+            <button
+              type="button"
+              className="member-menu__item"
+              disabled={exporting || novel.chapterCount === 0}
+              onClick={() => void exportAll()}
+            >
+              <Download className="icon" aria-hidden="true" />
+              {exporting ? 'Exporting…' : 'Export'}
             </button>
           </div>
         </PopoverPanel>

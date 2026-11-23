@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Download, Search } from 'lucide-react';
 import { useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
@@ -16,10 +16,15 @@ import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { useConfirmDialog } from '../components/useConfirmDialog';
+import { exportChapter } from '../api/novels';
+import { saveBlob } from '../lib/download';
+import { errorMessage } from '../lib/errors';
+import { toastError } from '../lib/toast';
 import { chapterBusy } from '../lib/novelBusy';
 import { useChapterActions } from '../lib/useChapterActions';
 import { useChapterEditor } from '../lib/useChapterEditor';
 import { useChapterPages } from '../lib/useChapterPages';
+import { ADMIN_NOVELS_TAB_LABELS, novelsTabCrumb } from '../components/fanfics/NovelsTabs';
 import './ChapterPage.css';
 
 export { AUTO_SAVE_MS } from '../lib/useChapterEditor';
@@ -62,6 +67,16 @@ export default function ChapterPage() {
     if (ok) navigate(to);
   }
 
+  /** Downloads the saved chapter as a zip (.md + .html). */
+  async function exportThisChapter() {
+    try {
+      const { blob, fileName } = await exportChapter(chapterId);
+      saveBlob(blob, fileName);
+    } catch (e) {
+      toastError(errorMessage(e));
+    }
+  }
+
   if (!chapter) {
     return (
       <Page width="narrow">
@@ -87,6 +102,13 @@ export default function ChapterPage() {
   const saveState: SaveState = editor.saving
     ? { kind: 'saving' }
     : dirty ? { kind: 'dirty' } : (editor.lastSave ?? { kind: 'idle' });
+  const exportItem: ChapterMenuItem = {
+    label: 'Export chapter',
+    icon: Download,
+    // Export reads what is saved on the server.
+    disabledReason: !text.trim() ? 'This chapter has no text yet.' : dirty ? 'Save your changes first.' : undefined,
+    onSelect: () => void exportThisChapter(),
+  };
   const menuItems: ChapterMenuItem[] = [
     ...(published
       ? [
@@ -96,10 +118,12 @@ export default function ChapterPage() {
             disabled: locked || dirty,
             onSelect: () => void actions.unpublish(),
           },
+          exportItem,
         ]
       : original
-        ? []
+        ? [exportItem]
         : [
+          exportItem,
           {
             label: chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again',
             // Translating again replaces the text, edits included.
@@ -117,6 +141,7 @@ export default function ChapterPage() {
       <PageHeader
         breadcrumbs={[
           { label: 'Novels', to: '/novels' },
+          novelsTabCrumb(original, ADMIN_NOVELS_TAB_LABELS),
           { label: chapter.novelTitle, to: novelPath },
           { label: chapterLabel(chapter.chapterNo, chapter.title, chapter.label) },
         ]}

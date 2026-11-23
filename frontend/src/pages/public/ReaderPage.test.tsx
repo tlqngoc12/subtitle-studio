@@ -180,14 +180,29 @@ describe('ReaderPage', () => {
 
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
     const links = within(crumbs.querySelector<HTMLElement>('.breadcrumbs__list')!).getAllByRole('link');
-    expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Tình Yêu Mùa Hạ']);
+    expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Truyện dịch', 'Tình Yêu Mùa Hạ']);
     expect(links[0]).toHaveAttribute('href', '/novels');
-    expect(links[1]).toHaveAttribute('href', '/novels/summer');
+    expect(links[1]).toHaveAttribute('href', '/novels?tab=translated');
+    expect(links[2]).toHaveAttribute('href', '/novels/summer');
     const last = within(crumbs).getByText('Special');
     expect(last).toHaveAttribute('aria-current', 'page');
     expect(last.closest('a')).toBeNull();
-    expect(crumbs.querySelectorAll('.breadcrumbs__sep svg')).toHaveLength(2); // ChevronRight separators
+    expect(crumbs.querySelectorAll('.breadcrumbs__sep svg')).toHaveLength(3); // ChevronRight separators
     expect(screen.queryByRole('link', { name: /^←/ })).not.toBeInTheDocument();
+  });
+
+  it('shows no tab crumb while the novel loads, then Sáng tác for an original story', async () => {
+    let resolve: (n: PublicNovelDetail) => void = () => {};
+    const slow: NovelSource = { ...source, getNovel: () => new Promise((r) => (resolve = r)) };
+    renderAt('/novels/summer/4', slow);
+    await screen.findAllByRole('img', { name: /^Special, trang/ });
+
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).queryByRole('link', { name: 'Truyện dịch' })).not.toBeInTheDocument();
+    expect(within(crumbs).queryByRole('link', { name: 'Sáng tác' })).not.toBeInTheDocument();
+
+    await act(async () => resolve({ ...NOVEL, original: true }));
+    expect(await within(crumbs).findByRole('link', { name: 'Sáng tác' })).toHaveAttribute('href', '/novels?tab=originals');
   });
 
   it('has a sticky icon bar with previous, next, contents and settings, each with a tooltip', async () => {

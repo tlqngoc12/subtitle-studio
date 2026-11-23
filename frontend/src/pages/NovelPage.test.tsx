@@ -41,11 +41,27 @@ describe('NovelPage', () => {
     expect(await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' })).toBeInTheDocument();
     const rows = within(screen.getByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
     expect(within(rows[0]).getByRole('link', { name: /Chapter 1: Mở đầu/ })).toHaveAttribute('href', '/novels/3/chapters/9');
-    expect(within(rows[0]).getByText('Translated')).toBeInTheDocument();
-    expect(within(rows[0]).getByText('Published')).toBeInTheDocument();
-    expect(within(rows[0]).getByText('3 pages')).toBeInTheDocument();
-    expect(within(rows[1]).getByText('Translating…')).toBeInTheDocument();
-    expect(within(rows[1]).getByText('Draft')).toBeInTheDocument();
+    expect(within(rows[0]).getByLabelText('Translated')).toBeInTheDocument();
+    expect(within(rows[0]).getByLabelText('Published')).toBeInTheDocument();
+    expect(within(rows[0]).getByLabelText('3 pages')).toBeInTheDocument();
+    expect(within(rows[1]).getByLabelText('Translating…')).toBeInTheDocument();
+    expect(within(rows[1]).getByLabelText('Draft')).toBeInTheDocument();
+    expect(within(rows[0]).queryByText('Published')).not.toBeInTheDocument();
+  });
+
+  it('keeps a chapter row on one line: the name is its own truncating title, with the full name in a tooltip', async () => {
+    const long = '<b>Rất dài</b> 🌧 บทที่ยาวมาก '.repeat(8);
+    fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [chapterSummary({ title: long, pageCount: 12 })] }) }]);
+    renderPage();
+    const row = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem')[0];
+
+    const title = row.querySelector('.chapter-list__title')!;
+    expect(title).toHaveTextContent('<b>Rất dài</b>');
+    expect(within(row).getByLabelText('12 pages')).toBeInTheDocument();
+    await userEvent.setup().hover(title);
+    expect((await screen.findAllByText(new RegExp('Chapter 1: <b>'))).length).toBeGreaterThan(0);
+    expect(css).toMatch(/\.chapter-list__title\s*\{[^}]*text-overflow:\s*ellipsis/);
+    expect(css).toMatch(/\.chapter-list__open\s*\{[^}]*flex-wrap:\s*nowrap/);
   });
 
   it('profileTabOpensFromQuery', async () => {
@@ -82,8 +98,18 @@ describe('NovelPage', () => {
     expect(cover.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByRole('link', { name: 'Translated' })).toHaveAttribute('href', '/novels?tab=translated');
     expect(within(nav).getByText('Tình Yêu Mùa Hạ')).toHaveAttribute('aria-current', 'page');
     expect(document.querySelector('.back-link')).toBeNull();
+  });
+
+  it('lists an original story under Originals', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ sourceType: 'ORIGINAL' }) }]);
+    renderPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Tình Yêu Mùa Hạ' });
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Originals' })).toHaveAttribute('href', '/novels?tab=originals');
   });
 
   it('puts Add chapter in the Chapters toolbar, at the standard size and not full width', async () => {
@@ -161,9 +187,9 @@ describe('NovelPage', () => {
       const tabs = within(screen.getByRole('tablist', { name: 'Novel sections' })).getAllByRole('tab');
       expect(tabs.map((t) => t.textContent)).toEqual(['Chapters', 'Details', 'Profile']);
       const row = within(screen.getByRole('list', { name: 'Chapters' })).getAllByRole('listitem')[0];
-      expect(within(row).getByText('Draft')).toBeInTheDocument();
-      expect(within(row).queryByText('Not translated')).not.toBeInTheDocument();
-      expect(within(row).queryByText(/page/)).not.toBeInTheDocument();
+      expect(within(row).getByLabelText('Draft')).toBeInTheDocument();
+      expect(within(row).queryByLabelText('Not translated')).not.toBeInTheDocument();
+      expect(within(row).queryByLabelText(/page/)).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Fetch & translate next/ })).not.toBeInTheDocument();
     });
 
@@ -380,10 +406,10 @@ describe('NovelPage', () => {
     renderPage();
     const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
 
-    await userEvent.setup().hover(within(rows[0]).getByText('Translated'));
+    await userEvent.setup().hover(within(rows[0]).getByLabelText('Translated by gemini-x'));
 
     expect((await screen.findAllByText('Translated by gemini-x')).length).toBeGreaterThan(0);
-    await userEvent.setup().hover(within(rows[1]).getByText('Translated'));
+    await userEvent.setup().hover(within(rows[1]).getByLabelText('Translated'));
     expect(screen.queryByText(/Translated by null/)).not.toBeInTheDocument();
   });
 
@@ -491,8 +517,8 @@ describe('NovelPage', () => {
 
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
       expect(screen.getByRole('tab', { name: 'Wattpad' })).toBeInTheDocument();
-      expect(screen.getByText('Wattpad text')).toBeInTheDocument();
-      expect(screen.queryByText('0 pages')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Wattpad text')).toBeInTheDocument();
+      expect(screen.queryByLabelText('0 pages')).not.toBeInTheDocument();
     });
 
     it('puts Fetch & translate next in the Chapters toolbar instead of Add chapter', async () => {

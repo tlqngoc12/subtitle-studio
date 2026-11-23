@@ -132,6 +132,10 @@ export interface ChapterDetail {
   skippedImages?: number;
   /** The novel's kind; ORIGINAL chapters are written by hand and are never translated. */
   sourceType: NovelSourceType;
+  /** Place in reading order, from 1. */
+  position: number;
+  /** How many chapters the novel has. */
+  chapterCount: number;
 }
 
 function json(method: string, body: unknown): RequestInit {
@@ -222,6 +226,13 @@ export async function exportNovel(id: number): Promise<{ blob: Blob; fileName: s
   const res = await send(`/api/novels/${id}/export`);
   const match = /filename="?([^";]+)"?/.exec(res.headers.get('Content-Disposition') ?? '');
   return { blob: await res.blob(), fileName: match ? match[1] : `novel-${id}.zip` };
+}
+
+/** One chapter as a zip (.md + .html); 409 NOTHING_TO_EXPORT when it has no text. */
+export async function exportChapter(id: number): Promise<{ blob: Blob; fileName: string }> {
+  const res = await send(`/api/chapters/${id}/export`);
+  const match = /filename="?([^";]+)"?/.exec(res.headers.get('Content-Disposition') ?? '');
+  return { blob: await res.blob(), fileName: match ? match[1] : `chapter-${id}.zip` };
 }
 
 export async function deletePage(id: number, pageId: number): Promise<void> {

@@ -5,6 +5,7 @@ import {
   addChapter,
   createNovel,
   deletePage,
+  exportChapter,
   exportNovel,
   getNovelProfiles,
   publishChapter,
@@ -41,6 +42,23 @@ describe('novels API', () => {
     fakeFetch([{ method: 'GET', path: '/api/novels/3/export', status: 200, body: 'x' }]);
 
     expect((await exportNovel(3)).fileName).toBe('novel-3.zip');
+  });
+
+  it('exportChapter reads the blob and the file name, falling back to chapter-<id>.zip', async () => {
+    const calls = fakeFetch([
+      {
+        method: 'GET',
+        path: '/api/chapters/7/export',
+        status: 200,
+        body: 'zip bytes',
+        headers: { 'Content-Disposition': 'attachment; filename="s-chapter-7-2026-11-23.zip"' },
+      },
+    ]);
+    expect((await exportChapter(7)).fileName).toBe('s-chapter-7-2026-11-23.zip');
+    expect(calls[0].path).toBe('/api/chapters/7/export');
+
+    fakeFetch([{ method: 'GET', path: '/api/chapters/7/export', status: 200, body: 'x' }]);
+    expect((await exportChapter(7)).fileName).toBe('chapter-7.zip');
   });
 
   it('uploads several screenshots as "files" form fields', async () => {

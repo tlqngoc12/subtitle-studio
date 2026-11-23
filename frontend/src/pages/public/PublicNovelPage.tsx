@@ -1,3 +1,4 @@
+import { PUBLIC_NOVELS_TAB_LABELS, novelsTabCrumb } from '../../components/fanfics/NovelsTabs';
 import * as Tabs from "@radix-ui/react-tabs";
 import { TabTrigger } from "../../components/ui/TabTrigger";
 import { BookmarkCheck, BookmarkPlus, Check, ExternalLink, Sparkles } from "lucide-react";
@@ -179,7 +180,11 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
     <Page className="novel-page">
       <PageHeader
         variant="hero"
-        breadcrumbs={[{ label: "Novels", to: "/novels" }, { label: novel.title }]}
+        breadcrumbs={[
+          { label: "Novels", to: "/novels" },
+          novelsTabCrumb(novel.original === true, PUBLIC_NOVELS_TAB_LABELS),
+          { label: novel.title },
+        ]}
         title={novel.title}
         media={<Cover src={novel.coverUrl} className="novel-hero__cover" />}
         meta={
