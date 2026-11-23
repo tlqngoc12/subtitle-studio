@@ -27,4 +27,17 @@ describe('SettingsPage routes', () => {
     expect(await screen.findByLabelText('Main model')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Gemini' })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('has a Writing rules tab that opens its own route', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/settings/writing-rules', status: 200, body: { text: null } }]);
+    render(
+      <MemoryRouter initialEntries={['/settings/writing-rules']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('textbox', { name: 'Writing rules' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Writing rules' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Gemini' })).toHaveAttribute('href', '/settings/gemini');
+  });
 });

@@ -1,0 +1,15 @@
+/* Settings › Writing rules: one wide textarea in the Markdown the rules file is written in. */
+.writing-rules-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 760px;
+}
+
+.writing-rules-form__text {
+  width: 100%;
+  min-height: 24rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+}
