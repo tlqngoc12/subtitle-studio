@@ -4,6 +4,8 @@ import './FindHighlights.css';
 export interface Hit {
   start: number;
   end: number;
+  /** Paints this mark with its own class instead of `markClassName` (the Check's repeat marks). */
+  className?: string;
 }
 
 /** Computed styles of the textarea that decide where its lines break and where each glyph sits. */
@@ -65,7 +67,7 @@ export function FindHighlights({
     matches.forEach((m, i) => {
       if (m.start > last) out.push(text.slice(last, m.start));
       out.push(
-        <mark key={i} data-index={i} className={i === current ? `${markClassName} ${markClassName}--current` : markClassName}>
+        <mark key={i} data-index={i} className={i === current ? `${m.className ?? markClassName} ${m.className ?? markClassName}--current` : (m.className ?? markClassName)}>
           {text.slice(m.start, m.end)}
         </mark>,
       );

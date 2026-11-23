@@ -37,7 +37,7 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
   useAutoGrow(textRef, text);
   const showHits = finding && hits.matches.length > 0;
   const checkBox = useRef<HTMLDivElement>(null);
-  const check = useChapterCheck({ novelId: chapter.novelId, text, locked, textRef, boxRef: checkBox, onTextChange });
+  const check = useChapterCheck({ novelId: chapter.novelId, original: chapter.sourceType === 'ORIGINAL', text, locked, textRef, boxRef: checkBox, onTextChange });
   const layered = showHits || check.on; // the marks sit behind a see-through textarea
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
@@ -137,6 +137,7 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
           matched={check.current ? text.slice(check.current.start, check.current.end) : ''}
           anchor={() => checkBox.current?.querySelector<HTMLElement>(`[data-index="${check.currentIndex}"]`) ?? null}
           onApply={check.apply}
+          onStep={check.goToInGroup}
           onClose={check.close}
         />
       </div>

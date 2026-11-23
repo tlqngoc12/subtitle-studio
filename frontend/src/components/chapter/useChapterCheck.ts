@@ -1,20 +1,47 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { ApiError } from '../../api/client';
 import { getNovelProfile } from '../../api/novelProfile';
-import { adaptCase, applySuggestion, findIssues, parseCheckRules, type CheckRules, type Issue } from '../../lib/checkRules';
+import { getWritingRules } from '../../api/writingRules';
+import { adaptCase, applySuggestion, findIssues, parseCheckRules, type CheckRule, type Issue } from '../../lib/checkRules';
+import { findRepeatedOpenings, findRepeatedPhrases, type RepeatGroup } from '../../lib/repetition';
+import { effectiveRules, parseGlobalRules, type GlobalRules } from '../../lib/writingRules';
+import { WRITING_RULES_SEED } from '../../lib/writingRulesSeed';
 
 /** Matching re-runs this long after the last key. */
 export const CHECK_DEBOUNCE_MS = 150;
 
-type Profile = { state: 'loading' } | { state: 'none' } | { state: 'error' } | { state: 'ok'; rules: CheckRules };
+type Profile = { state: 'loading' } | { state: 'none' } | { state: 'error' } | { state: 'ok'; text: string };
+type Global = { state: 'loading' } | { state: 'error' } | { state: 'ok'; rules: GlobalRules };
+
+/** One mark in the chapter: a rule hit (banned phrase, wrong form) or one occurrence of a repeat. */
+export type CheckIssue = (Issue & { kind: 'rule' }) | { kind: 'repeat'; start: number; end: number; group: RepeatGroup };
+
+const overlaps = (a: { start: number; end: number }, b: { start: number; end: number }) => a.start < b.end && a.end > b.start;
 
 /**
- * The Check of the chapter text: the rules of the novel's profile (`## Kiểm tra`), the hits in the current text, the
- * hit the caret is in (its popover), and applying a suggestion. The profile is read once per visit and again each
- * time Check is switched on, so a rule edited in the Profile tab is picked up. No Gemini call.
+ * Rule hits first, then repeat occurrences, longest first; a repeat that overlaps a mark already kept is dropped
+ * (the mirror behind the textarea cannot paint two marks on the same words). Sorted by `start`.
+ */
+function merge(ruleHits: Issue[], groups: RepeatGroup[]): CheckIssue[] {
+  const kept: CheckIssue[] = ruleHits.map((i) => ({ ...i, kind: 'rule' as const }));
+  const repeats = groups
+    .flatMap((group) => group.ranges.map((r) => ({ kind: 'repeat' as const, start: r.start, end: r.end, group })))
+    .sort((a, b) => b.end - b.start - (a.end - a.start) || a.start - b.start);
+  for (const r of repeats) {
+    if (!kept.some((k) => overlaps(k, r))) kept.push(r);
+  }
+  return kept.sort((a, b) => a.start - b.start);
+}
+
+/**
+ * The Check of the chapter text, with the hits in the current text, the hit the caret is in (its popover), and
+ * applying a suggestion. Translated novels use the rules of the novel's profile (`## Kiểm tra`). An original story
+ * (`original`) uses the global writing rules merged with its profile, and also marks repeated phrases and sentence
+ * openings. Rules are read once per visit and again each time Check is switched on. No Gemini call.
  */
 export function useChapterCheck({
   novelId,
+  original = false,
   text,
   locked,
   textRef,
@@ -22,6 +49,8 @@ export function useChapterCheck({
   onTextChange,
 }: {
   novelId: number;
+  /** The chapter belongs to an original story (sourceType ORIGINAL). */
+  original?: boolean;
   text: string;
   locked: boolean;
   textRef: RefObject<HTMLTextAreaElement | null>;
@@ -30,21 +59,33 @@ export function useChapterCheck({
   onTextChange: (text: string) => void;
 }) {
   const [profile, setProfile] = useState<Profile>({ state: 'loading' });
+  const [global, setGlobal] = useState<Global>({ state: 'loading' });
   const [on, setOn] = useState(false);
-  const [found, setFound] = useState<{ text: string; issues: Issue[] }>({ text: '', issues: [] });
+  const [found, setFound] = useState<{ text: string; issues: CheckIssue[] }>({ text: '', issues: [] });
   const [caret, setCaret] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState<number | null>(null);
   const alive = useRef(true);
 
   const load = useCallback(async () => {
-    try {
-      const details = await getNovelProfile(novelId);
-      if (alive.current) setProfile({ state: 'ok', rules: parseCheckRules(details.text) });
-    } catch (e) {
-      if (!alive.current) return;
-      setProfile(e instanceof ApiError && (e.code === 'NO_PROFILE' || e.code === 'NO_NOVEL_PROFILE' || e.status === 404) ? { state: 'none' } : { state: 'error' });
-    }
-  }, [novelId]);
+    const loadProfile = async () => {
+      try {
+        const details = await getNovelProfile(novelId);
+        if (alive.current) setProfile({ state: 'ok', text: details.text });
+      } catch (e) {
+        if (!alive.current) return;
+        setProfile(e instanceof ApiError && (e.code === 'NO_PROFILE' || e.code === 'NO_NOVEL_PROFILE' || e.status === 404) ? { state: 'none' } : { state: 'error' });
+      }
+    };
+    const loadGlobal = async () => {
+      try {
+        const rules = await getWritingRules();
+        if (alive.current) setGlobal({ state: 'ok', rules: parseGlobalRules(rules ?? WRITING_RULES_SEED) });
+      } catch {
+        if (alive.current) setGlobal({ state: 'error' });
+      }
+    };
+    await Promise.all([loadProfile(), original ? loadGlobal() : Promise.resolve()]);
+  }, [novelId, original]);
 
   useEffect(() => {
     alive.current = true;
@@ -54,29 +95,45 @@ export function useChapterCheck({
     };
   }, [load]);
 
-  const rules = useMemo(() => (profile.state === 'ok' ? profile.rules.rules : []), [profile]);
-  const ignored = profile.state === 'ok' ? profile.rules.ignored : 0;
-  const active = on && !locked && rules.length > 0;
+  /** What Check matches and how many rule lines could not be read. */
+  const data = useMemo(() => {
+    const none = { rules: [] as CheckRule[], ignored: 0, repeatIgnores: [] as string[], ready: false };
+    if (original) {
+      if (global.state !== 'ok' || (profile.state !== 'ok' && profile.state !== 'none')) return none;
+      const eff = effectiveRules(global.rules, profile.state === 'ok' ? profile.text : null);
+      return { rules: eff.checkRules, ignored: eff.ignored, repeatIgnores: eff.repeatIgnores, ready: true };
+    }
+    if (profile.state !== 'ok') return none;
+    const parsed = parseCheckRules(profile.text);
+    return { rules: parsed.rules, ignored: parsed.ignored, repeatIgnores: [] as string[], ready: parsed.rules.length > 0 };
+  }, [original, global, profile]);
+  const { rules, ignored, repeatIgnores } = data;
+  const active = on && !locked && data.ready;
 
   useEffect(() => {
     if (!active) {
       setFound((f) => (f.text === '' && f.issues.length === 0 ? f : { text: '', issues: [] }));
       return;
     }
-    const timer = window.setTimeout(() => setFound({ text, issues: findIssues(text, rules) }), CHECK_DEBOUNCE_MS);
+    const timer = window.setTimeout(() => {
+      const groups = original ? [...findRepeatedPhrases(text, repeatIgnores), ...findRepeatedOpenings(text)] : [];
+      setFound({ text, issues: merge(findIssues(text, rules), groups) });
+    }, CHECK_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [active, text, rules]);
+  }, [active, text, rules, repeatIgnores, original]);
 
   /** Why Check cannot be switched on, or null. */
   const disabledReason = locked
     ? 'Check is off while the chapter is translating'
-    : profile.state === 'none'
-      ? 'This novel has no profile'
+    : original && global.state === 'error'
+      ? 'Could not load the writing rules'
       : profile.state === 'error'
         ? 'Could not load the profile'
-        : profile.state === 'ok' && rules.length === 0
-          ? 'No rules in ## Kiểm tra'
-          : null;
+        : !original && profile.state === 'none'
+          ? 'This novel has no profile'
+          : !original && profile.state === 'ok' && rules.length === 0
+            ? 'No rules in ## Kiểm tra'
+            : null;
 
   async function toggle() {
     if (disabledReason !== null) return;
@@ -89,7 +146,7 @@ export function useChapterCheck({
   }
 
   // Hits are only trusted for the text they were found in: a half-second-old answer must not point into new text.
-  const issues = active && found.text === text ? found.issues : [];
+  const issues = useMemo(() => (active && found.text === text ? found.issues : []), [active, found, text]);
   const hitAt = (pos: number | null) =>
     pos === null ? -1 : issues.findIndex((i) => i.start <= pos && pos <= i.end);
   const index = hitAt(caret);
@@ -136,6 +193,24 @@ export function useChapterCheck({
     setCaret(issue.start + replacement.length);
   }
 
+  /** Puts the caret at `start` and brings the mark starting there (or the box) into view. */
+  function moveTo(start: number) {
+    const el = textRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(start, start);
+    setDismissed(null);
+    setCaret(start);
+    // The textarea grows with its text, so centring it would miss the hit on a long chapter: centre the hit's own mark.
+    const reveal = () => {
+      const at = issues.findIndex((i) => i.start === start);
+      const mark = at >= 0 ? boxRef?.current?.querySelector<HTMLElement>(`[data-index="${at}"]`) : null;
+      (mark ?? el).scrollIntoView?.({ block: 'center' });
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(reveal);
+    else reveal();
+  }
+
   function goTo(step: 1 | -1) {
     const el = textRef.current;
     if (!el || issues.length === 0) return;
@@ -144,17 +219,21 @@ export function useChapterCheck({
       step === 1
         ? (issues.find((i) => i.start > pos) ?? issues[0])
         : ([...issues].reverse().find((i) => i.end < pos && i.start < pos) ?? issues[issues.length - 1]);
-    el.focus();
-    el.setSelectionRange(target.start, target.start);
-    setDismissed(null);
-    setCaret(target.start);
-    // The textarea grows with its text, so centring it would miss the hit on a long chapter: centre the hit's own mark.
-    const reveal = () => {
-      const mark = boxRef?.current?.querySelector<HTMLElement>(`[data-index="${issues.indexOf(target)}"]`);
-      (mark ?? el).scrollIntoView?.({ block: 'center' });
-    };
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(reveal);
-    else reveal();
+    moveTo(target.start);
+  }
+
+  /** Next/previous occurrence of the repeat the popover is about (wraps). */
+  function goToInGroup(step: 1 | -1) {
+    const el = textRef.current;
+    const issue = open ? issues[index] : null;
+    if (!el || !issue || issue.kind !== 'repeat') return;
+    const starts = issue.group.ranges.map((r) => r.start);
+    const pos = el.selectionStart;
+    const target =
+      step === 1
+        ? (starts.find((s) => s > pos) ?? starts[0])
+        : ([...starts].reverse().find((s) => s < pos) ?? starts[starts.length - 1]);
+    moveTo(target);
   }
 
   // F8 / Shift+F8 step through the issues while Check is on (not while a dialog is open).
@@ -177,7 +256,7 @@ export function useChapterCheck({
     requested: on,
     /** The novel has a profile, so a rule can be added to it. */
     hasProfile: profile.state === 'ok',
-    /** Reads the profile's rules again (after a rule was added). */
+    /** Reads the rules again (after a rule was added). */
     reloadRules: load,
     toggle,
     disabledReason,
@@ -191,6 +270,10 @@ export function useChapterCheck({
     },
     apply,
     goTo,
-    marks: useMemo(() => issues.map((i) => ({ start: i.start, end: i.end })), [issues]),
+    goToInGroup,
+    marks: useMemo(
+      () => issues.map((i) => ({ start: i.start, end: i.end, className: i.kind === 'repeat' ? 'check-repeat' : undefined })),
+      [issues],
+    ),
   };
 }

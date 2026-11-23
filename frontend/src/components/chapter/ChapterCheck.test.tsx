@@ -27,7 +27,7 @@ const noProfile: Route = { method: 'GET', path: '/api/novels/3/profile', status:
 
 const TEXT = 'Mẹ cô cười.\n\nChàng đến, và mẹ cô khóc.';
 
-function Harness({ initial = TEXT, locked = false, onText, slot = false }: { initial?: string; locked?: boolean; onText?: (t: string) => void; slot?: boolean }) {
+function Harness({ initial = TEXT, locked = false, onText, slot = false, sourceType = 'SCREENSHOTS' }: { initial?: string; locked?: boolean; onText?: (t: string) => void; slot?: boolean; sourceType?: 'SCREENSHOTS' | 'WATTPAD' | 'ORIGINAL' }) {
   const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
   const [text, setText] = useState(initial);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -35,7 +35,7 @@ function Harness({ initial = TEXT, locked = false, onText, slot = false }: { ini
     <>
       {slot && <div data-testid="bar" ref={setBarSlot} />}
     <ChapterTextEditor
-      chapter={chapterDetail()}
+      chapter={chapterDetail({ sourceType })}
       idBase="c"
       showOriginal={false}
       text={text}
@@ -295,5 +295,110 @@ describe('Chapter Check', () => {
     await user.click(screen.getByRole('button', { name: 'Check' }));
 
     await waitFor(() => expect(calls.filter((c) => c.path === '/api/novels/3/profile')).toHaveLength(3));
+  });
+
+  describe('original story', () => {
+    const rulesRoute = (text: string | null = null): Route => ({
+      method: 'GET',
+      path: '/api/settings/writing-rules',
+      status: 200,
+      body: { text },
+    });
+    const emptyProfile = profile('## Kiểm tra\n- (hint)\n');
+    const marks = (container: HTMLElement, cls: string) => container.querySelectorAll(`mark.${cls}`);
+    const REPEAT = 'Cô nhìn ra cửa sổ. Cô nhìn ra cửa sổ. Rồi cô nhìn ra cửa sổ.';
+
+    it('checks the global banned phrases even when the profile has no rules', async () => {
+      const user = userEvent.setup();
+      fakeFetch([emptyProfile, rulesRoute()]);
+      const { container } = render(<Harness sourceType="ORIGINAL" initial="Cô cúi đầu chào." />);
+      await checkOn(user);
+
+      await waitFor(() => expect(marks(container, 'check-hit')).toHaveLength(1));
+      expect(marks(container, 'check-hit')[0]).toHaveTextContent('cúi đầu');
+      expect(marks(container, 'check-repeat')).toHaveLength(0);
+    });
+
+    it('still works for a story without a profile', async () => {
+      const user = userEvent.setup();
+      fakeFetch([
+        { method: 'GET', path: '/api/novels/3/profile', status: 404, body: problem(404, 'NO_NOVEL_PROFILE', 'none') },
+        rulesRoute(),
+      ]);
+      const { container } = render(<Harness sourceType="ORIGINAL" initial="Cô cúi đầu chào." />);
+      await checkOn(user);
+
+      await waitFor(() => expect(marks(container, 'check-hit')).toHaveLength(1));
+    });
+
+    it('lets the profile opt out of a global phrase', async () => {
+      const user = userEvent.setup();
+      fakeFetch([profile('## Kiểm tra\n- bỏ luật chung: "cúi đầu"\n'), rulesRoute()]);
+      const { container } = render(<Harness sourceType="ORIGINAL" initial="Cô cúi đầu chào." />);
+      await checkOn(user);
+
+      expect(await screen.findByRole('button', { name: 'Check · 0' })).toBeInTheDocument();
+      expect(marks(container, 'check-hit')).toHaveLength(0);
+    });
+
+    it('marks a phrase repeated 3 times and steps through its occurrences', async () => {
+      const user = userEvent.setup();
+      fakeFetch([emptyProfile, rulesRoute()]);
+      const { container } = render(<Harness sourceType="ORIGINAL" initial={REPEAT} />);
+      await checkOn(user);
+
+      await waitFor(() => expect(marks(container, 'check-repeat')).toHaveLength(3));
+      caretAt(2);
+      const dialog = await screen.findByRole('dialog', { name: 'Check suggestion' });
+      expect(dialog).toHaveTextContent('Repeated 3× — "Cô nhìn ra cửa sổ"');
+      await user.click(screen.getByRole('button', { name: 'Next occurrence' }));
+      const area = screen.getByLabelText('Chapter text') as HTMLTextAreaElement;
+      expect(area.selectionStart).toBe(REPEAT.indexOf('Cô', 1));
+    });
+
+    it('marks three sentences that open the same way', async () => {
+      const user = userEvent.setup();
+      const text = 'Em đã đi. Em đã khóc.\n\nEm đã ngủ.';
+      fakeFetch([emptyProfile, rulesRoute()]);
+      const { container } = render(<Harness sourceType="ORIGINAL" initial={text} />);
+      await checkOn(user);
+
+      await waitFor(() => expect(marks(container, 'check-repeat')).toHaveLength(3));
+      caretAt(1);
+      expect(await screen.findByRole('dialog', { name: 'Check suggestion' })).toHaveTextContent(
+        '3 sentences in a row start with "Em đã"',
+      );
+    });
+
+    it('counts rule issues and repeats together', async () => {
+      const user = userEvent.setup();
+      fakeFetch([emptyProfile, rulesRoute()]);
+      render(<Harness sourceType="ORIGINAL" initial={`Cô cúi đầu. ${REPEAT}`} />);
+      await checkOn(user);
+
+      expect(await screen.findByRole('button', { name: 'Check · 4' })).toBeInTheDocument();
+    });
+
+    it('is disabled when the writing rules cannot be loaded', async () => {
+      fakeFetch([emptyProfile, { method: 'GET', path: '/api/settings/writing-rules', status: 500, body: problem(500, 'INTERNAL_ERROR', 'x') }]);
+      render(<Harness sourceType="ORIGINAL" initial={REPEAT} />);
+
+      const toggle = await screen.findByRole('button', { name: 'Check' });
+      await waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'true'));
+      await userEvent.setup().hover(toggle);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Could not load the writing rules');
+    });
+  });
+
+  it('leaves a translated novel alone: no rules means disabled, no repeat marks, no writing-rules request', async () => {
+    const calls = fakeFetch([profile('## Kiểm tra\n- (hint)\n')]);
+    const { container } = render(<Harness sourceType="WATTPAD" initial={'Cô cúi đầu. Cô nhìn ra cửa sổ. Cô nhìn ra cửa sổ. Rồi cô nhìn ra cửa sổ.'} />);
+
+    const toggle = await screen.findByRole('button', { name: 'Check' });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-disabled', 'true'));
+    await userEvent.setup().hover(toggle);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('No rules in ## Kiểm tra');
+    expect(container.querySelectorAll('mark')).toHaveLength(0);
+    expect(calls.some((c) => c.path.includes('writing-rules'))).toBe(false);
   });
 });
