@@ -34,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, NovelService.class, NovelValidator.class, com.subtitlestudio.url.UrlParser.class, MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class, PromptProfileStore.class, NovelProfileStore.class,
+@Import({ChapterReviewFiles.class, com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, NovelService.class, NovelValidator.class, com.subtitlestudio.url.UrlParser.class, MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class, PromptProfileStore.class, NovelProfileStore.class,
     NovelServiceTest.Config.class})
 class NovelServiceTest {
 
@@ -765,6 +765,20 @@ class NovelServiceTest {
         assertThat(dataDir.resolve("prompts/novels/UnknownRn.md")).doesNotExist();
         assertThat(profileText("MuaHeRn")).isEqualTo(
                 "# Hồ sơ truyện: Mua He Rn\n- Tên truyện: \"Mua He Rn\"\nGiữ Unknown Rn ở đây\n");
+    }
+
+    @Test
+    void titleChangeRenamesReviewFiles() throws IOException {
+        NovelDetail d = service.create(original("rv-rn", "Review Old Rn", "A", null));
+        assertThat(d.promptProfile()).isEqualTo("ReviewOldRn");
+        Files.createDirectories(dataDir.resolve("reviews"));
+        Files.writeString(dataDir.resolve("reviews/review-ReviewOldRn-ch-1-2026-11-23.md"), "x");
+
+        NovelDetail edited = service.update(d.id(), retitled(d, "Review New Rn", "ReviewOldRn"));
+
+        assertThat(edited.promptProfile()).isEqualTo("ReviewNewRn");
+        assertThat(dataDir.resolve("reviews/review-ReviewNewRn-ch-1-2026-11-23.md")).exists();
+        assertThat(dataDir.resolve("reviews/review-ReviewOldRn-ch-1-2026-11-23.md")).doesNotExist();
     }
 
     @Test

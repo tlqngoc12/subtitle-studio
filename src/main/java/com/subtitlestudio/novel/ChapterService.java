@@ -12,6 +12,10 @@ import com.subtitlestudio.profile.Media;
 import com.subtitlestudio.profile.MediaRepository;
 import com.subtitlestudio.profile.MediaService;
 import com.subtitlestudio.profile.MediaTooLargeException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -46,12 +50,14 @@ public class ChapterService {
     private final Clock clock;
     private final TranslatingModels models;
     private final GeminiSettings gemini;
+    private final ChapterReviewFiles reviewFiles;
 
     public ChapterService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                           ChapterImageRepository chapterImages, MediaRepository mediaRepository,
                           MediaService mediaService, ImageSniffer sniffer, RenderCache renderCache,
                           PageRotator rotator, SubtitleStudioProperties properties, GeminiSettings gemini, Clock clock,
-                          TranslatingModels models) {
+                          TranslatingModels models, ChapterReviewFiles reviewFiles) {
+        this.reviewFiles = reviewFiles;
         this.novels = novels;
         this.chapters = chapters;
         this.pages = pages;
@@ -211,11 +217,56 @@ public class ChapterService {
             throw new InvalidChapterException(List.of(new FieldError("chapterIds",
                     "List every chapter of the novel exactly once.")));
         }
+        Map<Long, Integer> before = positions(novelId);
         for (int i = 0; i < order.size(); i++) {
             byId.get(order.get(i)).setSortOrder(i + 1);
         }
         novel.touch(clock.instant());
         chapters.flush();
+        if (hasProfile(novel)) {
+            Map<Long, Integer> after = positions(novelId);
+            Map<Integer, Integer> moved = new HashMap<>();
+            before.forEach((chapterId, oldPosition) -> {
+                Integer newPosition = after.get(chapterId);
+                if (newPosition != null && !newPosition.equals(oldPosition)) {
+                    moved.put(oldPosition, newPosition);
+                }
+            });
+            reviewFiles.renumber(novel.getPromptProfile(), moved);
+        }
+    }
+
+    private static boolean hasProfile(Novel novel) {
+        return novel.getPromptProfile() != null && !novel.getPromptProfile().isBlank();
+    }
+
+    /** Reading position (1-based) of each chapter of the novel. */
+    private Map<Long, Integer> positions(long novelId) {
+        Map<Long, Integer> out = new HashMap<>();
+        int position = 1;
+        for (Chapter c : chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId)) {
+            out.put(c.getId(), position++);
+        }
+        return out;
+    }
+
+    /** The newest review file of a chapter of an original story (404 when there is none). */
+    @Transactional(readOnly = true)
+    public ChapterReview review(long chapterId) {
+        Chapter c = find(chapterId);
+        Novel novel = c.getNovel();
+        if (!hasProfile(novel)) {
+            throw new ChapterReviewNotFoundException(null);
+        }
+        String profile = novel.getPromptProfile();
+        int position = positions(novel.getId()).get(chapterId);
+        Path file = reviewFiles.newest(profile, position)
+                .orElseThrow(() -> new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, position)));
+        try {
+            return new ChapterReview(file.getFileName().toString(), Files.readString(file, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, position));
+        }
     }
 
     @Transactional(readOnly = true)
@@ -305,6 +356,9 @@ public class ChapterService {
     @Transactional
     public void delete(long id) {
         Chapter c = editable(id);
+        long novelId = c.getNovel().getId();
+        String profile = c.getNovel().getPromptProfile();
+        Map<Long, Integer> before = positions(novelId);
         List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(id);
         List<Long> images = new ArrayList<>(ps.stream().map(p -> p.getMedia().getId()).toList());
         pages.deleteAll(ps);
@@ -316,6 +370,15 @@ public class ChapterService {
         chapters.flush();
         mediaService.deleteIfUnreferenced(images);
         renderCache.evict(id);
+        if (profile != null && !profile.isBlank()) {
+            int removed = before.get(id);
+            Map<Integer, Integer> shift = new HashMap<>();
+            for (int q = removed + 1; q <= before.size(); q++) {
+                shift.put(q, q - 1);
+            }
+            reviewFiles.archive(profile, removed);
+            reviewFiles.renumber(profile, shift);
+        }
     }
 
     /** Enough of the start of a file to recognise PNG, JPEG, GIF and WebP. */

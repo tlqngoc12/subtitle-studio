@@ -107,9 +107,23 @@ class NovelExportServiceTest {
         assertThat(export.fileName()).isEqualTo("summer-love-" + java.time.LocalDate.ofInstant(NOW, java.time.ZoneId.systemDefault()) + ".zip");
         Map<String, String> files = unzip(export.zip());
         assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chapter 1.md", "001 - Chapter 1.html",
-                "002 - Chapter 3.md", "002 - Chapter 3.html");
-        assertThat(files.get("002 - Chapter 3.md")).endsWith("P1\n\nP2");
+                "003 - Chapter 3.md", "003 - Chapter 3.html");
+        assertThat(files.get("003 - Chapter 3.md")).endsWith("P1\n\nP2");
         assertThat(files.get("001 - Chapter 1.html")).contains("<p>A</p>");
+    }
+
+    @Test
+    void positionsFollowFullReadingOrder() throws Exception {
+        chapter(1, 1, "A");
+        chapter(2, 2, null);
+        Chapter c3 = chapter(3, 3, "C");
+
+        Map<String, String> files = unzip(service.export(novel.getId()).zip());
+
+        assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chapter 1.md", "001 - Chapter 1.html",
+                "003 - Chapter 3.md", "003 - Chapter 3.html");
+        assertThat(unzip(service.exportChapter(c3.getId()).zip()).keySet())
+                .containsExactly("003 - Chapter 3.md", "003 - Chapter 3.html");
     }
 
     @Test

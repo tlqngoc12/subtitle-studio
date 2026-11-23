@@ -5,17 +5,19 @@ import './Check.css';
 
 /** The compact `Check · N ‹ ›` shown in the sticky chapter bar while Check is on, so stepping needs no scrolling back up. */
 export function CheckNavigator({
+  label = 'Check',
   count,
   onPrev,
   onNext,
 }: {
+  label?: 'Check' | 'Review';
   count: number;
   onPrev: () => void;
   onNext: () => void;
 }) {
   return (
     <div className="check-nav">
-      <span className="check-nav__count">Check · {count}</span>
+      <span className="check-nav__count">{label} · {count}</span>
       <IconButton size="s" icon={ChevronLeft} label="Previous issue (Shift+F8)" disabled={count === 0} onClick={onPrev} />
       <IconButton size="s" icon={ChevronRight} label="Next issue (F8)" disabled={count === 0} onClick={onNext} />
     </div>

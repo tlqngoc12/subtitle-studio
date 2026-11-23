@@ -45,6 +45,11 @@ class NovelErrors {
         return ProblemDetails.problem(HttpStatus.CONFLICT, "NOTHING_TO_EXPORT", "No chapter has text to export yet.");
     }
 
+    @ExceptionHandler(com.subtitlestudio.novel.ChapterReviewNotFoundException.class)
+    ProblemDetail reviewNotFound(com.subtitlestudio.novel.ChapterReviewNotFoundException e) {
+        return ProblemDetails.problem(HttpStatus.NOT_FOUND, "REVIEW_NOT_FOUND", e.getMessage());
+    }
+
     @ExceptionHandler(com.subtitlestudio.novel.NoNovelProfileException.class)
     ProblemDetail noNovelProfile(com.subtitlestudio.novel.NoNovelProfileException e) {
         return ProblemDetails.problem(HttpStatus.NOT_FOUND, "NO_PROFILE", "This novel has no translation profile.");

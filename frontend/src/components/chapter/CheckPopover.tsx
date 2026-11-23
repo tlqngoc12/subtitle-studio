@@ -19,6 +19,8 @@ export function CheckPopover({
   onApply,
   onStep,
   onClose,
+  exact = false,
+  matches = 1,
 }: {
   issue: CheckIssue | null;
   /** The text of the hit as written in the chapter (the suggestions follow its capital letter). */
@@ -29,6 +31,10 @@ export function CheckPopover({
   /** Jumps to the next or previous occurrence of the repeat shown (repeat issues only). */
   onStep?: (step: 1 | -1) => void;
   onClose: () => void;
+  /** Review mode: the suggestion is applied as written, so it is shown as written (no capital-letter change). */
+  exact?: boolean;
+  /** How many places the same passage stands in the chapter (review mode). */
+  matches?: number;
 }) {
   const first = useRef<HTMLButtonElement>(null);
   const virtual = useRef({ getBoundingClientRect: () => (anchor() ?? document.body).getBoundingClientRect() });
@@ -69,7 +75,7 @@ export function CheckPopover({
               </div>
             </div>
           ) : (
-            <RuleBody issue={issue} matched={matched} first={first} onApply={onApply} />
+            <RuleBody issue={issue} matched={matched} first={first} onApply={onApply} exact={exact} matches={matches} />
           )}
         </PopoverPanel>
       )}
@@ -83,11 +89,15 @@ function RuleBody({
   matched,
   first,
   onApply,
+  exact,
+  matches,
 }: {
   issue: Issue;
   matched: string;
   first: RefObject<HTMLButtonElement | null>;
   onApply: (issue: Issue, suggestion: string) => void;
+  exact: boolean;
+  matches: number;
 }) {
   return (
     <>
@@ -96,6 +106,7 @@ function RuleBody({
             <strong>{matched}</strong>
           </p>
           {issue.rule.reason && <p className="muted check-popover__reason">{issue.rule.reason}</p>}
+          {matches > 1 && <p className="muted check-popover__reason">{matches} matches</p>}
           {issue.rule.suggestions.length === 0 ? (
             <p className="muted check-popover__reason">Avoid this phrase.</p>
           ) : (
@@ -115,7 +126,7 @@ function RuleBody({
                       }
                     }}
                   >
-                    {adaptCase(matched, s)}
+                    {s === '' ? 'Delete passage' : exact ? s : adaptCase(matched, s)}
                   </button>
                 ))}
               </div>
