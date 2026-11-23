@@ -44,7 +44,7 @@ export function CheckPopover({
       <Popover.Anchor virtualRef={virtual} />
       {issue && (
         <PopoverPanel
-          className="check-popover"
+          className={exact ? 'check-popover check-popover--review' : 'check-popover'}
           role="dialog"
           aria-label="Check suggestion"
           align="start"
@@ -101,10 +101,12 @@ function RuleBody({
 }) {
   return (
     <>
-          <p className="check-popover__wrong">
-            <span className="visually-hidden">Flagged: </span>
-            <strong>{matched}</strong>
-          </p>
+          {!exact && (
+            <p className="check-popover__wrong">
+              <span className="visually-hidden">Flagged: </span>
+              <strong>{matched}</strong>
+            </p>
+          )}
           {issue.rule.reason && <p className="muted check-popover__reason">{issue.rule.reason}</p>}
           {matches > 1 && <p className="muted check-popover__reason">{matches} matches</p>}
           {issue.rule.suggestions.length === 0 ? (
@@ -117,7 +119,7 @@ function RuleBody({
                     key={s}
                     ref={i === 0 ? first : undefined}
                     type="button"
-                    className="check-chip"
+                    className={exact && s !== '' ? 'check-chip check-chip--block' : 'check-chip'}
                     onDoubleClick={() => onApply(issue, s)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {

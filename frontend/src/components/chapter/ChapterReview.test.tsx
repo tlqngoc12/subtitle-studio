@@ -193,4 +193,29 @@ describe('Chapter Review', () => {
     const popover = await screen.findByRole('dialog', { name: 'Check suggestion' });
     expect(popover).not.toHaveTextContent('matches');
   });
+
+  it('review popover hides the old passage and shows the replacement as a block; Check still shows the old text', async () => {
+    const user = userEvent.setup();
+    fakeFetch([reviewRoute(), profileRoute, rulesRoute]);
+    const { unmount } = render(<Harness />);
+    await reviewOn(user);
+    caretAt(3);
+    const dialog = await screen.findByRole('dialog', { name: 'Check suggestion' });
+    expect(dialog).toHaveTextContent('🔴1');
+    expect(dialog).not.toHaveTextContent('Emi cúi xuống.');
+    const block = screen.getByRole('button', { name: 'Emi ghé lại gần.' });
+    expect(block).toHaveClass('check-chip', 'check-chip--block');
+    expect(dialog).toHaveTextContent('Double-click or press Enter to apply');
+    unmount();
+
+    render(<Harness />);
+    const check = screen.getByRole('button', { name: 'Check' });
+    await waitFor(() => expect(check).not.toHaveAttribute('aria-disabled'));
+    await user.click(check);
+    await screen.findByRole('button', { name: /^Check · \d+$/ });
+    caretAt(TEXT.indexOf('cười') + 1);
+    const popover = await screen.findByRole('dialog', { name: 'Check suggestion' });
+    expect(popover).toHaveTextContent('cười');
+    expect(screen.getByRole('button', { name: 'mỉm cười' })).not.toHaveClass('check-chip--block');
+  });
 });
