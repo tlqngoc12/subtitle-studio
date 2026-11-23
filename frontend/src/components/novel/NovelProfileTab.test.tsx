@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { effectiveRules, exportForAi, parseGlobalRules } from '../../lib/writingRules';
+import { WRITING_RULES_SEED } from '../../lib/writingRulesSeed';
 import { answerConfirm } from '../../test/confirm';
 import { fakeFetch, problem, type Route } from '../../test/fakeFetch';
 import { NovelProfileTab } from './NovelProfileTab';
@@ -30,7 +32,7 @@ const get = (body: unknown = details(), status = 200): Route => ({
   body,
 });
 
-function renderTab(sourceType: 'WATTPAD' | 'SCREENSHOTS' = 'SCREENSHOTS') {
+function renderTab(sourceType: 'WATTPAD' | 'SCREENSHOTS' | 'ORIGINAL' = 'SCREENSHOTS') {
   return render(<NovelProfileTab novelId={3} sourceType={sourceType} />);
 }
 
@@ -138,6 +140,44 @@ describe('NovelProfileTab', () => {
     expect(JSON.parse(String(calls.find((c) => c.method === 'PUT')?.body))).toEqual({
       text: '## Xưng hô\nA gọi B là em.\nXYZ',
       baseSha: 'sha-1',
+    });
+  });
+
+  describe('Copy for AI', () => {
+    const rulesRoute: Route = { method: 'GET', path: '/api/settings/writing-rules', status: 200, body: { text: null } };
+    const PROFILE_TEXT = '## Nguyên tắc riêng\n- Emi dùng "cô"\n\n## Kiểm tra\n- "mẹ cô" → "mẹ em"\n';
+    const global = () => parseGlobalRules(WRITING_RULES_SEED);
+
+    it('copies the effective rules of an original story, with its saved profile', async () => {
+      const user = userEvent.setup();
+      fakeFetch([get(details({ text: PROFILE_TEXT })), rulesRoute]);
+      renderTab('ORIGINAL');
+      const button = await screen.findByRole('button', { name: 'Copy for AI' });
+      const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+      await user.click(button);
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(exportForAi(effectiveRules(global(), PROFILE_TEXT), true)));
+      expect(writeText.mock.calls[0][0]).toContain('Sửa đúng:');
+    });
+
+    it('still exports the global rules for an original story without a profile', async () => {
+      const user = userEvent.setup();
+      fakeFetch([get(problem(404, 'NO_PROFILE', 'none'), 404), rulesRoute]);
+      renderTab('ORIGINAL');
+      const button = await screen.findByRole('button', { name: 'Copy for AI' });
+      const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+      await user.click(button);
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(exportForAi(effectiveRules(global(), null), true)));
+    });
+
+    it('is not offered for a translated novel', async () => {
+      fakeFetch([get()]);
+      renderTab('WATTPAD');
+      await screen.findByText('MyGrumpyVampire.md');
+      expect(screen.queryByRole('button', { name: 'Copy for AI' })).not.toBeInTheDocument();
     });
   });
 });

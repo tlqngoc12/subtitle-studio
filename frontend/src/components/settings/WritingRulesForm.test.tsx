@@ -86,7 +86,7 @@ describe('Settings › Writing rules', () => {
     await user.click(screen.getByRole('button', { name: 'Copy for AI' }));
     const expected = exportForAi(effectiveRules(parseGlobalRules(text.value), null), false);
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expected));
-    expect(toast.success).toHaveBeenCalledWith(`Copied ${expected.length} characters`);
+    expect(toast.success).toHaveBeenCalledWith('Copied', { description: `${expected.length} characters` });
   });
 
   it('explains the sections', async () => {

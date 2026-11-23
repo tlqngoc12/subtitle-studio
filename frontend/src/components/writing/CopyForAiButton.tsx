@@ -7,7 +7,7 @@ export function CopyForAiButton({ getText }: { getText: () => Promise<string> })
     try {
       const text = await getText();
       await navigator.clipboard.writeText(text);
-      toast.success(`Copied ${text.length} characters`);
+      toast.success('Copied', { description: `${text.length} characters` });
     } catch {
       toast.error('Could not copy');
     }

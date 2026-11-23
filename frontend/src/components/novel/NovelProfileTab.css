@@ -6,3 +6,12 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* Copy for AI (original stories) sits after the name, or under the notice when the story has no profile. */
+.novel-profile__name .button {
+  margin-left: var(--space-2);
+}
+
+.novel-profile__copy {
+  margin-top: var(--space-4);
+}
