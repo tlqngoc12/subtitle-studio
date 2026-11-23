@@ -4,6 +4,7 @@ import type { ChapterDetail } from '../../api/novels';
 import { busyTitle, type NovelBusy } from '../../lib/novelBusy';
 import { Tip } from '../Tip';
 import { IconLink } from '../ui/IconButton';
+import { ChapterJump } from './ChapterJump';
 
 interface Props {
   chapter: ChapterDetail;
@@ -25,6 +26,11 @@ export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, startin
       {chapter.prevChapterId !== null && (
         <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
           onClick={(e) => onLeave(e, chapterPath(chapter.prevChapterId!))} />
+      )}
+      {chapter.position > 0 && (
+        <ChapterJump novelId={chapter.novelId} currentId={chapter.id} position={chapter.position}
+          total={chapter.chapterCount} original={chapter.sourceType === 'ORIGINAL'} chapterPath={chapterPath}
+          onLeave={onLeave} />
       )}
       {chapter.nextChapterId !== null && (
         <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}

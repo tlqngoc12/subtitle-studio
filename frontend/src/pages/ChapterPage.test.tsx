@@ -9,7 +9,7 @@ import { AppToaster } from '../components/AppToaster';
 import { answerConfirm } from '../test/confirm';
 import * as download from '../lib/download';
 import { fakeFetch, problem, type Route as FakeRoute } from '../test/fakeFetch';
-import { chapterDetail } from '../test/novelFixtures';
+import { chapterDetail, chapterSummary, novelDetail } from '../test/novelFixtures';
 import ChapterPage, { AUTO_SAVE_MS } from './ChapterPage';
 import { css } from '../test/css';
 import { expectTooltip } from '../test/tooltip';
@@ -118,6 +118,34 @@ describe('ChapterPage', () => {
     await user().click(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('link', { name: 'Translated' }));
 
     await answerConfirm('Cancel', 'Leave without saving?');
+  });
+
+  describe('the chapter popover', () => {
+    const novelRoute: FakeRoute = {
+      method: 'GET',
+      path: '/api/novels/3',
+      status: 200,
+      body: novelDetail({ chapters: [chapterSummary({ id: 8, chapterNo: 0 }), chapterSummary({ id: 9 }), chapterSummary({ id: 10, chapterNo: 2 })] }),
+    };
+
+    it('shows the place between Previous and Next', async () => {
+      renderPage([get({ prevChapterId: 8, nextChapterId: 10, position: 2, chapterCount: 3 })]);
+      await loaded();
+
+      expect(screen.getByRole('button', { name: /2 \/ 3/ })).toBeInTheDocument();
+    });
+
+    it('asks before a chosen chapter leaves with unsaved edits', async () => {
+      renderPage([get({ prevChapterId: 8, nextChapterId: 10, position: 2, chapterCount: 3 }), novelRoute]);
+      await loaded();
+      await user().type(textBox(), '!');
+
+      await user().click(screen.getByRole('button', { name: /2 \/ 3/ }));
+      await user().click(await screen.findByRole('link', { name: /Chapter 2/ }));
+
+      await answerConfirm('Cancel', 'Leave without saving?');
+      expect((textBox() as HTMLTextAreaElement).value).toContain('!');
+    });
   });
 
   it('asks before a breadcrumb leaves with unsaved edits: Cancel stays, Leave goes', async () => {
