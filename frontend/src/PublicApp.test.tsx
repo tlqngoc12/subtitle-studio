@@ -91,7 +91,7 @@ describe('PublicApp', () => {
     renderAt('/vietsub/list');
 
     expect(
-      await screen.findByText('Vietsub bởi @byZenQN · Mọi video thuộc quyền sở hữu của người tạo ra chúng · Cập nhật 2026'),
+      await screen.findByText('Vietsub & bản dịch bởi @byZenQN · Mọi video và truyện thuộc quyền sở hữu của tác giả gốc · Cập nhật 2026'),
     ).toBeInTheDocument();
   });
 

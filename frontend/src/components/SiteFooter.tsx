@@ -19,7 +19,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       {year !== null && (
-        <p>Vietsub bởi @byZenQN · Mọi video thuộc quyền sở hữu của người tạo ra chúng · Cập nhật {year}</p>
+        <p>Vietsub & bản dịch bởi @byZenQN · Mọi video và truyện thuộc quyền sở hữu của tác giả gốc · Cập nhật {year}</p>
       )}
     </footer>
   );
