@@ -171,4 +171,26 @@ describe('Chapter Review', () => {
     expect(screen.getByRole('button', { name: '1 not found' })).toBeInTheDocument();
     expect(calls.filter((c) => c.path === '/api/chapters/9/review')).toHaveLength(1);
   });
+
+  it('shows "n matches" for a review row hit twice, but not for a Check rule hit twice', async () => {
+    const user = userEvent.setup();
+    const twice = 'Emi cúi xuống. Rồi Emi cúi xuống. Bonnie cười. Bonnie cười.';
+    const calls = fakeFetch([reviewRoute(), profileRoute, rulesRoute]);
+    void calls;
+    const { unmount } = render(<Harness initial={twice} />);
+    await reviewOn(user);
+    caretAt(3);
+    const dialog = await screen.findByRole('dialog', { name: 'Check suggestion' });
+    expect(dialog).toHaveTextContent('2 matches');
+    unmount();
+
+    render(<Harness initial={twice} />);
+    const check = screen.getByRole('button', { name: 'Check' });
+    await waitFor(() => expect(check).not.toHaveAttribute('aria-disabled'));
+    await user.click(check);
+    await screen.findByRole('button', { name: /^Check · \d+$/ });
+    caretAt(twice.indexOf('cười') + 1);
+    const popover = await screen.findByRole('dialog', { name: 'Check suggestion' });
+    expect(popover).not.toHaveTextContent('matches');
+  });
 });

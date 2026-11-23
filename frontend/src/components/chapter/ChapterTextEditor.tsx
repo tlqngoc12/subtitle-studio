@@ -41,10 +41,14 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
   const checkBox = useRef<HTMLDivElement>(null);
   const isOriginal = chapter.sourceType === 'ORIGINAL';
   const check = useChapterCheck({ novelId: chapter.novelId, chapterId: chapter.id, original: isOriginal, text, locked, textRef, boxRef: checkBox, onTextChange });
-  const layered = showHits || check.marking;
+  const layered = showHits || check.marking; // the marks sit behind a see-through textarea
   const [showMissing, setShowMissing] = useState(false);
   const current = check.current;
-  const ruleMatches = current && current.kind === 'rule' ? check.issues.filter((i) => i.kind === 'rule' && i.rule === current.rule).length : 1; // the marks sit behind a see-through textarea
+  // Only Review says how many places a passage stands; Check popovers stay as they were.
+  const ruleMatches =
+    check.mode === 'review' && current && current.kind === 'rule'
+      ? check.issues.filter((i) => i.kind === 'rule' && i.rule === current.rule).length
+      : 1;
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   // The selected text (kept after the textarea loses focus, so the "Add to check rules" button still sees it).
