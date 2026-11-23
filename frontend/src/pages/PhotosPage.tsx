@@ -16,6 +16,7 @@ import { ShowcaseTabs } from '../components/ShowcaseTabs';
 import { PeopleFilter, type Person } from '../components/ui/PeopleFilter';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
+import { useDocumentTitle } from './public/publicNames';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { matchesPerson } from '../lib/people';
 import '../components/photos/PhotoTile.css';
@@ -33,6 +34,8 @@ export function peopleOf(page: ProfilePage | null): Person[] {
 /** Photos (/photos): Instagram posts as a bento grid, filtered by person (`?who=`), 24 tiles at a time. */
 export default function PhotosPage() {
   const { source, readOnly } = useSite();
+  // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
+  useDocumentTitle(readOnly ? 'Photos' : null);
   const t = useT();
   const [params, setParams] = useSearchParams();
   const who = params.get('who');

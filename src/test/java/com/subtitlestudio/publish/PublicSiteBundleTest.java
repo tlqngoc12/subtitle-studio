@@ -13,6 +13,8 @@ class PublicSiteBundleTest {
 
     private final PublicSiteBundle bundle = new PublicSiteBundle();
 
+    private static final String SITE = "https://abc.pages.dev";
+
     @TempDir
     Path out;
 
@@ -22,7 +24,7 @@ class PublicSiteBundleTest {
 
     @Test
     void copiesBuildAndRenamesEntryToIndex() throws IOException {
-        bundle.writeTo(out, false);
+        bundle.writeTo(out, false, SITE);
 
         assertThat(out.resolve("index.html")).exists();
         assertThat(read("assets/app.js")).isEqualTo("console.log(1);");
@@ -31,25 +33,26 @@ class PublicSiteBundleTest {
 
     @Test
     void redirectsEverythingToTheSpa() throws IOException {
-        bundle.writeTo(out, false);
+        bundle.writeTo(out, false, SITE);
 
-        assertThat(read("_redirects")).isEqualTo("/* /index.html 200\n");
+        assertThat(read("_redirects")).isEqualTo("/ /vietsub/list 301\n/* /index.html 200\n");
     }
 
     @Test
     void headersCacheAssetsButNotData() throws IOException {
-        bundle.writeTo(out, true);
+        bundle.writeTo(out, true, SITE);
 
         String headers = read("_headers");
         assertThat(headers).contains("/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n");
         assertThat(headers).contains("/media/*\n  Cache-Control: public, max-age=31536000, immutable\n");
-        assertThat(headers).contains("/novels/*\n  Cache-Control: public, max-age=31536000, immutable\n");
+        assertThat(headers).contains("/novel-images/*\n  Cache-Control: public, max-age=31536000, immutable\n");
+        assertThat(headers).doesNotContain("/novels/*");
         assertThat(headers).contains("/data/*\n  Cache-Control: no-cache\n");
     }
 
     @Test
     void noindexByDefault() throws IOException {
-        bundle.writeTo(out, false);
+        bundle.writeTo(out, false, SITE);
 
         assertThat(read("index.html")).contains("<head><meta name=\"robots\" content=\"noindex, nofollow\">");
         assertThat(read("_headers")).contains("/*\n  X-Robots-Tag: noindex, nofollow\n");
@@ -58,16 +61,18 @@ class PublicSiteBundleTest {
 
     @Test
     void indexableSiteHasNoRobotsBlock() throws IOException {
-        bundle.writeTo(out, true);
+        bundle.writeTo(out, true, SITE);
 
         assertThat(read("index.html")).doesNotContain("robots");
-        assertThat(read("_headers")).doesNotContain("X-Robots-Tag");
-        assertThat(read("robots.txt")).isEqualTo("User-agent: *\nAllow: /\n");
+        assertThat(read("_headers")).doesNotContain("noindex, nofollow");
+        assertThat(read("robots.txt")).isEqualTo("User-agent: *\nAllow: /\nDisallow: /novels/shelf\n"
+                + "Sitemap: https://abc.pages.dev/sitemap.xml\n");
+        assertThat(read("robots.txt")).doesNotContain("/data/");
     }
 
     @Test
     void headers_include_csp_and_nosniff_for_all_paths() throws IOException {
-        bundle.writeTo(out, true);
+        bundle.writeTo(out, true, SITE);
 
         String headers = read("_headers");
         assertThat(headers.split("(?m)^/\\*$", -1)).as("exactly one /* block").hasSize(2);
@@ -86,7 +91,7 @@ class PublicSiteBundleTest {
 
     @Test
     void noindex_stays_in_same_block_when_not_indexable() throws IOException {
-        bundle.writeTo(out, false);
+        bundle.writeTo(out, false, SITE);
 
         String headers = read("_headers");
         assertThat(headers.split("(?m)^/\\*$", -1)).as("exactly one /* block").hasSize(2);
@@ -96,9 +101,20 @@ class PublicSiteBundleTest {
     }
 
     @Test
-    void indexable_site_has_no_noindex() throws IOException {
-        bundle.writeTo(out, true);
+    void indexable_site_noindexes_only_the_shelf() throws IOException {
+        bundle.writeTo(out, true, SITE);
 
-        assertThat(read("_headers")).doesNotContain("noindex");
+        String headers = read("_headers");
+        assertThat(headers).contains("/novels/shelf\n  X-Robots-Tag: noindex\n");
+        assertThat(headers).doesNotContain("noindex, nofollow");
+    }
+
+    @Test
+    void redirectsAreRootFirstThenSpa() throws IOException {
+        bundle.writeTo(out, true, SITE);
+
+        String[] lines = read("_redirects").split("\n");
+        assertThat(lines[0]).isEqualTo("/ /vietsub/list 301");
+        assertThat(lines[lines.length - 1]).isEqualTo("/* /index.html 200");
     }
 }

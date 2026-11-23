@@ -20,7 +20,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 /**
- * Publishes the public site in the background: export → bundle → wrangler deploy, one publish at a time.
+ * Publishes the public site in the background: export → bundle → pre-rendered pages and sitemap → wrangler deploy, one publish at a time.
  * The state lives in memory only: after a restart it is IDLE again (a publish takes seconds and can be redone).
  */
 @Service
@@ -30,6 +30,8 @@ public class PublishService {
 
     private final SiteExporter exporter;
     private final PublicSiteBundle bundle;
+    private final PublicPageRenderer pageRenderer;
+    private final SitemapWriter sitemap;
     private final WranglerClient wrangler;
     private final ReadCountsFunctions readCounts;
     /** Cloudflare Pages Free plan: at most 20,000 files per deployment; the admin is warned from 16,000. */
@@ -46,11 +48,14 @@ public class PublishService {
     private String error;
     private Integer fileCount;
 
-    public PublishService(SiteExporter exporter, PublicSiteBundle bundle, WranglerClient wrangler,
-                          ReadCountsFunctions readCounts, SubtitleStudioProperties properties, Clock clock,
+    public PublishService(SiteExporter exporter, PublicSiteBundle bundle, PublicPageRenderer pageRenderer,
+                          SitemapWriter sitemap, WranglerClient wrangler, ReadCountsFunctions readCounts,
+                          SubtitleStudioProperties properties, Clock clock,
                           @Qualifier("publishExecutor") Executor executor) {
         this.exporter = exporter;
         this.bundle = bundle;
+        this.pageRenderer = pageRenderer;
+        this.sitemap = sitemap;
         this.wrangler = wrangler;
         this.readCounts = readCounts;
         this.settings = properties.publish();
@@ -89,7 +94,9 @@ public class PublishService {
         try {
             Instant now = clock.instant();
             exporter.export(dir, now);
-            bundle.writeTo(dir, settings.indexable());
+            String siteUrl = settings.publicSiteUrl();
+            bundle.writeTo(dir, settings.indexable(), siteUrl);
+            sitemap.write(dir, siteUrl, pageRenderer.writeTo(dir, siteUrl, settings.googleVerification()));
             readCounts.prepare(dir);
             long files = countFiles(dir);
             recordFileCount((int) files);

@@ -132,10 +132,6 @@ export interface ChapterDetail {
   skippedImages?: number;
   /** The novel's kind; ORIGINAL chapters are written by hand and are never translated. */
   sourceType: NovelSourceType;
-  /** Place in reading order, from 1. */
-  position: number;
-  /** How many chapters the novel has. */
-  chapterCount: number;
 }
 
 function json(method: string, body: unknown): RequestInit {

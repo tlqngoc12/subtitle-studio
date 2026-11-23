@@ -219,7 +219,7 @@ describe('PublicNovelsPage (home)', () => {
     expect(h1.compareDocumentPosition(screen.getByRole('tablist')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(await screen.findByText('Chưa có truyện nào. Quay lại sau nhé.')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Truyện nổi bật' })).not.toBeInTheDocument();
-    expect(document.title).toBe('Truyện');
+    expect(document.title).toBe('Truyện · byZenQN');
   });
 
   it('shows the Vietnamese notice when the list cannot be loaded', async () => {

@@ -27,6 +27,7 @@ import { PopoverPanel } from '../components/ui/PopoverPanel';
 import { Reveal } from '../components/ui/Reveal';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useSite } from '../data/SiteContext';
+import { useDocumentTitle } from './public/publicNames';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import './ProfilePage.css';
 
@@ -39,6 +40,8 @@ export function ProfileRedirect() {
 /** Profile page (/profiles): the EmiBonnie banner, then one section per member with alternating portrait sides. */
 export default function ProfilePage() {
   const { source, readOnly } = useSite();
+  // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
+  useDocumentTitle(readOnly ? 'Profile' : null);
   const { hash } = useLocation();
   const t = useT();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();

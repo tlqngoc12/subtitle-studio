@@ -48,12 +48,18 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
 /** What guests see for any load error, whatever the cause. */
 export const PUBLIC_ERROR_TITLE = 'Không tải được. Vui lòng thử lại sau.';
 
-/** Sets `document.title` while the page is shown (ignored while `title` is null) and restores the previous one. */
+/** The site name: the pre-rendered pages end their `<title>` with it too (see PublicPageRenderer on the server). */
+export const SITE_NAME = 'byZenQN';
+
+/**
+ * Sets `document.title` to "{title} · byZenQN" while the page is shown (ignored while `title` is null) and restores the
+ * previous one. Matches the title the server pre-rendered into the page's HTML.
+ */
 export function useDocumentTitle(title: string | null) {
   useEffect(() => {
     if (!title) return;
     const previous = document.title;
-    document.title = title;
+    document.title = `${title} · ${SITE_NAME}`;
     return () => {
       document.title = previous;
     };

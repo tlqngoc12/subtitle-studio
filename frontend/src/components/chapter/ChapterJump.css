@@ -1,8 +1,4 @@
-/* The chapter popover on the chapter page: a search box over a scrolling list, one line per chapter. */
-.chapter-jump__button {
-  white-space: nowrap;
-}
-
+/* The chapter popover on the chapter page; its rows use styles/chapter-toc.css. */
 .chapter-jump {
   width: 320px;
   max-width: calc(100vw - 16px);
@@ -12,67 +8,12 @@
   overflow: hidden;
 }
 
-.chapter-jump__search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--rule);
-  color: var(--muted);
-}
-
-.chapter-jump__input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  outline: none;
-}
-
 .chapter-jump__list {
-  margin: 0;
-  padding: var(--space-1);
-  list-style: none;
   overflow-y: auto;
 }
 
-.chapter-jump__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-control);
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.chapter-jump__name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chapter-jump__row .badges {
+.chapter-jump .chapter-toc__link .badges {
   flex: none;
-}
-
-.chapter-jump__row[data-active='true'] {
-  background: var(--rule);
-}
-
-/* The chapter being edited: the app's "selected" look. */
-.chapter-jump__row[aria-current='page'] {
-  background: var(--brand-2);
-  color: var(--on-brand);
-  box-shadow: inset 0 0 0 1px var(--brand-2-ink);
-}
-
-.chapter-jump__row[aria-current='page'] .status-icon {
-  color: var(--on-brand);
 }
 
 .chapter-jump__state {

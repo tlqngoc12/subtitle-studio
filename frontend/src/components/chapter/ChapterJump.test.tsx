@@ -24,8 +24,6 @@ function setup(over: { original?: boolean } = {}) {
       <ChapterJump
         novelId={3}
         currentId={3}
-        position={3}
-        total={42}
         original={over.original ?? false}
         chapterPath={(id) => `/novels/3/chapters/${id}`}
         onLeave={onLeave}
@@ -35,15 +33,15 @@ function setup(over: { original?: boolean } = {}) {
   return onLeave;
 }
 
-const open = () => userEvent.click(screen.getByRole('button', { name: /3 \/ 42/ }));
+const open = () => userEvent.click(screen.getByRole('button', { name: 'All chapters' }));
 const rows = () => within(screen.getByRole('list', { name: 'Chapters' })).getAllByRole('link');
 
 describe('ChapterJump', () => {
-  it('shows the place as 3 / 42 with an "All chapters" tooltip', async () => {
+  it('is an icon-only button named All chapters with a tooltip', async () => {
     setup();
 
-    const button = screen.getByRole('button', { name: /3 \/ 42/ });
-    expect(button).toHaveTextContent('3 / 42');
+    const button = screen.getByRole('button', { name: 'All chapters' });
+    expect(button.textContent).toBe('');
     await expectTooltip(button, 'All chapters');
   });
 
@@ -62,45 +60,39 @@ describe('ChapterJump', () => {
     expect(calls.filter((c) => c.path === '/api/novels/3')).toHaveLength(1);
   });
 
-  it('focuses the search box and marks the current chapter', async () => {
+  it('has no search box, focuses the current chapter and marks it', async () => {
     fakeFetch([getNovel]);
     setup();
 
     await open();
 
-    expect(await screen.findByRole('searchbox', { name: 'Find a chapter' })).toHaveFocus();
+    await screen.findByRole('list', { name: 'Chapters' });
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     const current = rows().find((r) => r.getAttribute('aria-current') === 'page')!;
     expect(current).toHaveTextContent('Chapter 3: Cơn mưa');
+    expect(current).toHaveFocus();
+    expect(current.closest('li')).toHaveClass('chapter-toc__item--current');
     expect(rows().filter((r) => r.hasAttribute('aria-current'))).toHaveLength(1);
+    expect(rows().filter((r) => r.closest('li')!.classList.contains('chapter-toc__item--current'))).toHaveLength(1);
   });
 
-  it('filters by name without marks, by chapter number first, and says when nothing matches', async () => {
+  it('gives every row a title with its full name', async () => {
     fakeFetch([getNovel]);
     setup();
-    const user = userEvent.setup();
+
     await open();
-    const box = await screen.findByRole('searchbox', { name: 'Find a chapter' });
+    await screen.findByRole('list', { name: 'Chapters' });
 
-    await user.type(box, 'mua');
-    expect(rows().map((r) => r.textContent)).toEqual(['Chapter 3: Cơn mưa']);
-
-    await user.clear(box);
-    await user.type(box, '10');
-    expect(rows().map((r) => r.textContent)).toEqual(['Chapter 10', 'Chapter 100']);
-
-    await user.clear(box);
-    await user.type(box, 'zzz');
-    expect(screen.getByText('No chapters match.')).toBeInTheDocument();
+    expect(rows().map((r) => r.getAttribute('title'))).toEqual(rows().map((r) => r.textContent));
   });
 
-  it('moves with the arrow keys and opens the chosen chapter through onLeave', async () => {
+  it('opens the chosen chapter through onLeave', async () => {
     fakeFetch([getNovel]);
     const onLeave = setup();
-    const user = userEvent.setup();
     await open();
-    await screen.findByRole('searchbox', { name: 'Find a chapter' });
+    await screen.findByRole('list', { name: 'Chapters' });
 
-    await user.keyboard('{ArrowDown}{Enter}');
+    await userEvent.click(rows()[3]);
 
     expect(onLeave).toHaveBeenCalledWith(expect.anything(), '/novels/3/chapters/4');
     await waitFor(() => expect(screen.queryByRole('list', { name: 'Chapters' })).not.toBeInTheDocument());

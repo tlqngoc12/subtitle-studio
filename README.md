@@ -114,6 +114,8 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.publish.cloudflare-d1-database-id` | `CLOUDFLARE_D1_DATABASE_ID` | (trống = tắt đếm lượt đọc) | ID database D1 `novel-reads`; có thì Publish kèm Pages Functions đếm lượt đọc truyện |
 | `subtitle-studio.publish.project` | `SUBTITLESTUDIO_PUBLISH_PROJECT` | (trống) | Tên project Cloudflare Pages; trang public ở `https://<project>.pages.dev` |
 | `subtitle-studio.publish.indexable` | `SUBTITLESTUDIO_PUBLISH_INDEXABLE` | `false` | `false` = noindex (Google không đưa trang lên kết quả tìm kiếm) |
+| `subtitle-studio.publish.site-url` | `SUBTITLESTUDIO_PUBLISH_SITE_URL` | (trống = `https://<project>.pages.dev`) | Gốc URL cho canonical, Open Graph và sitemap; dùng tên miền riêng thì điền vào, không có `/` cuối |
+| `subtitle-studio.publish.google-verification` | `SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION` | (trống) | Mã xác minh Google Search Console (thẻ HTML); có thì chèn `<meta name="google-site-verification">` vào mọi trang |
 | `subtitle-studio.publish.wrangler-path` | `SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH` | `wrangler` (image Docker: `/opt/wrangler/...`) | CLI deploy của Cloudflare |
 | `subtitle-studio.publish.timeout` | | `5m` | Quá thời gian thì Publish báo lỗi |
 
@@ -129,7 +131,12 @@ Nút **Publish** (góc phải thanh đầu trang) xuất bản **chỉ đọc** 
 5. Điền vào `.env`: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUBTITLESTUDIO_PUBLISH_PROJECT` (tên project ở bước 2); `docker compose up -d`.
 6. Bấm **Publish** → xác nhận → chờ thông báo **Published** → **Open site**. Gửi link `https://<project>.pages.dev` cho nhóm.
 
-- Mặc định trang có **noindex** (meta, header `X-Robots-Tag`, `robots.txt`). Muốn Google tìm thấy: `SUBTITLESTUDIO_PUBLISH_INDEXABLE=true` rồi Publish lại.
+- Mặc định trang có **noindex** (meta, header `X-Robots-Tag`, `robots.txt`).
+- Mỗi lần Publish, mỗi URL công khai có một file HTML riêng (title, mô tả, canonical, Open Graph, danh sách link) và có `sitemap.xml`; điều này luôn chạy, cờ `INDEXABLE` chỉ quyết định `noindex` và `robots.txt`. Ảnh chương nằm ở `/novel-images/`.
+- **Đưa site lên Google (3 bước):**
+  1. Đặt `SUBTITLESTUDIO_PUBLISH_INDEXABLE=true` (và `SUBTITLESTUDIO_PUBLISH_SITE_URL` nếu dùng tên miền riêng) trong `.env`, chạy lại app, bấm Publish.
+  2. Vào Google Search Console → Add property → URL prefix → xác minh bằng **thẻ HTML**. Chép mã `content` của thẻ vào `SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION`, Publish lại rồi bấm Verify.
+  3. Trong Search Console, gửi `sitemap.xml`.
 - Chân trang: "Vietsub by @byZenQN · All videos are the property of their original creators · Updated <năm>".
 - Quay lại bản cũ: Cloudflare dashboard → project → **Deployments** → chọn bản trước → **Rollback**.
 - Gắn tên miền riêng (tuỳ chọn): project → **Custom domains**.

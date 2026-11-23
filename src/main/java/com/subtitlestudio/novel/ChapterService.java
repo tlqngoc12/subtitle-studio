@@ -516,10 +516,8 @@ public class ChapterService {
         List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(c.getNovel().getId());
         Long prev = null;
         Long next = null;
-        int position = 0;
         for (int i = 0; i < all.size(); i++) {
             if (all.get(i).getId().equals(c.getId())) {
-                position = i + 1;
                 prev = i > 0 ? all.get(i - 1).getId() : null;
                 next = i < all.size() - 1 ? all.get(i + 1).getId() : null;
             }
@@ -531,7 +529,6 @@ public class ChapterService {
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
                 c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())
                 .withSourceType(c.getNovel().getSourceType())
-                .withPosition(position, all.size())
                 .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, gemini.current().model()));
     }
 }

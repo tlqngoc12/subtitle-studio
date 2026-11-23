@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router';
 import type { ViCue } from '../api/client';
 import { useSite } from '../data/SiteContext';
+import { useDocumentTitle } from './public/publicNames';
 import { countsAsWatched, markWatched } from '../data/watched';
 import type { PublicVideo } from '../data/types';
 import { PlaylistPanel } from '../components/PlaylistPanel';
@@ -34,6 +35,8 @@ export default function WatchPage() {
   const { source, readOnly } = useSite();
   const t = useT();
   const [video, setVideo] = useState<PublicVideo | null>(null);
+  // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
+  useDocumentTitle(readOnly && video ? `${video.title} · Vietsub` : null);
   const [cues, setCues] = useState<ViCue[]>([]);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
