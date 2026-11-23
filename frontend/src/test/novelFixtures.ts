@@ -96,6 +96,8 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     sourceFetchedAt: null,
     sourceLanguage: 'th',
     sourceType: 'SCREENSHOTS',
+    position: 3,
+    chapterCount: 12,
     ...over,
   };
 }

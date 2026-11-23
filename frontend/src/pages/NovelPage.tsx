@@ -24,6 +24,7 @@ import { busyTitle, novelBusy } from '../lib/novelBusy';
 import { BusyLine } from '../components/novel/BusyLine';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
+import { saveBlob } from '../lib/download';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError, toastSkippedImages } from '../lib/toast';
 import { STATUS_LABEL } from './NovelsPage';
@@ -94,20 +95,12 @@ export default function NovelPage() {
     }
   }
 
-  /** Downloads the chapters as a zip: the blob is saved through a temporary link. */
+  /** Downloads the chapters as a zip. */
   async function exportChapters() {
     setExporting(true);
     try {
       const { blob, fileName } = await exportNovel(novelId);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      // revoking at once can cancel the download in some browsers
-      setTimeout(() => URL.revokeObjectURL(url), 0);
+      saveBlob(blob, fileName);
     } catch (e) {
       toastError(errorMessage(e));
     } finally {

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { answerConfirm } from '../../test/confirm';
 import { fakeFetch, problem } from '../../test/fakeFetch';
 import { novelSummary } from '../../test/novelFixtures';
+import * as download from '../../lib/download';
 import { NovelMenu } from './NovelMenu';
 
 vi.mock('sonner', async (orig) => ({
@@ -85,5 +86,47 @@ describe('NovelMenu', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('The banner already has 5 novels', { description: 'Remove one from the banner first.' }));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('puts Export right after the banner item and saves the zip', async () => {
+    const calls = fakeFetch([
+      {
+        method: 'GET',
+        path: '/api/novels/3/export',
+        status: 200,
+        body: 'zip',
+        headers: { 'Content-Disposition': 'attachment; filename="n.zip"' },
+      },
+    ]);
+    const save = vi.spyOn(download, 'saveBlob').mockImplementation(() => {});
+    render(<NovelMenu novel={novelSummary()} pickedCount={0} onChange={vi.fn()} />);
+
+    await openMenu();
+    const items = screen.getAllByRole('button').filter((b) => b.className.includes('member-menu__item'));
+    expect(items.map((b) => b.textContent)).toEqual(['Add to banner', 'Export']);
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.any(Blob), 'n.zip'));
+    expect(calls[0].path).toBe('/api/novels/3/export');
+  });
+
+  it('disables Export for a novel without chapters', async () => {
+    render(<NovelMenu novel={novelSummary({ chapterCount: 0 })} pickedCount={0} onChange={vi.fn()} />);
+
+    await openMenu();
+
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+  });
+
+  it('toasts the error when Export fails', async () => {
+    fakeFetch([
+      { method: 'GET', path: '/api/novels/3/export', status: 409, body: problem(409, 'NOTHING_TO_EXPORT', 'No chapter has text to export yet.') },
+    ]);
+    render(<NovelMenu novel={novelSummary()} pickedCount={0} onChange={vi.fn()} />);
+
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 });
