@@ -9,6 +9,8 @@ import { AddCheckRuleDialog, ruleSelectionProblem } from './AddCheckRuleDialog';
 import { CheckPopover } from './CheckPopover';
 import { createPortal } from 'react-dom';
 import { CheckNavigator, CheckToggle } from './CheckToggle';
+import { ReviewToggle } from './ReviewToggle';
+import { Alert } from '../ui/Alert';
 import { CopyTextButton } from './CopyTextButton';
 import { useChapterCheck } from './useChapterCheck';
 import { CheckHighlights } from '../novel/CheckHighlights';
@@ -37,8 +39,12 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
   useAutoGrow(textRef, text);
   const showHits = finding && hits.matches.length > 0;
   const checkBox = useRef<HTMLDivElement>(null);
-  const check = useChapterCheck({ novelId: chapter.novelId, original: chapter.sourceType === 'ORIGINAL', text, locked, textRef, boxRef: checkBox, onTextChange });
-  const layered = showHits || check.on; // the marks sit behind a see-through textarea
+  const isOriginal = chapter.sourceType === 'ORIGINAL';
+  const check = useChapterCheck({ novelId: chapter.novelId, chapterId: chapter.id, original: isOriginal, text, locked, textRef, boxRef: checkBox, onTextChange });
+  const layered = showHits || check.marking;
+  const [showMissing, setShowMissing] = useState(false);
+  const current = check.current;
+  const ruleMatches = current && current.kind === 'rule' ? check.issues.filter((i) => i.kind === 'rule' && i.rule === current.rule).length : 1; // the marks sit behind a see-through textarea
   // The paragraph the caret is in (matched with the original's paragraph of the same number).
   const [activeParagraph, setActiveParagraph] = useState<number | null>(null);
   // The selected text (kept after the textarea loses focus, so the "Add to check rules" button still sees it).
@@ -56,8 +62,8 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
 
   return (
     <div className={showOriginal ? 'chapter-columns' : undefined}>
-      {check.on && barSlot && createPortal(
-        <CheckNavigator count={check.issues.length} onPrev={() => check.goTo(-1)} onNext={() => check.goTo(1)} />,
+      {check.marking && barSlot && createPortal(
+        <CheckNavigator label={check.mode === 'review' ? 'Review' : 'Check'} count={check.issues.length} onPrev={() => check.goTo(-1)} onNext={() => check.goTo(1)} />,
         barSlot,
       )}
       {showOriginal && (
@@ -87,6 +93,15 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
                 Add to check rules
               </button>
             </Tip>
+            {isOriginal && (
+              <ReviewToggle
+                on={check.review.on}
+                count={check.issues.length}
+                loading={check.review.loading}
+                disabled={locked}
+                onToggle={() => void check.toggleReview()}
+              />
+            )}
             <CheckToggle
               on={check.on}
               count={check.issues.length}
@@ -98,10 +113,34 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
             />
           </div>
         </div>
+        {check.review.error && <Alert title={check.review.error} />}
+        {check.review.on && (
+          <div className="review-summary">
+            <p className="muted review-summary__line">
+              {check.review.fileName} · {check.issues.length} to fix · {check.review.done} done ·{' '}
+              {check.review.notFound.length > 0 ? (
+                <button type="button" className="review-summary__toggle" aria-expanded={showMissing} onClick={() => setShowMissing((v) => !v)}>
+                  {check.review.notFound.length} not found
+                </button>
+              ) : (
+                '0 not found'
+              )}
+            </p>
+            {showMissing && check.review.notFound.length > 0 && (
+              <ul className="review-summary__missing">
+                {check.review.notFound.map((r, i) => (
+                  <li key={`${r.item}-${i}`}>
+                    {r.item} — {r.old.length > 60 ? `${r.old.slice(0, 60)}…` : r.old}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         <div className={layered ? 'chapter-text__box chapter-text__box--finding' : 'chapter-text__box'}>
           <CopyTextButton label="Copy chapter text" text={text} />
           {showHits && <FindHighlights text={text} matches={hits.matches} current={hits.current} textareaRef={textRef} />}
-          {check.on && <CheckHighlights text={text} marks={check.marks} textareaRef={textRef} boxRef={checkBox} />}
+          {check.marking && <CheckHighlights text={text} marks={check.marks} textareaRef={textRef} boxRef={checkBox} />}
           <textarea id={`${idBase}-text`} ref={textRef} rows={24} value={text} disabled={locked}
             className={layered ? 'chapter-text--finding' : undefined}
             onKeyDown={(e) => {
@@ -139,6 +178,8 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
           onApply={check.apply}
           onStep={check.goToInGroup}
           onClose={check.close}
+          exact={check.mode === 'review'}
+          matches={ruleMatches}
         />
       </div>
     </div>

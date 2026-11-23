@@ -185,6 +185,11 @@ export async function getChapter(id: number): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${id}`)).json();
 }
 
+/** The newest review file of a chapter of an original story; throws `ApiError` (code REVIEW_NOT_FOUND on 404). */
+export async function getChapterReview(id: number): Promise<{ fileName: string; markdown: string }> {
+  return (await send(`/api/chapters/${id}/review`)).json();
+}
+
 export async function updateChapter(
   id: number,
   input: {

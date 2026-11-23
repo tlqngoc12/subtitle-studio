@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { ApiError } from '../../api/client';
 import { getNovelProfile } from '../../api/novelProfile';
+import { getChapterReview } from '../../api/novels';
 import { getWritingRules } from '../../api/writingRules';
 import { adaptCase, applySuggestion, findIssues, parseCheckRules, type CheckRule, type Issue } from '../../lib/checkRules';
+import { findReviewIssues, parseReview, type ReviewRow } from '../../lib/reviewFile';
 import { findRepeatedOpenings, findRepeatedPhrases, type RepeatGroup } from '../../lib/repetition';
 import { effectiveRules, parseGlobalRules, type GlobalRules } from '../../lib/writingRules';
 import { WRITING_RULES_SEED } from '../../lib/writingRulesSeed';
@@ -41,6 +43,7 @@ function merge(ruleHits: Issue[], groups: RepeatGroup[]): CheckIssue[] {
  */
 export function useChapterCheck({
   novelId,
+  chapterId,
   original = false,
   text,
   locked,
@@ -49,6 +52,7 @@ export function useChapterCheck({
   onTextChange,
 }: {
   novelId: number;
+  chapterId: number;
   /** The chapter belongs to an original story (sourceType ORIGINAL). */
   original?: boolean;
   text: string;
@@ -62,6 +66,13 @@ export function useChapterCheck({
   const [global, setGlobal] = useState<Global>({ state: 'loading' });
   const [on, setOn] = useState(false);
   const [found, setFound] = useState<{ text: string; issues: CheckIssue[] }>({ text: '', issues: [] });
+  // Review mode: the rows of the review file, kept until Review is switched on again (the file is not read twice).
+  const [reviewOn, setReviewOn] = useState(false);
+  const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
+  const [reviewFile, setReviewFile] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [scan, setScan] = useState<{ done: number; notFound: ReviewRow[] }>({ done: 0, notFound: [] });
   const [caret, setCaret] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState<number | null>(null);
   const alive = useRef(true);
@@ -108,7 +119,8 @@ export function useChapterCheck({
     return { rules: parsed.rules, ignored: parsed.ignored, repeatIgnores: [] as string[], ready: parsed.rules.length > 0 };
   }, [original, global, profile]);
   const { rules, ignored, repeatIgnores } = data;
-  const active = on && !locked && data.ready;
+  const reviewActive = reviewOn && !locked;
+  const active = reviewActive || (on && !locked && data.ready);
 
   useEffect(() => {
     if (!active) {
@@ -116,11 +128,17 @@ export function useChapterCheck({
       return;
     }
     const timer = window.setTimeout(() => {
+      if (reviewActive) {
+        const result = findReviewIssues(text, reviewRows);
+        setScan({ done: result.done.length, notFound: result.notFound });
+        setFound({ text, issues: result.issues.map((i) => ({ ...i, kind: 'rule' as const })) });
+        return;
+      }
       const groups = original ? [...findRepeatedPhrases(text, repeatIgnores), ...findRepeatedOpenings(text)] : [];
       setFound({ text, issues: merge(findIssues(text, rules), groups) });
     }, CHECK_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [active, text, rules, repeatIgnores, original]);
+  }, [active, reviewActive, reviewRows, text, rules, repeatIgnores, original]);
 
   /** Why Check cannot be switched on, or null. */
   const disabledReason = locked
@@ -141,10 +159,39 @@ export function useChapterCheck({
       setOn(false);
       return;
     }
+    setReviewOn(false); // Check and Review exclude each other
+    setReviewError(null);
     setOn(true);
     await load(); // picks up rules edited elsewhere
   }
 
+  /** Review on: reads the newest review file every time (a newer one may have been written); off: just hides it. */
+  async function toggleReview() {
+    if (reviewOn) {
+      setReviewOn(false);
+      return;
+    }
+    if (locked || reviewLoading) return;
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const file = await getChapterReview(chapterId);
+      if (!alive.current) return;
+      const rows = parseReview(file.markdown);
+      setReviewRows(rows);
+      setReviewFile(file.fileName);
+      // Show the first result at once instead of after the debounce.
+      const first = findReviewIssues(text, rows);
+      setScan({ done: first.done.length, notFound: first.notFound });
+      setFound({ text, issues: first.issues.map((i) => ({ ...i, kind: 'rule' as const })) });
+      setOn(false);
+      setReviewOn(true);
+    } catch (e) {
+      if (alive.current) setReviewError(e instanceof ApiError ? e.detail : 'Could not load the review file');
+    } finally {
+      if (alive.current) setReviewLoading(false);
+    }
+  }
   // Hits are only trusted for the text they were found in: a half-second-old answer must not point into new text.
   const issues = useMemo(() => (active && found.text === text ? found.issues : []), [active, found, text]);
   const hitAt = (pos: number | null) =>
@@ -183,11 +230,16 @@ export function useChapterCheck({
     setDismissed(null);
     el.focus();
     el.setSelectionRange(issue.start, issue.end);
-    const replacement = adaptCase(el.value.slice(issue.start, issue.end), suggestion);
+    // A review passage is applied exactly as written; a check suggestion follows the capital letter of the hit.
+    const replacement = reviewActive ? suggestion : adaptCase(el.value.slice(issue.start, issue.end), suggestion);
     // insertText keeps the browser's own undo (Ctrl+Z); without it the value is replaced and the page's state follows.
     const done = typeof document.execCommand === 'function' && document.execCommand('insertText', false, replacement);
     if (!done) {
-      onTextChange(applySuggestion(el.value, issue, suggestion));
+      onTextChange(
+        reviewActive
+          ? el.value.slice(0, issue.start) + suggestion + el.value.slice(issue.end)
+          : applySuggestion(el.value, issue, suggestion),
+      );
       el.setSelectionRange(issue.start + replacement.length, issue.start + replacement.length);
     }
     setCaret(issue.start + replacement.length);
@@ -252,8 +304,21 @@ export function useChapterCheck({
   }, [active]);
 
   return {
-    on: active,
+    /** Check is on (not Review). */
+    on: active && !reviewActive,
+    mode: (reviewActive ? 'review' : 'check') as 'check' | 'review',
+    /** Marks are shown, by Check or by Review. */
+    marking: active,
     requested: on,
+    toggleReview,
+    review: {
+      on: reviewActive,
+      fileName: reviewActive ? reviewFile : null,
+      done: scan.done,
+      notFound: scan.notFound,
+      error: reviewError,
+      loading: reviewLoading,
+    },
     /** The novel has a profile, so a rule can be added to it. */
     hasProfile: profile.state === 'ok',
     /** Reads the rules again (after a rule was added). */
@@ -261,7 +326,7 @@ export function useChapterCheck({
     toggle,
     disabledReason,
     issues,
-    ignored: active ? ignored : 0,
+    ignored: active && !reviewActive ? ignored : 0,
     current: open ? issues[index] : null,
     currentIndex: open ? index : -1,
     close: () => {
