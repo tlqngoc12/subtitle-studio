@@ -50,6 +50,26 @@ class PublishPropertiesTest {
     }
 
     @Test
+    void publicSiteUrlDefaultsToPagesDev() {
+        assertThat(publish("t", "a", "abc").publicSiteUrl()).isEqualTo("https://abc.pages.dev");
+    }
+
+    @Test
+    void publicSiteUrlTrimsSlash() {
+        var p = new SubtitleStudioProperties.Publish("t", "a", "abc", false, "wrangler", Duration.ofMinutes(5), "",
+                "https://x.dev/", "");
+        assertThat(p.publicSiteUrl()).isEqualTo("https://x.dev");
+    }
+
+    @Test
+    void toStringHidesVerification() {
+        var p = new SubtitleStudioProperties.Publish("t", "a", "abc", false, "wrangler", Duration.ofMinutes(5), "",
+                "", "SECRET123");
+        assertThat(p.googleVerification()).isEqualTo("SECRET123");
+        assertThat(p.toString()).doesNotContain("SECRET123");
+    }
+
+    @Test
     void defaultsFromApplicationYml() {
         SubtitleStudioProperties.Publish p = properties.publish();
 

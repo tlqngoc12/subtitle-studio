@@ -137,7 +137,8 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
      * Never log the token.
      */
     public record Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
-                          @NotBlank String wranglerPath, @NotNull Duration timeout, String cloudflareD1DatabaseId) {
+                          @NotBlank String wranglerPath, @NotNull Duration timeout, String cloudflareD1DatabaseId,
+                          String siteUrl, String googleVerification) {
 
         @ConstructorBinding
         public Publish {
@@ -146,7 +147,14 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
         /** Without a D1 database (read counts off); for tests and callers that do not care about it. */
         public Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
                        String wranglerPath, Duration timeout) {
-            this(cloudflareApiToken, cloudflareAccountId, project, indexable, wranglerPath, timeout, "");
+            this(cloudflareApiToken, cloudflareAccountId, project, indexable, wranglerPath, timeout, "", "", "");
+        }
+
+        /** Without a custom site URL or Google verification code; for tests and callers that do not care. */
+        public Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
+                       String wranglerPath, Duration timeout, String cloudflareD1DatabaseId) {
+            this(cloudflareApiToken, cloudflareAccountId, project, indexable, wranglerPath, timeout,
+                    cloudflareD1DatabaseId, "", "");
         }
 
         /** True when novel read counts are on: the site is published and a D1 database id is set. */
@@ -163,10 +171,23 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
             return "https://" + project + ".pages.dev";
         }
 
+        /** Root of the public URLs (canonical, sitemap): the configured site URL without a trailing slash, else {@link #url()}. */
+        public String publicSiteUrl() {
+            if (!notBlank(siteUrl)) {
+                return url();
+            }
+            String trimmed = siteUrl.trim();
+            while (trimmed.endsWith("/")) {
+                trimmed = trimmed.substring(0, trimmed.length() - 1);
+            }
+            return trimmed;
+        }
+
         private static boolean notBlank(String value) {
             return value != null && !value.isBlank();
         }
 
+        /** Never prints the token or the Google verification code. */
         @Override
         public String toString() {
             return "Publish[project=" + project + ", indexable=" + indexable + ", configured=" + configured() + ", readCounts=" + readCountsEnabled() + "]";
