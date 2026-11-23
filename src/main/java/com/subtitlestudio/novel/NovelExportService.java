@@ -56,9 +56,7 @@ public class NovelExportService {
         }
         List<Exported> withText = new ArrayList<>();
         for (Chapter c : chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId)) {
-            List<ChapterPage> own = new ArrayList<>(pagesByChapter.getOrDefault(c.getId(), List.of()));
-            own.sort(Comparator.comparingInt(ChapterPage::getPosition));
-            String text = ChapterText.of(c, own);
+            String text = textOf(c, pagesByChapter.getOrDefault(c.getId(), List.of()));
             if (!text.isBlank()) {
                 withText.add(new Exported(c, text));
             }
@@ -82,6 +80,35 @@ public class NovelExportService {
         log.info("Exported novel {} ({} chapters)", novelId, withText.size());
         String date = LocalDate.now(clock.withZone(ZoneId.systemDefault())).toString();
         return new NovelExport(novel.getSlug() + "-" + date + ".zip", bytes.toByteArray());
+    }
+
+    /** One chapter as a zip with its {@code .md} and {@code .html}. */
+    @Transactional(readOnly = true)
+    public NovelExport exportChapter(long chapterId) {
+        Chapter chapter = chapters.findById(chapterId).orElseThrow(() -> new ChapterNotFoundException(chapterId));
+        String text = textOf(chapter, pages.findByChapterIdOrderByPosition(chapterId));
+        if (text.isBlank()) {
+            throw NothingToExportException.forChapter(chapterId);
+        }
+        String heading = ChapterExportFormat.heading(chapter.getChapterNo(), chapter.getLabel(), chapter.getTitle());
+        String base = ChapterExportFormat.fileBase(1, 1, heading);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
+            add(zip, base + ".md", ChapterExportFormat.markdown(heading, text));
+            add(zip, base + ".html", ChapterExportFormat.html(heading, text));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        log.info("Exported chapter {} of novel {}", chapterId, chapter.getNovel().getId());
+        String date = LocalDate.now(clock.withZone(ZoneId.systemDefault())).toString();
+        return new NovelExport(chapter.getNovel().getSlug() + "-chapter-" + chapter.getChapterNo() + "-" + date
+                + ".zip", bytes.toByteArray());
+    }
+
+    private static String textOf(Chapter c, List<ChapterPage> chapterPages) {
+        List<ChapterPage> own = new ArrayList<>(chapterPages);
+        own.sort(Comparator.comparingInt(ChapterPage::getPosition));
+        return ChapterText.of(c, own);
     }
 
     private static void add(ZipOutputStream zip, String name, String content) throws IOException {

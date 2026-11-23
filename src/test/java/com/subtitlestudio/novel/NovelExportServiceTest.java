@@ -133,4 +133,33 @@ class NovelExportServiceTest {
 
         assertThat(output.getAll()).contains("Exported novel").doesNotContain("Bí mật không được ghi log");
     }
+
+    @Test
+    void exportsOneChapterAsMdAndHtml() throws Exception {
+        Chapter c3 = chapter(3, 3, "Xin chào");
+
+        NovelExportService.NovelExport export = service.exportChapter(c3.getId());
+
+        assertThat(export.fileName()).isEqualTo("summer-love-chapter-3-"
+                + java.time.LocalDate.ofInstant(NOW, java.time.ZoneId.systemDefault()) + ".zip");
+        Map<String, String> files = unzip(export.zip());
+        assertThat(files).hasSize(2);
+        List<String> names = new ArrayList<>(files.keySet());
+        assertThat(names.get(0)).endsWith(".md");
+        assertThat(names.get(1)).endsWith(".html");
+        String heading = ChapterExportFormat.heading(3, null, null);
+        assertThat(files.get(names.get(0))).contains(ChapterExportFormat.markdown(heading, "Xin chào"));
+    }
+
+    @Test
+    void exportChapterWithoutTextThrows() {
+        Chapter c = chapter(1, 1, null);
+
+        assertThatThrownBy(() -> service.exportChapter(c.getId())).isInstanceOf(NothingToExportException.class);
+    }
+
+    @Test
+    void exportChapterUnknownThrows() {
+        assertThatThrownBy(() -> service.exportChapter(999_999L)).isInstanceOf(ChapterNotFoundException.class);
+    }
 }

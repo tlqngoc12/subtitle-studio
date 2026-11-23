@@ -46,6 +46,9 @@ class ChapterControllerTest {
     @MockitoBean
     private com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
 
+    @MockitoBean
+    private NovelExportService exports;
+
     @Test
     void translatePublishUnpublish() throws Exception {
         when(translation.start(9L)).thenReturn(DETAIL);
@@ -205,5 +208,25 @@ class ChapterControllerTest {
         mvc.perform(put("/api/chapters/9/pages/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pageIds\":[]}")).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CHAPTER_TEXT_SOURCE"));
+    }
+
+    @Test
+    void exportReturnsZip() throws Exception {
+        when(exports.exportChapter(9L)).thenReturn(new NovelExportService.NovelExport("s-chapter-3-2026-11-23.zip",
+                new byte[] {1, 2}));
+
+        mvc.perform(get("/api/chapters/9/export")).andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .contentType("application/zip"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Disposition", org.hamcrest.Matchers.containsString(".zip")));
+    }
+
+    @Test
+    void exportEmptyChapterIs409() throws Exception {
+        when(exports.exportChapter(9L)).thenThrow(NothingToExportException.forChapter(9));
+
+        mvc.perform(get("/api/chapters/9/export")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOTHING_TO_EXPORT"));
     }
 }

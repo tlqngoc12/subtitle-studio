@@ -5,8 +5,11 @@ import com.subtitlestudio.profile.InvalidMediaException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,9 +28,12 @@ public class ChapterController {
     private final ChapterService service;
     private final ChapterTranslationService translation;
     private final com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels;
+    private final NovelExportService exports;
 
     public ChapterController(ChapterService service, ChapterTranslationService translation,
-                             com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels) {
+                             com.subtitlestudio.novel.wattpad.WattpadNovelService wattpadNovels,
+                             NovelExportService exports) {
+        this.exports = exports;
         this.wattpadNovels = wattpadNovels;
         this.service = service;
         this.translation = translation;
@@ -52,6 +58,17 @@ public class ChapterController {
     @PostMapping("/api/chapters/{id}/unpublish")
     public ChapterDetail unpublish(@PathVariable long id) {
         return translation.unpublish(id);
+    }
+
+    /** A zip with the chapter's .md and paste-ready .html. */
+    @GetMapping("/api/chapters/{id}/export")
+    public ResponseEntity<byte[]> export(@PathVariable long id) {
+        NovelExportService.NovelExport export = exports.exportChapter(id);
+        ContentDisposition disposition = ContentDisposition.attachment().filename(export.fileName()).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(export.zip());
     }
 
     @PostMapping("/api/novels/{novelId}/chapters")
