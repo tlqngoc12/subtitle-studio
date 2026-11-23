@@ -61,7 +61,7 @@ describe('parseCheckRules', () => {
   it('section bounds: only the section is read, and no section means no rules', () => {
     const profile = '## Xưng hô\n- "sai" → "đúng"\n\n## Kiểm tra\n- "a" → "b"\n## Văn phong\n- "c" → "d"\n';
     expect(parseCheckRules(profile).rules).toEqual([rule('a', ['b'])]);
-    expect(parseCheckRules('## Xưng hô\n- "sai" → "đúng"\n')).toEqual({ rules: [], ignored: 0 });
+    expect(parseCheckRules('## Xưng hô\n- "sai" → "đúng"\n')).toEqual({ rules: [], optOuts: [], repeatIgnores: [], ignored: 0 });
     // The last section runs to the end of the file, and Windows line endings are fine.
     expect(parseCheckRules('## Kiểm tra\r\n- "a" → "b"\r\n').rules).toEqual([rule('a', ['b'])]);
   });
@@ -208,5 +208,30 @@ describe('addCheckRule', () => {
   it('addCheckRule keeps CRLF files CRLF', () => {
     const out = addCheckRule('## A\r\n- x\r\n\r\n## Kiểm tra\r\n- "a" → "b"\r\n', rule('e', ['f']));
     expect(out).toBe('## A\r\n- x\r\n\r\n## Kiểm tra\r\n- "a" → "b"\r\n- "e" → "f"\r\n');
+  });
+});
+
+describe('parseCheckRules: bare quotes and story switches', () => {
+  it('a bare quoted phrase is a flag-only rule', () => {
+    const { rules, ignored } = parseCheckRules(section('- "cúi đầu"'));
+    expect(rules).toEqual([rule('cúi đầu')]);
+    expect(ignored).toBe(0);
+  });
+
+  it('a bare quoted phrase with a reason', () => {
+    expect(parseCheckRules(section('- "x" (sáo)')).rules).toEqual([rule('x', [], 'sáo')]);
+  });
+
+  it('bỏ luật chung is an opt-out, not an ignored line', () => {
+    const parsed = parseCheckRules(section('- bỏ luật chung: "tháo đồng hồ"'));
+    expect(parsed.optOuts).toEqual(['tháo đồng hồ']);
+    expect(parsed.rules).toEqual([]);
+    expect(parsed.ignored).toBe(0);
+  });
+
+  it('bỏ qua lặp is case-insensitive and accepts curly quotes', () => {
+    const parsed = parseCheckRules(section('- Bỏ qua lặp: “Màn trập.”'));
+    expect(parsed.repeatIgnores).toEqual(['Màn trập.']);
+    expect(parsed.ignored).toBe(0);
   });
 });
