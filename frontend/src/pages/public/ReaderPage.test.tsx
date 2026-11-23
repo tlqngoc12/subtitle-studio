@@ -512,7 +512,7 @@ describe('ReaderPage', () => {
     const { unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
-    expect(document.title).toBe('Chương 3: Mưa · Tình Yêu Mùa Hạ');
+    expect(document.title).toBe('Chương 3: Mưa · Tình Yêu Mùa Hạ · byZenQN');
     unmount();
     expect(document.title).toBe('before');
   });

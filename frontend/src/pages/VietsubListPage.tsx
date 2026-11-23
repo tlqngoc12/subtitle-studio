@@ -8,6 +8,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
 import { PlaylistHeader } from '../components/PlaylistHeader';
 import { useSite } from '../data/SiteContext';
+import { useDocumentTitle } from './public/publicNames';
 import type { PublicPlaylistDetail, PublicPlaylistSummary, PublicVideo } from '../data/types';
 import { useWatched } from '../data/watched';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
@@ -47,6 +48,8 @@ function parsePlaylistId(raw: string | null): number | null {
 export default function VietsubListPage() {
   const [params, setParams] = useSearchParams();
   const { source, readOnly } = useSite();
+  // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
+  useDocumentTitle(readOnly ? 'Vietsub' : null);
   const t = useT();
   const requestedPlaylist = parsePlaylistId(params.get('playlist'));
   const tab: Tab = params.get('tab') === 'all' ? 'all' : 'playlists';

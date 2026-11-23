@@ -13,6 +13,7 @@ import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { useSite } from '../data/SiteContext';
+import { useDocumentTitle } from './public/publicNames';
 import { formatDay } from '../lib/dates';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import './WorkDetailPage.css';
@@ -27,6 +28,8 @@ export default function WorkDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [work, setWork] = useState<Work | null>(null);
+  // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
+  useDocumentTitle(readOnly ? (work?.title ?? null) : null);
   const [notFound, setNotFound] = useState(id === null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [zoom, setZoom] = useState(false);

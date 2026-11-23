@@ -64,7 +64,7 @@ describe('PublicNovelsPage', () => {
     expect(screen.getByRole('heading', { name: 'Truyện' })).toBeInTheDocument();
     expect(screen.getByText('Đang tải…')).toBeInTheDocument();
     expect(await screen.findByText('Chưa có truyện nào. Quay lại sau nhé.')).toBeInTheDocument();
-    expect(document.title).toBe('Truyện');
+    expect(document.title).toBe('Truyện · byZenQN');
     unmount();
     expect(document.title).toBe('before');
   });
@@ -292,7 +292,7 @@ describe('PublicNovelPage', () => {
     expect(screen.getByRole('list', { name: 'Thể loại' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Giới thiệu' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Danh sách chương' })).toBeInTheDocument();
-    expect(document.title).toBe('Tình Yêu Mùa Hạ');
+    expect(document.title).toBe('Tình Yêu Mùa Hạ · byZenQN');
   });
 
   it('has two tabs when there is a description: Giới thiệu first, Danh sách chương selected by default', async () => {

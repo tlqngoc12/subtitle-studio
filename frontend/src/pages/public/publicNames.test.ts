@@ -1,5 +1,13 @@
+import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { bannerNovels, publicChapterLabel, publicChapterName, relativeTime } from './publicNames';
+import {
+  SITE_NAME,
+  bannerNovels,
+  publicChapterLabel,
+  publicChapterName,
+  relativeTime,
+  useDocumentTitle,
+} from './publicNames';
 import { formatInstant } from '../../lib/dates';
 
 describe('publicNames', () => {
@@ -24,6 +32,27 @@ describe('publicNames', () => {
     expect(relativeTime(ago(3 * 3600e3), now)).toBe('3 giờ trước');
     expect(relativeTime(ago(2 * 86400e3), now)).toBe('2 ngày trước');
     expect(relativeTime(ago(40 * 86400e3), now)).toBe(formatInstant(ago(40 * 86400e3)));
+  });
+});
+
+describe('useDocumentTitle', () => {
+  it('ends the title with the site name and restores the previous one', () => {
+    document.title = 'before';
+
+    const { unmount } = renderHook(() => useDocumentTitle('Truyện'));
+
+    expect(SITE_NAME).toBe('byZenQN');
+    expect(document.title).toBe('Truyện · byZenQN');
+    unmount();
+    expect(document.title).toBe('before');
+  });
+
+  it('leaves the title alone while there is none', () => {
+    document.title = 'before';
+
+    renderHook(() => useDocumentTitle(null));
+
+    expect(document.title).toBe('before');
   });
 });
 

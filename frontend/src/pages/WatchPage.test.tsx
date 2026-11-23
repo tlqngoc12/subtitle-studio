@@ -105,6 +105,14 @@ describe('WatchPage', () => {
     expect(document.querySelector('.back-link')).toBeNull();
   });
 
+  it('leaves the tab title alone on the admin site', async () => {
+    document.title = 'Subtitle Studio';
+    renderPage();
+
+    await screen.findByRole('heading', { name: video.title });
+    expect(document.title).toBe('Subtitle Studio');
+  });
+
   it('shows the subtitle for the current time', async () => {
     player.currentMs = 1_500;
     renderPage();
@@ -708,6 +716,13 @@ describe('WatchPage on the public site', () => {
       </SiteProvider>,
     );
   }
+
+  it('titles the tab like the pre-rendered page', async () => {
+    renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
+
+    await screen.findByRole('heading', { name: video.title });
+    expect(document.title).toBe('Học Spring Boot · Vietsub · byZenQN');
+  });
 
   it('usesTheSiteSource', async () => {
     renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
