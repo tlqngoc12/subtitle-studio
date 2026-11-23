@@ -790,8 +790,9 @@ class SiteExporterTest {
 
         JsonNode chapter = readJson("data/novels/summer/1.json");
         String image = chapter.get("images").get(0).asText();
-        assertThat(image).matches("/novels/summer/[0-9a-f]{16}-1\\.(webp|png)");
+        assertThat(image).matches("/novel-images/summer/[0-9a-f]{16}-1\\.(webp|png)");
         assertThat(out.resolve(image.substring(1))).exists();
+        assertThat(out.resolve("novels")).doesNotExist();
         assertThat(readJson("data/novels/summer.json").get("coverUrl").asText())
                 .isEqualTo("/media/" + cover.getStorageKey() + ".png");
         assertThat(out.resolve("media/" + cover.getStorageKey() + ".png")).exists();

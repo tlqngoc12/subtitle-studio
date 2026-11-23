@@ -89,7 +89,7 @@ public class PublishService {
         try {
             Instant now = clock.instant();
             exporter.export(dir, now);
-            bundle.writeTo(dir, settings.indexable());
+            bundle.writeTo(dir, settings.indexable(), settings.publicSiteUrl());
             readCounts.prepare(dir);
             long files = countFiles(dir);
             recordFileCount((int) files);

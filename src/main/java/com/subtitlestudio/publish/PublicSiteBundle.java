@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The public frontend build (packaged in the jar under {@code public-site/}, entry {@code public.html}) plus the
- * Cloudflare Pages files: {@code _redirects} for the SPA, {@code _headers} for caching and robots, {@code robots.txt}.
+ * Cloudflare Pages files: {@code _redirects} for the SPA (and {@code /} to the Vietsub list), {@code _headers} for caching and robots, {@code robots.txt}.
  */
 @Component
 public class PublicSiteBundle {
@@ -25,7 +25,7 @@ public class PublicSiteBundle {
 
     private final PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
-    public void writeTo(Path dir, boolean indexable) {
+    public void writeTo(Path dir, boolean indexable, String siteUrl) {
         try {
             copyBuild(dir);
             Path index = dir.resolve("index.html");
@@ -33,13 +33,20 @@ public class PublicSiteBundle {
                 String html = Files.readString(index, StandardCharsets.UTF_8);
                 Files.writeString(index, html.replaceFirst("<head>", "<head>" + NOINDEX_META), StandardCharsets.UTF_8);
             }
-            Files.writeString(dir.resolve("_redirects"), "/* /index.html 200\n", StandardCharsets.UTF_8);
+            Files.writeString(dir.resolve("_redirects"), "/ /vietsub/list 301\n/* /index.html 200\n", StandardCharsets.UTF_8);
             Files.writeString(dir.resolve("_headers"), headers(indexable), StandardCharsets.UTF_8);
-            Files.writeString(dir.resolve("robots.txt"),
-                    indexable ? "User-agent: *\nAllow: /\n" : "User-agent: *\nDisallow: /\n", StandardCharsets.UTF_8);
+            Files.writeString(dir.resolve("robots.txt"), robots(indexable, siteUrl), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not prepare the public site", e);
         }
+    }
+
+    private static String robots(boolean indexable, String siteUrl) {
+        if (!indexable) {
+            return "User-agent: *\nDisallow: /\n";
+        }
+        return "User-agent: *\nAllow: /\nDisallow: /novels/shelf\nDisallow: /data/\nSitemap: " + siteUrl
+                + "/sitemap.xml\n";
     }
 
     private void copyBuild(Path dir) throws IOException {
@@ -92,8 +99,12 @@ public class PublicSiteBundle {
         sb.append("  Content-Security-Policy: ").append(CSP).append("\n\n");
         sb.append("/assets/*\n").append(LONG_CACHE).append('\n');
         sb.append("/media/*\n").append(LONG_CACHE).append('\n');
-        // Chapter images are named by a hash of their content.
-        sb.append("/novels/*\n").append(LONG_CACHE).append('\n');
+        // Chapter images are named by a hash of their content, and live apart from the HTML pages under /novels/.
+        sb.append("/novel-images/*\n").append(LONG_CACHE).append('\n');
+        // The shelf lives in the visitor's browser: keep it out of search results even on an indexable site.
+        if (indexable) {
+            sb.append("/novels/shelf\n  X-Robots-Tag: noindex\n\n");
+        }
         // Data changes on every publish: guests must see it right away.
         sb.append("/data/*\n  Cache-Control: no-cache\n");
         return sb.toString();

@@ -139,7 +139,7 @@ class PublishServiceTest {
 
     @Test
     void unexpectedErrorMarksFailedGeneric() {
-        doThrow(new IllegalStateException("boom")).when(bundle).writeTo(any(), anyBoolean());
+        doThrow(new IllegalStateException("boom")).when(bundle).writeTo(any(), anyBoolean(), any());
         PublishService s = service();
         s.start();
 
@@ -156,7 +156,7 @@ class PublishServiceTest {
 
         executor.runPending();
 
-        verify(bundle).writeTo(any(Path.class), eq(true));
+        verify(bundle).writeTo(any(Path.class), eq(true), eq("https://fans.pages.dev"));
     }
 
     @Test
