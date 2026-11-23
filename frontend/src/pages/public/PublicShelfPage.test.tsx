@@ -53,7 +53,7 @@ describe('PublicShelfPage (/novels/shelf)', () => {
     ]);
     expect(within(cards[0]).getByText('Đang ra')).toBeInTheDocument();
     expect(within(cards[0]).getByText('Chương').closest('.fanfic-stat')?.querySelector('.fanfic-stat__value')).toHaveTextContent(/^1 chương$/);
-    expect(document.title).toBe('Tủ sách');
+    expect(document.title).toBe('Tủ sách · byZenQN');
   });
 
   it('has the breadcrumb Novels > Tủ sách and an H1', async () => {

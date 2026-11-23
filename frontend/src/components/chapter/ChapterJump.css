@@ -1,0 +1,25 @@
+/* The chapter popover on the chapter page; its rows use styles/chapter-toc.css. */
+.chapter-jump {
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chapter-jump__list {
+  overflow-y: auto;
+}
+
+.chapter-jump .chapter-toc__link .badges {
+  flex: none;
+}
+
+.chapter-jump__state {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--muted);
+}

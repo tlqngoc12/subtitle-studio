@@ -82,6 +82,10 @@ subtitle-studio:
     cloudflare-d1-database-id: ${CLOUDFLARE_D1_DATABASE_ID:}
     # false = noindex (meta, X-Robots-Tag, robots.txt): search engines leave the site out.
     indexable: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:false}
+    # Root of public URLs (canonical, sitemap). Blank = https://{project}.pages.dev.
+    site-url: ${SUBTITLESTUDIO_PUBLISH_SITE_URL:}
+    # Google Search Console HTML-tag verification code (blank = no tag).
+    google-verification: ${SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION:}
     wrangler-path: ${SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH:wrangler}
     timeout: 5m
   # Novels translated from page screenshots (Novels menu).

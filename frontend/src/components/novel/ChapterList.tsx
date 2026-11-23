@@ -1,7 +1,7 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowDown, ArrowUp, FileText, GripVertical, TriangleAlert } from 'lucide-react';
+import { ArrowDown, ArrowUp, FileText, GripVertical, Images, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router';
 import { Tip } from '../Tip';
 import type { ChapterSummary } from '../../api/novels';
@@ -107,6 +107,7 @@ function ChapterRow({
     id: c.id,
   });
   const name = chapterLabel(c.chapterNo, c.title, c.label);
+  const pagesLabel = fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`;
   return (
     <li
       ref={setNodeRef}
@@ -119,13 +120,18 @@ function ChapterRow({
           <GripVertical className="icon" aria-hidden="true" />
         </button>
         <Link className="chapter-list__open" to={`/novels/${novelId}/chapters/${c.id}`}>
-          <span className="chapter-list__title">{name}</span>
+          <Tip label={name}>
+            <span className="chapter-list__title">{name}</span>
+          </Tip>
           <span className="chapter-list__meta">
-            <StatusBadges translation={original ? undefined : c.translationStatus} publish={c.publishStatus} model={c.translationModel} fallback={c.translatedByFallback} />
+            <StatusBadges compact translation={original ? undefined : c.translationStatus} publish={c.publishStatus} model={c.translationModel} fallback={c.translatedByFallback} />
             {!original && (
-              <span className="meta">
-                {fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`}
-              </span>
+              <Tip label={pagesLabel}>
+                <span className="chapter-list__pages" role="img" aria-label={pagesLabel} tabIndex={0}>
+                  <Images className="icon icon--sm" aria-hidden="true" />
+                  {c.pageCount > 0 && c.pageCount}
+                </span>
+              </Tip>
             )}
             {c.suspectPages > 0 && (
               <Tip label={`${c.suspectPages} page(s) may be incomplete`}>

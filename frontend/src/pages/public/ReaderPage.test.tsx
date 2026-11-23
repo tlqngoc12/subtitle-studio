@@ -180,14 +180,29 @@ describe('ReaderPage', () => {
 
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
     const links = within(crumbs.querySelector<HTMLElement>('.breadcrumbs__list')!).getAllByRole('link');
-    expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Tình Yêu Mùa Hạ']);
+    expect(links.map((a) => a.textContent)).toEqual(['Novels', 'Truyện dịch', 'Tình Yêu Mùa Hạ']);
     expect(links[0]).toHaveAttribute('href', '/novels');
-    expect(links[1]).toHaveAttribute('href', '/novels/summer');
+    expect(links[1]).toHaveAttribute('href', '/novels?tab=translated');
+    expect(links[2]).toHaveAttribute('href', '/novels/summer');
     const last = within(crumbs).getByText('Special');
     expect(last).toHaveAttribute('aria-current', 'page');
     expect(last.closest('a')).toBeNull();
-    expect(crumbs.querySelectorAll('.breadcrumbs__sep svg')).toHaveLength(2); // ChevronRight separators
+    expect(crumbs.querySelectorAll('.breadcrumbs__sep svg')).toHaveLength(3); // ChevronRight separators
     expect(screen.queryByRole('link', { name: /^←/ })).not.toBeInTheDocument();
+  });
+
+  it('shows no tab crumb while the novel loads, then Sáng tác for an original story', async () => {
+    let resolve: (n: PublicNovelDetail) => void = () => {};
+    const slow: NovelSource = { ...source, getNovel: () => new Promise((r) => (resolve = r)) };
+    renderAt('/novels/summer/4', slow);
+    await screen.findAllByRole('img', { name: /^Special, trang/ });
+
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).queryByRole('link', { name: 'Truyện dịch' })).not.toBeInTheDocument();
+    expect(within(crumbs).queryByRole('link', { name: 'Sáng tác' })).not.toBeInTheDocument();
+
+    await act(async () => resolve({ ...NOVEL, original: true }));
+    expect(await within(crumbs).findByRole('link', { name: 'Sáng tác' })).toHaveAttribute('href', '/novels?tab=originals');
   });
 
   it('has a sticky icon bar with previous, next, contents and settings, each with a tooltip', async () => {
@@ -286,6 +301,10 @@ describe('ReaderPage', () => {
       expect(within(items[1]).getByText('Đang đọc')).toBeInTheDocument();
       expect(within(items[1]).getByRole('link')).toHaveAttribute('aria-current', 'true');
       expect(within(items[2]).queryByText('Đang đọc')).not.toBeInTheDocument();
+      // The rows share the admin popover's look: shared classes, the current one marked, the full name in a title.
+      expect(list).toHaveClass('chapter-toc__list');
+      expect(items.map((li) => li.classList.contains('chapter-toc__item--current'))).toEqual([false, true, false]);
+      expect(within(items[1]).getByRole('link')).toHaveAttribute('title', 'Chương 3: Mưa');
       expect(scroll.mock.contexts.some((el) => el === within(items[1]).getByRole('link'))).toBe(true);
     });
 
@@ -382,7 +401,7 @@ describe('ReaderPage', () => {
       expect(body).toContain('scrollbar-color:');
       expect(css).toContain('@keyframes drawer-in');
       expect(css).toContain('translateX(100%)');
-      const reduced = css.slice(css.indexOf('prefers-reduced-motion: reduce', css.indexOf('.reader-toc__item--current')));
+      const reduced = css.slice(css.indexOf('prefers-reduced-motion: reduce', css.indexOf('@keyframes drawer-fade-out')));
       expect(reduced.slice(0, 120)).toContain('animation: none');
     });
 
@@ -497,7 +516,7 @@ describe('ReaderPage', () => {
     const { unmount } = renderAt('/novels/summer/3');
     await screen.findAllByRole('img', { name: /Chương 3, trang/ });
 
-    expect(document.title).toBe('Chương 3: Mưa · Tình Yêu Mùa Hạ');
+    expect(document.title).toBe('Chương 3: Mưa · Tình Yêu Mùa Hạ · byZenQN');
     unmount();
     expect(document.title).toBe('before');
   });

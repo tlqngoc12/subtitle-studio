@@ -8,7 +8,7 @@ target/
 *.iml
 .vscode/
 frontend/node/
-frontend/node_modules/
+node_modules/
 frontend/dist/
 
 # Golden files are real YouTube subtitles (copyright): keep them local only

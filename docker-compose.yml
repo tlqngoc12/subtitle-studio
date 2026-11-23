@@ -41,6 +41,10 @@ services:
       CLOUDFLARE_D1_DATABASE_ID: ${CLOUDFLARE_D1_DATABASE_ID:-}
       SUBTITLESTUDIO_PUBLISH_PROJECT: ${SUBTITLESTUDIO_PUBLISH_PROJECT:-}
       SUBTITLESTUDIO_PUBLISH_INDEXABLE: ${SUBTITLESTUDIO_PUBLISH_INDEXABLE:-false}
+      # Optional: root URL for canonical links and sitemap (empty = https://<project>.pages.dev).
+      SUBTITLESTUDIO_PUBLISH_SITE_URL: ${SUBTITLESTUDIO_PUBLISH_SITE_URL:-}
+      # Optional: Google Search Console HTML-tag verification code.
+      SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION: ${SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION:-}
       # Optional: watermark on public novel chapter images (empty = <project>.pages.dev).
       SUBTITLESTUDIO_NOVEL_WATERMARK: ${SUBTITLESTUDIO_NOVEL_WATERMARK:-}
     # Localhost only: the app has no login, so other devices on the LAN must not reach it.

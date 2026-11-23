@@ -106,7 +106,7 @@ public class NovelExporter {
         List<RenderedFormat> rendered = renderCache.imagesFor(c.getId(),
                 new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark,
                         mediaService::loadImage));
-        Path target = dir.resolve("novels").resolve(n.getSlug());
+        Path target = dir.resolve("novel-images").resolve(n.getSlug());
         List<PublicPageFormat> result = new ArrayList<>();
         try {
             Files.createDirectories(target);
@@ -114,7 +114,7 @@ public class NovelExporter {
                 List<String> urls = new ArrayList<>();
                 for (Path f : r.files()) {
                     Files.copy(f, target.resolve(f.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-                    urls.add("/novels/" + n.getSlug() + "/" + f.getFileName());
+                    urls.add("/novel-images/" + n.getSlug() + "/" + f.getFileName());
                 }
                 result.add(new PublicPageFormat(r.format().key(), r.format().width(), r.format().height(), urls));
             }

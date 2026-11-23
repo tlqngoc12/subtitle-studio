@@ -113,16 +113,9 @@
 .drawer__body {
   flex: 1 1 auto;
   min-height: 0;
-  padding: var(--space-2);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--brand-2) var(--paper);
-}
-
-.reader-toc__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 @keyframes drawer-in {
@@ -147,35 +140,6 @@
   to {
     opacity: 0;
   }
-}
-
-.reader-toc__item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding-right: var(--space-2);
-  border-radius: var(--radius-control);
-}
-
-.reader-toc__item:hover {
-  background: var(--paper);
-}
-
-.reader-toc__link {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-2) var(--space-3);
-  color: var(--ink);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
-.reader-toc__item--current {
-  background: color-mix(in srgb, var(--brand-2) 28%, var(--surface));
-}
-
-.reader-toc__link--current {
-  font-weight: 700;
 }
 
 @media (prefers-reduced-motion: reduce) {

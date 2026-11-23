@@ -8,6 +8,7 @@ import { Alert } from '../components/ui/Alert';
 import { FilterPills } from '../components/ui/FilterPills';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ADMIN_NOVELS_TAB_LABELS, novelsTabCrumb } from '../components/fanfics/NovelsTabs';
 
 type Source = 'screenshots' | 'wattpad';
 
@@ -17,7 +18,11 @@ function NewStoryPage() {
   return (
     <Page width="narrow">
       <PageHeader
-        breadcrumbs={[{ label: 'Novels', to: '/novels?tab=originals' }, { label: 'New story' }]}
+        breadcrumbs={[
+          { label: 'Novels', to: '/novels' },
+          novelsTabCrumb(true, ADMIN_NOVELS_TAB_LABELS),
+          { label: 'New story' },
+        ]}
         title="New story"
       />
       <NovelForm
@@ -52,7 +57,14 @@ function NewNovelPage() {
 
   return (
     <Page width="narrow">
-      <PageHeader breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: 'New novel' }]} title="New novel" />
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Novels', to: '/novels' },
+          novelsTabCrumb(false, ADMIN_NOVELS_TAB_LABELS),
+          { label: 'New novel' },
+        ]}
+        title="New novel"
+      />
       <FilterPills
         label="Source"
         options={[

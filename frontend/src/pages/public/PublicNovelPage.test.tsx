@@ -64,7 +64,7 @@ describe('PublicNovelsPage', () => {
     expect(screen.getByRole('heading', { name: 'Truyện' })).toBeInTheDocument();
     expect(screen.getByText('Đang tải…')).toBeInTheDocument();
     expect(await screen.findByText('Chưa có truyện nào. Quay lại sau nhé.')).toBeInTheDocument();
-    expect(document.title).toBe('Truyện');
+    expect(document.title).toBe('Truyện · byZenQN');
     unmount();
     expect(document.title).toBe('before');
   });
@@ -292,7 +292,7 @@ describe('PublicNovelPage', () => {
     expect(screen.getByRole('list', { name: 'Thể loại' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Giới thiệu' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Danh sách chương' })).toBeInTheDocument();
-    expect(document.title).toBe('Tình Yêu Mùa Hạ');
+    expect(document.title).toBe('Tình Yêu Mùa Hạ · byZenQN');
   });
 
   it('has two tabs when there is a description: Giới thiệu first, Danh sách chương selected by default', async () => {
@@ -389,9 +389,18 @@ describe('PublicNovelPage', () => {
     await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(crumbs).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(crumbs).getByRole('link', { name: 'Truyện dịch' })).toHaveAttribute('href', '/novels?tab=translated');
     const last = within(crumbs).getByText('Tình Yêu Mùa Hạ');
     expect(last).toHaveAttribute('aria-current', 'page');
     expect(last.closest('a')).toBeNull();
+  });
+
+  it('puts an original story under Sáng tác', async () => {
+    renderPage(source({ getNovel: async () => ({ ...DETAIL, original: true }) }));
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).getByRole('link', { name: 'Sáng tác' })).toHaveAttribute('href', '/novels?tab=originals');
   });
 
   it('shows a skeleton announced as loading while the novel loads', async () => {

@@ -23,4 +23,45 @@ describe('StatusBadges', () => {
     rerender(<StatusBadges translation="TRANSLATED" publish="DRAFT" model="gemini-3.6-flash" fallback={false} />);
     expect(screen.queryByText('Fallback model')).toBeNull();
   });
+
+  describe('compact', () => {
+    it('shows icons only, each with an accessible name', () => {
+      render(<StatusBadges compact translation="TRANSLATED" publish="PUBLISHED" model="gemini-x" />);
+
+      expect(screen.queryByText('Translated')).toBeNull();
+      expect(screen.queryByText('Published')).toBeNull();
+      expect(screen.getByLabelText('Translated by gemini-x').querySelector('svg')).not.toBeNull();
+      expect(screen.getByLabelText('Published').querySelector('svg')).not.toBeNull();
+    });
+
+    it('gives every state its own icon, so the state does not rely on colour', () => {
+      const shapes = (translation: 'NONE' | 'TRANSLATING' | 'TRANSLATED' | 'FAILED', publish: 'DRAFT' | 'PUBLISHED') => {
+        const { container, unmount } = render(<StatusBadges compact translation={translation} publish={publish} />);
+        const out = [...container.querySelectorAll('svg')].map((s) => s.getAttribute('class'));
+        unmount();
+        return out.join('|');
+      };
+      const all = [
+        shapes('NONE', 'DRAFT'),
+        shapes('TRANSLATING', 'DRAFT'),
+        shapes('TRANSLATED', 'DRAFT'),
+        shapes('FAILED', 'DRAFT'),
+        shapes('NONE', 'PUBLISHED'),
+      ];
+      expect(new Set(all).size).toBe(all.length);
+    });
+
+    it('marks a fallback translation with a re-translate hint', () => {
+      render(<StatusBadges compact translation="TRANSLATED" publish="DRAFT" model="lite" fallback />);
+
+      expect(screen.getByLabelText(/re-translate/)).toBeInTheDocument();
+    });
+
+    it('shows only the publish state for an original story', () => {
+      render(<StatusBadges compact publish="DRAFT" />);
+
+      expect(screen.getAllByRole('img')).toHaveLength(1);
+      expect(screen.getByLabelText('Draft')).toBeInTheDocument();
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Download } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { css } from '../../test/css';
 import { expectTooltip } from '../../test/tooltip';
@@ -26,7 +27,7 @@ const primaries = (container: HTMLElement) =>
 
 describe('ChapterBar primary button', () => {
   const states: [string, Partial<ChapterBarProps>, string[]][] = [
-    ['a clean Draft: Publish', {}, ['Publish']],
+    ['a clean Draft: none (Publish lives in the menu)', {}, []],
     ['a dirty Draft: Save', { saveState: { kind: 'dirty' }, canSave: true }, ['Save']],
     ['a saving Draft: Save', { saveState: { kind: 'saving' }, canSave: false }, ['Save']],
     ['a clean Published chapter: none', { publish: undefined, menuItems: [{ label: 'Unpublish', onSelect: vi.fn() }] }, []],
@@ -50,9 +51,16 @@ describe('ChapterBar Save and Publish', () => {
     expect(props.onSave).toHaveBeenCalledOnce();
   });
 
-  it('disables Publish with a "Save first" tooltip while there are unsaved changes', async () => {
+  it('has no Publish button outside the menu', () => {
+    bar();
+
+    expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument();
+  });
+
+  it('disables Publish in the menu with a "Save first" tooltip while there are unsaved changes', async () => {
     bar({ saveState: { kind: 'dirty' }, canSave: true });
-    const publish = screen.getByRole('button', { name: 'Publish' });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Chapter actions' }));
+    const publish = await screen.findByRole('button', { name: 'Publish' });
 
     expect(publish).toBeDisabled();
     await expectTooltip(publish.parentElement!, 'Save first');
@@ -60,16 +68,19 @@ describe('ChapterBar Save and Publish', () => {
 
   it('disables Publish with the given reason when clean', async () => {
     bar({ publish: { onPublish: vi.fn(), disabledReason: 'Wait until this chapter finishes translating.' } });
-    const publish = screen.getByRole('button', { name: 'Publish' });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Chapter actions' }));
+    const publish = await screen.findByRole('button', { name: 'Publish' });
 
     expect(publish).toBeDisabled();
     await expectTooltip(publish.parentElement!, 'Wait until this chapter finishes translating.');
   });
 
-  it('publishes from the bar', async () => {
+  it('publishes from the menu', async () => {
     const { props } = bar();
+    const user = userEvent.setup();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Publish' }));
+    await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+    await user.click(await screen.findByRole('button', { name: 'Publish' }));
 
     expect(props.publish!.onPublish).toHaveBeenCalledOnce();
   });
@@ -105,18 +116,28 @@ describe('ChapterBar menu', () => {
     await expectTooltip(screen.getByRole('button', { name: 'Chapter actions' }), 'Chapter actions');
   });
 
-  it('carries Publish as the first item for phones', async () => {
-    const { props } = bar();
+  it('has Publish as the first item, before the given ones', async () => {
+    bar();
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
     const list = (await screen.findByRole('button', { name: 'Translate again' })).closest('.member-menu__list') as HTMLElement;
-    const first = within(list).getAllByRole('button')[0];
 
-    expect(first).toHaveTextContent('Publish');
-    expect(first).toHaveClass('chapter-bar__menu-publish');
-    await user.click(first);
-    expect(props.publish!.onPublish).toHaveBeenCalledOnce();
+    expect(within(list).getAllByRole('button').map((b) => b.textContent)).toEqual(['Publish', 'Translate again']);
+  });
+
+  it('shows an item icon when given', async () => {
+    bar({ menuItems: [{ label: 'Export chapter', onSelect: vi.fn(), icon: Download }] });
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+    expect((await screen.findByRole('button', { name: 'Export chapter' })).querySelector('svg')).not.toBeNull();
+  });
+
+  it('always shows the menu button, on any width', () => {
+    bar({ publish: undefined, menuItems: [{ label: 'Export chapter', onSelect: vi.fn() }] });
+
+    expect(screen.getByRole('button', { name: 'Chapter actions' })).not.toHaveClass('chapter-bar__menu--phone-only');
   });
 });
 
@@ -145,16 +166,9 @@ describe('ChapterBar layout', () => {
     expect(css).toMatch(/\.chapter-bar\s*\{[^}]*position:\s*sticky;[^}]*top:\s*0/);
   });
 
-  it('on phones hides the Publish button and the title, and puts the save state on its own row', () => {
-    expect(css).toMatch(/\.chapter-bar__publish\s*\{[^}]*display:\s*none/);
+  it('on phones hides the title, and puts the save state on its own row', () => {
     expect(css).toMatch(/\.chapter-bar__name\s*\{[^}]*display:\s*none/);
     expect(css).toMatch(/\.chapter-bar__state\s*\{[^}]*flex:\s*1 0 100%/);
-  });
-
-  it('from 521 px shows Publish and hides the menu copy', () => {
-    const block = css.slice(css.indexOf('@media (min-width: 521px)', css.indexOf('.chapter-bar__state')));
-    expect(block).toMatch(/\.chapter-bar__publish\s*\{[^}]*display:\s*inline-flex/);
-    expect(block).toMatch(/\.chapter-bar__menu-publish\s*\{[^}]*display:\s*none/);
   });
 });
 

@@ -16,6 +16,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { ShowcaseTabs } from '../components/ShowcaseTabs';
 import { PeopleFilter } from '../components/ui/PeopleFilter';
 import { useSite } from '../data/SiteContext';
+import { useDocumentTitle } from './public/publicNames';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { groupByYear } from '../lib/groupByYear';
 import { matchesPerson } from '../lib/people';
@@ -34,6 +35,8 @@ function categoryOptions(vi: boolean) {
 /** Works (/works): poster grid filtered by person (`?who=`) and category (`?cat=`). */
 export default function WorksPage() {
   const { source, readOnly } = useSite();
+  // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
+  useDocumentTitle(readOnly ? 'Works' : null);
   const t = useT();
   const [params, setParams] = useSearchParams();
   const who = params.get('who');
