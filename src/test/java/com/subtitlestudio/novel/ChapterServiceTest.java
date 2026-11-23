@@ -31,7 +31,7 @@ import org.springframework.util.unit.DataSize;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, ChapterService.class, PageRotator.class, MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class, ChapterServiceTest.Config.class})
+@Import({ChapterReviewFiles.class, com.subtitlestudio.novel.render.NovelRenderConfig.class, TranslatingModels.class, ChapterService.class, PageRotator.class, MediaService.class, com.subtitlestudio.profile.MediaStorage.class, com.subtitlestudio.profile.MediaFiler.class, ImageSniffer.class, com.subtitlestudio.profile.ImageResizer.class, ChapterServiceTest.Config.class})
 class ChapterServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
@@ -958,5 +958,102 @@ class ChapterServiceTest {
         row.setTranslationModel(null);
         chapters.saveAndFlush(row);
         assertThat(service.get(c.id()).translatedByFallback()).isFalse();
+    }
+
+    // --- review files ---
+
+    private ChapterDetail[] profiledChapters(String profile, int count) throws java.io.IOException {
+        novel.setPromptProfile(profile);
+        novels.saveAndFlush(novel);
+        ChapterDetail[] out = new ChapterDetail[count];
+        for (int i = 0; i < count; i++) {
+            out[i] = service.add(novel.getId(), new ChapterRequest(i + 1, null));
+        }
+        return out;
+    }
+
+    private void review(String name, String text) throws java.io.IOException {
+        Path dir = java.nio.file.Files.createDirectories(dataDir.resolve("reviews"));
+        java.nio.file.Files.writeString(dir.resolve(name), text, StandardCharsets.UTF_8);
+    }
+
+    private String reviewText(String relative) throws java.io.IOException {
+        return java.nio.file.Files.readString(dataDir.resolve("reviews").resolve(relative), StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void reviewReturnsNewestFileOfThePosition() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvNewest", 3);
+        review("review-RvNewest-ch-2-2026-11-20.md", "old");
+        review("review-RvNewest-ch-2-2026-11-23.md", "new");
+
+        ChapterReview r = service.review(c[1].id());
+
+        assertThat(r).isEqualTo(new ChapterReview("review-RvNewest-ch-2-2026-11-23.md", "new"));
+    }
+
+    @Test
+    void reviewThrowsWithPatternWhenMissing() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvMissing", 3);
+
+        assertThatThrownBy(() -> service.review(c[2].id())).isInstanceOf(ChapterReviewNotFoundException.class)
+                .hasMessageContaining("review-RvMissing-ch-3-*.md");
+    }
+
+    @Test
+    void reviewThrowsWhenTheNovelHasNoProfile() {
+        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+
+        assertThatThrownBy(() -> service.review(c.id())).isInstanceOf(ChapterReviewNotFoundException.class)
+                .hasMessageContaining("no profile");
+    }
+
+    @Test
+    void reorderRenumbersReviewFiles() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvReorder", 3);
+        review("review-RvReorder-ch-1-2026-11-23.md", "a");
+        review("review-RvReorder-ch-3-2026-11-23.md", "c");
+
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c[2].id(), c[1].id(), c[0].id())));
+
+        assertThat(reviewText("review-RvReorder-ch-1-2026-11-23.md")).isEqualTo("c");
+        assertThat(reviewText("review-RvReorder-ch-3-2026-11-23.md")).isEqualTo("a");
+    }
+
+    @Test
+    void deleteArchivesAndShiftsLaterReviews() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvDelete", 3);
+        review("review-RvDelete-ch-2-2026-11-23.md", "b");
+        review("review-RvDelete-ch-3-2026-11-23.md", "c");
+
+        service.delete(c[1].id());
+
+        assertThat(reviewText("_archive/review-RvDelete-ch-2-2026-11-23.md")).isEqualTo("b");
+        assertThat(reviewText("review-RvDelete-ch-2-2026-11-23.md")).isEqualTo("c");
+        assertThat(dataDir.resolve("reviews/review-RvDelete-ch-3-2026-11-23.md")).doesNotExist();
+    }
+
+    @Test
+    void reorderStillSucceedsWhenReviewsFolderIsAFile() throws java.io.IOException {
+        // The reviews folder is shared by the whole class; park a real one while a plain file stands in for it.
+        Path reviews = dataDir.resolve("reviews");
+        Path parked = dataDir.resolve("reviews-parked");
+        boolean hadFolder = java.nio.file.Files.isDirectory(reviews);
+        if (hadFolder) {
+            java.nio.file.Files.move(reviews, parked);
+        }
+        try {
+            java.nio.file.Files.writeString(reviews, "not a folder");
+            ChapterDetail[] c = profiledChapters("RvBroken", 2);
+
+            service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c[1].id(), c[0].id())));
+
+            assertThat(listOrder()).containsExactly(c[1].id(), c[0].id());
+        } finally {
+            java.nio.file.Files.deleteIfExists(reviews);
+            if (hadFolder) {
+                java.nio.file.Files.move(parked, reviews);
+            }
+        }
     }
 }

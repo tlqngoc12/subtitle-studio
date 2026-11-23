@@ -40,12 +40,14 @@ public class NovelService {
     private final MediaFiler mediaFiler;
     private final GeminiSettings gemini;
     private final NovelProfileStore profiles;
+    private final ChapterReviewFiles reviewFiles;
 
     public NovelService(NovelRepository novels, ChapterRepository chapters, ChapterPageRepository pages,
                         ChapterImageRepository chapterImages, MediaRepository media, MediaService mediaService,
                         NovelValidator validator, RenderCache renderCache, Clock clock,
                         TranslatingModels models, MediaFiler mediaFiler,
-                        GeminiSettings gemini, NovelProfileStore profiles) {
+                        GeminiSettings gemini, NovelProfileStore profiles, ChapterReviewFiles reviewFiles) {
+        this.reviewFiles = reviewFiles;
         this.gemini = gemini;
         this.profiles = profiles;
         this.novels = novels;
@@ -201,6 +203,7 @@ public class NovelService {
         String newName = derivedName(n, newTitle,
                 name -> !name.equalsIgnoreCase(oldProfile) && profiles.exists(name));
         profiles.rename(oldProfile, newName, text -> ProfileTitleLines.retitle(text, oldTitle, newTitle));
+        reviewFiles.renameProfile(oldProfile, newName);
         n.setPromptProfile(newName);
         log.info("Renamed profile {} to {} for novel {}", oldProfile, newName, n.getId());
     }

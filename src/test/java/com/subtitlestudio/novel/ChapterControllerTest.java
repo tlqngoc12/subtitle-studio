@@ -229,4 +229,17 @@ class ChapterControllerTest {
         mvc.perform(get("/api/chapters/9/export")).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOTHING_TO_EXPORT"));
     }
+
+    @Test
+    void reviewReturnsTheFileOr404WithCode() throws Exception {
+        when(service.review(1L)).thenThrow(new ChapterReviewNotFoundException("review-P-ch-1-*.md"));
+        when(service.review(2L)).thenReturn(new ChapterReview("review-P-ch-2-2026-11-23.md", "# hi"));
+
+        mvc.perform(get("/api/chapters/1/review")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REVIEW_NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("-ch-1-*.md")));
+        mvc.perform(get("/api/chapters/2/review")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.fileName").value("review-P-ch-2-2026-11-23.md"))
+                .andExpect(jsonPath("$.markdown").value("# hi"));
+    }
 }

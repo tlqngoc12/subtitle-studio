@@ -39,6 +39,11 @@ public class ChapterController {
         this.translation = translation;
     }
 
+    @GetMapping("/api/chapters/{id}/review")
+    public ChapterReview review(@PathVariable long id) {
+        return service.review(id);
+    }
+
     @PostMapping("/api/chapters/{id}/translate")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ChapterDetail translate(@PathVariable long id) {

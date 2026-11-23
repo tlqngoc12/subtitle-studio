@@ -31,7 +31,7 @@ public class NovelExportService {
     public record NovelExport(String fileName, byte[] zip) {
     }
 
-    private record Exported(Chapter chapter, String text) {
+    private record Exported(Chapter chapter, String text, int position) {
     }
 
     private final NovelRepository novels;
@@ -55,10 +55,13 @@ public class NovelExportService {
             pagesByChapter.computeIfAbsent(p.getChapter().getId(), k -> new ArrayList<>()).add(p);
         }
         List<Exported> withText = new ArrayList<>();
-        for (Chapter c : chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId)) {
+        List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId);
+        for (int i = 0; i < all.size(); i++) {
+            Chapter c = all.get(i);
             String text = textOf(c, pagesByChapter.getOrDefault(c.getId(), List.of()));
             if (!text.isBlank()) {
-                withText.add(new Exported(c, text));
+                // The number is the chapter's place in the full reading order, so it matches review file names.
+                withText.add(new Exported(c, text, i + 1));
             }
         }
         if (withText.isEmpty()) {
@@ -70,7 +73,7 @@ public class NovelExportService {
                 Exported e = withText.get(i);
                 String heading = ChapterExportFormat.heading(e.chapter().getChapterNo(), e.chapter().getLabel(),
                         e.chapter().getTitle());
-                String base = ChapterExportFormat.fileBase(i + 1, withText.size(), heading);
+                String base = ChapterExportFormat.fileBase(e.position(), all.size(), heading);
                 add(zip, base + ".md", ChapterExportFormat.markdown(heading, e.text()));
                 add(zip, base + ".html", ChapterExportFormat.html(heading, e.text()));
             }
@@ -91,7 +94,14 @@ public class NovelExportService {
             throw NothingToExportException.forChapter(chapterId);
         }
         String heading = ChapterExportFormat.heading(chapter.getChapterNo(), chapter.getLabel(), chapter.getTitle());
-        String base = ChapterExportFormat.fileBase(1, 1, heading);
+        List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(chapter.getNovel().getId());
+        int position = 1;
+        for (int i = 0; i < all.size(); i++) {
+            if (all.get(i).getId().equals(chapterId)) {
+                position = i + 1;
+            }
+        }
+        String base = ChapterExportFormat.fileBase(position, all.size(), heading);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
             add(zip, base + ".md", ChapterExportFormat.markdown(heading, text));

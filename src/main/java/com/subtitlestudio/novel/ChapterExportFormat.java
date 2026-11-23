@@ -25,7 +25,7 @@ public final class ChapterExportFormat {
         return title != null && !title.isBlank() ? base + " - " + title.strip() : base;
     }
 
-    /** {@code NNN - <heading>} without extension; {@code position} is 1-based among the exported chapters. */
+    /** {@code NNN - <heading>} without extension; {@code position} is 1-based in the full reading order, as in review file names. */
     public static String fileBase(int position, int total, String heading) {
         int width = total >= 1000 ? 4 : 3;
         String prefix = String.format("%0" + width + "d - ", position);
