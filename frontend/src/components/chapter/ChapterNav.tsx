@@ -19,7 +19,7 @@ interface Props {
   onAddNext: () => void;
 }
 
-/** Previous / next chapter, "Fetch & translate next" on the last chapter of a Wattpad novel, "New chapter" on the last of an original or screenshot novel. */
+/** Previous / next chapter, "Fetch & translate next" on the last chapter of a Wattpad novel, "Add chapter" on the last of an original or screenshot novel. */
 export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, starting, onStartNext, onAddNext }: Props) {
   return (
     <>
@@ -27,11 +27,8 @@ export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, startin
         <IconLink label="Previous chapter" icon={ChevronLeft} to={chapterPath(chapter.prevChapterId)}
           onClick={(e) => onLeave(e, chapterPath(chapter.prevChapterId!))} />
       )}
-      {chapter.position > 0 && (
-        <ChapterJump novelId={chapter.novelId} currentId={chapter.id} position={chapter.position}
-          total={chapter.chapterCount} original={chapter.sourceType === 'ORIGINAL'} chapterPath={chapterPath}
-          onLeave={onLeave} />
-      )}
+      <ChapterJump novelId={chapter.novelId} currentId={chapter.id} original={chapter.sourceType === 'ORIGINAL'}
+        chapterPath={chapterPath} onLeave={onLeave} />
       {chapter.nextChapterId !== null && (
         <IconLink label="Next chapter" icon={ChevronRight} to={chapterPath(chapter.nextChapterId)}
           onClick={(e) => onLeave(e, chapterPath(chapter.nextChapterId!))} />
@@ -52,7 +49,7 @@ export function ChapterNav({ chapter, chapterPath, onLeave, why, locked, startin
         <span className="chapter-head__next">
           <button className="button" type="button" disabled={locked || starting} onClick={onAddNext}>
             <Plus className="icon" aria-hidden="true" />
-            {starting ? 'Creating…' : 'New chapter'}
+            {starting ? 'Adding…' : 'Add chapter'}
           </button>
         </span>
       )}

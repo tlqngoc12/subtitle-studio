@@ -128,19 +128,19 @@ describe('ChapterPage', () => {
       body: novelDetail({ chapters: [chapterSummary({ id: 8, chapterNo: 0 }), chapterSummary({ id: 9 }), chapterSummary({ id: 10, chapterNo: 2 })] }),
     };
 
-    it('shows the place between Previous and Next', async () => {
-      renderPage([get({ prevChapterId: 8, nextChapterId: 10, position: 2, chapterCount: 3 })]);
+    it('shows an icon-only All chapters button between Previous and Next', async () => {
+      renderPage([get({ prevChapterId: 8, nextChapterId: 10 })]);
       await loaded();
 
-      expect(screen.getByRole('button', { name: /2 \/ 3/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'All chapters' }).textContent).toBe('');
     });
 
     it('asks before a chosen chapter leaves with unsaved edits', async () => {
-      renderPage([get({ prevChapterId: 8, nextChapterId: 10, position: 2, chapterCount: 3 }), novelRoute]);
+      renderPage([get({ prevChapterId: 8, nextChapterId: 10 }), novelRoute]);
       await loaded();
       await user().type(textBox(), '!');
 
-      await user().click(screen.getByRole('button', { name: /2 \/ 3/ }));
+      await user().click(screen.getByRole('button', { name: 'All chapters' }));
       await user().click(await screen.findByRole('link', { name: /Chapter 2/ }));
 
       await answerConfirm('Cancel', 'Leave without saving?');
@@ -1158,8 +1158,8 @@ describe('ChapterPage: Fetch & translate next', () => {
   });
 });
 
-describe('ChapterPage: New chapter', () => {
-  const NEW = 'New chapter';
+describe('ChapterPage: Add chapter', () => {
+  const NEW = 'Add chapter';
   const last = (over: Partial<ChapterDetail> = {}): FakeRoute =>
     get({ sourceType: 'ORIGINAL', nextChapterId: null, ...over });
   const created: FakeRoute = {
