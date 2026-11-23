@@ -135,7 +135,7 @@ Lên Google thì tác giả và nhà xuất bản dễ tìm thấy hơn. Họ c�
 
 ## Để người làm tự quyết
 
-- Cách tách ảnh chương khỏi luật cache HTML (xem `_headers` ở trên).
+- ~~Cách tách ảnh chương khỏi luật cache HTML~~ → **đã chốt trong plan:** chuyển ảnh chương sang `/novel-images/<slug>/…` và chỉ thư mục này được cache `immutable`. HTML dùng cache mặc định của Cloudflare Pages (luôn hỏi lại server), không cần thêm luật `no-cache`.
 - Template nội dung tĩnh, độ dài mô tả mặc định từng mục, cấu trúc class Java.
 
 ## Kiểm tra
