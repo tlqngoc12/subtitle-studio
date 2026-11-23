@@ -1,7 +1,7 @@
 import { BookOpen, PenLine, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { EmptyState } from '../../components/EmptyState';
-import { NovelsTabs, useNovelsTab } from '../../components/fanfics/NovelsTabs';
+import { NovelsTabs, PUBLIC_NOVELS_TAB_LABELS, useNovelsTab } from '../../components/fanfics/NovelsTabs';
 import { NovelCard } from '../../components/novel/NovelCard';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
@@ -74,7 +74,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
       <NovelsTabs
         tab={tab}
         onTabChange={setTab}
-        labels={{ translated: 'Truyện dịch', originals: 'Sáng tác', fanfics: 'Fanfic' }}
+        labels={PUBLIC_NOVELS_TAB_LABELS}
         translated={
           <>
             {error && <Alert title={error.title} hint={error.hint} />}

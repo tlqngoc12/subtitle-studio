@@ -82,8 +82,18 @@ describe('NovelPage', () => {
     expect(cover.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByRole('link', { name: 'Translated' })).toHaveAttribute('href', '/novels?tab=translated');
     expect(within(nav).getByText('Tình Yêu Mùa Hạ')).toHaveAttribute('aria-current', 'page');
     expect(document.querySelector('.back-link')).toBeNull();
+  });
+
+  it('lists an original story under Originals', async () => {
+    fakeFetch([{ ...getNovel, body: novelDetail({ sourceType: 'ORIGINAL' }) }]);
+    renderPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Tình Yêu Mùa Hạ' });
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Originals' })).toHaveAttribute('href', '/novels?tab=originals');
   });
 
   it('puts Add chapter in the Chapters toolbar, at the standard size and not full width', async () => {

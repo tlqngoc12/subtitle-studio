@@ -39,6 +39,7 @@ describe('NovelNewPage', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByRole('link', { name: 'Translated' })).toHaveAttribute('href', '/novels?tab=translated');
     expect(within(nav).getByText('New novel')).toHaveAttribute('aria-current', 'page');
     expect(document.querySelector('.back-link')).toBeNull();
     expect(screen.getByRole('button', { name: 'Create novel' }).closest('.form-actions')).toHaveClass('form-actions--sticky');
@@ -52,7 +53,8 @@ describe('NovelNewPage', () => {
       renderPage('/novels/new?kind=original');
 
       const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels?tab=originals');
+      expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+      expect(within(nav).getByRole('link', { name: 'Originals' })).toHaveAttribute('href', '/novels?tab=originals');
       expect(screen.getByRole('heading', { level: 1, name: 'New story' })).toBeInTheDocument();
       expect(screen.getByLabelText('Author')).toBeRequired();
       expect(screen.queryByLabelText('Source language')).not.toBeInTheDocument();

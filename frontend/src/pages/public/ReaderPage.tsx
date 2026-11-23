@@ -37,6 +37,7 @@ import {
 } from "./readerPrefs";
 import { READER_COLUMNS, pickFormat } from "./readerLayout";
 import { COMPACT_QUERY, useMediaQuery } from "../../lib/useMediaQuery";
+import { PUBLIC_NOVELS_TAB_LABELS, novelsTabCrumb } from '../../components/fanfics/NovelsTabs';
 import './readerThemes.css';
 import './ReaderPage.css';
 
@@ -192,6 +193,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
 
   const crumbs = [
     { label: "Novels", to: "/novels" },
+    ...(novel ? [novelsTabCrumb(novel.original === true, PUBLIC_NOVELS_TAB_LABELS)] : []),
     { label: novel?.title ?? "Về trang truyện", to: `/novels/${slug}` },
     {
       label: publicChapterName(

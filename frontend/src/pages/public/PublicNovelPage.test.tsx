@@ -389,9 +389,18 @@ describe('PublicNovelPage', () => {
     await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(crumbs).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(crumbs).getByRole('link', { name: 'Truyện dịch' })).toHaveAttribute('href', '/novels?tab=translated');
     const last = within(crumbs).getByText('Tình Yêu Mùa Hạ');
     expect(last).toHaveAttribute('aria-current', 'page');
     expect(last.closest('a')).toBeNull();
+  });
+
+  it('puts an original story under Sáng tác', async () => {
+    renderPage(source({ getNovel: async () => ({ ...DETAIL, original: true }) }));
+
+    await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).getByRole('link', { name: 'Sáng tác' })).toHaveAttribute('href', '/novels?tab=originals');
   });
 
   it('shows a skeleton announced as loading while the novel loads', async () => {

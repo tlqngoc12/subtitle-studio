@@ -20,6 +20,7 @@ import { chapterBusy } from '../lib/novelBusy';
 import { useChapterActions } from '../lib/useChapterActions';
 import { useChapterEditor } from '../lib/useChapterEditor';
 import { useChapterPages } from '../lib/useChapterPages';
+import { ADMIN_NOVELS_TAB_LABELS, novelsTabCrumb } from '../components/fanfics/NovelsTabs';
 import './ChapterPage.css';
 
 export { AUTO_SAVE_MS } from '../lib/useChapterEditor';
@@ -117,6 +118,7 @@ export default function ChapterPage() {
       <PageHeader
         breadcrumbs={[
           { label: 'Novels', to: '/novels' },
+          novelsTabCrumb(original, ADMIN_NOVELS_TAB_LABELS),
           { label: chapter.novelTitle, to: novelPath },
           { label: chapterLabel(chapter.chapterNo, chapter.title, chapter.label) },
         ]}

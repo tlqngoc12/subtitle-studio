@@ -24,6 +24,7 @@ import { busyTitle, novelBusy } from '../lib/novelBusy';
 import { BusyLine } from '../components/novel/BusyLine';
 import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
+import { ADMIN_NOVELS_TAB_LABELS, novelsTabCrumb } from '../components/fanfics/NovelsTabs';
 import { saveBlob } from '../lib/download';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError, toastSkippedImages } from '../lib/toast';
@@ -156,7 +157,11 @@ export default function NovelPage() {
         <>
           <PageHeader
             variant="hero"
-            breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: novel.title }]}
+            breadcrumbs={[
+              { label: 'Novels', to: '/novels' },
+              novelsTabCrumb(novel.sourceType === 'ORIGINAL', ADMIN_NOVELS_TAB_LABELS),
+              { label: novel.title },
+            ]}
             title={novel.title}
             media={<Cover src={novel.coverUrl} />}
             meta={<span className="badge badge--info">{STATUS_LABEL[novel.novelStatus]}</span>}

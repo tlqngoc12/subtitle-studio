@@ -94,9 +94,29 @@ describe('ChapterPage', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(nav).getByRole('link', { name: 'Novels' })).toHaveAttribute('href', '/novels');
+    expect(within(nav).getByRole('link', { name: 'Translated' })).toHaveAttribute('href', '/novels?tab=translated');
     expect(within(nav).getByRole('link', { name: 'Tình Yêu Mùa Hạ' })).toHaveAttribute('href', '/novels/3');
     expect(within(nav).getByText('Chapter 1: Mở đầu')).toHaveAttribute('aria-current', 'page');
     expect(document.querySelector('.back-link')).toBeNull();
+  });
+
+  it('puts a chapter of an original story under Originals', async () => {
+    renderPage([get({ sourceType: 'ORIGINAL' })]);
+    await loaded();
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'Originals' })).toHaveAttribute('href', '/novels?tab=originals');
+    expect(within(nav).queryByRole('link', { name: 'Translated' })).not.toBeInTheDocument();
+  });
+
+  it('asks before the tab crumb leaves with unsaved edits', async () => {
+    renderPage([get()]);
+    await loaded();
+
+    await user().type(textBox(), '!');
+    await user().click(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('link', { name: 'Translated' }));
+
+    await answerConfirm('Cancel', 'Leave without saving?');
   });
 
   it('asks before a breadcrumb leaves with unsaved edits: Cancel stays, Leave goes', async () => {
@@ -224,7 +244,7 @@ describe('ChapterPage', () => {
     expect(screen.queryByLabelText('Page 1 translation')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enlarge page 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enlarge page 2' })).toBeInTheDocument();
-    expect(screen.getByText('Translated')).toBeInTheDocument();
+    expect(screen.getByText('Translated', { selector: '.badge' })).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
   });
 
