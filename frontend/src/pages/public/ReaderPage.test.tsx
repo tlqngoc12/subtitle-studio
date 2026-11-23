@@ -301,6 +301,10 @@ describe('ReaderPage', () => {
       expect(within(items[1]).getByText('Đang đọc')).toBeInTheDocument();
       expect(within(items[1]).getByRole('link')).toHaveAttribute('aria-current', 'true');
       expect(within(items[2]).queryByText('Đang đọc')).not.toBeInTheDocument();
+      // The rows share the admin popover's look: shared classes, the current one marked, the full name in a title.
+      expect(list).toHaveClass('chapter-toc__list');
+      expect(items.map((li) => li.classList.contains('chapter-toc__item--current'))).toEqual([false, true, false]);
+      expect(within(items[1]).getByRole('link')).toHaveAttribute('title', 'Chương 3: Mưa');
       expect(scroll.mock.contexts.some((el) => el === within(items[1]).getByRole('link'))).toBe(true);
     });
 
@@ -397,7 +401,7 @@ describe('ReaderPage', () => {
       expect(body).toContain('scrollbar-color:');
       expect(css).toContain('@keyframes drawer-in');
       expect(css).toContain('translateX(100%)');
-      const reduced = css.slice(css.indexOf('prefers-reduced-motion: reduce', css.indexOf('.reader-toc__item--current')));
+      const reduced = css.slice(css.indexOf('prefers-reduced-motion: reduce', css.indexOf('@keyframes drawer-fade-out')));
       expect(reduced.slice(0, 120)).toContain('animation: none');
     });
 

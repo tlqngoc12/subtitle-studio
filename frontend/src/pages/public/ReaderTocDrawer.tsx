@@ -7,6 +7,7 @@ import type { PublicChapterRef } from "../../data/novelTypes";
 import { publicChapterLabel } from "./publicNames";
 import { readReadChapters } from "./readerPrefs";
 import { OWN_KEYS } from "./readerKeys";
+import "../../styles/chapter-toc.css";
 import "./ReaderBar.css";
 
 interface Props {
@@ -76,7 +77,7 @@ function ChapterToc({
   }, []);
 
   return (
-    <ol className="reader-toc__list" aria-label="Danh sách chương">
+    <ol className="chapter-toc__list" aria-label="Danh sách chương">
       {chapters.map((c) => {
         const current = c.chapterNo === currentNo;
         return (
@@ -84,22 +85,21 @@ function ChapterToc({
             key={c.chapterNo}
             className={
               current
-                ? "reader-toc__item reader-toc__item--current"
-                : "reader-toc__item"
+                ? "chapter-toc__item chapter-toc__item--current"
+                : "chapter-toc__item"
             }
           >
             <Link
               ref={current ? currentRef : undefined}
-              className={
-                current
-                  ? "reader-toc__link reader-toc__link--current"
-                  : "reader-toc__link"
-              }
+              className="chapter-toc__link"
+              title={publicChapterLabel(c.chapterNo, c.title, c.label)}
               to={`/novels/${slug}/${c.chapterNo}`}
               aria-current={current ? "true" : undefined}
               onClick={onPick}
             >
-              {publicChapterLabel(c.chapterNo, c.title, c.label)}
+              <span className="chapter-toc__name">
+                {publicChapterLabel(c.chapterNo, c.title, c.label)}
+              </span>
             </Link>
             {current && <span className="badge badge--info">Đang đọc</span>}
             {!current && read.has(c.chapterNo) && (
