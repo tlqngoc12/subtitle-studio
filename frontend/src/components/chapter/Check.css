@@ -1,17 +1,34 @@
 /* The Check of the chapter text: purple for rule hits, orange dotted for repeats (never red). */
+/* On a phone the label has its own row and the buttons wrap below it; from 521px they share one row. */
 .chapter-text__head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.chapter-text__head > label {
+  white-space: nowrap;
 }
 
 .chapter-text__tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--space-2);
+}
+
+@media (min-width: 521px) {
+  .chapter-text__head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .chapter-text__tools {
+    justify-content: flex-end;
+  }
 }
 
 .check-bar {

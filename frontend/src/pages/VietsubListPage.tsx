@@ -1,3 +1,4 @@
+import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { SkeletonList } from '../components/ui/Skeleton';
 import { TabTrigger } from '../components/ui/TabTrigger';
@@ -165,14 +166,14 @@ export default function VietsubListPage() {
           </>
         ) : (
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
-            <Tabs.List className="tabs__list" aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
+            <TabsList aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
               <TabTrigger className="tabs__tab" value="playlists">
                 {t('Playlists', 'Danh sách phát')}
               </TabTrigger>
               <TabTrigger className="tabs__tab" value="all">
                 {t('All videos', 'Tất cả video')}
               </TabTrigger>
-            </Tabs.List>
+            </TabsList>
             {search}
             <Tabs.Content value="playlists">
               <PlaylistsTab query={query} playlists={playlists} />

@@ -1,3 +1,4 @@
+import { TabsNav } from '../ui/TabsList';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
@@ -16,13 +17,13 @@ const TABS: { id: SettingsTab; label: string }[] = [
 export function SettingsTabs({ current, children }: { current: SettingsTab; children?: ReactNode }) {
   return (
     <div className="tabs">
-      <nav className="tabs__list" aria-label="Settings">
+      <TabsNav aria-label="Settings">
         {TABS.map((t) => (
           <Link key={t.id} className="tabs__tab" to={`/settings/${t.id}`} aria-current={t.id === current ? 'page' : undefined}>
             {t.label}
           </Link>
         ))}
-      </nav>
+      </TabsNav>
       <div className="tabs__body">{children}</div>
     </div>
   );

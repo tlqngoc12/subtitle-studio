@@ -100,8 +100,8 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
       )}
       {nearLimit && (
         <p className="publish__warning" role="status">
-          Site đang có {fileCount.toLocaleString('vi-VN')}/20.000 file (giới hạn Cloudflare Free). Sắp đầy, nên
-          tính chuyển ảnh chương sang R2.
+          The site has {fileCount.toLocaleString('en-US')} of 20,000 files (Cloudflare Free limit). It is nearly full:
+          consider moving chapter images to R2.
         </p>
       )}
       {dialog}

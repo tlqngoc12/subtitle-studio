@@ -154,6 +154,15 @@
   isolation: isolate;
 }
 
+/* Touch: the link keeps its 40px look but gets a 44px-high hit area. */
+@media (pointer: coarse) {
+  .nav__link::after {
+    content: '';
+    position: absolute;
+    inset: -2px 0;
+  }
+}
+
 .nav__link[aria-current='page'] {
   color: var(--on-brand);
 }

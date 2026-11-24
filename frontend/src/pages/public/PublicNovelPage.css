@@ -126,8 +126,9 @@ body:has(.novel-cta) {
 }
 
 .novel-cta__shelf[aria-pressed="true"] {
-  color: var(--brand);
-  border-color: var(--brand-border);
+  background: var(--brand-2);
+  color: var(--on-brand);
+  border-color: var(--brand-2-ink);
 }
 
 @media (min-width: 768px) {

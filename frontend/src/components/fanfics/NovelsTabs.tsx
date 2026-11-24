@@ -1,3 +1,4 @@
+import { TabsList } from '../ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
@@ -54,7 +55,7 @@ export function NovelsTabs({
 }) {
   return (
     <Tabs.Root value={tab} onValueChange={(v) => onTabChange(v as NovelsTab)} className="tabs">
-      <Tabs.List className="tabs__list" aria-label={useT()('Novels sections', 'Các mục truyện')}>
+      <TabsList aria-label={useT()('Novels sections', 'Các mục truyện')}>
         <TabTrigger className="tabs__tab" value="translated">
           {labels.translated}
         </TabTrigger>
@@ -64,7 +65,7 @@ export function NovelsTabs({
         <TabTrigger className="tabs__tab" value="fanfics">
           {labels.fanfics}
         </TabTrigger>
-      </Tabs.List>
+      </TabsList>
       <Tabs.Content value="translated">{translated}</Tabs.Content>
       <Tabs.Content value="originals">{originals}</Tabs.Content>
       <Tabs.Content value="fanfics">

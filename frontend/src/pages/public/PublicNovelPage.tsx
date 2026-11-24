@@ -1,3 +1,4 @@
+import { TabsList } from '../../components/ui/TabsList';
 import { PUBLIC_NOVELS_TAB_LABELS, novelsTabCrumb } from '../../components/fanfics/NovelsTabs';
 import * as Tabs from "@radix-ui/react-tabs";
 import { TabTrigger } from "../../components/ui/TabTrigger";
@@ -295,7 +296,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
       />
       {hasIntro || trailerId ? (
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
-          <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
+          <TabsList aria-label="Thông tin truyện">
             {hasIntro && (
               <TabTrigger className="tabs__tab" value="intro">
                 Giới thiệu
@@ -309,7 +310,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                 Trailer
               </TabTrigger>
             )}
-          </Tabs.List>
+          </TabsList>
           {hasIntro && (
             <Tabs.Content value="intro" className="tabs__panel">
               <p className="novel-description">{novel.description}</p>

@@ -1,3 +1,4 @@
+import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
 import { CloudDownload, Download, Plus } from 'lucide-react';
@@ -170,7 +171,7 @@ export default function NovelPage() {
           {busy && <BusyLine busy={busy} />}
 
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
-            <Tabs.List className="tabs__list" aria-label="Novel sections">
+            <TabsList aria-label="Novel sections">
               <TabTrigger className="tabs__tab" value="chapters">
                 Chapters
               </TabTrigger>
@@ -185,7 +186,7 @@ export default function NovelPage() {
               <TabTrigger className="tabs__tab" value="profile">
                 Profile
               </TabTrigger>
-            </Tabs.List>
+            </TabsList>
 
             <Tabs.Content value="chapters" className="tabs__panel">
               <Toolbar

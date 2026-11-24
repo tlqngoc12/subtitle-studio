@@ -125,3 +125,10 @@ it('the active paragraph of the original panel keeps --ink at 4.5:1 on its 38% o
     expect(ratio(tokens, '--brand-2-border', '--surface')).toBeGreaterThanOrEqual(3);
   }
 });
+
+it('the Shelf button when on is the app-wide selected look: purple fill, --on-brand text at 4.5:1, a --brand-2-ink border', () => {
+  expect(css).toMatch(
+    /\.novel-cta__shelf\[aria-pressed="true"\]\s*\{[^}]*background:\s*var\(--brand-2\)[^}]*color:\s*var\(--on-brand\)[^}]*border-color:\s*var\(--brand-2-ink\)/,
+  );
+  for (const tokens of Object.values(themes)) expect(ratio(tokens, '--on-brand', '--brand-2')).toBeGreaterThanOrEqual(4.5);
+});
