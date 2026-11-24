@@ -37,7 +37,7 @@
 .saveto__option input {
   width: 18px;
   height: 18px;
-  accent-color: var(--brand);
+  accent-color: var(--brand-2-ink);
 }
 
 .saveto__alert {

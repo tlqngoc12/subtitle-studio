@@ -1,3 +1,5 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
+import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { SkeletonList } from '../components/ui/Skeleton';
 import { TabTrigger } from '../components/ui/TabTrigger';
@@ -46,6 +48,7 @@ function parsePlaylistId(raw: string | null): number | null {
  * so Back from a video returns to it.
  */
 export default function VietsubListPage() {
+  useAdminTitle('List');
   const [params, setParams] = useSearchParams();
   const { source, readOnly } = useSite();
   // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
@@ -129,7 +132,8 @@ export default function VietsubListPage() {
     ? t('Search playlists and videos', 'Tìm danh sách phát và video')
     : t('Search videos', 'Tìm video');
 
-  const pageName = readOnly ? 'Vietsub' : 'Vietsub list';
+  // Admin: the page is the List tab of the Vietsub group (H1 = tab name); guests see the menu item, "Vietsub".
+  const pageName = readOnly ? 'Vietsub' : 'List';
   const tabsShown = !waitingForPlaylist && !active;
   const search = (
     <Toolbar search={<SearchBar value={query} onChange={setQuery} label={searchLabel} onClear={() => setQuery('')} />} />
@@ -138,7 +142,11 @@ export default function VietsubListPage() {
   return (
     <Page>
       <PageHeader
-        breadcrumbs={active ? [{ label: pageName, to: backToPlaylists }, { label: active.name }] : undefined}
+        breadcrumbs={
+          active
+            ? [...(readOnly ? [] : [{ label: 'Vietsub', to: '/vietsub' }]), { label: pageName, to: backToPlaylists }, { label: active.name }]
+            : undefined
+        }
         title={pageName}
         lede={t('Choose a video to watch with Vietsub.', 'Chọn một video để xem cùng Vietsub.')}
       />
@@ -165,14 +173,14 @@ export default function VietsubListPage() {
           </>
         ) : (
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
-            <Tabs.List className="tabs__list" aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
+            <TabsList aria-label={t('Vietsub list views', 'Chế độ xem danh sách Vietsub')}>
               <TabTrigger className="tabs__tab" value="playlists">
                 {t('Playlists', 'Danh sách phát')}
               </TabTrigger>
               <TabTrigger className="tabs__tab" value="all">
                 {t('All videos', 'Tất cả video')}
               </TabTrigger>
-            </Tabs.List>
+            </TabsList>
             {search}
             <Tabs.Content value="playlists">
               <PlaylistsTab query={query} playlists={playlists} />

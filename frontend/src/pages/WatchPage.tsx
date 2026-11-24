@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router';
-import type { ViCue } from '../api/client';
+import { ApiError, type ViCue } from '../api/client';
 import { useSite } from '../data/SiteContext';
 import { useDocumentTitle } from './public/publicNames';
 import { countsAsWatched, markWatched } from '../data/watched';
@@ -19,6 +19,7 @@ import { usePlaylistMode } from '../lib/usePlaylistMode';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
+import { NotFoundState } from '../components/ui/NotFoundState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import './WatchPage.css';
@@ -39,6 +40,7 @@ export default function WatchPage() {
   useDocumentTitle(readOnly && video ? `${video.title} · Vietsub` : null);
   const [cues, setCues] = useState<ViCue[]>([]);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const startPlaying = (location.state as { autoplay?: boolean } | null)?.autoplay === true;
@@ -54,12 +56,16 @@ export default function WatchPage() {
     setVideo(null);
     setCues([]);
     setError(null);
+    setNotFound(false);
     Promise.all([source.getVideo(id), source.getVietsub(id)])
       .then(([v, c]) => {
         setVideo(v);
         setCues(c);
       })
-      .catch((e) => setError(errorMessage(e, { readOnly })));
+      .catch((e) => {
+        if (e instanceof ApiError && (e.status === 404 || e.code === 'VIDEO_NOT_FOUND')) setNotFound(true);
+        else setError(errorMessage(e, { readOnly }));
+      });
   }, [id, source, readOnly]);
 
   // Autoplay: when a video ends, go straight to the next one (no countdown), and stop after the last.
@@ -100,12 +106,28 @@ export default function WatchPage() {
 
   const cue = findActiveCue(cues, player.currentMs);
 
+  if (notFound) {
+    return (
+      <Page>
+        <NotFoundState
+          title={t('Video not found', 'Không tìm thấy video')}
+          crumbs={readOnly ? [{ label: 'Vietsub', to: '/vietsub/list' }] : [{ label: 'Vietsub', to: '/vietsub' }, { label: 'List', to: '/vietsub/list' }]}
+          notFoundLabel={t('Not found', 'Không tìm thấy')}
+          backTo="/vietsub/list"
+          backLabel={t('Go to Vietsub list', 'Về danh sách Vietsub')}
+        >
+          {t('This video does not exist or was removed.', 'Video này không tồn tại hoặc đã bị gỡ.')}
+        </NotFoundState>
+      </Page>
+    );
+  }
+
   return (
     <Page>
       <Breadcrumbs
         items={[
-          // The top menu item is "Vietsub" on the public site; the admin page is the Vietsub list.
-          { label: readOnly ? 'Vietsub' : 'Vietsub list', to: '/vietsub/list' },
+          // The top menu item is "Vietsub" on the public site; the admin site has the Vietsub group with its List tab.
+          ...(readOnly ? [{ label: 'Vietsub', to: '/vietsub/list' }] : [{ label: 'Vietsub', to: '/vietsub' }, { label: 'List', to: '/vietsub/list' }]),
           ...(mode ? [{ label: mode.playlist.name, to: `/vietsub/list?playlist=${mode.playlist.id}` }] : []),
           { label: video?.title ?? '…' },
         ]}
@@ -128,6 +150,7 @@ export default function WatchPage() {
               captionSize={captionSize}
               theater={theater}
               onToggleTheater={toggleTheater}
+              playerState={player.state}
             />
           )}
 

@@ -1,5 +1,7 @@
-import { Download, Search } from 'lucide-react';
-import { useId, useRef, useState, type MouseEvent } from 'react';
+import { Download, EyeOff, Languages, RefreshCw, Search } from 'lucide-react';
+import { useInView } from '../lib/useInView';
+import { useAdminTitle } from '../lib/useAdminTitle';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
@@ -46,6 +48,10 @@ export default function ChapterPage() {
     chapter, text, setText, number, setNumber, label, setLabel, title, setTitle, error, busy, starting,
     finding, setFinding, hits, setHits, counts, originalParagraphs, translating, dirty, canSave,
   } = editor;
+  const [h1Ref, h1InView] = useInView<HTMLSpanElement>();
+  // A published text chapter shows its original only on request (Show original); a draft always shows it.
+  const [originalOpen, setOriginalOpen] = useState(false);
+  useAdminTitle(chapter ? `Ch. ${chapter.chapterNo} · ${chapter.novelTitle}` : null, dirty);
   const pages = useChapterPages({
     chapterId, chapter, setChapter: editor.setChapter, setError: editor.setError, run: editor.run, confirm,
   });
@@ -53,6 +59,14 @@ export default function ChapterPage() {
     chapterId, chapter, dirty, load: editor.load, setChapter: editor.setChapter, setStarting: editor.setStarting,
     run: editor.run, confirm, openChapter: (id) => navigate(`/novels/${chapter?.novelId}/chapters/${id}`),
   });
+
+  // /novels/<A>/chapters/<x> for a chapter of novel B: go to the right URL (replace, so Back does not return here).
+  const ownNovelId = chapter?.novelId;
+  useEffect(() => {
+    if (ownNovelId !== undefined && String(ownNovelId) !== params.id) {
+      navigate(`/novels/${ownNovelId}/chapters/${chapterId}`, { replace: true });
+    }
+  }, [ownNovelId, params.id, chapterId, navigate]);
 
   /** In-app links ask first when there are unsaved edits. */
   async function leave(e: MouseEvent<HTMLAnchorElement>, to: string) {
@@ -96,7 +110,9 @@ export default function ChapterPage() {
   // no Original panel and no page screenshots; Check and Add to check rules work as for any chapter.
   const original = chapter.sourceType === 'ORIGINAL';
   // The Original column is a draft tool: once published, a text chapter looks and behaves like a screenshot chapter.
-  const showOriginal = fromText && !published;
+  // A published text chapter can still show it, read-only, with Show original (hidden by default).
+  const draftOriginal = fromText && !published;
+  const showOriginal = draftOriginal || (fromText && originalOpen);
   const suspectNumbers = chapter.pages.flatMap((p, i) => (p.suspect ? [i + 1] : []));
   const why = chapterBusy(chapter); // why no translation can start now (null = it can)
   const saveState: SaveState = editor.saving
@@ -114,6 +130,7 @@ export default function ChapterPage() {
       ? [
           {
             label: 'Unpublish',
+            icon: EyeOff,
             // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
             disabled: locked || dirty,
             onSelect: () => void actions.unpublish(),
@@ -126,13 +143,14 @@ export default function ChapterPage() {
           exportItem,
           {
             label: chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again',
+            icon: Languages,
             // Translating again replaces the text, edits included.
             danger: chapter.translationStatus !== 'NONE',
             disabled: locked || (!fromText && chapter.pages.length === 0),
             onSelect: () => void actions.translate(),
           },
         ]),
-    ...(showOriginal ? [{ label: 'Reload original', disabled: locked, onSelect: () => void actions.reloadOriginal() }] : []),
+    ...(draftOriginal ? [{ label: 'Reload original', icon: RefreshCw, disabled: locked, onSelect: () => void actions.reloadOriginal() }] : []),
   ];
 
   return (
@@ -146,7 +164,7 @@ export default function ChapterPage() {
           { label: chapterLabel(chapter.chapterNo, chapter.title, chapter.label) },
         ]}
         onNavigate={(e, to) => void leave(e, to)}
-        title={chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}
+        title={<span ref={h1Ref}>{chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}</span>}
       />
 
       <ChapterBar
@@ -157,6 +175,7 @@ export default function ChapterPage() {
         }
         // Short: the H1 above already shows the full title.
         title={chapter.label?.trim() || `Chapter ${chapter.chapterNo}`}
+        titleHidden={h1InView === true}
         badges={<StatusBadges translation={original ? undefined : chapter.translationStatus} publish={chapter.publishStatus} />}
         saveState={saveState}
         canSave={canSave}
@@ -235,6 +254,7 @@ export default function ChapterPage() {
       <ChapterTextEditor
         chapter={chapter} idBase={ids} showOriginal={showOriginal} text={text} onTextChange={setText}
         textRef={textRef} locked={locked} hits={hits} finding={finding} barSlot={checkSlot}
+        originalToggle={fromText && published ? { shown: originalOpen, onToggle: () => setOriginalOpen((v) => !v) } : undefined}
       />
 
       <ChapterLightbox pages={chapter.pages} index={pages.enlarged} onClose={() => pages.setEnlarged(null)} />

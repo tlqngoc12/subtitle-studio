@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { toast } from 'sonner';
@@ -59,6 +59,19 @@ async function analyze(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('ProfilesPage', () => {
+  it('explains what to do while no profile is chosen, and drops the explanation once one is', async () => {
+    fakeFetch([list(), get()]);
+    renderPage('/vietsub/profiles');
+
+    expect(await screen.findByText('Choose a profile to see the lines you corrected, then run Analyze.')).toBeInTheDocument();
+    cleanup();
+
+    fakeFetch([list(), get()]);
+    renderPage();
+    await screen.findByText('34 videos · 612 corrected lines');
+    expect(screen.queryByText(/Choose a profile to see the lines/)).not.toBeInTheDocument();
+  });
+
   it('shows the Profiles tab as current and the stats of the chosen profile', async () => {
     fakeFetch([list(), get()]);
     renderPage();
@@ -66,6 +79,7 @@ describe('ProfilesPage', () => {
     const tabs = screen.getByRole('navigation', { name: 'Vietsub' });
     expect(within(tabs).getByRole('link', { name: 'Profiles' })).toHaveAttribute('aria-current', 'page');
     expect(within(tabs).getByRole('link', { name: 'Videos' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('heading', { level: 1, name: 'Profiles' })).toBeInTheDocument(); // the H1 is the tab name
     expect(await screen.findByText('34 videos · 612 corrected lines')).toBeInTheDocument();
     expect(await screen.findByRole('combobox', { name: 'Profile' })).toHaveTextContent('EmiBonnie');
   });

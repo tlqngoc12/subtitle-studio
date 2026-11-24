@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react';
+import { Info, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import type { ChapterDetail } from '../../api/novels';
 import { useMediaQuery } from '../../lib/useMediaQuery';
@@ -34,18 +34,29 @@ function isShortShare(have: number, of: number): boolean {
   return of > 0 && have < of * MIN_PARAGRAPH_SHARE;
 }
 
-/** "· 8/10 paragraphs of the original", red below 90 % (the translation probably lost a part). */
+/**
+ * "· 10/10 paragraphs of the original" while the counts match; otherwise a warning badge with the difference
+ * ("−2 paragraphs", "+9 paragraphs"), in the warning colours (orange, never red) with an icon. The tooltip says the
+ * translation may be missing a part when it is below 90 %.
+ */
 function ParagraphShare({ have, of }: { have: number; of: number }) {
-  const short = isShortShare(have, of);
-  const label = `· ${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
-  if (!short) return <span className="chapter-count__share"> {label}</span>;
+  const ratio = `${have.toLocaleString('en')}/${of.toLocaleString('en')} paragraphs of the original`;
+  if (have === of) return <span className="chapter-count__share"> · {ratio}</span>;
+  const diff = have - of;
+  const sign = diff > 0 ? '+' : '−';
+  const badge = (
+    <span className="badge badge--warn chapter-count__warn" tabIndex={0}>
+      <TriangleAlert className="icon icon--sm" aria-hidden="true" />
+      {sign}
+      {plural(Math.abs(diff), 'paragraph')}
+      <span className="visually-hidden"> ({ratio})</span>
+    </span>
+  );
   return (
-    <Tip label="The translation may be missing a part">
-      <span className="chapter-count__share chapter-count__warn" tabIndex={0}>
-        {' '}
-        {label}
-      </span>
-    </Tip>
+    <span className="chapter-count__share">
+      {' · '}
+      <Tip label={isShortShare(have, of) ? 'The translation may be missing a part' : ratio}>{badge}</Tip>
+    </span>
   );
 }
 

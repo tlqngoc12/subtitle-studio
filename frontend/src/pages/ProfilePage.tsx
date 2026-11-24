@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { useT } from '../lib/i18n';
 import * as Popover from '@radix-ui/react-popover';
 import { Check, Pencil, Sparkles, SquarePlus, UserPlus } from 'lucide-react';
@@ -39,6 +40,7 @@ export function ProfileRedirect() {
 
 /** Profile page (/profiles): the EmiBonnie banner, then one section per member with alternating portrait sides. */
 export default function ProfilePage() {
+  useAdminTitle('Profile');
   const { source, readOnly } = useSite();
   // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
   useDocumentTitle(readOnly ? 'Profile' : null);

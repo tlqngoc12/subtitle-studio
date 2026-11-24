@@ -43,6 +43,8 @@ export function saveStateText(state: SaveState): string {
 export interface ChapterBarProps {
   nav: ReactNode;
   title: string;
+  /** True while the page's own H1 (the full name) is on screen: the bar then shows only the badges, not the name twice. */
+  titleHidden?: boolean;
   badges: ReactNode;
   saveState: SaveState;
   canSave: boolean;
@@ -66,6 +68,7 @@ export interface ChapterBarProps {
 export function ChapterBar({
   nav,
   title,
+  titleHidden = false,
   badges,
   saveState,
   canSave,
@@ -114,7 +117,7 @@ export function ChapterBar({
     <div ref={root} className={below ? 'chapter-bar chapter-bar--with-below' : 'chapter-bar'}>
       <div className="chapter-bar__nav">{nav}</div>
       <div className="chapter-bar__name">
-        <span className="chapter-bar__title">{title}</span>
+        {!titleHidden && <span className="chapter-bar__title">{title}</span>}
         {badges}
       </div>
       <p className="chapter-bar__state" aria-live="polite">

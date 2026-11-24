@@ -23,6 +23,8 @@ interface Props {
   chapterName: string;
   prev: number | null;
   next: number | null;
+  /** False on a chapter that does not exist: no previous/next buttons at all. */
+  steps?: boolean;
   /** Whether the site top bar slides away (decided by the page). */
   hidden: boolean;
   /** Reports keyboard focus inside the bar, which keeps the bars shown. */
@@ -49,6 +51,7 @@ export function ReaderBar({
   chapterName,
   prev,
   next,
+  steps = true,
   hidden,
   onPinnedChange,
   onTocOpenChange,
@@ -114,8 +117,8 @@ export function ReaderBar({
           </div>
         </div>
         <div className="reader-bar__right">
-          {step(prev, "Chương trước", ChevronLeft)}
-          {step(next, "Chương sau", ChevronRight)}
+          {steps && step(prev, "Chương trước", ChevronLeft)}
+          {steps && step(next, "Chương sau", ChevronRight)}
 
           <IconButton label="Mục lục" icon={List} onClick={() => onTocOpenChange(true)} />
 

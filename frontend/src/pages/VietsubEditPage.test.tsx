@@ -166,7 +166,7 @@ describe('VietsubEditPage English line', () => {
 describe('VietsubEditPage', () => {
   beforeEach(() => {
     player.currentMs = 0;
-    player.state = 'ready';
+    player.state = 'playing';
     player.error = null;
     player.seekTo = vi.fn();
     player.pause = vi.fn();
@@ -190,8 +190,8 @@ describe('VietsubEditPage', () => {
     release();
     expect(await screen.findByRole('heading', { level: 1, name: 'Học Spring Boot' })).toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(within(crumbs).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub/list');
-    expect(within(crumbs).getByRole('link', { name: 'Manage Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(crumbs).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(crumbs).getByRole('link', { name: 'Videos' })).toHaveAttribute('href', '/vietsub');
     expect(within(crumbs).getByText('Học Spring Boot')).toBeInTheDocument();
     expect(screen.getByText('AI', { exact: true })).toBeInTheDocument();
   });
@@ -535,13 +535,22 @@ describe('VietsubEditPage', () => {
     });
   });
 
-  it('shows a not-found alert with a link back when the video is gone', async () => {
+  it('puts a dot in the tab title while a line has unsaved changes', async () => {
+    await renderEditor();
+    expect(document.title).toBe('Học Spring Boot · Subtitle Studio');
+
+    await userEvent.setup().type(area(1), '!');
+    expect(document.title).toBe('● Học Spring Boot · Subtitle Studio');
+  });
+
+  it('shows a Video not found page with breadcrumbs and a link back, not the "no longer in the list" notice', async () => {
     fakeFetch([{ method: 'GET', path: `/api/videos/${ID}`, status: 404, body: problem(404, 'VIDEO_NOT_FOUND', 'x') }]);
     render(tree());
 
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('This video is no longer in the list.');
-    expect(within(alert).getByRole('link', { name: 'Back to Manage Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Video not found' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Not found')).toBeInTheDocument();
   });
 
   it('shows an alert, not the editor, when the video has no Vietsub', async () => {
@@ -762,6 +771,7 @@ describe('VietsubEditPage', () => {
       const user = userEvent.setup();
       expect(screen.queryByRole('button', { name: 'Mark as done' })).not.toBeInTheDocument();
       await expectTooltip(screen.getByRole('button', { name: 'Reopen (back to In progress)' }), 'Reopen (back to In progress)');
+      expect(screen.getByRole('button', { name: 'Reopen (back to In progress)' })).toHaveTextContent('Reopen'); // text next to the icon
 
       await user.click(screen.getByRole('button', { name: 'Reopen (back to In progress)' }));
 
@@ -911,7 +921,7 @@ describe('VietsubEditPage', () => {
       await user.type(area(1), '!');
 
       const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      await user.click(within(crumbs).getByRole('link', { name: 'Manage Vietsub' }));
+      await user.click(within(crumbs).getByRole('link', { name: 'Videos' }));
       await answerConfirm('Cancel', 'Discard unsaved changes?');
 
       expect(area(1)).toHaveValue('Xin chào!');

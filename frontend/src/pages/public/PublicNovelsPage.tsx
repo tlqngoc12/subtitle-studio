@@ -8,7 +8,7 @@ import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
 import { filterNovels, sortNovels, type NovelSort, type NovelStatusFilter } from '../../lib/novelList';
 import FeaturedNovels from './FeaturedNovels';
-import { useReadCounts } from '../../data/novelReads';
+import { readsFor, useReadCountsState } from '../../data/novelReads';
 import { ShelfRow } from './ShelfRow';
 import { readShelf } from './readerPrefs';
 import { PUBLIC_ERROR_TITLE, bannerNovels, useDocumentTitle } from './publicNames';
@@ -42,7 +42,7 @@ const isOriginal = (n: PublicNovelSummary) => n.original === true;
  * same way. Copy is Vietnamese.
  */
 export default function PublicNovelsPage({ source }: { source: NovelSource }) {
-  const reads = useReadCounts();
+  const { counts: reads, loading: readsLoading } = useReadCountsState();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
   const [tab, setTab] = useNovelsTab();
@@ -71,6 +71,8 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
   return (
     <Page>
       <PageHeader title="Truyện" />
+      {/* Above the tab row: the banner belongs to the whole Novels page, not to the Truyện dịch tab. */}
+      {novels !== null && novels.length > 0 && <FeaturedNovels novels={featured} source={source} />}
       <NovelsTabs
         tab={tab}
         onTabChange={setTab}
@@ -84,11 +86,11 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
               <EmptyState icon={BookOpen}>Chưa có truyện nào. Quay lại sau nhé.</EmptyState>
             ) : (
               <>
-                <FeaturedNovels novels={featured} source={source} />
                 <ShelfRow novels={shelved} />
                 <NovelListSection
                   novels={translated}
                   reads={reads}
+                  readsLoading={readsLoading}
                   headingId="all-novels-heading"
                   heading="Tất cả truyện"
                   listLabel="Danh sách truyện"
@@ -108,6 +110,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
               <NovelListSection
                 novels={originals}
                 reads={reads}
+                readsLoading={readsLoading}
                 headingId="all-originals-heading"
                 heading="Truyện sáng tác"
                 listLabel="Danh sách truyện sáng tác"
@@ -126,6 +129,7 @@ export default function PublicNovelsPage({ source }: { source: NovelSource }) {
 function NovelListSection({
   novels,
   reads,
+  readsLoading,
   headingId,
   heading,
   listLabel,
@@ -134,6 +138,7 @@ function NovelListSection({
 }: {
   novels: PublicNovelSummary[];
   reads: Record<string, number> | null;
+  readsLoading: boolean;
   headingId: string;
   heading: string;
   listLabel: string;
@@ -175,7 +180,7 @@ function NovelListSection({
         <ul className="fanfic-list" aria-label={listLabel}>
           {visible.map((n) => (
             <li key={n.slug}>
-              <NovelCard novel={n} href={`/novels/${n.slug}`} reads={reads?.[n.slug]} />
+              <NovelCard novel={n} href={`/novels/${n.slug}`} reads={readsFor(reads, readsLoading, n.slug)} />
             </li>
           ))}
         </ul>

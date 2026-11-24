@@ -137,6 +137,21 @@ describe('VietsubPage', () => {
     expect(row).toHaveAttribute('href', '/vietsub/' + newer.id + '/edit');
   });
 
+  it('sets the admin tab title', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
+    renderPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Videos' });
+    expect(document.title).toBe('Videos · Subtitle Studio');
+  });
+
+  it('names the page like its tab: the H1 is Videos', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
+    renderPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Videos' })).toBeInTheDocument();
+  });
+
   it('keeps the Manage Vietsub heading for screen readers only (the page heading above already says Vietsub)', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();
@@ -262,6 +277,27 @@ describe('VietsubPage', () => {
     });
 
     const pill = (name: string) => within(screen.getByRole('group', { name: 'Filter by source' })).getByRole('button', { name });
+
+    it('filters by edit status (All, In progress, Done) with its own pills', async () => {
+      const working = { ...cafe, editStatus: 'IN_PROGRESS' as const };
+      const finished = { ...aiOld, editStatus: 'DONE' as const };
+      fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [working, finished, aiNew] }]);
+      renderPage();
+      const list = await loadedRegion('Manage Vietsub');
+      const user = userEvent.setup();
+      const group = screen.getByRole('group', { name: 'Filter by status' });
+      expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['All', 'In progress', 'Done']);
+
+      await user.click(within(group).getByRole('button', { name: 'Done' }));
+      await waitFor(() => expect(names(list)).toEqual(['AI cũ']));
+      expect(screen.getByLabelText('search')).toHaveTextContent('?status=done');
+
+      await user.click(within(group).getByRole('button', { name: 'In progress' }));
+      await waitFor(() => expect(names(list)).toEqual(['Café sáng']));
+
+      await user.click(within(group).getByRole('button', { name: 'All' }));
+      await waitFor(() => expect(names(list)).toHaveLength(3));
+    });
 
     it('filters by source with inline pills, not a Filter popover', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [cafe, aiOld, aiNew] }]);

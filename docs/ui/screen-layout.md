@@ -29,6 +29,8 @@ Topbar
 | Toolbar | Trang danh sách | Xem mục 3. |
 | FormActions | Trang form | Xem mục 4. |
 
+**Ngoại lệ: trang đọc chương (Reader public).** Dưới 761 px không hiện breadcrumb, vì thanh trên cùng đã có nút ← về trang truyện (hai đường về cùng một trang). Từ 761 px breadcrumb hiện bình thường.
+
 **Cấp trang:** cấp 1 = trang mở từ menu trên cùng (kể cả các tab-route của một mục, vd Vietsub › Get Engsub/Videos/Playlists/Profiles/List và Showcase › Profile/Works/Photos; hàng tab chỉ hiện ở admin). Cấp ≥ 2 = trang chi tiết, trang sửa, trang tạo mới, trang con.
 
 **Khoảng cách dọc:** breadcrumbs → H1 16 px (`--space-4`) · header → tabs/toolbar/nội dung 24 px (`--space-6`) ·

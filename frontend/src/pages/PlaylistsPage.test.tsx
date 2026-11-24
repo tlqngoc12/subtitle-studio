@@ -80,7 +80,7 @@ describe('PlaylistsPage', () => {
     await loadedRegion('Playlists');
 
     expect(screen.queryByRole('textbox', { name: 'Name' })).not.toBeInTheDocument();
-    const header = screen.getByRole('heading', { level: 1, name: 'Vietsub' }).closest('header')!;
+    const header = screen.getByRole('heading', { level: 1, name: 'Playlists' }).closest('header')!;
     expect(within(header).getByRole('button', { name: 'Create playlist' })).toHaveClass('button--primary');
 
     const dialog = await openDialog(userEvent.setup());

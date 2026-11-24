@@ -76,6 +76,29 @@ export function useReadCounts(): ReadCounts | null {
   return counts;
 }
 
+/** The counts and whether they are still loading, for a page that must tell "not yet" from "never". */
+export function useReadCountsState(): { counts: ReadCounts | null; loading: boolean } {
+  const [state, setState] = useState<{ counts: ReadCounts | null; loading: boolean }>({ counts: null, loading: true });
+  useEffect(() => {
+    let live = true;
+    void fetchReadCounts().then((counts) => live && setState({ counts, loading: false }));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return state;
+}
+
+/**
+ * What a card shows for one novel: null = still loading (a skeleton), a number (0 when it has no reads yet), or
+ * undefined = no counts exist (switched off or the request failed: a dash).
+ */
+export function readsFor(counts: ReadCounts | null, loading: boolean, slug: string): number | null | undefined {
+  if (loading) return null;
+  if (counts === null || Object.keys(counts).length === 0) return undefined;
+  return counts[slug] ?? 0;
+}
+
 const COMPACT = new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 });
 
 /** 999 -> "999", 1234 -> "1,2 N", 1 200 000 -> "1,2 Tr". */

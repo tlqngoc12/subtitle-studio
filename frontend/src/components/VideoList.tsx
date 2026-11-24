@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { SkeletonList } from './ui/Skeleton';
 import { Link } from 'react-router';
-import { Captions, Clock, Download, Languages, MonitorPlay, Play, Trash2 } from 'lucide-react';
+import { Captions, Clock, Download, FileUp, Languages, MonitorPlay, Pencil, Play, SearchX, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { srtUrl, type VideoDto } from '../api/client';
 import { formatDuration } from '../lib/format';
 import { rowMotion } from '../lib/motion';
+import { EditStatusIcon } from './EditStatusIcon';
 import { EmptyState } from './EmptyState';
 import { Tip } from './Tip';
 
@@ -20,14 +21,21 @@ interface Props {
   listKey?: number;
   /** Shown under the list, e.g. the pager. */
   footer?: ReactNode;
+  /** The search shown under the heading. */
+  toolbar?: ReactNode;
+  /** True when a search is applied, so an empty list means "nothing matches" rather than "no videos yet". */
+  filtered?: boolean;
 }
 
-export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listKey, footer }: Props) {
+export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listKey, footer, toolbar, filtered }: Props) {
   return (
     <section className="history" aria-label="Fetched earlier">
       <h2 className="history__heading">Fetched earlier</h2>
+      {toolbar}
       {videos === null ? (
         <SkeletonList rows={6} />
+      ) : videos.length === 0 && filtered ? (
+        <EmptyState icon={SearchX}>No videos match your search.</EmptyState>
       ) : videos.length === 0 ? (
         <EmptyState icon={MonitorPlay}>No videos yet. Paste a YouTube link above to start.</EmptyState>
       ) : (
@@ -58,6 +66,20 @@ export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listK
                             {duration}
                           </span>
                         )}
+                        {v.viCueCount > 0 &&
+                          (v.viSource === 'AUTO' ? (
+                            <span className="meta">
+                              <Languages className="icon icon--sm" aria-hidden="true" />
+                              AI
+                              <EditStatusIcon status={v.editStatus} />
+                            </span>
+                          ) : (
+                            <span className="meta">
+                              <FileUp className="icon icon--sm" aria-hidden="true" />
+                              Manual
+                              <EditStatusIcon status={v.editStatus} />
+                            </span>
+                          ))}
                         {v.translationStatus === 'TRANSLATING' && (
                           <span className="meta">
                             <Languages className="icon icon--sm" aria-hidden="true" />
@@ -78,6 +100,13 @@ export function VideoList({ videos, busyId, onOpen, onDelete, highlightId, listK
                       <Tip label="Watch Video">
                         <Link className="button button--icon button--s" to={`/vietsub/${v.id}`} aria-label={`Watch Video: ${v.title}`}>
                           <Play className="icon" aria-hidden="true" />
+                        </Link>
+                      </Tip>
+                    )}
+                    {v.viCueCount > 0 && (
+                      <Tip label="Edit Vietsub">
+                        <Link className="button button--icon button--s" to={`/vietsub/${v.id}/edit`} aria-label={`Edit Vietsub: ${v.title}`}>
+                          <Pencil className="icon" aria-hidden="true" />
                         </Link>
                       </Tip>
                     )}

@@ -1,5 +1,7 @@
 .chapter-list {
   display: grid;
+  /* An implicit column grows to its content (min-content), so a long name would never get its ellipsis. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
   border-top: 1px solid var(--rule);
   margin: 0;

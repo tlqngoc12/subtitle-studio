@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { CircleCheck, FileUp, Languages, RotateCcw, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -19,9 +20,9 @@ import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { CueEditorTable } from '../components/vietsub/CueEditorTable';
 import { Alert } from '../components/ui/Alert';
-import { IconButton } from '../components/ui/IconButton';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Page } from '../components/ui/Page';
+import { NotFoundState } from '../components/ui/NotFoundState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { findActiveIndex } from '../lib/findActiveCue';
@@ -45,6 +46,7 @@ export default function VietsubEditPage() {
   const [engCues, setEngCues] = useState<CueDto[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -86,14 +88,29 @@ export default function VietsubEditPage() {
     (v) => {
       if (v.translationStatus !== 'TRANSLATING') setReloadKey((k) => k + 1);
     },
-    () => setNotFound(true),
+    () => setRemoved(true),
   );
 
   if (notFound) {
     return (
       <Page width="wide" className="vedit">
+        <NotFoundState
+          title="Video not found"
+          crumbs={[{ label: 'Vietsub', to: '/vietsub' }, { label: 'Videos', to: '/vietsub' }]}
+          backTo="/vietsub"
+          backLabel="Back to Vietsub"
+        >
+          This video does not exist or was removed.
+        </NotFoundState>
+      </Page>
+    );
+  }
+  // The video was deleted while Gemini was translating it (it was there when the page opened).
+  if (removed) {
+    return (
+      <Page width="wide" className="vedit">
         <Alert title="This video is no longer in the list.">
-          <Link to="/vietsub">Back to Manage Vietsub</Link>
+          <Link to="/vietsub">Back to Videos</Link>
         </Alert>
       </Page>
     );
@@ -142,8 +159,8 @@ export default function VietsubEditPage() {
 
 function crumbs(video: VideoDto) {
   return [
-    { label: 'Vietsub', to: '/vietsub/list' },
-    { label: 'Manage Vietsub', to: '/vietsub' },
+    { label: 'Vietsub', to: '/vietsub' },
+    { label: 'Videos', to: '/vietsub' },
     { label: video.title },
   ];
 }
@@ -229,6 +246,7 @@ function Editor({
   }, []);
 
   const dirty = useMemo(() => texts.some((t, i) => t !== saved[i]), [texts, saved]);
+  useAdminTitle(video.title, dirty);
   const valid = useMemo(
     () => texts.every((t) => normalizeText(t).length > 0 && normalizeText(t).length <= MAX_TEXT),
     [texts],
@@ -369,12 +387,18 @@ function Editor({
                 </span>
               </Tip>
               {video.editStatus === 'DONE' ? (
-                <IconButton
-                  icon={RotateCcw}
-                  label="Reopen (back to In progress)"
-                  disabled={translating || changingStatus}
-                  onClick={() => void changeStatus('IN_PROGRESS')}
-                />
+                <Tip label="Reopen (back to In progress)">
+                  <button
+                    className="button"
+                    type="button"
+                    aria-label="Reopen (back to In progress)"
+                    disabled={translating || changingStatus}
+                    onClick={() => void changeStatus('IN_PROGRESS')}
+                  >
+                    <RotateCcw className="icon" aria-hidden="true" />
+                    Reopen
+                  </button>
+                </Tip>
               ) : (
                 <MarkDoneButton
                   disabledReason={
@@ -415,7 +439,7 @@ function Editor({
 
       <div className="vedit__body">
         <div className="vedit__player">
-          <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} />
+          <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} playerState={player.state} />
         </div>
         <CueEditorTable
           cues={baseline}

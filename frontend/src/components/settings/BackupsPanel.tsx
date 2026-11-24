@@ -1,4 +1,4 @@
-import { Archive, Copy } from 'lucide-react';
+import { Archive, Copy, TriangleAlert } from 'lucide-react';
 import type { BackupItem, BackupStatus } from '../../api/backups';
 import type { ErrorMessage } from '../../lib/errors';
 import { formatInstantWithTime } from '../../lib/dates';
@@ -22,6 +22,14 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/** A backup older than this (or none) is a warning: the daily one did not run. */
+const STALE_MS = 24 * 60 * 60 * 1000;
+
+/** When the newest dump or zip was made, as an ISO instant; null when there is none. */
+function newestBackup(items: BackupItem[]): string | null {
+  return items.reduce<string | null>((newest, i) => (newest === null || i.createdAt > newest ? i.createdAt : newest), null);
+}
+
 async function copy(text: string) {
   try {
     await navigator.clipboard.writeText(text);
@@ -33,16 +41,30 @@ async function copy(text: string) {
 }
 
 /**
- * Settings › Backups: the result of the last run, the list of backups (newest first) with a button that copies the
- * restore command, and the restore steps. "Backup now" is the page's header action, so it is not here.
+ * Settings › Backups: a warning when the newest backup is over 24 hours old (or there is none), the result of the
+ * last run, the list of backups (newest first) with a button that copies the restore command, and the restore steps.
+ * "Backup now" is the tab's toolbar action (SettingsPage), so it is not here.
  */
 export function BackupsPanel({ status, error }: { status: BackupStatus | null; error: ErrorMessage | null }) {
   if (error && !status) return <Alert title={error.title} hint={error.hint} />;
   if (!status) return <LoadingText>Loading the backups…</LoadingText>;
 
+  const newest = newestBackup(status.items);
+  const stale = newest === null || Date.now() - Date.parse(newest) > STALE_MS;
+
   return (
     <div className="backups">
       {error && <Alert title={error.title} hint={error.hint} />}
+      {stale && (
+        <p className="backups__stale">
+          <span className="badge badge--warn" role="status">
+            <TriangleAlert className="icon icon--sm" aria-hidden="true" />
+            {newest === null
+              ? 'No backup has been made yet'
+              : `Over 24 hours since the last backup (${formatInstantWithTime(newest)})`}
+          </span>
+        </p>
+      )}
       {status.running && (
         <p className="backups__last muted" role="status">
           A backup is running…

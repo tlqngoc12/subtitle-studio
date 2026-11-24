@@ -354,15 +354,52 @@ input.field-control--l {
   gap: var(--space-3);
 }
 
+/* On a phone the tabs stay on one line and scroll sideways (useScrollableTabs centres the open one and sets the
+   fade attributes); from 761px they wrap as before. */
 .tabs__list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   border-bottom: 1px solid var(--rule);
 }
 
+.tabs__list::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs__list[data-fade-end='true'] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+}
+
+.tabs__list[data-fade-start='true'] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent);
+}
+
+.tabs__list[data-fade-start='true'][data-fade-end='true'] {
+  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+
+@media (min-width: 761px) {
+  .tabs__list,
+  .tabs__list[data-fade-start],
+  .tabs__list[data-fade-end] {
+    flex-wrap: wrap;
+    overflow: visible;
+    mask-image: none;
+  }
+
+  .tabs__tab {
+    margin-bottom: -1px;
+  }
+}
+
 .tabs__tab {
-  margin-bottom: -1px;
+  flex: none;
+  white-space: nowrap;
+  margin-bottom: 0;
   padding: var(--space-3) var(--space-4);
   border: 0;
   border-bottom: 3px solid transparent;
@@ -466,6 +503,12 @@ label.button:has(input:focus-visible) {
 .badge--failed {
   background: var(--danger-bg);
   color: var(--danger);
+}
+
+/* A warning that is not an error: orange ink and border (never red), always with an icon. */
+.badge--warn {
+  border-color: var(--brand-border);
+  color: var(--brand-ink);
 }
 
 .badge--muted {

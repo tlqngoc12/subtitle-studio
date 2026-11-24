@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -52,6 +53,7 @@ export default function WorkEditPage() {
   const [title, setTitle] = useState('');
   /** The title as stored: the breadcrumb must not follow what is being typed. */
   const [savedTitle, setSavedTitle] = useState('');
+  useAdminTitle(id === null ? 'New work' : savedTitle || null);
   const [releaseDate, setReleaseDate] = useState<string | null>(null);
   const [categories, setCategories] = useState<WorkCategory[]>(['FILM_TV']);
   const [subcategory, setSubcategory] = useState('');

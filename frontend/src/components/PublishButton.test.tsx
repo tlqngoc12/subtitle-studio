@@ -136,7 +136,7 @@ describe('PublishButton', () => {
 
     expect(
       await screen.findByText(
-        'Site đang có 16.000/20.000 file (giới hạn Cloudflare Free). Sắp đầy, nên tính chuyển ảnh chương sang R2.',
+        'The site has 16,000 of 20,000 files (Cloudflare Free limit). It is nearly full: consider moving chapter images to R2.',
       ),
     ).toBeInTheDocument();
   });

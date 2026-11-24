@@ -1,3 +1,5 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
+import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
 import { CloudDownload, Download, Plus } from 'lucide-react';
@@ -26,11 +28,13 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { ADMIN_NOVELS_TAB_LABELS, novelsTabCrumb } from '../components/fanfics/NovelsTabs';
 import { saveBlob } from '../lib/download';
+import { ApiError } from '../api/client';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { toastError, toastSkippedImages } from '../lib/toast';
 import { STATUS_LABEL } from './NovelsPage';
 import { Alert } from '../components/ui/Alert';
 import { Page } from '../components/ui/Page';
+import { NotFoundState } from '../components/ui/NotFoundState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Toolbar } from '../components/ui/Toolbar';
@@ -43,19 +47,24 @@ export default function NovelPage() {
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [novel, setNovel] = useState<NovelDetail | null>(null);
+  useAdminTitle(novel?.title);
   const [search] = useSearchParams();
   const [tab, setTab] = useState(() => {
     const wanted = search.get('tab');
     return wanted === 'wattpad' || wanted === 'profile' ? wanted : 'chapters';
   });
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [adding, setAdding] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     getNovel(novelId)
       .then(setNovel)
-      .catch((e) => setError(errorMessage(e)));
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 404) setNotFound(true);
+        else setError(errorMessage(e));
+      });
   }, [novelId]);
 
   /** Reloads the novel (its chapter list) after parts were imported. */
@@ -147,12 +156,17 @@ export default function NovelPage() {
   return (
     <Page>
       {confirmDialog}
+      {notFound && (
+        <NotFoundState title="Novel not found" crumbs={[{ label: 'Novels', to: '/novels' }]} backTo="/novels" backLabel="All novels">
+          This novel does not exist or was deleted.
+        </NotFoundState>
+      )}
       {error && !novel && (
         <PageHeader breadcrumbs={[{ label: 'Novels', to: '/novels' }, { label: 'Novel' }]} title="Novel" />
       )}
       {error && <Alert title={error.title} hint={error.hint} />}
       {!novel ? (
-        !error && <PageSkeleton rows={4} />
+        !error && !notFound && <PageSkeleton rows={4} />
       ) : (
         <>
           <PageHeader
@@ -170,7 +184,7 @@ export default function NovelPage() {
           {busy && <BusyLine busy={busy} />}
 
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
-            <Tabs.List className="tabs__list" aria-label="Novel sections">
+            <TabsList aria-label="Novel sections">
               <TabTrigger className="tabs__tab" value="chapters">
                 Chapters
               </TabTrigger>
@@ -185,7 +199,7 @@ export default function NovelPage() {
               <TabTrigger className="tabs__tab" value="profile">
                 Profile
               </TabTrigger>
-            </Tabs.List>
+            </TabsList>
 
             <Tabs.Content value="chapters" className="tabs__panel">
               <Toolbar

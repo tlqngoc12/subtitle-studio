@@ -1,3 +1,6 @@
+import { UserRoundSearch } from 'lucide-react';
+import { EmptyState } from '../components/EmptyState';
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { getPromptProfiles, type PromptProfiles } from '../api/client';
@@ -24,6 +27,7 @@ function plural(n: number, one: string, many = `${one}s`): string {
 
 /** Vietsub › Profiles: pick a profile; the shared panel lets Gemini propose a better one from the corrected lines. */
 export default function ProfilesPage() {
+  useAdminTitle('Profiles');
   const ids = useId();
   const [params, setParams] = useSearchParams();
   const selected = params.get('profile') ?? '';
@@ -72,7 +76,7 @@ export default function ProfilesPage() {
 
   return (
     <Page>
-      <PageHeader title="Vietsub" lede="Improve a translation profile from the lines you corrected." />
+      <PageHeader title="Profiles" lede="Improve a translation profile from the lines you corrected." />
       <VietsubTabs>
         <ProfileAnalyzePanel<ProfileAnalysis>
           name={details?.name ?? ''}
@@ -112,6 +116,9 @@ export default function ProfilesPage() {
             <>
               {error && <Alert title={error.title} hint={error.hint} />}
               {profiles === null && <LoadingText>Loading profiles…</LoadingText>}
+              {profiles !== null && profiles.profiles.length > 0 && selected === '' && !error && (
+                <EmptyState icon={UserRoundSearch}>Choose a profile to see the lines you corrected, then run Analyze.</EmptyState>
+              )}
               {profiles !== null && profiles.profiles.length === 0 && !error && (
                 <p className="muted">No profiles yet. Add a .md file to ./data/prompts.</p>
               )}

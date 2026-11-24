@@ -1,3 +1,4 @@
+import { TabsNav } from './ui/TabsList';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useSite } from '../data/SiteContext';
@@ -18,13 +19,13 @@ export function RouteTabs({ label, tabs, children }: { label: string; tabs: Rout
   if (readOnly) return <>{children}</>;
   return (
     <div className="tabs">
-      <nav className="tabs__list" aria-label={label}>
+      <TabsNav aria-label={label}>
         {tabs.map((t) => (
           <Link key={t.to} className="tabs__tab" to={t.to} aria-current={t.isCurrent(pathname) ? 'page' : undefined}>
             {t.label}
           </Link>
         ))}
-      </nav>
+      </TabsNav>
       <div className="tabs__body">{children}</div>
     </div>
   );

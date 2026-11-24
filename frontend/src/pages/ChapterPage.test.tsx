@@ -248,6 +248,20 @@ describe('ChapterPage', () => {
 
       expect(await menuItemNames()).toEqual(['Publish', 'Export chapter', 'Translate again', 'Reload original']);
     });
+
+    it('gives every chapter menu item an icon', async () => {
+      renderPage([get({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', sourceLanguage: 'en' })]);
+      await loaded();
+      for (const name of ['Export chapter', 'Translate again', 'Reload original']) {
+        expect((await menuItem(name)).querySelector('svg')).not.toBeNull();
+      }
+    });
+
+    it('gives Unpublish an icon', async () => {
+      renderPage([get({ publishStatus: 'PUBLISHED' })]);
+      await loaded();
+      expect((await menuItem('Unpublish')).querySelector('svg')).not.toBeNull();
+    });
   });
 
   it('has no Publish item on a Published chapter', async () => {
@@ -715,6 +729,55 @@ describe('ChapterPage', () => {
   });
 });
 
+describe('ChapterPage name in the bar', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the short name in the bar only once the H1 has scrolled off screen', async () => {
+    let report!: (visible: boolean) => void;
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          report = (visible) => cb([{ isIntersecting: visible } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    renderPage([get()]);
+    await loaded();
+    const barTitle = () => document.querySelector('.chapter-bar__title');
+    expect(barTitle()).not.toBeNull(); // unknown yet: shown
+
+    act(() => report(true));
+    expect(barTitle()).toBeNull();
+
+    act(() => report(false));
+    expect(barTitle()).not.toBeNull();
+  });
+});
+
+describe('ChapterPage with the wrong novel in the URL', () => {
+  function Where() {
+    const { id, chapterId } = useParams();
+    return <p>at novel {id} chapter {chapterId}</p>;
+  }
+
+  it('replaces the URL with the own novel of the chapter', async () => {
+    fakeFetch([get()]);
+    render(
+      <MemoryRouter initialEntries={['/novels/7/chapters/9']}>
+        <Routes>
+          <Route path="/novels/:id/chapters/:chapterId" element={<><ChapterPage /><Where /></>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // chapterDetail() belongs to novel 3.
+    expect(await screen.findByText('at novel 3 chapter 9')).toBeInTheDocument();
+  });
+});
+
 describe('ChapterPage translating model', () => {
   afterEach(() => vi.useRealTimers());
 
@@ -998,6 +1061,35 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toHaveValue('Bản dịch');
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
+  });
+
+  it('lets a published text chapter show its original read-only with Show original, and hide it by pressing it again', async () => {
+    const user = userEvent.setup();
+    renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'Bản dịch' })]);
+    await loaded();
+    expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show original' }));
+
+    expect(screen.getByRole('region', { name: 'Original text' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show original' })).toHaveAttribute('aria-pressed', 'true');
+    expect(textBox()).toHaveValue('Bản dịch'); // the translation stays editable
+    expect(await menuItemNames()).toEqual(['Unpublish', 'Export chapter']); // no Reload original on a published chapter
+
+    await user.click(screen.getByRole('button', { name: 'Show original' }));
+    expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show original' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('has no Show original button on a draft (the original is already there) or on a screenshot chapter', async () => {
+    renderPage([wattpad({ text: 'Bản dịch' })]);
+    await loaded();
+    expect(screen.queryByRole('button', { name: /original$/i })).not.toBeInTheDocument();
+    cleanup();
+
+    renderPage([get({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+    expect(screen.queryByRole('button', { name: 'Show original' })).not.toBeInTheDocument();
   });
 
   it('words the published note for each kind of chapter', async () => {
@@ -1287,27 +1379,33 @@ describe('ChapterPage status line', () => {
       const ratio = screen.getByText(/paragraphs of the original/);
       expect(ratio).toHaveTextContent('· 10/10 paragraphs of the original');
       expect(ratio).not.toHaveClass('chapter-count__warn');
+      expect(document.querySelector('.chapter-count .badge--warn')).toBeNull();
     });
 
-    it('turns the ratio red below 90 % and explains it in a tooltip', async () => {
+    it('shows a warning badge with how many paragraphs are missing, and explains it in a tooltip', async () => {
       renderPage([wattpad(paras(8))]);
       await loaded();
 
-      const ratio = screen.getByText(/paragraphs of the original/);
-      expect(ratio).toHaveTextContent('· 8/10 paragraphs of the original');
-      expect(ratio).toHaveClass('chapter-count__warn');
-      await expectTooltip(ratio, 'The translation may be missing a part');
+      const badge = document.querySelector('.chapter-count .badge--warn') as HTMLElement;
+      expect(badge).toHaveTextContent('−2 paragraphs');
+      expect(badge).toHaveTextContent('8/10 paragraphs of the original');
+      await expectTooltip(badge, 'The translation may be missing a part');
     });
 
-    it('is not a warning at exactly 90 %', async () => {
+    it('shows the badge for any difference, even one paragraph, and says plus when there are extra paragraphs', async () => {
       renderPage([wattpad(paras(9))]);
       await loaded();
+      expect(document.querySelector('.chapter-count .badge--warn')).toHaveTextContent('−1 paragraph');
+      cleanup();
 
-      expect(screen.getByText(/paragraphs of the original/)).not.toHaveClass('chapter-count__warn');
+      renderPage([wattpad(paras(12))]);
+      await loaded();
+      expect(document.querySelector('.chapter-count .badge--warn')).toHaveTextContent('+2 paragraphs');
     });
 
-    it('colours the warning with the danger token', () => {
-      expect(css).toMatch(/\.chapter-count__warn\s*\{[^}]*color:\s*var\(--danger\)/);
+    it('draws the warning in the warning colours with an icon, never in red', () => {
+      expect(css).toMatch(/\.badge--warn\s*\{[^}]*color:\s*var\(--brand-ink\)/);
+      expect(css).not.toMatch(/\.chapter-count__warn\s*\{[^}]*--danger/);
     });
   });
 });
@@ -1331,6 +1429,17 @@ describe('ChapterPage editor and save state', () => {
     await waitFor(() => expect(textBox().style.height).toBe('5000px'));
     expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*overflow-y:\s*hidden/);
     expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*resize:\s*none/);
+  });
+
+  it('puts the chapter and novel in the tab title, with a dot while there are unsaved changes', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    expect(document.title).toBe('Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio');
+
+    edit();
+    expect(document.title).toBe('● Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio');
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(document.title).toBe('Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio'));
   });
 
   it('shows nothing before the first save, then Unsaved changes, Saving…, Saved HH:mm', async () => {

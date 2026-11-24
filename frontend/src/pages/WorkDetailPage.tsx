@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { Clapperboard, Pencil } from 'lucide-react';
 import { Reveal } from '../components/ui/Reveal';
 import { useEffect, useState, type MouseEvent } from 'react';
@@ -28,6 +29,7 @@ export default function WorkDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [work, setWork] = useState<Work | null>(null);
+  useAdminTitle(work?.title);
   // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
   useDocumentTitle(readOnly ? (work?.title ?? null) : null);
   const [notFound, setNotFound] = useState(id === null);

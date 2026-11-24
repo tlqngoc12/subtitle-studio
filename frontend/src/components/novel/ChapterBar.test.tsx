@@ -166,6 +166,15 @@ describe('ChapterBar layout', () => {
     expect(css).toMatch(/\.chapter-bar\s*\{[^}]*position:\s*sticky;[^}]*top:\s*0/);
   });
 
+  it('shows the name in the bar, and leaves it out (keeping the badges) while the page H1 is on screen', () => {
+    const { rerender, props } = bar();
+    expect(screen.getByText('Chapter 19')).toBeInTheDocument();
+
+    rerender(<ChapterBar {...props} titleHidden />);
+    expect(screen.queryByText('Chapter 19')).not.toBeInTheDocument();
+    expect(screen.getByText('Translated')).toBeInTheDocument();
+  });
+
   it('on phones hides the title, and puts the save state on its own row', () => {
     expect(css).toMatch(/\.chapter-bar__name\s*\{[^}]*display:\s*none/);
     expect(css).toMatch(/\.chapter-bar__state\s*\{[^}]*flex:\s*1 0 100%/);

@@ -1,3 +1,4 @@
+import { TabsList } from '../../components/ui/TabsList';
 import { PUBLIC_NOVELS_TAB_LABELS, novelsTabCrumb } from '../../components/fanfics/NovelsTabs';
 import * as Tabs from "@radix-ui/react-tabs";
 import { TabTrigger } from "../../components/ui/TabTrigger";
@@ -14,7 +15,9 @@ import { ReadsMeta } from "./ReadsMeta";
 import { readProgress, readReadChapters, readShelf, toggleShelf } from "./readerPrefs";
 import { Alert } from '../../components/ui/Alert';
 import { Page } from "../../components/ui/Page";
+import { NotFoundState } from "../../components/ui/NotFoundState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { ApiError } from "../../api/client";
 import { PageSkeleton } from "../../components/ui/Skeleton";
 import {
   PUBLIC_ERROR_TITLE,
@@ -57,6 +60,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   const { slug = "" } = useParams();
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [params, setParams] = useSearchParams();
   const reads = useReadCounts();
   // Shelf state lives here so the button still flips for the session when storage is blocked.
@@ -74,12 +78,31 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
   useEffect(() => {
     setNovel(null);
     setFailed(false);
+    setNotFound(false);
     source
       .getNovel(slug)
       .then(setNovel)
-      .catch(() => setFailed(true));
+      .catch((e) => {
+        if (e instanceof ApiError && (e.status === 404 || e.code === "NOVEL_NOT_FOUND")) setNotFound(true);
+        else setFailed(true);
+      });
   }, [source, slug]);
 
+  if (notFound) {
+    return (
+      <Page>
+        <NotFoundState
+          title="Không tìm thấy truyện"
+          crumbs={[{ label: "Novels", to: "/novels" }]}
+          notFoundLabel="Không tìm thấy"
+          backTo="/novels"
+          backLabel="Về danh sách truyện"
+        >
+          Truyện này không tồn tại hoặc chưa được đăng.
+        </NotFoundState>
+      </Page>
+    );
+  }
   if (failed) {
     return (
       <Page>
@@ -295,7 +318,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
       />
       {hasIntro || trailerId ? (
         <Tabs.Root value={tab} onValueChange={changeTab} className="tabs">
-          <Tabs.List className="tabs__list" aria-label="Thông tin truyện">
+          <TabsList aria-label="Thông tin truyện">
             {hasIntro && (
               <TabTrigger className="tabs__tab" value="intro">
                 Giới thiệu
@@ -309,7 +332,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                 Trailer
               </TabTrigger>
             )}
-          </Tabs.List>
+          </TabsList>
           {hasIntro && (
             <Tabs.Content value="intro" className="tabs__panel">
               <p className="novel-description">{novel.description}</p>
