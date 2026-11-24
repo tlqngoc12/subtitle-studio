@@ -248,6 +248,20 @@ describe('ChapterPage', () => {
 
       expect(await menuItemNames()).toEqual(['Publish', 'Export chapter', 'Translate again', 'Reload original']);
     });
+
+    it('gives every chapter menu item an icon', async () => {
+      renderPage([get({ pages: [], text: 'x', sourceText: 'Src', wattpadPartId: '1', sourceLanguage: 'en' })]);
+      await loaded();
+      for (const name of ['Export chapter', 'Translate again', 'Reload original']) {
+        expect((await menuItem(name)).querySelector('svg')).not.toBeNull();
+      }
+    });
+
+    it('gives Unpublish an icon', async () => {
+      renderPage([get({ publishStatus: 'PUBLISHED' })]);
+      await loaded();
+      expect((await menuItem('Unpublish')).querySelector('svg')).not.toBeNull();
+    });
   });
 
   it('has no Publish item on a Published chapter', async () => {

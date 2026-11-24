@@ -1,4 +1,4 @@
-import { Download, Search } from 'lucide-react';
+import { Download, EyeOff, Languages, RefreshCw, Search } from 'lucide-react';
 import { useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
@@ -114,6 +114,7 @@ export default function ChapterPage() {
       ? [
           {
             label: 'Unpublish',
+            icon: EyeOff,
             // Unpublishing reloads the chapter, so it waits until the edits are saved (like Publish).
             disabled: locked || dirty,
             onSelect: () => void actions.unpublish(),
@@ -126,13 +127,14 @@ export default function ChapterPage() {
           exportItem,
           {
             label: chapter.translationStatus === 'NONE' ? 'Translate' : 'Translate again',
+            icon: Languages,
             // Translating again replaces the text, edits included.
             danger: chapter.translationStatus !== 'NONE',
             disabled: locked || (!fromText && chapter.pages.length === 0),
             onSelect: () => void actions.translate(),
           },
         ]),
-    ...(showOriginal ? [{ label: 'Reload original', disabled: locked, onSelect: () => void actions.reloadOriginal() }] : []),
+    ...(showOriginal ? [{ label: 'Reload original', icon: RefreshCw, disabled: locked, onSelect: () => void actions.reloadOriginal() }] : []),
   ];
 
   return (
