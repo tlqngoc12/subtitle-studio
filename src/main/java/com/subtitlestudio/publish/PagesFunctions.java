@@ -125,6 +125,8 @@ public class PagesFunctions {
     private static String routes(boolean reads, boolean images) {
         List<String> include = new ArrayList<>();
         if (reads) {
+            // Both: it is not documented whether "/api/reads/*" also matches the bare "/api/reads" (GET, index.js).
+            include.add("\"/api/reads\"");
             include.add("\"/api/reads/*\"");
         }
         if (images) {

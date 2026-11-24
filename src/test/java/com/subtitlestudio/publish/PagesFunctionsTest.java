@@ -122,7 +122,7 @@ class PagesFunctionsTest {
     void routesJsonListsOnlyEnabledFunctions() throws IOException {
         r2Functions("d1-id-123", "").prepare(site());
         assertThat(root.resolve("abc-123/_routes.json")).content()
-                .contains("\"/api/reads/*\"").doesNotContain("novel-images").doesNotContain("\"/*\"");
+                .contains("\"/api/reads\"", "\"/api/reads/*\"").doesNotContain("novel-images").doesNotContain("\"/*\"");
 
         r2Functions("", "novel-imgs").prepare(site());
         assertThat(root.resolve("abc-123/_routes.json")).content()
@@ -131,7 +131,7 @@ class PagesFunctionsTest {
 
         r2Functions("d1-id-123", "novel-imgs").prepare(site());
         assertThat(root.resolve("abc-123/_routes.json")).content()
-                .contains("\"/api/reads/*\"", "\"/novel-images/*\"").doesNotContain("\"/*\"");
+                .contains("\"/api/reads\"", "\"/api/reads/*\"", "\"/novel-images/*\"").doesNotContain("\"/*\"");
 
         r2Functions("", "").prepare(site());
         assertThat(root.resolve("abc-123/_routes.json")).doesNotExist();
