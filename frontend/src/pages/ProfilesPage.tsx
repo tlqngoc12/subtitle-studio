@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { getPromptProfiles, type PromptProfiles } from '../api/client';
@@ -24,6 +25,7 @@ function plural(n: number, one: string, many = `${one}s`): string {
 
 /** Vietsub › Profiles: pick a profile; the shared panel lets Gemini propose a better one from the corrected lines. */
 export default function ProfilesPage() {
+  useAdminTitle('Profiles');
   const ids = useId();
   const [params, setParams] = useSearchParams();
   const selected = params.get('profile') ?? '';
@@ -72,7 +74,7 @@ export default function ProfilesPage() {
 
   return (
     <Page>
-      <PageHeader title="Vietsub" lede="Improve a translation profile from the lines you corrected." />
+      <PageHeader title="Profiles" lede="Improve a translation profile from the lines you corrected." />
       <VietsubTabs>
         <ProfileAnalyzePanel<ProfileAnalysis>
           name={details?.name ?? ''}

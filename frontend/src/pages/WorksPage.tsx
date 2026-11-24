@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { Clapperboard, Pencil, Plus, Users } from 'lucide-react';
 import { SkeletonGrid } from '../components/ui/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
@@ -34,6 +35,7 @@ function categoryOptions(vi: boolean) {
 
 /** Works (/works): poster grid filtered by person (`?who=`) and category (`?cat=`). */
 export default function WorksPage() {
+  useAdminTitle('Works');
   const { source, readOnly } = useSite();
   // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
   useDocumentTitle(readOnly ? 'Works' : null);

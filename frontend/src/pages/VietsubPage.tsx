@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { toast } from 'sonner';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,6 +20,7 @@ import { Toolbar } from '../components/ui/Toolbar';
 import './VietsubPage.css';
 
 export default function VietsubPage() {
+  useAdminTitle('Videos');
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [videos, setVideos] = useState<VideoDto[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export default function VietsubPage() {
   return (
     <Page>
       {confirmDialog}
-      <PageHeader title="Vietsub" lede="Replace, download or delete the Vietsub of your videos." />
+      <PageHeader title="Videos" lede="Replace, download or delete the Vietsub of your videos." />
       <VietsubTabs>
         {error && (
           <Alert title={error.title} hint={error.hint} />

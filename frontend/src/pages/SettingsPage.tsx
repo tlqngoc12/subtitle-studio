@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { Archive, LoaderCircle } from 'lucide-react';
 import { BackupsPanel } from '../components/settings/BackupsPanel';
 import { GeminiSettingsForm } from '../components/settings/GeminiSettingsForm';
@@ -9,6 +10,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 
 /** Settings (admin only): one tab per group of settings, each its own route. */
 export default function SettingsPage({ tab }: { tab: SettingsTab }) {
+  useAdminTitle('Settings');
   const backups = useBackups(tab === 'backups');
   return (
     <Page>

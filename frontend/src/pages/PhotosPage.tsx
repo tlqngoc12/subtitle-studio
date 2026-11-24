@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { Camera, Plus } from 'lucide-react';
 import { SkeletonGrid } from '../components/ui/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
@@ -33,6 +34,7 @@ export function peopleOf(page: ProfilePage | null): Person[] {
 
 /** Photos (/photos): Instagram posts as a bento grid, filtered by person (`?who=`), 24 tiles at a time. */
 export default function PhotosPage() {
+  useAdminTitle('Photos');
   const { source, readOnly } = useSite();
   // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
   useDocumentTitle(readOnly ? 'Photos' : null);

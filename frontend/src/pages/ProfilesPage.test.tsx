@@ -66,6 +66,7 @@ describe('ProfilesPage', () => {
     const tabs = screen.getByRole('navigation', { name: 'Vietsub' });
     expect(within(tabs).getByRole('link', { name: 'Profiles' })).toHaveAttribute('aria-current', 'page');
     expect(within(tabs).getByRole('link', { name: 'Videos' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('heading', { level: 1, name: 'Profiles' })).toBeInTheDocument(); // the H1 is the tab name
     expect(await screen.findByText('34 videos · 612 corrected lines')).toBeInTheDocument();
     expect(await screen.findByRole('combobox', { name: 'Profile' })).toHaveTextContent('EmiBonnie');
   });

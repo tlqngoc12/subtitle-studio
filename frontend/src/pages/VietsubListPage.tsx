@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { SkeletonList } from '../components/ui/Skeleton';
@@ -47,6 +48,7 @@ function parsePlaylistId(raw: string | null): number | null {
  * so Back from a video returns to it.
  */
 export default function VietsubListPage() {
+  useAdminTitle('List');
   const [params, setParams] = useSearchParams();
   const { source, readOnly } = useSite();
   // Matches the <title> the server pre-rendered; the admin keeps its own tab title.
@@ -130,7 +132,8 @@ export default function VietsubListPage() {
     ? t('Search playlists and videos', 'Tìm danh sách phát và video')
     : t('Search videos', 'Tìm video');
 
-  const pageName = readOnly ? 'Vietsub' : 'Vietsub list';
+  // Admin: the page is the List tab of the Vietsub group (H1 = tab name); guests see the menu item, "Vietsub".
+  const pageName = readOnly ? 'Vietsub' : 'List';
   const tabsShown = !waitingForPlaylist && !active;
   const search = (
     <Toolbar search={<SearchBar value={query} onChange={setQuery} label={searchLabel} onClear={() => setQuery('')} />} />
@@ -139,7 +142,11 @@ export default function VietsubListPage() {
   return (
     <Page>
       <PageHeader
-        breadcrumbs={active ? [{ label: pageName, to: backToPlaylists }, { label: active.name }] : undefined}
+        breadcrumbs={
+          active
+            ? [...(readOnly ? [] : [{ label: 'Vietsub', to: '/vietsub' }]), { label: pageName, to: backToPlaylists }, { label: active.name }]
+            : undefined
+        }
         title={pageName}
         lede={t('Choose a video to watch with Vietsub.', 'Chọn một video để xem cùng Vietsub.')}
       />

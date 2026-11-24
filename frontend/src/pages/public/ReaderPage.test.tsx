@@ -521,6 +521,11 @@ describe('ReaderPage', () => {
     expect(document.title).toBe('before');
   });
 
+  it('hides the breadcrumb on a phone (the top bar has the back arrow) and keeps it from 761px', () => {
+    expect(css).toMatch(/\.reader-page > \.breadcrumbs\s*\{[^}]*display:\s*none/);
+    expect(css).toMatch(/@media \(min-width: 761px\)\s*\{\s*\.reader-page > \.breadcrumbs\s*\{[^}]*display:\s*block/);
+  });
+
   it('shows a Vietnamese notice when the chapter cannot be loaded (network error)', async () => {
     renderAt('/novels/summer/9', {
       ...source,

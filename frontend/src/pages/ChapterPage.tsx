@@ -1,4 +1,5 @@
 import { Download, EyeOff, Languages, RefreshCw, Search } from 'lucide-react';
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
@@ -46,6 +47,7 @@ export default function ChapterPage() {
     chapter, text, setText, number, setNumber, label, setLabel, title, setTitle, error, busy, starting,
     finding, setFinding, hits, setHits, counts, originalParagraphs, translating, dirty, canSave,
   } = editor;
+  useAdminTitle(chapter ? `Ch. ${chapter.chapterNo} · ${chapter.novelTitle}` : null, dirty);
   const pages = useChapterPages({
     chapterId, chapter, setChapter: editor.setChapter, setError: editor.setError, run: editor.run, confirm,
   });

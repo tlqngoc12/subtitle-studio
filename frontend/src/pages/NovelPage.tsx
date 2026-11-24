@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
@@ -46,6 +47,7 @@ export default function NovelPage() {
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [novel, setNovel] = useState<NovelDetail | null>(null);
+  useAdminTitle(novel?.title);
   const [search] = useSearchParams();
   const [tab, setTab] = useState(() => {
     const wanted = search.get('tab');

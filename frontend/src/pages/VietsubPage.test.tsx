@@ -137,6 +137,21 @@ describe('VietsubPage', () => {
     expect(row).toHaveAttribute('href', '/vietsub/' + newer.id + '/edit');
   });
 
+  it('sets the admin tab title', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
+    renderPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Videos' });
+    expect(document.title).toBe('Videos · Subtitle Studio');
+  });
+
+  it('names the page like its tab: the H1 is Videos', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
+    renderPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Videos' })).toBeInTheDocument();
+  });
+
   it('keeps the Manage Vietsub heading for screen readers only (the page heading above already says Vietsub)', async () => {
     fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [newer] }]);
     renderPage();

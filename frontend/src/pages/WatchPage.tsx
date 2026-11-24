@@ -111,7 +111,7 @@ export default function WatchPage() {
       <Page>
         <NotFoundState
           title={t('Video not found', 'Không tìm thấy video')}
-          crumbs={[{ label: readOnly ? 'Vietsub' : 'Vietsub list', to: '/vietsub/list' }]}
+          crumbs={readOnly ? [{ label: 'Vietsub', to: '/vietsub/list' }] : [{ label: 'Vietsub', to: '/vietsub' }, { label: 'List', to: '/vietsub/list' }]}
           notFoundLabel={t('Not found', 'Không tìm thấy')}
           backTo="/vietsub/list"
           backLabel={t('Go to Vietsub list', 'Về danh sách Vietsub')}
@@ -126,8 +126,8 @@ export default function WatchPage() {
     <Page>
       <Breadcrumbs
         items={[
-          // The top menu item is "Vietsub" on the public site; the admin page is the Vietsub list.
-          { label: readOnly ? 'Vietsub' : 'Vietsub list', to: '/vietsub/list' },
+          // The top menu item is "Vietsub" on the public site; the admin site has the Vietsub group with its List tab.
+          ...(readOnly ? [{ label: 'Vietsub', to: '/vietsub/list' }] : [{ label: 'Vietsub', to: '/vietsub' }, { label: 'List', to: '/vietsub/list' }]),
           ...(mode ? [{ label: mode.playlist.name, to: `/vietsub/list?playlist=${mode.playlist.id}` }] : []),
           { label: video?.title ?? '…' },
         ]}

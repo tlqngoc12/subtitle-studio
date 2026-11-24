@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { ListMusic, ListVideo, Pencil, Plus, Trash2 } from 'lucide-react';
 import { SkeletonList } from '../components/ui/Skeleton';
 import { AnimatePresence, motion } from 'motion/react';
@@ -37,6 +38,7 @@ function toSummary(d: PlaylistDetail): PlaylistSummary {
 
 /** Vietsub › Playlists: create, list and delete playlists (playlists spec section 5). */
 export default function PlaylistsPage() {
+  useAdminTitle('Playlists');
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
@@ -76,7 +78,7 @@ export default function PlaylistsPage() {
     <Page>
       {confirmDialog}
       <PageHeader
-        title="Vietsub"
+        title="Playlists"
         lede="Group videos with Vietsub into playlists and choose their order."
         actions={
           <button className="button button--primary" type="button" onClick={() => setCreating(true)}>

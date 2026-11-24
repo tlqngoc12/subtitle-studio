@@ -190,8 +190,8 @@ describe('VietsubEditPage', () => {
     release();
     expect(await screen.findByRole('heading', { level: 1, name: 'Học Spring Boot' })).toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(within(crumbs).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub/list');
-    expect(within(crumbs).getByRole('link', { name: 'Manage Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(crumbs).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(crumbs).getByRole('link', { name: 'Videos' })).toHaveAttribute('href', '/vietsub');
     expect(within(crumbs).getByText('Học Spring Boot')).toBeInTheDocument();
     expect(screen.getByText('AI', { exact: true })).toBeInTheDocument();
   });
@@ -533,6 +533,14 @@ describe('VietsubEditPage', () => {
 
       expect(spy).not.toHaveBeenCalled();
     });
+  });
+
+  it('puts a dot in the tab title while a line has unsaved changes', async () => {
+    await renderEditor();
+    expect(document.title).toBe('Học Spring Boot · Subtitle Studio');
+
+    await userEvent.setup().type(area(1), '!');
+    expect(document.title).toBe('● Học Spring Boot · Subtitle Studio');
   });
 
   it('shows a Video not found page with breadcrumbs and a link back, not the "no longer in the list" notice', async () => {
@@ -912,7 +920,7 @@ describe('VietsubEditPage', () => {
       await user.type(area(1), '!');
 
       const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      await user.click(within(crumbs).getByRole('link', { name: 'Manage Vietsub' }));
+      await user.click(within(crumbs).getByRole('link', { name: 'Videos' }));
       await answerConfirm('Cancel', 'Discard unsaved changes?');
 
       expect(area(1)).toHaveValue('Xin chào!');

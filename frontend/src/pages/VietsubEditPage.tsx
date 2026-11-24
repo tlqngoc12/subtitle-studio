@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { CircleCheck, FileUp, Languages, RotateCcw, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -96,7 +97,7 @@ export default function VietsubEditPage() {
       <Page width="wide" className="vedit">
         <NotFoundState
           title="Video not found"
-          crumbs={[{ label: 'Vietsub', to: '/vietsub/list' }, { label: 'Manage Vietsub', to: '/vietsub' }]}
+          crumbs={[{ label: 'Vietsub', to: '/vietsub' }, { label: 'Videos', to: '/vietsub' }]}
           backTo="/vietsub"
           backLabel="Back to Vietsub"
         >
@@ -110,7 +111,7 @@ export default function VietsubEditPage() {
     return (
       <Page width="wide" className="vedit">
         <Alert title="This video is no longer in the list.">
-          <Link to="/vietsub">Back to Manage Vietsub</Link>
+          <Link to="/vietsub">Back to Videos</Link>
         </Alert>
       </Page>
     );
@@ -159,8 +160,8 @@ export default function VietsubEditPage() {
 
 function crumbs(video: VideoDto) {
   return [
-    { label: 'Vietsub', to: '/vietsub/list' },
-    { label: 'Manage Vietsub', to: '/vietsub' },
+    { label: 'Vietsub', to: '/vietsub' },
+    { label: 'Videos', to: '/vietsub' },
     { label: video.title },
   ];
 }
@@ -246,6 +247,7 @@ function Editor({
   }, []);
 
   const dirty = useMemo(() => texts.some((t, i) => t !== saved[i]), [texts, saved]);
+  useAdminTitle(video.title, dirty);
   const valid = useMemo(
     () => texts.every((t) => normalizeText(t).length > 0 && normalizeText(t).length <= MAX_TEXT),
     [texts],

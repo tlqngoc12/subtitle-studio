@@ -1368,6 +1368,17 @@ describe('ChapterPage editor and save state', () => {
     expect(css).toMatch(/\.chapter-text textarea\s*\{[^}]*resize:\s*none/);
   });
 
+  it('puts the chapter and novel in the tab title, with a dot while there are unsaved changes', async () => {
+    renderPage([get(), put]);
+    await loaded();
+    expect(document.title).toBe('Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio');
+
+    edit();
+    expect(document.title).toBe('● Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio');
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(document.title).toBe('Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio'));
+  });
+
   it('shows nothing before the first save, then Unsaved changes, Saving…, Saved HH:mm', async () => {
     let finish!: () => void;
     renderPage([get(), { ...put, delay: new Promise<void>((r) => (finish = r)) }]);

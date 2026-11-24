@@ -100,7 +100,8 @@ describe('WatchPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Học Spring Boot' })).toBeInTheDocument();
     const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(nav).getByRole('link', { name: 'List' })).toHaveAttribute('href', '/vietsub/list');
     expect(within(nav).getByText('Học Spring Boot')).toHaveAttribute('aria-current', 'page');
     expect(document.querySelector('.back-link')).toBeNull();
   });
@@ -258,7 +259,7 @@ describe('WatchPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Video not found' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(within(crumbs).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(crumbs).getByRole('link', { name: 'List' })).toHaveAttribute('href', '/vietsub/list');
     expect(within(crumbs).getByText('Not found')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Go to Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
   });
@@ -557,7 +558,8 @@ describe('WatchPage', () => {
 
       const h1 = await screen.findByRole('heading', { level: 1, name: 'Bravo' });
       const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      expect(within(nav).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+      expect(within(nav).getByRole('link', { name: 'Vietsub' })).toHaveAttribute('href', '/vietsub');
+      expect(within(nav).getByRole('link', { name: 'List' })).toHaveAttribute('href', '/vietsub/list');
       expect(within(nav).getByRole('link', { name: 'VLOG OF US' })).toHaveAttribute('href', '/vietsub/list?playlist=4');
       expect(within(nav).getByText('Bravo')).toHaveAttribute('aria-current', 'page');
       expect(document.querySelector('.back-link')).toBeNull();

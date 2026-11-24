@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import {
   closestCenter,
   DndContext,
@@ -47,6 +48,7 @@ export default function PlaylistEditPage() {
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
+  useAdminTitle(playlist ? playlist.name : null);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [editing, setEditing] = useState(false);

@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { BookOpen, PenLine, Plus, SearchX } from 'lucide-react';
 import { Reveal } from '../components/ui/Reveal';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -42,6 +43,7 @@ const SORTS: { value: NovelSort; label: string }[] = [
 
 /** Novels: Translated and Originals share one card list (search, a status filter, a sort and a banner menu). */
 export default function NovelsPage() {
+  useAdminTitle('Novels');
   const [novels, setNovels] = useState<NovelSummary[] | null>(null);
   const [reads, setReads] = useState<Record<string, number> | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);

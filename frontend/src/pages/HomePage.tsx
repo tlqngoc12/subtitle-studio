@@ -1,3 +1,4 @@
+import { useAdminTitle } from '../lib/useAdminTitle';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -47,6 +48,7 @@ function upsert(list: VideoDto[] | null, video: VideoDto): VideoDto[] {
 }
 
 export default function HomePage() {
+  useAdminTitle('Get Engsub');
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [videos, setVideos] = useState<VideoDto[] | null>(null);
   const [current, setCurrent] = useState<Current | null>(null);
