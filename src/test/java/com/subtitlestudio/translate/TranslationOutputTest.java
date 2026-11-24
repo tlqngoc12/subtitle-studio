@@ -79,13 +79,33 @@ class TranslationOutputTest {
     }
 
     @Test
-    void rejectsExtraId() {
+    void dropsExtraId() {
         List<TranslatedLine> got = List.of(new TranslatedLine(0, "a"), new TranslatedLine(1, "b"),
                 new TranslatedLine(2, "c"), new TranslatedLine(9, "x"));
 
-        assertThatThrownBy(() -> TranslationOutput.validate(SENT, got))
-                .extracting(e -> ((TranslationFailedException) e).userMessage())
-                .isEqualTo("Gemini returned missing or mismatched lines (3/3 valid), try again.");
+        assertThat(TranslationOutput.validate(SENT, got)).extracting(TranslatedLine::id).containsExactly(0, 1, 2);
+    }
+
+    @Test
+    void checkKeepsValidLinesAndListsMissingTail() {
+        TranslationOutput.Checked checked = TranslationOutput.check(SENT,
+                List.of(new TranslatedLine(1, " b "), new TranslatedLine(0, "a")));
+
+        assertThat(checked.valid()).containsExactly(new TranslatedLine(0, "a"), new TranslatedLine(1, "b"));
+        assertThat(checked.missing()).containsExactly(SENT.get(2));
+        assertThat(checked.extra()).isZero();
+    }
+
+    @Test
+    void checkPutsDuplicateAndBlankIntoMissingAndCountsExtra() {
+        TranslationOutput.Checked checked = TranslationOutput.check(SENT, List.of(
+                new TranslatedLine(0, "a"), new TranslatedLine(0, "a2"),
+                new TranslatedLine(1, "  "), new TranslatedLine(2, "c"),
+                new TranslatedLine(7, "x"), new TranslatedLine(7, "y"), new TranslatedLine(8, "z")));
+
+        assertThat(checked.valid()).containsExactly(new TranslatedLine(2, "c"));
+        assertThat(checked.missing()).containsExactly(SENT.get(0), SENT.get(1));
+        assertThat(checked.extra()).isEqualTo(2);
     }
 
     @Test
