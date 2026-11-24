@@ -1,7 +1,10 @@
 import { useAdminTitle } from '../lib/useAdminTitle';
+import { matchesSearch } from '../lib/search';
+import { SearchBar } from '../components/ui/SearchBar';
+import { Toolbar } from '../components/ui/Toolbar';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '../components/useConfirmDialog';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   deleteVideo,
   fetchVideo,
@@ -56,7 +59,9 @@ export default function HomePage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const pager = usePagination(videos);
+  const [query, setQuery] = useState('');
+  const shown = useMemo(() => (videos === null ? null : videos.filter((v) => matchesSearch(v, query))), [videos, query]);
+  const pager = usePagination(shown);
   const [profiles, setProfiles] = useState<PromptProfiles>({ configured: false, profiles: [] });
   const [profile, setProfile] = useState(readStoredProfile);
   const [skipReason, setSkipReason] = useState<SkipReason | null>(null);
@@ -225,6 +230,12 @@ export default function HomePage() {
 
         <VideoList
           videos={pager.items}
+          filtered={query.trim() !== ''}
+          toolbar={
+            <Toolbar
+              search={<SearchBar value={query} onChange={(v) => { setQuery(v); pager.setPage(1, { replace: true }); }} label="Search videos" onClear={() => setQuery('')} />}
+            />
+          }
           footer={<Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} />}
           busyId={busyId}
           highlightId={highlightId}

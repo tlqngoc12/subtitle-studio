@@ -150,6 +150,7 @@ export default function WatchPage() {
               captionSize={captionSize}
               theater={theater}
               onToggleTheater={toggleTheater}
+              playerState={player.state}
             />
           )}
 

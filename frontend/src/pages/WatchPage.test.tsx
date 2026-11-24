@@ -13,7 +13,7 @@ import { fakeSource, publicSite } from '../test/fakeSource';
 
 const player = vi.hoisted(() => ({
   currentMs: 0,
-  state: 'ready' as 'loading' | 'ready' | 'playing' | 'paused' | 'ended',
+  state: 'playing' as 'loading' | 'ready' | 'playing' | 'paused' | 'ended',
   error: null as 'EMBED_BLOCKED' | 'LOAD_FAILED' | null,
   /** Reports 'ended' only for this video, like a real player that starts fresh on the next one. */
   endedFor: null as string | null,
@@ -76,7 +76,7 @@ function renderPage(videoBody: VideoDto = video, cueBody: ViCue[] = cues) {
 describe('WatchPage', () => {
   beforeEach(() => {
     player.currentMs = 0;
-    player.state = 'ready';
+    player.state = 'playing';
     player.error = null;
     player.endedFor = null;
     player.calls = [];
@@ -712,6 +712,10 @@ describe('WatchPage', () => {
 });
 
 describe('WatchPage on the public site', () => {
+  beforeEach(() => {
+    player.state = 'playing';
+  });
+
   function renderPublic(source: Parameters<typeof publicSite>[0]) {
     return render(
       <SiteProvider value={publicSite(source)}>
@@ -735,6 +739,19 @@ describe('WatchPage on the public site', () => {
     renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
 
     expect(await screen.findByRole('heading', { name: video.title })).toBeInTheDocument();
+  });
+
+  it('keeps the player buttons off the YouTube overlay until the video has played once', async () => {
+    player.state = 'ready';
+    const { unmount } = renderPage();
+    await screen.findByRole('heading', { name: 'Học Spring Boot' });
+    expect(screen.queryByRole('button', { name: 'Toàn màn hình' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Full screen' })).not.toBeInTheDocument();
+    unmount();
+
+    player.state = 'playing';
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Full screen' })).toBeInTheDocument();
   });
 
   it('says in Vietnamese that the video does not exist, with a way back', async () => {

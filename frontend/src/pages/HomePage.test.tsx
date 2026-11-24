@@ -617,6 +617,57 @@ describe('HomePage', () => {
   });
 
   describe('history', () => {
+    it('labels each video that has Vietsub (AI or Manual, with Done) and links to its editor; others get neither', async () => {
+      fakeFetch([
+        {
+          method: 'GET',
+          path: '/api/videos',
+          status: 200,
+          body: [
+            { ...autoVideo, id: 'AAAAAAAAAAA', title: 'Ai video', viCueCount: 4, viSource: 'AUTO' },
+            { ...autoVideo, id: 'BBBBBBBBBBB', title: 'Manual video', viCueCount: 4, viSource: 'MANUAL', editStatus: 'DONE' },
+            { ...autoVideo, id: 'CCCCCCCCCCC', title: 'Plain video' },
+          ],
+        },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+
+      const history = await loadedRegion('Fetched earlier');
+      const [ai, manual, plain] = within(history).getAllByRole('listitem');
+      expect(within(ai).getByText('AI')).toBeInTheDocument();
+      expect(within(ai).getByRole('link', { name: 'Edit Vietsub: Ai video' })).toHaveAttribute('href', '/vietsub/AAAAAAAAAAA/edit');
+      expect(within(manual).getByText('Manual')).toBeInTheDocument();
+      expect(within(manual).getByRole('img', { name: 'Done' })).toBeInTheDocument();
+      expect(within(plain).queryByText('AI')).not.toBeInTheDocument();
+      expect(within(plain).queryByText('Manual')).not.toBeInTheDocument();
+      expect(within(plain).queryByRole('link', { name: /Edit Vietsub/ })).not.toBeInTheDocument();
+    });
+
+    it('filters the list by title without marks, and says when nothing matches', async () => {
+      fakeFetch([
+        {
+          method: 'GET',
+          path: '/api/videos',
+          status: 200,
+          body: [
+            { ...autoVideo, id: 'AAAAAAAAAAA', title: 'Khám phá Chợ Đêm' },
+            { ...autoVideo, id: 'BBBBBBBBBBB', title: 'Ăn sáng Bangkok' },
+          ],
+        },
+      ]);
+      render(<MemoryRouter><HomePage /></MemoryRouter>);
+      const history = await loadedRegion('Fetched earlier');
+      const u = userEvent.setup();
+
+      await u.type(within(history).getByRole('searchbox', { name: 'Search videos' }), 'cho dem');
+      await waitFor(() => expect(history.querySelectorAll('.history__item')).toHaveLength(1));
+      expect(within(history).getByText('Khám phá Chợ Đêm')).toBeInTheDocument();
+
+      await u.clear(within(history).getByRole('searchbox', { name: 'Search videos' }));
+      await u.type(within(history).getByRole('searchbox', { name: 'Search videos' }), 'zzz');
+      expect(within(history).getByText('No videos match your search.')).toBeInTheDocument();
+    });
+
     it('shows the row actions as icons with tooltips', async () => {
       fakeFetch([{ method: 'GET', path: '/api/videos', status: 200, body: [{ ...autoVideo, viCueCount: 3 }] }]);
 

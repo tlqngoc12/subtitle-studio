@@ -1,3 +1,5 @@
+import { UserRoundSearch } from 'lucide-react';
+import { EmptyState } from '../components/EmptyState';
 import { useAdminTitle } from '../lib/useAdminTitle';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -114,6 +116,9 @@ export default function ProfilesPage() {
             <>
               {error && <Alert title={error.title} hint={error.hint} />}
               {profiles === null && <LoadingText>Loading profiles…</LoadingText>}
+              {profiles !== null && profiles.profiles.length > 0 && selected === '' && !error && (
+                <EmptyState icon={UserRoundSearch}>Choose a profile to see the lines you corrected, then run Analyze.</EmptyState>
+              )}
               {profiles !== null && profiles.profiles.length === 0 && !error && (
                 <p className="muted">No profiles yet. Add a .md file to ./data/prompts.</p>
               )}

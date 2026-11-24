@@ -30,20 +30,24 @@ export default function VietsubPage() {
   const query = params.get('q') ?? '';
   const sourceParam = params.get('source');
   const source: 'ai' | 'manual' | null = sourceParam === 'ai' || sourceParam === 'manual' ? sourceParam : null;
+  const statusParam = params.get('status');
+  const editStatus: 'progress' | 'done' | null = statusParam === 'progress' || statusParam === 'done' ? statusParam : null;
   const filtered = useMemo(
     () =>
       videos === null
         ? null
         : videos.filter(
             (v) =>
-              (source === null || (source === 'ai') === (v.viSource === 'AUTO')) && matchesSearch(v, query),
+              (source === null || (source === 'ai') === (v.viSource === 'AUTO')) &&
+              (editStatus === null || v.editStatus === (editStatus === 'done' ? 'DONE' : 'IN_PROGRESS')) &&
+              matchesSearch(v, query),
           ),
-    [videos, query, source],
+    [videos, query, source, editStatus],
   );
   const pager = usePagination(filtered);
 
   /** Changing the search or the filter starts again on page 1. */
-  function setFilter(key: 'q' | 'source', value: string | null) {
+  function setFilter(key: 'q' | 'source' | 'status', value: string | null) {
     setParams(
       (prev) => {
         const p = new URLSearchParams(prev);
@@ -115,7 +119,7 @@ export default function VietsubPage() {
           busyId={busyId}
           highlightId={highlightId}
           listKey={pager.page}
-          filtered={query.trim() !== '' || source !== null}
+          filtered={query.trim() !== '' || source !== null || editStatus !== null}
           toolbar={
             <Toolbar
               search={
@@ -127,6 +131,7 @@ export default function VietsubPage() {
                 />
               }
               filters={
+                <>
                 <FilterPills<'ai' | 'manual' | null>
                   label="Filter by source"
                   value={source}
@@ -137,6 +142,17 @@ export default function VietsubPage() {
                     { value: 'manual', label: 'Manual' },
                   ]}
                 />
+                <FilterPills<'progress' | 'done' | null>
+                  label="Filter by status"
+                  value={editStatus}
+                  onChange={(v) => setFilter('status', v)}
+                  options={[
+                    { value: null, label: 'All' },
+                    { value: 'progress', label: 'In progress' },
+                    { value: 'done', label: 'Done' },
+                  ]}
+                />
+                </>
               }
             />
           }

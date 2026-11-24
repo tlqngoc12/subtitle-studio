@@ -20,7 +20,6 @@ import { useConfirmDialog } from '../components/useConfirmDialog';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { CueEditorTable } from '../components/vietsub/CueEditorTable';
 import { Alert } from '../components/ui/Alert';
-import { IconButton } from '../components/ui/IconButton';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Page } from '../components/ui/Page';
 import { NotFoundState } from '../components/ui/NotFoundState';
@@ -388,12 +387,18 @@ function Editor({
                 </span>
               </Tip>
               {video.editStatus === 'DONE' ? (
-                <IconButton
-                  icon={RotateCcw}
-                  label="Reopen (back to In progress)"
-                  disabled={translating || changingStatus}
-                  onClick={() => void changeStatus('IN_PROGRESS')}
-                />
+                <Tip label="Reopen (back to In progress)">
+                  <button
+                    className="button"
+                    type="button"
+                    aria-label="Reopen (back to In progress)"
+                    disabled={translating || changingStatus}
+                    onClick={() => void changeStatus('IN_PROGRESS')}
+                  >
+                    <RotateCcw className="icon" aria-hidden="true" />
+                    Reopen
+                  </button>
+                </Tip>
               ) : (
                 <MarkDoneButton
                   disabledReason={
@@ -434,7 +439,7 @@ function Editor({
 
       <div className="vedit__body">
         <div className="vedit__player">
-          <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} />
+          <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} playerState={player.state} />
         </div>
         <CueEditorTable
           cues={baseline}

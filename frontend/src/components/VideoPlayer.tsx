@@ -5,7 +5,7 @@ import type { CaptionSize } from '../lib/viewerPrefs';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { ViCue } from '../api/client';
 import { useFilledViewport } from '../player/useFilledViewport';
-import type { PlayerError } from '../player/useYouTubePlayer';
+import type { PlayerError, PlayerState } from '../player/useYouTubePlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import './VideoPlayer.css';
 
@@ -34,6 +34,11 @@ interface Props {
   /** When given, a button in the frame turns theater mode on and off. */
   theater?: boolean;
   onToggleTheater?: () => void;
+  /**
+   * The player's state. When given, the button row stays hidden until the video has played once, so it does not sit
+   * on top of YouTube's own play overlay. Omitted: the row is always there.
+   */
+  playerState?: PlayerState;
 }
 
 /**
@@ -54,11 +59,19 @@ export function VideoPlayer({
   captionSize,
   theater = false,
   onToggleTheater,
+  playerState,
 }: Props) {
   const t = useT();
   const frameRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [filled, setFilled] = useState(false);
+  const [started, setStarted] = useState(false);
+  // 'loading' is what the player reports right after the video changed: the next video has not played yet.
+  useEffect(() => {
+    if (playerState === 'playing') setStarted(true);
+    else if (playerState === 'loading') setStarted(false);
+  }, [playerState]);
+  const toolsVisible = playerState === undefined || started || playerState === 'playing';
 
   useEffect(() => {
     const doc = document as FullscreenDocument;
@@ -120,6 +133,7 @@ export function VideoPlayer({
       {error ? <p className="player__error">{t(...ERROR_TEXT[error])}</p> : <div className="player__video" ref={containerRef} />}
       <SubtitleOverlay cue={captionsOn ? cue : null} size={captionSize} />
       {/* title, not <Tip>: the tooltip portal renders outside the fullscreen frame, so it would never show there. */}
+      {toolsVisible && (
       <div className="player__tools">
         {onToggleCaptions && (
           <button
@@ -154,6 +168,7 @@ export function VideoPlayer({
           {expanded ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}
         </button>
       </div>
+      )}
     </div>
   );
 }

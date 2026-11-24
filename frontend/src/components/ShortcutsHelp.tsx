@@ -1,6 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
-import { Keyboard } from 'lucide-react';
+import { Keyboard, Type } from 'lucide-react';
 import { useId } from 'react';
+import { useMediaQuery } from '../lib/useMediaQuery';
 import { useCaptionSize, type CaptionSize } from '../lib/viewerPrefs';
 import { Tip } from './Tip';
 import { PopoverPanel } from './ui/PopoverPanel';
@@ -28,24 +29,31 @@ const KEYS: { keys: string[]; action: string; vi: string; playlistOnly?: boolean
 
 const SIZES: CaptionSize[] = ['s', 'm', 'l'];
 
+/** A phone or tablet: no keyboard, so the shortcut list means nothing there. */
+const TOUCH_QUERY = '(hover: none) and (pointer: coarse)';
+
 /** The keyboard shortcuts of the watch page, plus the caption size, in a popover opened by a button or by the ? key. */
 export function ShortcutsHelp({ open, onOpenChange, playlist }: Props) {
   const t = useT();
   const titleId = useId();
   const [size, setSize] = useCaptionSize();
+  // On a touch screen the keys are of no use: the button becomes Caption size, with only the size choice.
+  const touch = useMediaQuery(TOUCH_QUERY);
+  const name = touch ? t('Caption size', 'Cỡ chữ') : t('Keyboard shortcuts', 'Phím tắt');
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
-      <Tip label={t('Keyboard shortcuts (?)', 'Phím tắt (?)')}>
+      <Tip label={touch ? name : t('Keyboard shortcuts (?)', 'Phím tắt (?)')}>
         <Popover.Trigger asChild>
-          <button className="button button--icon" type="button" aria-label={t('Keyboard shortcuts', 'Phím tắt')}>
-            <Keyboard className="icon" aria-hidden="true" />
+          <button className="button button--icon" type="button" aria-label={name}>
+            {touch ? <Type className="icon" aria-hidden="true" /> : <Keyboard className="icon" aria-hidden="true" />}
           </button>
         </Popover.Trigger>
       </Tip>
       <PopoverPanel className="shortcuts" aria-labelledby={titleId}>
         <p className="shortcuts__title" id={titleId}>
-          {t('Keyboard shortcuts', 'Phím tắt')}
+          {name}
         </p>
+        {!touch && (
         <dl className="shortcuts__list">
           {KEYS.filter((k) => playlist || !k.playlistOnly).map((k) => (
             <div className="shortcuts__row" key={k.action}>
@@ -58,6 +66,7 @@ export function ShortcutsHelp({ open, onOpenChange, playlist }: Props) {
             </div>
           ))}
         </dl>
+        )}
         <div className="shortcuts__sizes" role="radiogroup" aria-label={t('Caption size', 'Cỡ chữ phụ đề')}>
           <span className="shortcuts__sizes-label" aria-hidden="true">
             {t('Caption size', 'Cỡ chữ phụ đề')}

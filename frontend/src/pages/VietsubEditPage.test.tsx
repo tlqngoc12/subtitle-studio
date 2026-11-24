@@ -166,7 +166,7 @@ describe('VietsubEditPage English line', () => {
 describe('VietsubEditPage', () => {
   beforeEach(() => {
     player.currentMs = 0;
-    player.state = 'ready';
+    player.state = 'playing';
     player.error = null;
     player.seekTo = vi.fn();
     player.pause = vi.fn();
@@ -771,6 +771,7 @@ describe('VietsubEditPage', () => {
       const user = userEvent.setup();
       expect(screen.queryByRole('button', { name: 'Mark as done' })).not.toBeInTheDocument();
       await expectTooltip(screen.getByRole('button', { name: 'Reopen (back to In progress)' }), 'Reopen (back to In progress)');
+      expect(screen.getByRole('button', { name: 'Reopen (back to In progress)' })).toHaveTextContent('Reopen'); // text next to the icon
 
       await user.click(screen.getByRole('button', { name: 'Reopen (back to In progress)' }));
 
