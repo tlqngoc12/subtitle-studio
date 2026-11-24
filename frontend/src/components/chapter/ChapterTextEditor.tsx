@@ -1,4 +1,4 @@
-import { ListPlus } from 'lucide-react';
+import { Columns2, ListPlus } from 'lucide-react';
 import { useRef, useState, type RefObject } from 'react';
 import type { ChapterDetail } from '../../api/novels';
 import { alignParagraph, paragraphIndexAt, paragraphs } from '../../lib/chapterText';
@@ -32,10 +32,12 @@ interface Props {
   finding: boolean;
   /** The slot in the sticky chapter bar where the Check navigator is shown while Check is on. */
   barSlot?: HTMLElement | null;
+  /** A published text chapter: the button that shows or hides its original (read-only). Absent when the original is always shown (a draft). */
+  originalToggle?: { shown: boolean; onToggle: () => void };
 }
 
 /** The chapter's text box, with the original beside it for a chapter that has one. */
-export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextChange, textRef, locked, hits, finding, barSlot }: Props) {
+export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextChange, textRef, locked, hits, finding, barSlot, originalToggle }: Props) {
   useAutoGrow(textRef, text);
   const showHits = finding && hits.matches.length > 0;
   const checkBox = useRef<HTMLDivElement>(null);
@@ -97,6 +99,17 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
                 Add to check rules
               </button>
             </Tip>
+            {originalToggle && (
+              <button
+                type="button"
+                className="button button--s check-toggle"
+                aria-pressed={originalToggle.shown}
+                onClick={originalToggle.onToggle}
+              >
+                <Columns2 className="icon" aria-hidden="true" />
+                Show original
+              </button>
+            )}
             {isOriginal && (
               <ReviewToggle
                 on={check.review.on}

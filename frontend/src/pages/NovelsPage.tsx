@@ -1,3 +1,4 @@
+import { readsFor } from '../data/novelReads';
 import { useAdminTitle } from '../lib/useAdminTitle';
 import { BookOpen, PenLine, Plus, SearchX } from 'lucide-react';
 import { Reveal } from '../components/ui/Reveal';
@@ -46,6 +47,7 @@ export default function NovelsPage() {
   useAdminTitle('Novels');
   const [novels, setNovels] = useState<NovelSummary[] | null>(null);
   const [reads, setReads] = useState<Record<string, number> | null>(null);
+  const [readsLoading, setReadsLoading] = useState(true);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [tab, setTab] = useNovelsTab();
 
@@ -59,7 +61,10 @@ export default function NovelsPage() {
   }, []);
 
   useEffect(() => {
-    void listNovelReads().then(setReads);
+    void listNovelReads().then((r) => {
+      setReads(r);
+      setReadsLoading(false);
+    });
   }, []);
 
   const pickedCount = (novels ?? []).filter((n) => n.featured).length;
@@ -70,6 +75,7 @@ export default function NovelsPage() {
       original={original}
       novels={novels === null ? null : novels.filter((n) => (n.sourceType === 'ORIGINAL') === original)}
       reads={reads}
+      readsLoading={readsLoading}
       error={error}
       pickedCount={pickedCount}
       onChange={replace}
@@ -93,6 +99,7 @@ function NovelList({
   original,
   novels,
   reads,
+  readsLoading,
   error,
   pickedCount,
   onChange,
@@ -100,6 +107,7 @@ function NovelList({
   original: boolean;
   novels: NovelSummary[] | null;
   reads: Record<string, number> | null;
+  readsLoading: boolean;
   error: ErrorMessage | null;
   pickedCount: number;
   onChange: (updated: NovelSummary) => void;
@@ -161,7 +169,7 @@ function NovelList({
                 admin
                 novel={n}
                 href={`/novels/${n.id}`}
-                reads={reads?.[n.slug]}
+                reads={readsFor(reads, readsLoading, n.slug)}
                 menu={<NovelMenu novel={n} pickedCount={pickedCount} onChange={onChange} />}
               />
             </Reveal>

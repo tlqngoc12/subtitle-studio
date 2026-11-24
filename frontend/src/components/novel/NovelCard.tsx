@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { formatInstant } from '../../lib/dates';
 import type { NovelListItem } from '../../lib/novelList';
 import { Cover } from '../ui/Cover';
+import { Skeleton } from '../ui/Skeleton';
 import { publicChapterCount } from '../../pages/public/publicNames';
 import { Stat } from '../fanfics/FanficCard';
 import { formatCompact } from '../fanfics/format';
@@ -37,15 +38,16 @@ export function NovelCard({
 }: {
   novel: NovelCardData;
   href: string;
-  /** Total reads, or undefined while unknown. */
-  reads?: number;
+  /** Total reads; null while they load (a skeleton), undefined when unavailable (a dash). */
+  reads?: number | null;
   menu?: ReactNode;
   admin?: boolean;
 }) {
   const completed = novel.novelStatus === 'COMPLETED';
   const updated = formatInstant(novel.lastPublishedAt ?? novel.updatedAt);
-  const readsText = reads === undefined ? '–' : formatCompact(reads);
-  const stats: { icon: LucideIcon; label: string; value: string; unit?: string }[] = admin
+  const readsText: ReactNode =
+    reads === undefined ? '–' : reads === null ? <Skeleton width="2.5ch" height="1em" /> : formatCompact(reads);
+  const stats: { icon: LucideIcon; label: string; value: ReactNode; unit?: string }[] = admin
     ? [
         { icon: Library, label: 'Chapters', value: String(novel.chapterCount ?? novel.publishedCount), unit: 'chapters' },
         { icon: BookOpen, label: 'Published', value: String(novel.publishedCount), unit: 'published' },

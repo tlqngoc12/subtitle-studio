@@ -10,7 +10,7 @@ import { useT } from '../../lib/i18n';
 
 /**
  * One poster card; the whole card links to the work's page. `badge` is the profile's display name. `children` (the
- * admin Edit button) sits beside the link so it is never a link descendant.
+ * admin Edit button) sits beside the link so it is never a link descendant; it is inside the Reveal so it appears with the card.
  */
 export function WorkCard({
   work,
@@ -50,8 +50,8 @@ export function WorkCard({
             {work.subcategory && <span className="work-card__chip">{work.subcategory}</span>}
           </span>
         </Link>
+        {children}
       </Reveal>
-      {children}
     </li>
   );
 }

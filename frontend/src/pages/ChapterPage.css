@@ -230,6 +230,6 @@
 
 /* In Chapter details: words, characters, paragraphs and the share of the original's paragraphs. */
 .chapter-count__warn {
-  color: var(--danger);
+  color: var(--brand-ink);
   font-weight: 700;
 }

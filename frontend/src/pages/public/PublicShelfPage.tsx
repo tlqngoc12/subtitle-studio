@@ -6,7 +6,7 @@ import { NovelCard } from '../../components/novel/NovelCard';
 import { LoadingText } from '../../components/ui/LoadingText';
 import { Page } from '../../components/ui/Page';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { useReadCounts } from '../../data/novelReads';
+import { readsFor, useReadCountsState } from '../../data/novelReads';
 import type { NovelSource } from '../../data/novelSource';
 import type { PublicNovelSummary } from '../../data/novelTypes';
 import { errorMessage } from '../../lib/errors';
@@ -15,7 +15,7 @@ import { readShelf } from './readerPrefs';
 
 /** `/novels/shelf`: every novel the reader saved to Tủ sách, in shelf order, as the same cards as the list. */
 export default function PublicShelfPage({ source }: { source: NovelSource }) {
-  const reads = useReadCounts();
+  const { counts: reads, loading: readsLoading } = useReadCountsState();
   const [novels, setNovels] = useState<PublicNovelSummary[] | null>(null);
   const [error, setError] = useState<{ title: string; hint?: string } | null>(null);
   useDocumentTitle('Tủ sách');
@@ -48,7 +48,7 @@ export default function PublicShelfPage({ source }: { source: NovelSource }) {
         <ul className="fanfic-list" aria-label="Tủ sách">
           {shelved.map((n) => (
             <li key={n.slug}>
-              <NovelCard novel={n} href={`/novels/${n.slug}`} reads={reads?.[n.slug]} />
+              <NovelCard novel={n} href={`/novels/${n.slug}`} reads={readsFor(reads, readsLoading, n.slug)} />
             </li>
           ))}
         </ul>

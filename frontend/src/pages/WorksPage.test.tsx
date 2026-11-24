@@ -131,6 +131,10 @@ describe('WorksPage admin', () => {
     await screen.findByRole('link', { name: 'Old song' });
     expect(screen.getByRole('link', { name: 'Add work' })).toHaveAttribute('href', '/works/new');
     expect(screen.getByRole('link', { name: 'Edit Old song' })).toHaveAttribute('href', '/works/2/edit');
+    // The pencil is inside the element that Reveal animates, so it fades in with its card instead of showing early.
+    const card = screen.getByRole('link', { name: 'Old song' }).parentElement!;
+    expect(card).not.toHaveClass('work-card');
+    expect(card).toContainElement(screen.getByRole('link', { name: 'Edit Old song' }));
   });
 
   it('keeps People and Add work at the standard header size', async () => {

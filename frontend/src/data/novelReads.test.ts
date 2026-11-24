@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchReadCounts, formatReads, recordRead, resetReadCounts } from './novelReads';
+import { fetchReadCounts, formatReads, readsFor, recordRead, resetReadCounts } from './novelReads';
 
 const NOW = Date.parse('2026-11-10T10:00:00Z');
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -107,5 +107,15 @@ describe('fetchReadCounts', () => {
       }),
     );
     expect(await fetchReadCounts()).toBeNull();
+  });
+});
+
+describe('readsFor', () => {
+  it('is null while loading, 0 for a novel without reads, and undefined when the counts are off or unavailable', () => {
+    expect(readsFor(null, true, 'a')).toBeNull();
+    expect(readsFor({ b: 4 }, false, 'a')).toBe(0);
+    expect(readsFor({ a: 7, b: 4 }, false, 'a')).toBe(7);
+    expect(readsFor(null, false, 'a')).toBeUndefined(); // the request failed
+    expect(readsFor({}, false, 'a')).toBeUndefined(); // reads switched off: no counts at all
   });
 });

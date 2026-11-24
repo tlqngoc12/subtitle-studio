@@ -18,7 +18,7 @@ export function Stat({
 }: {
   icon: LucideIcon;
   label: string;
-  value: string;
+  value: ReactNode;
   /** Shown after the value on phones only ("chương", "chapters"); none for dates and reading time. */
   unit?: string;
 }) {

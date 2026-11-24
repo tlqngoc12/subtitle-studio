@@ -40,6 +40,17 @@ describe('NovelCard (admin)', () => {
     expect(units).toEqual(['chapters', 'published', 'reads']);
   });
 
+  it('shows a small skeleton while the reads load, and 0 when the novel has none', () => {
+    const { container, unmount } = renderCard(<NovelCard admin novel={BASE} href="/novels/3" reads={null} />);
+    expect(container.querySelector('.fanfic-stat__value .skeleton')).not.toBeNull();
+    expect(screen.queryByText('–')).not.toBeInTheDocument();
+    unmount();
+
+    renderCard(<NovelCard admin novel={BASE} href="/novels/3" reads={0} />);
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.queryByText('–')).not.toBeInTheDocument();
+  });
+
   it('shows a dash for unknown reads and no banner badge when not picked', () => {
     renderCard(<NovelCard admin novel={BASE} href="/novels/3" />);
 

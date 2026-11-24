@@ -68,6 +68,14 @@ afterEach(() => {
 });
 
 describe('PublicNovelsPage (home)', () => {
+  it('puts the banner above the tab row, so it belongs to the whole Novels page', async () => {
+    renderHome();
+
+    const banner = await screen.findByRole('region', { name: 'Truyện nổi bật' });
+    expect(banner.compareDocumentPosition(screen.getByRole('tablist')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('tablist').contains(banner)).toBe(false);
+  });
+
   it('features the newest novels first, at most five, when none is picked', async () => {
     renderHome();
 

@@ -505,6 +505,12 @@ label.button:has(input:focus-visible) {
   color: var(--danger);
 }
 
+/* A warning that is not an error: orange ink and border (never red), always with an icon. */
+.badge--warn {
+  border-color: var(--brand-border);
+  color: var(--brand-ink);
+}
+
 .badge--muted {
   border-color: var(--rule);
   color: var(--muted);
