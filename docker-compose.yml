@@ -33,6 +33,8 @@ services:
       SUBTITLESTUDIO_DB_HOST: oracle
       SUBTITLESTUDIO_DB_USER: subtitle_studio
       SUBTITLESTUDIO_DB_PASSWORD: ${SUBTITLESTUDIO_DB_PASSWORD:?Set SUBTITLESTUDIO_DB_PASSWORD in .env (see .env.example)}
+      # Optional: extra host names allowed to reach the admin, e.g. a Tailscale *.ts.net name (empty = localhost only).
+      SUBTITLESTUDIO_ALLOWED_HOSTS: ${SUBTITLESTUDIO_ALLOWED_HOSTS:-}
       # Optional: empty turns Gemini translation off (the rest of the app works the same).
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # Optional: Publish to Cloudflare Pages (empty token, account id or project = Publish off).
