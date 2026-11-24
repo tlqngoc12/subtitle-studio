@@ -33,7 +33,7 @@ public class PublishService {
     private final PublicPageRenderer pageRenderer;
     private final SitemapWriter sitemap;
     private final WranglerClient wrangler;
-    private final ReadCountsFunctions readCounts;
+    private final PagesFunctions readCounts;
     /** Cloudflare Pages Free plan: at most 20,000 files per deployment; the admin is warned from 16,000. */
     public static final int FILE_LIMIT = 20_000;
     public static final int FILE_WARNING = 16_000;
@@ -49,7 +49,7 @@ public class PublishService {
     private Integer fileCount;
 
     public PublishService(SiteExporter exporter, PublicSiteBundle bundle, PublicPageRenderer pageRenderer,
-                          SitemapWriter sitemap, WranglerClient wrangler, ReadCountsFunctions readCounts,
+                          SitemapWriter sitemap, WranglerClient wrangler, PagesFunctions readCounts,
                           SubtitleStudioProperties properties, Clock clock,
                           @Qualifier("publishExecutor") Executor executor) {
         this.exporter = exporter;

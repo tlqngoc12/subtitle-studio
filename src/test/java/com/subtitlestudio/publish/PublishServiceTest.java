@@ -66,7 +66,7 @@ class PublishServiceTest {
                 new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
                 new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of()),
                 new SubtitleStudioProperties.Publish(token, "acc", "fans", indexable, "wrangler", Duration.ofMinutes(5), d1Id));
-        return new PublishService(exporter, bundle, pageRenderer, sitemap, wrangler, new ReadCountsFunctions(props),
+        return new PublishService(exporter, bundle, pageRenderer, sitemap, wrangler, new PagesFunctions(props),
                 props, clock, executor);
     }
 
@@ -77,7 +77,7 @@ class PublishServiceTest {
                 new SubtitleStudioProperties.Publish("cf-secret-123", "acc", "fans", true, "wrangler",
                         Duration.ofMinutes(5), "", "", "CODE9"));
         return new PublishService(exporter, bundle, new PublicPageRenderer(new com.fasterxml.jackson.databind.ObjectMapper()),
-                new SitemapWriter(50_000), wrangler, new ReadCountsFunctions(props), props, clock, executor);
+                new SitemapWriter(50_000), wrangler, new PagesFunctions(props), props, clock, executor);
     }
 
     private PublishService service() {
