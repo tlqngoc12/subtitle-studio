@@ -34,6 +34,7 @@ import { Tip } from '../components/Tip';
 import { useConfirmDialog } from '../components/useConfirmDialog';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { Alert } from '../components/ui/Alert';
+import { NotFoundState } from '../components/ui/NotFoundState';
 import { Page } from '../components/ui/Page';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
@@ -55,11 +56,16 @@ export default function PlaylistEditPage() {
     setPlaylist(null);
     setNotFound(false);
     setError(null);
+    // /vietsub/playlists/NaN would call /api/playlists/NaN (a 400): an id that is not a whole number is just not found.
+    if (!Number.isInteger(id) || id <= 0) {
+      setNotFound(true);
+      return;
+    }
     getPlaylist(id)
       .then(setPlaylist)
       .catch((e) => {
         if (e instanceof ApiError && e.status === 404) setNotFound(true);
-        setError(errorMessage(e));
+        else setError(errorMessage(e));
       });
   }, [id]);
 
@@ -144,13 +150,14 @@ export default function PlaylistEditPage() {
     return (
       <Page>
         {confirmDialog}
-        {notFound || error ? (
+        {notFound ? (
+          <NotFoundState title="Playlist not found" crumbs={crumbs} backTo="/vietsub/playlists" backLabel="All playlists">
+            This playlist does not exist or was deleted.
+          </NotFoundState>
+        ) : error ? (
           <>
-            <PageHeader
-              breadcrumbs={[...crumbs, { label: notFound ? 'Not found' : 'Playlist' }]}
-              title={notFound ? 'Playlist not found' : 'Playlist'}
-            />
-            {error && <Alert title={error.title} hint={notFound ? undefined : error.hint} />}
+            <PageHeader breadcrumbs={[...crumbs, { label: 'Playlist' }]} title="Playlist" />
+            <Alert title={error.title} hint={error.hint} />
           </>
         ) : (
           <PageSkeleton rows={4} />

@@ -419,6 +419,19 @@ describe('PublicNovelPage', () => {
       }),
     );
 
+    expect(await screen.findByRole('heading', { level: 1, name: 'Không tìm thấy truyện' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Về danh sách truyện' })).toHaveAttribute('href', '/novels');
+  });
+
+  it('keeps the generic notice for a load error that is not a missing novel', async () => {
+    renderPage(
+      source({
+        getNovel: async () => {
+          throw new TypeError('Failed to fetch');
+        },
+      }),
+    );
+
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Không tải được. Vui lòng thử lại sau.');
     expect(within(alert).getByRole('link', { name: 'Về danh sách truyện' })).toHaveAttribute('href', '/novels');

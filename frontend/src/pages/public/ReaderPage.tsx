@@ -1,8 +1,10 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BookX, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
+import { EmptyState } from "../../components/EmptyState";
 import { Page } from "../../components/ui/Page";
+import { ApiError } from "../../api/client";
 import type { NovelSource } from "../../data/novelSource";
 import type {
   PublicChapterFile,
@@ -55,6 +57,8 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   const [novel, setNovel] = useState<PublicNovelDetail | null>(null);
   const [chapter, setChapter] = useState<PublicChapterFile | null>(null);
   const [failed, setFailed] = useState(false);
+  // The chapter does not exist (not published, or removed): not a load error, so say so plainly.
+  const [notFound, setNotFound] = useState(false);
   const [theme, setTheme] = useState<ReaderTheme>(readTheme);
   const [size, setSize] = useState<ReaderSize>(readSize);
   const compact = useMediaQuery(COMPACT_QUERY);
@@ -122,13 +126,17 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   useEffect(() => {
     setChapter(null);
     setFailed(false);
+    setNotFound(false);
     source
       .getChapter(slug, Number(chapterNo))
       .then((c) => {
         setChapter(c);
         area.current?.scrollIntoView?.({ block: "start" });
       })
-      .catch(() => setFailed(true));
+      .catch((e) => {
+        if (e instanceof ApiError && (e.status === 404 || e.code === "CHAPTER_NOT_FOUND")) setNotFound(true);
+        else setFailed(true);
+      });
   }, [source, slug, chapterNo]);
 
   const format = chapter ? pickFormat(chapter, compact, size) : null;
@@ -220,6 +228,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         )}
         prev={prev}
         next={next}
+        steps={!notFound}
         hidden={chrome.hidden}
         onPinnedChange={onPinnedChange}
         onTocOpenChange={openToc}
@@ -230,7 +239,9 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         size={size}
         onSize={changeSize}
       />
-      <div className="reader-progress" aria-hidden="true" style={{ transform: `scaleX(${progress})` }} />
+      {!notFound && (
+        <div className="reader-progress" aria-hidden="true" style={{ transform: `scaleX(${progress})` }} />
+      )}
       <ReaderTocDrawer
         open={tocOpen}
         onOpenChange={setTocOpen}
@@ -250,7 +261,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
           onSize={changeSize}
         />
       )}
-      {compact && (
+      {compact && !notFound && (
         <ReaderBottomBar
           slug={slug}
           prev={prev}
@@ -266,7 +277,23 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       {failed && (
         <Alert title={PUBLIC_ERROR_TITLE} />
       )}
-      {!chapter && !failed && (
+      {notFound && (
+        <section className="reader-missing">
+          <h1>Chương này chưa được đăng</h1>
+          <EmptyState icon={BookX}>Chương này chưa được đăng hoặc đã bị gỡ. Bạn có thể quay lại trang truyện để chọn chương khác.</EmptyState>
+          <div className="reader-missing__actions">
+            <Link className="button button--primary" to={`/novels/${slug}`}>
+              Về trang truyện
+            </Link>
+            {novel && novel.chapters.length > 0 && (
+              <Link className="button" to={to(novel.chapters[0].chapterNo)}>
+                Đọc chương đầu tiên
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+      {!chapter && !failed && !notFound && (
         <>
           {loadingTitle && (
             <h1 className="reader-loading-title">

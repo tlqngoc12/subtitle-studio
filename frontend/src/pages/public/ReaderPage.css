@@ -51,6 +51,26 @@
   margin: 0;
 }
 
+/* A chapter that is not published: a heading, one sentence and the way back. */
+.reader-missing {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  text-align: center;
+}
+
+.reader-missing h1 {
+  margin: 0;
+  font-size: var(--step-3);
+}
+
+.reader-missing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
 /* Guests read the drawn pages; nothing on them can be selected, dragged or long-pressed. */
 .reader-loading-title {
   max-width: var(--reader-width, 600px);

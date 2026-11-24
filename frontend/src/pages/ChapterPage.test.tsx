@@ -729,6 +729,27 @@ describe('ChapterPage', () => {
   });
 });
 
+describe('ChapterPage with the wrong novel in the URL', () => {
+  function Where() {
+    const { id, chapterId } = useParams();
+    return <p>at novel {id} chapter {chapterId}</p>;
+  }
+
+  it('replaces the URL with the own novel of the chapter', async () => {
+    fakeFetch([get()]);
+    render(
+      <MemoryRouter initialEntries={['/novels/7/chapters/9']}>
+        <Routes>
+          <Route path="/novels/:id/chapters/:chapterId" element={<><ChapterPage /><Where /></>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // chapterDetail() belongs to novel 3.
+    expect(await screen.findByText('at novel 3 chapter 9')).toBeInTheDocument();
+  });
+});
+
 describe('ChapterPage translating model', () => {
   afterEach(() => vi.useRealTimers());
 

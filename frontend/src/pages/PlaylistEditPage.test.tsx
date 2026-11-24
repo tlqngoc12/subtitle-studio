@@ -282,12 +282,27 @@ describe('PlaylistEditPage', () => {
     expect(screen.queryByRole('link', { name: 'Play all' })).not.toBeInTheDocument();
   });
 
+  it('treats an id that is not a number as not found without calling the API', async () => {
+    const calls = fakeFetch([]);
+    render(
+      <MemoryRouter initialEntries={['/vietsub/playlists/NaN']}>
+        <Routes>
+          <Route path="/vietsub/playlists/:playlistId" element={<PlaylistEditPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Playlist not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All playlists' })).toHaveAttribute('href', '/vietsub/playlists');
+    expect(calls).toHaveLength(0);
+  });
+
   it('says the playlist is gone when it does not exist', async () => {
     renderPage([
       { method: 'GET', path: '/api/playlists/4', status: 404, body: problem(404, 'PLAYLIST_NOT_FOUND', 'gone') },
     ]);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('This playlist no longer exists.');
-    expect(screen.getByRole('link', { name: 'Back to Playlists' })).toHaveAttribute('href', '/vietsub/playlists');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Playlist not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All playlists' })).toHaveAttribute('href', '/vietsub/playlists');
   });
 });

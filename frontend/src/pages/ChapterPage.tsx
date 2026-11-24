@@ -1,5 +1,5 @@
 import { Download, EyeOff, Languages, RefreshCw, Search } from 'lucide-react';
-import { useId, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { chapterLabel } from '../components/novel/ChapterList';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
@@ -53,6 +53,14 @@ export default function ChapterPage() {
     chapterId, chapter, dirty, load: editor.load, setChapter: editor.setChapter, setStarting: editor.setStarting,
     run: editor.run, confirm, openChapter: (id) => navigate(`/novels/${chapter?.novelId}/chapters/${id}`),
   });
+
+  // /novels/<A>/chapters/<x> for a chapter of novel B: go to the right URL (replace, so Back does not return here).
+  const ownNovelId = chapter?.novelId;
+  useEffect(() => {
+    if (ownNovelId !== undefined && String(ownNovelId) !== params.id) {
+      navigate(`/novels/${ownNovelId}/chapters/${chapterId}`, { replace: true });
+    }
+  }, [ownNovelId, params.id, chapterId, navigate]);
 
   /** In-app links ask first when there are unsaved edits. */
   async function leave(e: MouseEvent<HTMLAnchorElement>, to: string) {

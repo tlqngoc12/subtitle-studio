@@ -255,7 +255,12 @@ describe('WatchPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('This video is no longer in the list');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Video not found' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(crumbs).getByRole('link', { name: 'Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
+    expect(within(crumbs).getByText('Not found')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to Vietsub list' })).toHaveAttribute('href', '/vietsub/list');
   });
 
   describe('layout', () => {
@@ -728,6 +733,23 @@ describe('WatchPage on the public site', () => {
     renderPublic(fakeSource({ getVideo: async () => video, getVietsub: async () => cues }));
 
     expect(await screen.findByRole('heading', { name: video.title })).toBeInTheDocument();
+  });
+
+  it('says in Vietnamese that the video does not exist, with a way back', async () => {
+    const { ApiError } = await import('../api/client');
+    renderPublic(
+      fakeSource({
+        getVideo: async () => {
+          throw new ApiError(404, 'VIDEO_NOT_FOUND', 'x');
+        },
+        getVietsub: async () => {
+          throw new ApiError(404, 'VIDEO_NOT_FOUND', 'x');
+        },
+      }),
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Không tìm thấy video' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Về danh sách Vietsub' })).toHaveAttribute('href', '/vietsub/list');
   });
 
   it('records a watched video on the public site too', async () => {

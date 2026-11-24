@@ -535,13 +535,14 @@ describe('VietsubEditPage', () => {
     });
   });
 
-  it('shows a not-found alert with a link back when the video is gone', async () => {
+  it('shows a Video not found page with breadcrumbs and a link back, not the "no longer in the list" notice', async () => {
     fakeFetch([{ method: 'GET', path: `/api/videos/${ID}`, status: 404, body: problem(404, 'VIDEO_NOT_FOUND', 'x') }]);
     render(tree());
 
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('This video is no longer in the list.');
-    expect(within(alert).getByRole('link', { name: 'Back to Manage Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Video not found' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Vietsub' })).toHaveAttribute('href', '/vietsub');
+    expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Not found')).toBeInTheDocument();
   });
 
   it('shows an alert, not the editor, when the video has no Vietsub', async () => {

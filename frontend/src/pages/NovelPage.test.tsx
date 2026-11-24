@@ -34,6 +34,15 @@ const getNovel = { method: 'GET', path: '/api/novels/3', status: 200, body: nove
 const profiles = { method: 'GET', path: '/api/novel-profiles', status: 200, body: { configured: true, profiles: ['SummerLove'] } };
 
 describe('NovelPage', () => {
+  it('shows a Novel not found page with breadcrumbs and a link back when the novel does not exist', async () => {
+    fakeFetch([{ method: 'GET', path: '/api/novels/3', status: 404, body: problem(404, 'NOVEL_NOT_FOUND', 'x') }]);
+    renderPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Novel not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All novels' })).toHaveAttribute('href', '/novels');
+    expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Not found')).toBeInTheDocument();
+  });
+
   it('lists chapters with their translation and publish badges', async () => {
     fakeFetch([getNovel]);
     renderPage();

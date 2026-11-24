@@ -521,15 +521,33 @@ describe('ReaderPage', () => {
     expect(document.title).toBe('before');
   });
 
-  it('shows a Vietnamese notice when the chapter cannot be loaded', async () => {
+  it('shows a Vietnamese notice when the chapter cannot be loaded (network error)', async () => {
     renderAt('/novels/summer/9', {
+      ...source,
+      getChapter: async () => {
+        throw new TypeError('Failed to fetch');
+      },
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được. Vui lòng thử lại sau.');
+  });
+
+  it('says a chapter that is not published is not published, with the ways back, and no step buttons or progress bar', async () => {
+    const { container } = renderAt('/novels/summer/9', {
       ...source,
       getChapter: async () => {
         throw new ApiError(404, 'CHAPTER_NOT_FOUND', 'x');
       },
     });
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được. Vui lòng thử lại sau.');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Chương này chưa được đăng' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Về trang truyện' }).some((a) => a.textContent === 'Về trang truyện')).toBe(true);
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Đọc chương đầu tiên' })).toHaveAttribute('href', '/novels/summer/1'));
+    expect(screen.queryByRole('link', { name: 'Chương trước' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chương trước' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chương sau' })).not.toBeInTheDocument();
+    expect(container.querySelector('.reader-progress')).toBeNull();
   });
 
   it('falls back to a plain novel crumb before the novel is loaded', async () => {
