@@ -329,4 +329,73 @@ class GeminiTranslatorImplTest {
 
         assertThat(server.lastBody()).doesNotContain("thinkingConfig");
     }
+
+    private static List<SourceLine> numbered(int count) {
+        return java.util.stream.IntStream.range(0, count).mapToObj(i -> new SourceLine(i, "line " + i)).toList();
+    }
+
+    private static String answer(int from, int to) {
+        return java.util.stream.IntStream.range(from, to).mapToObj(i -> "{\"id\":" + i + ",\"text\":\"dòng " + i + "\"}")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+    }
+
+    @Test
+    void asksAgainOnlyForTheMissingTailAndMergesInOrder() {
+        List<SourceLine> lines = numbered(10);
+        server.queueText(answer(0, 7));
+        server.queueText(answer(7, 10));
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, lines);
+
+        assertThat(out).extracting(TranslatedLine::id).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(server.requests()).isEqualTo(2);
+        String second = server.bodies().get(1);
+        assertThat(second).contains("line 7").contains("line 8").contains("line 9").doesNotContain("line 6\"");
+        assertThat(second).contains("Đoạn ngay trước").contains("dòng 6").contains("line 6");
+    }
+
+    @Test
+    void failsWithTheValidCountWhenLinesAreStillMissingAfterTwoFollowUps(CapturedOutput output) {
+        server.queueText(answer(0, 6));
+        server.queueText(answer(6, 8));
+        server.queueText(answer(8, 9));
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, numbered(10)))
+                .satisfies(e -> assertThat(userMessage(e))
+                        .isEqualTo("Gemini returned missing or mismatched lines (9/10 valid), try again."));
+
+        assertThat(server.requests()).isEqualTo(3);
+        assertThat(output).contains("follow-up 1/2").contains("follow-up 2/2").doesNotContain("line 9");
+    }
+
+    @Test
+    void anAnswerThatIsNotJsonUsesOneAttemptThenASuccessfulAnswerWins() {
+        server.queueText("xin lỗi");
+        server.queueText(GOOD);
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(out).extracting(TranslatedLine::id).containsExactly(0, 1);
+        assertThat(server.requests()).isEqualTo(2);
+    }
+
+    @Test
+    void anExtraIdIsIgnoredWithoutAskingAgain() {
+        server.queueText("[{\"id\":0,\"text\":\"a\"},{\"id\":1,\"text\":\"b\"},{\"id\":9,\"text\":\"x\"}]");
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(out).extracting(TranslatedLine::id).containsExactly(0, 1);
+        assertThat(server.requests()).isEqualTo(1);
+    }
+
+    @Test
+    void aFailureOfTheFollowUpItselfIsNotRetried() {
+        server.queueText(answer(0, 1));
+        server.queueText("{}", "SAFETY");
+
+        assertThatThrownBy(() -> translator().translate(VIDEO, PROFILE, LINES))
+                .isInstanceOf(TranslationFailedException.class);
+        assertThat(server.requests()).isEqualTo(2);
+    }
 }

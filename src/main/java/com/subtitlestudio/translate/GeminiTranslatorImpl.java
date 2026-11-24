@@ -10,6 +10,8 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Gemini translation (via {@link GeminiCaller}): one request per video, structured JSON output
+ * Gemini translation (via {@link GeminiCaller}): one request per call (plus up to two follow-ups for lines it left out), structured JSON output
  * ({@code [{id, text}]}), and no automatic retries so a quota error does not burn more of the free tier.
  */
 @Component
@@ -38,6 +40,9 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             và nhất quán cách xưng hô, không dịch lại và không trả về các dòng đó.
             - Mô tả video (nếu có) chỉ để hiểu bối cảnh và tên nhân vật; không dịch mô tả.
             - Chỉ trả về JSON theo schema, không giải thích.""";
+
+    /** Extra requests for lines Gemini left out; a call makes at most {@code 1 + MAX_FOLLOW_UPS} requests. */
+    static final int MAX_FOLLOW_UPS = 2;
 
     private static final Logger log = LoggerFactory.getLogger(GeminiTranslatorImpl.class);
     private static final TypeReference<List<TranslatedLine>> LINES = new TypeReference<>() {};
@@ -68,26 +73,67 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
     @Override
     public List<TranslatedLine> translate(VideoContext video, String profile, List<SourceLine> lines,
                                           java.util.function.Consumer<String> onTrying) {
-        GeminiCaller.Answer answer = caller.generate(List.of(Part.fromText(userContent(video, profile, lines))),
-                config(), onTrying);
-        String answeredBy = answer.model();
-        List<TranslatedLine> got;
+        Map<Integer, TranslatedLine> valid = new HashMap<>();
+        List<SourceLine> missing = lines;
+        String answeredBy = "";
+        for (int attempt = 0; attempt <= MAX_FOLLOW_UPS && !missing.isEmpty(); attempt++) {
+            VideoContext context = attempt == 0 ? video : followUpContext(video, lines, valid, missing.get(0));
+            GeminiCaller.Answer answer = caller.generate(
+                    List.of(Part.fromText(userContent(context, profile, missing))), config(), onTrying);
+            List<TranslatedLine> got = parse(answer, missing.size());
+            TranslationOutput.Checked checked = TranslationOutput.check(missing, got);
+            checked.valid().forEach(line -> valid.put(line.id(), line));
+            if (checked.extra() > 0) {
+                log.info("Gemini {} returned {} ids that were not sent; ignored", answer.model(), checked.extra());
+            }
+            if (attempt > 0) {
+                log.info("Gemini {} follow-up {}/{}: asked {} lines, {} valid", answer.model(), attempt, MAX_FOLLOW_UPS,
+                        missing.size(), checked.valid().size());
+            }
+            answeredBy = answer.model();
+            if (!checked.missing().isEmpty()) {
+                // Answers vary between runs, so a rejected one is only diagnosable from this line (no subtitle text in it).
+                log.warn("Gemini {} returned an invalid answer: {}", answeredBy, TranslationOutput.describe(missing, got));
+            }
+            missing = checked.missing();
+        }
+        if (!missing.isEmpty()) {
+            throw TranslationOutput.invalid(valid.size(), lines.size());
+        }
+        log.info("Gemini {} translated {} lines", answeredBy, lines.size());
+        return lines.stream().map(line -> valid.get(line.id())).toList();
+    }
+
+    /** The answer's lines; an answer that is not the expected JSON counts as having no valid line. */
+    private List<TranslatedLine> parse(GeminiCaller.Answer answer, int asked) {
         try {
-            got = mapper.readValue(answer.text(), LINES);
+            return mapper.readValue(answer.text(), LINES);
         } catch (JsonProcessingException e) {
-            log.warn("Gemini {} answer for {} lines is not the expected JSON ({} chars)", answeredBy, lines.size(),
+            log.warn("Gemini {} answer for {} lines is not the expected JSON ({} chars)", answer.model(), asked,
                     answer.text().length());
-            throw TranslationOutput.invalid(0, lines.size());
+            return List.of();
         }
-        // Answers vary between runs, so a rejected one is only diagnosable from this line (no subtitle text in it).
-        try {
-            List<TranslatedLine> valid = TranslationOutput.validate(lines, got);
-            log.info("Gemini {} translated {} lines", answeredBy, lines.size());
-            return valid;
-        } catch (TranslationFailedException e) {
-            log.warn("Gemini {} returned an invalid answer: {}", answeredBy, TranslationOutput.describe(lines, got));
-            throw e;
+    }
+
+    /**
+     * Context for a follow-up: up to {@link TranslationService#CONTEXT_LINES} lines already translated right before
+     * the first missing one; when nothing precedes it, the caller's own previous lines.
+     */
+    private static VideoContext followUpContext(VideoContext video, List<SourceLine> lines,
+                                                Map<Integer, TranslatedLine> valid, SourceLine firstMissing) {
+        int at = lines.indexOf(firstMissing);
+        List<ExamplePair> before = new ArrayList<>();
+        for (int i = at - 1; i >= 0 && before.size() < TranslationService.CONTEXT_LINES; i--) {
+            TranslatedLine done = valid.get(lines.get(i).id());
+            if (done == null) {
+                break;
+            }
+            before.add(0, new ExamplePair(lines.get(i).text(), done.text()));
         }
+        if (before.isEmpty()) {
+            return video;
+        }
+        return new VideoContext(video.title(), video.channel(), video.description(), video.examples(), before);
     }
 
     private GenerateContentConfig config() {
