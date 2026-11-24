@@ -37,6 +37,49 @@ describe('Settings › Backups', () => {
     vi.restoreAllMocks();
   });
 
+  it('puts Backup now at the end of the tab toolbar, not in the page header', async () => {
+    fakeFetch([get(status())]);
+    renderTab();
+
+    const button = await screen.findByRole('button', { name: 'Backup now' });
+    expect(button.closest('.toolbar__actions')).not.toBeNull();
+    expect(button.closest('header')).toBeNull();
+  });
+
+  describe('old backups', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('shows no warning while the newest backup is under 24 hours old', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-11-19T04:00:00Z') });
+      fakeFetch([get(status())]);
+      renderTab();
+
+      await screen.findByRole('button', { name: 'Backup now' });
+      expect(document.querySelector('.badge--warn')).toBeNull();
+    });
+
+    it('warns with the time of the newest backup when it is over 24 hours old', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-11-19T06:00:00Z') });
+      fakeFetch([get(status())]);
+      renderTab();
+
+      const badge = await waitFor(() => {
+        const el = document.querySelector('.badge--warn');
+        expect(el).not.toBeNull();
+        return el as HTMLElement;
+      });
+      expect(badge).toHaveTextContent('Over 24 hours since the last backup (18/11/2026 12:00)');
+    });
+
+    it('warns when there is no backup at all', async () => {
+      fakeFetch([get(status({ items: [], last: null }))]);
+      renderTab();
+
+      await screen.findByText(/No backups yet/);
+      expect(document.querySelector('.badge--warn')).toHaveTextContent('No backup has been made yet');
+    });
+  });
+
   it('listsBackupsNewestFirst', async () => {
     fakeFetch([get(status())]);
     renderTab();

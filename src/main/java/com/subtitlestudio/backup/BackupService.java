@@ -159,6 +159,12 @@ public class BackupService {
         return new Status(running.get(), last, items());
     }
 
+    /** When the newest dump or zip was made, or null when there is none. */
+    public Instant newestBackupAt() {
+        List<Item> items = items();
+        return items.isEmpty() ? null : items.get(0).createdAt();
+    }
+
     /** The dumps and zips in {@code data/backups}, newest first. */
     List<Item> items() {
         if (!Files.isDirectory(backupsDir)) {
