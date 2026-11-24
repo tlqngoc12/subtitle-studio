@@ -87,6 +87,10 @@ subtitle-studio:
     site-url: ${SUBTITLESTUDIO_PUBLISH_SITE_URL:}
     # Google Search Console HTML-tag verification code (blank = no tag).
     google-verification: ${SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION:}
+    # Cloudflare R2 holds the chapter images so each deploy does not upload them again. All 3 blank = images stay in the Pages bundle.
+    r2-bucket: ${SUBTITLESTUDIO_PUBLISH_R2_BUCKET:}
+    r2-access-key-id: ${SUBTITLESTUDIO_PUBLISH_R2_ACCESS_KEY_ID:}
+    r2-secret-access-key: ${SUBTITLESTUDIO_PUBLISH_R2_SECRET_ACCESS_KEY:}
     wrangler-path: ${SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH:wrangler}
     timeout: 5m
   # Novels translated from page screenshots (Novels menu).

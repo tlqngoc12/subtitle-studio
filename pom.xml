@@ -24,7 +24,20 @@
         <node.version>v26.13.0</node.version>
         <!-- -Dskip.npm skips every frontend step (install, npm ci, vitest, vite build). -->
         <skip.npm>false</skip.npm>
+        <awssdk.version>2.59.8</awssdk.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${awssdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -102,6 +115,21 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>oracle-free</artifactId>
             <scope>test</scope>
+        </dependency>
+        <!-- Cloudflare R2 (S3 API) for chapter images. Apache HTTP client instead of Netty. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
         </dependency>
     </dependencies>
 

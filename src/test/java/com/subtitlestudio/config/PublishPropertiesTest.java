@@ -78,4 +78,25 @@ class PublishPropertiesTest {
         assertThat(p.wranglerPath()).isEqualTo("wrangler");
         assertThat(p.configured()).isFalse();
     }
+
+    private static SubtitleStudioProperties.Publish r2(String token, String account, String project,
+                                                       String bucket, String keyId, String secret) {
+        return new SubtitleStudioProperties.Publish(token, account, project, false, "wrangler", Duration.ofMinutes(5),
+                "", bucket, keyId, secret);
+    }
+
+    @Test
+    void r2EnabledNeedsPublishConfiguredAndAllThreeValues() {
+        assertThat(r2("tok", "acc", "proj", "b", "k", "s").r2Enabled()).isTrue();
+        assertThat(r2("tok", "acc", "proj", "", "k", "s").r2Enabled()).isFalse();
+        assertThat(r2("tok", "acc", "proj", "b", "", "s").r2Enabled()).isFalse();
+        assertThat(r2("tok", "acc", "proj", "b", "k", "").r2Enabled()).isFalse();
+        assertThat(r2("", "acc", "proj", "b", "k", "s").r2Enabled()).isFalse();
+    }
+
+    @Test
+    void toStringHidesR2Keys() {
+        String s = r2("tok", "acc", "proj", "bucket", "AKID123", "SECRET456").toString();
+        assertThat(s).doesNotContain("AKID123").doesNotContain("SECRET456").doesNotContain("tok=").contains("r2=true");
+    }
 }

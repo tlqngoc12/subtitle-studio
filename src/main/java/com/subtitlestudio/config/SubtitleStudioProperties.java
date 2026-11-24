@@ -138,10 +138,27 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
      */
     public record Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
                           @NotBlank String wranglerPath, @NotNull Duration timeout, String cloudflareD1DatabaseId,
-                          String siteUrl, String googleVerification) {
+                          String siteUrl, String googleVerification, String r2Bucket, String r2AccessKeyId,
+                          String r2SecretAccessKey) {
 
         @ConstructorBinding
         public Publish {
+        }
+
+        /** Without R2 (chapter images stay in the Pages bundle); for tests and callers that do not care. */
+        public Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
+                       String wranglerPath, Duration timeout, String cloudflareD1DatabaseId,
+                       String siteUrl, String googleVerification) {
+            this(cloudflareApiToken, cloudflareAccountId, project, indexable, wranglerPath, timeout,
+                    cloudflareD1DatabaseId, siteUrl, googleVerification, "", "", "");
+        }
+
+        /** With R2 settings, without a custom site URL or Google verification code; for tests. */
+        public Publish(String cloudflareApiToken, String cloudflareAccountId, String project, boolean indexable,
+                       String wranglerPath, Duration timeout, String cloudflareD1DatabaseId,
+                       String r2Bucket, String r2AccessKeyId, String r2SecretAccessKey) {
+            this(cloudflareApiToken, cloudflareAccountId, project, indexable, wranglerPath, timeout,
+                    cloudflareD1DatabaseId, "", "", r2Bucket, r2AccessKeyId, r2SecretAccessKey);
         }
 
         /** Without a D1 database (read counts off); for tests and callers that do not care about it. */
@@ -160,6 +177,11 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
         /** True when novel read counts are on: the site is published and a D1 database id is set. */
         public boolean readCountsEnabled() {
             return configured() && notBlank(cloudflareD1DatabaseId);
+        }
+
+        /** True when chapter images go to R2: the site is published and bucket, key id and secret are all set. */
+        public boolean r2Enabled() {
+            return configured() && notBlank(r2Bucket) && notBlank(r2AccessKeyId) && notBlank(r2SecretAccessKey);
         }
 
         public boolean configured() {
@@ -187,10 +209,10 @@ public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Pat
             return value != null && !value.isBlank();
         }
 
-        /** Never prints the token or the Google verification code. */
+        /** Never prints the token, the R2 keys or the Google verification code. */
         @Override
         public String toString() {
-            return "Publish[project=" + project + ", indexable=" + indexable + ", configured=" + configured() + ", readCounts=" + readCountsEnabled() + "]";
+            return "Publish[project=" + project + ", indexable=" + indexable + ", configured=" + configured() + ", readCounts=" + readCountsEnabled() + ", r2=" + r2Enabled() + "]";
         }
     }
 
