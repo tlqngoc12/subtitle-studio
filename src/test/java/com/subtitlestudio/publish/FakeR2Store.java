@@ -57,6 +57,11 @@ class FakeR2Store implements R2ImageStore {
         return new ArrayList<>(events);
     }
 
+    /** Records a step done outside the store (the deploy) in {@link #events()}. */
+    void note(String event) {
+        events.add(event);
+    }
+
     String contentTypeOf(String key) {
         return contentTypes.get(key);
     }

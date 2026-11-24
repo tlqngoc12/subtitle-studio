@@ -20,7 +20,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ class PublishServiceTest {
     private final WranglerClient wrangler = mock(WranglerClient.class);
     private final MutableClock clock = new MutableClock(NOW);
     private final HoldingExecutor executor = new HoldingExecutor();
+    private final FakeR2Store store = new FakeR2Store();
 
     /** Holds submitted work until {@link #runPending()}. */
     static class HoldingExecutor implements Executor {
@@ -67,7 +70,7 @@ class PublishServiceTest {
                 new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of()),
                 new SubtitleStudioProperties.Publish(token, "acc", "fans", indexable, "wrangler", Duration.ofMinutes(5), d1Id));
         return new PublishService(exporter, bundle, pageRenderer, sitemap, wrangler, new PagesFunctions(props),
-                props, clock, executor);
+                new R2ImageSync(store), props, clock, executor);
     }
 
     private PublishService realPagesService() {
@@ -77,7 +80,7 @@ class PublishServiceTest {
                 new SubtitleStudioProperties.Publish("cf-secret-123", "acc", "fans", true, "wrangler",
                         Duration.ofMinutes(5), "", "", "CODE9"));
         return new PublishService(exporter, bundle, new PublicPageRenderer(new com.fasterxml.jackson.databind.ObjectMapper()),
-                new SitemapWriter(50_000), wrangler, new PagesFunctions(props), props, clock, executor);
+                new SitemapWriter(50_000), wrangler, new PagesFunctions(props), new R2ImageSync(store), props, clock, executor);
     }
 
     private PublishService service() {
@@ -152,7 +155,7 @@ class PublishServiceTest {
 
     @Test
     void unexpectedErrorMarksFailedGeneric() {
-        doThrow(new IllegalStateException("boom")).when(bundle).writeTo(any(), anyBoolean(), any());
+        doThrow(new IllegalStateException("boom")).when(bundle).writeTo(any(), anyBoolean(), any(), anyBoolean());
         PublishService s = service();
         s.start();
 
@@ -176,7 +179,7 @@ class PublishServiceTest {
             Files.writeString(dir.resolve("index.html"),
                     "<html><head><title>x</title></head><body><div id=\"root\"></div></body></html>");
             return null;
-        }).when(bundle).writeTo(any(), anyBoolean(), any());
+        }).when(bundle).writeTo(any(), anyBoolean(), any(), anyBoolean());
         AtomicReference<List<String>> deployed = new AtomicReference<>();
         doAnswer(inv -> {
             Path dir = inv.getArgument(0);
@@ -205,7 +208,7 @@ class PublishServiceTest {
 
         executor.runPending();
 
-        verify(bundle).writeTo(any(Path.class), eq(true), eq("https://fans.pages.dev"));
+        verify(bundle).writeTo(any(Path.class), eq(true), eq("https://fans.pages.dev"), eq(false));
     }
 
     @Test
@@ -338,5 +341,129 @@ class PublishServiceTest {
         assertThat(s.status().status()).isEqualTo("DONE");
         assertThat(s.status().fileCount()).isEqualTo(7);
         verify(wrangler).deploy(any());
+    }
+
+    private PublishService r2Service() {
+        var props = new SubtitleStudioProperties(
+                new SubtitleStudioProperties.Ytdlp("yt-dlp", Duration.ofSeconds(60)), dataDir,
+                new SubtitleStudioProperties.Gemini("", "m", Duration.ofMinutes(3), Duration.ofMinutes(60), 0.3, List.of()),
+                new SubtitleStudioProperties.Publish("cf-secret-123", "acc", "fans", false, "wrangler",
+                        Duration.ofMinutes(5), "", "bucket", "AKID-xyz", "SECRET-xyz"));
+        return new PublishService(exporter, bundle, pageRenderer, sitemap, wrangler, new PagesFunctions(props),
+                new R2ImageSync(store), props, clock, executor);
+    }
+
+    private static ChapterImage img(String key) {
+        return new ChapterImage(key, Path.of(key.replace('/', '_')));
+    }
+
+    private void exportsImages(String... keys) {
+        List<ChapterImage> images = new ArrayList<>();
+        for (String k : keys) {
+            images.add(img(k));
+        }
+        org.mockito.Mockito.when(exporter.export(any(), any())).thenReturn(images);
+    }
+
+    @Test
+    void r2UploadsBeforeDeployAndPrunesAfter() {
+        store.seed("novel-images/a/1.webp", "novel-images/a/2.webp", "novel-images/old/9.webp");
+        exportsImages("novel-images/a/1.webp", "novel-images/a/2.webp", "novel-images/a/3.webp");
+        doAnswer(inv -> {
+            store.note("deploy");
+            return null;
+        }).when(wrangler).deploy(any());
+        PublishService s = r2Service();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+        assertThat(store.events()).containsExactly("list", "put novel-images/a/3.webp", "deploy", "list", "delete");
+        assertThat(store.deleted()).containsExactly("novel-images/old/9.webp");
+        verify(bundle).writeTo(any(Path.class), eq(false), any(), eq(true));
+    }
+
+    @Test
+    void r2UploadFailureSkipsDeploy() {
+        exportsImages("novel-images/a/1.webp");
+        store.failPut("novel-images/a/1.webp");
+        PublishService s = r2Service();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("FAILED");
+        assertThat(s.status().error()).isEqualTo("Could not upload chapter images to R2.");
+        verify(wrangler, never()).deploy(any());
+        assertThat(s.status().progress()).isNull();
+    }
+
+    @Test
+    void deployFailureDoesNotPrune() {
+        store.seed("novel-images/a/1.webp", "novel-images/old/9.webp", "novel-images/old/8.webp");
+        exportsImages("novel-images/a/1.webp");
+        doThrow(new PublishFailedException("deploy failed")).when(wrangler).deploy(any());
+        PublishService s = r2Service();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("FAILED");
+        assertThat(store.deleted()).isEmpty();
+    }
+
+    @Test
+    void pruneFailureStillDone() {
+        store.seed("novel-images/a/1.webp", "novel-images/a/2.webp", "novel-images/a/3.webp", "novel-images/old/9.webp");
+        exportsImages("novel-images/a/1.webp", "novel-images/a/2.webp", "novel-images/a/3.webp");
+        store.failDelete();
+        PublishService s = r2Service();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+    }
+
+    @Test
+    void r2OffNeverTouchesStore() {
+        exportsImages("novel-images/a/1.webp");
+        PublishService s = service();
+
+        s.start();
+        executor.runPending();
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+        assertThat(store.events()).isEmpty();
+    }
+
+    @Test
+    void progressShowsWhileUploadingAndClearsAfter() throws Exception {
+        exportsImages("novel-images/a/1.webp", "novel-images/a/2.webp", "novel-images/a/3.webp");
+        CountDownLatch release = new CountDownLatch(1);
+        store.beforePut(() -> {
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        PublishService s = r2Service();
+        s.start();
+        Thread publishing = new Thread(executor::runPending);
+        publishing.start();
+
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (s.status().progress() == null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertThat(s.status().progress()).isEqualTo("Uploading chapter images 0/3");
+
+        release.countDown();
+        publishing.join(10_000);
+
+        assertThat(s.status().status()).isEqualTo("DONE");
+        assertThat(s.status().progress()).isNull();
     }
 }

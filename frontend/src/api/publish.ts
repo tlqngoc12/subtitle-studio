@@ -12,6 +12,8 @@ export interface PublishStatus {
   error: string | null;
   /** Files in the site of the latest publish; null before the first one. */
   fileCount?: number | null;
+  /** What a long step is doing while publishing (e.g. uploading chapter images); null otherwise. */
+  progress?: string | null;
 }
 
 export async function getPublishStatus(): Promise<PublishStatus> {

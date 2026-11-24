@@ -149,4 +149,18 @@ describe('PublishButton', () => {
 
     expect(screen.queryByText(/Sắp đầy/)).not.toBeInTheDocument();
   });
+
+  it('shows the upload progress while publishing and hides it after', async () => {
+    serve(
+      [
+        { ...idle, status: 'PUBLISHING', progress: 'Uploading chapter images 3/10' },
+        { ...idle, status: 'DONE', lastPublishedAt: '2026-11-04T10:00:30Z' },
+      ],
+      idle,
+    );
+    renderButton();
+
+    expect(await screen.findByText('Uploading chapter images 3/10')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Uploading chapter images 3/10')).not.toBeInTheDocument());
+  });
 });

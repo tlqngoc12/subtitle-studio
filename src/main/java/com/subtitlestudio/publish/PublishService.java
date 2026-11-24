@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -34,6 +35,7 @@ public class PublishService {
     private final SitemapWriter sitemap;
     private final WranglerClient wrangler;
     private final PagesFunctions readCounts;
+    private final R2ImageSync r2Sync;
     /** Cloudflare Pages Free plan: at most 20,000 files per deployment; the admin is warned from 16,000. */
     public static final int FILE_LIMIT = 20_000;
     public static final int FILE_WARNING = 16_000;
@@ -47,10 +49,11 @@ public class PublishService {
     private Instant lastPublishedAt;
     private String error;
     private Integer fileCount;
+    private volatile String progress;
 
     public PublishService(SiteExporter exporter, PublicSiteBundle bundle, PublicPageRenderer pageRenderer,
                           SitemapWriter sitemap, WranglerClient wrangler, PagesFunctions readCounts,
-                          SubtitleStudioProperties properties, Clock clock,
+                          R2ImageSync r2Sync, SubtitleStudioProperties properties, Clock clock,
                           @Qualifier("publishExecutor") Executor executor) {
         this.exporter = exporter;
         this.bundle = bundle;
@@ -58,6 +61,7 @@ public class PublishService {
         this.sitemap = sitemap;
         this.wrangler = wrangler;
         this.readCounts = readCounts;
+        this.r2Sync = r2Sync;
         this.settings = properties.publish();
         this.tempRoot = properties.dataDir().resolve("publish-tmp");
         this.clock = clock;
@@ -67,7 +71,7 @@ public class PublishService {
     public synchronized PublishStatus status() {
         boolean configured = settings.configured();
         return new PublishStatus(status, configured, lastPublishedAt, configured ? settings.url() : null, error,
-                fileCount);
+                fileCount, progress);
     }
 
     public synchronized PublishStatus start() {
@@ -93,10 +97,16 @@ public class PublishService {
         Path dir = tempRoot.resolve(UUID.randomUUID().toString());
         try {
             Instant now = clock.instant();
-            exporter.export(dir, now);
+            List<ChapterImage> images = exporter.export(dir, now);
+            boolean r2 = settings.r2Enabled();
             String siteUrl = settings.publicSiteUrl();
-            bundle.writeTo(dir, settings.indexable(), siteUrl);
+            bundle.writeTo(dir, settings.indexable(), siteUrl, r2);
             sitemap.write(dir, siteUrl, pageRenderer.writeTo(dir, siteUrl, settings.googleVerification()));
+            if (r2) {
+                // Before the deploy: the new site must never point at an image that is not in the bucket yet.
+                r2Sync.upload(images, (done, total) -> progress = "Uploading chapter images " + done + "/" + total);
+                progress = null;
+            }
             readCounts.prepare(dir);
             long files = countFiles(dir);
             recordFileCount((int) files);
@@ -106,6 +116,10 @@ public class PublishService {
                         + " file limit of Cloudflare Pages (Free plan).");
             }
             wrangler.deploy(dir);
+            if (r2) {
+                // After a successful deploy only: a failed one leaves the live site using the old images.
+                r2Sync.prune(images);
+            }
             finish("DONE", now, null);
         } catch (PublishFailedException e) {
             finish("FAILED", null, e.userMessage());
@@ -113,6 +127,7 @@ public class PublishService {
             log.warn("Publishing failed", e);
             finish("FAILED", null, "Could not publish: " + e.getClass().getSimpleName() + ".");
         } finally {
+            progress = null;
             deleteRecursively(dir);
             readCounts.clean(tempRoot);
         }
