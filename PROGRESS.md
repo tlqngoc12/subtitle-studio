@@ -1133,3 +1133,8 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 - Backend `ChapterReviewFiles`: đổi số `ch-<x>` khi đổi thứ tự chương, chuyển vào `_archive/` khi xoá chương (dồn số các chương sau), đổi `<Hồ sơ>` khi hồ sơ truyện đổi tên; lỗi file chỉ log. Số trong tên file export nay theo toàn bộ thứ tự đọc.
 - Agent `story-reviewer` (`~/.claude/agents/story-reviewer.md`) ghi mỗi chương một file theo quy ước trên (ngoài repo, không commit).
 - Spec [docs/superpowers/specs/2026-11-23-chapter-review-file-design.md](docs/superpowers/specs/2026-11-23-chapter-review-file-design.md), plan [docs/superpowers/plans/2026-11-23-chapter-review-file.md](docs/superpowers/plans/2026-11-23-chapter-review-file.md).
+
+### 2026-11-24: Dịch giữ dòng đúng và hỏi lại dòng thiếu ✅ (không có migration)
+- **Lỗi:** video `k_7PWQPOGjA` (phần 1/2 = 891 dòng) hỏng 3 lần liền vì model `-lite` trả thiếu đuôi (25 và 136 dòng) hoặc thừa một id; app bỏ cả câu trả lời nên mất hàng trăm dòng đúng.
+- **Sửa:** id thừa bị bỏ qua; dòng thiếu/trùng/rỗng được hỏi lại riêng (tối đa 2 lần hỏi thêm, kèm tối đa 8 dòng đã dịch ngay trước làm ngữ cảnh), rồi ghép theo thứ tự; mỗi đoạn tối đa 400 câu (`TranslationParts.MAX_LINES_PER_PART`) ngoài giới hạn 45 phút.
+- Spec [docs/superpowers/specs/2026-11-24-translation-missing-lines-design.md](docs/superpowers/specs/2026-11-24-translation-missing-lines-design.md), plan [docs/superpowers/plans/2026-11-24-translation-missing-lines.md](docs/superpowers/plans/2026-11-24-translation-missing-lines.md).

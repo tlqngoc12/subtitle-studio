@@ -61,6 +61,7 @@ subtitle-studio:
     max-duration: 180m
     # Videos up to this long go in one request; longer ones are split at cue boundaries into parts this long.
     part-duration: 45m
+    # Parts are also capped at 400 cues (TranslationParts.MAX_LINES_PER_PART): lite models stop early on long lists.
     temperature: 0.3
     # Thinking level for TRANSLATION requests only (not profile analysis): minimal | low | medium | high.
     # Lower = fewer output tokens, faster, less risk of hitting the output limit or the timeout.
