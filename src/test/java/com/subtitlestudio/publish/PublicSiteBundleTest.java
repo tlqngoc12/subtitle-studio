@@ -32,6 +32,35 @@ class PublicSiteBundleTest {
     }
 
     @Test
+    void shipsThePublicManifestAndIconsButNotTheAdminManifest() throws IOException {
+        bundle.writeTo(out, true, SITE);
+
+        assertThat(out.resolve("public.webmanifest")).exists();
+        for (String icon : new String[] {"apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png"}) {
+            assertThat(out.resolve(icon)).as(icon).exists();
+        }
+        assertThat(out.resolve("manifest.webmanifest")).doesNotExist();
+        assertThat(read("_headers")).contains("/public.webmanifest\n  Content-Type: application/manifest+json\n");
+    }
+
+    @Test
+    void realFrontendHomeScreenFilesAreWiredUp() throws IOException {
+        Path frontend = Path.of("frontend");
+        String publicHtml = Files.readString(frontend.resolve("public.html"), StandardCharsets.UTF_8);
+        String adminHtml = Files.readString(frontend.resolve("index.html"), StandardCharsets.UTF_8);
+        assertThat(publicHtml).contains("href=\"/apple-touch-icon.png\"", "href=\"/public.webmanifest\"",
+                "name=\"apple-mobile-web-app-title\" content=\"byZenQN\"");
+        assertThat(adminHtml).contains("href=\"/apple-touch-icon.png\"", "href=\"/manifest.webmanifest\"",
+                "name=\"apple-mobile-web-app-title\" content=\"Studio\"");
+        for (String file : new String[] {"apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png",
+                "manifest.webmanifest", "public.webmanifest"}) {
+            assertThat(frontend.resolve("public").resolve(file)).as(file).isNotEmptyFile();
+        }
+        String manifest = Files.readString(frontend.resolve("public/public.webmanifest"), StandardCharsets.UTF_8);
+        assertThat(manifest).contains("\"name\": \"byZenQN\"", "\"purpose\": \"maskable\"", "\"display\": \"standalone\"");
+    }
+
+    @Test
     void redirectsEverythingToTheSpa() throws IOException {
         bundle.writeTo(out, false, SITE);
 

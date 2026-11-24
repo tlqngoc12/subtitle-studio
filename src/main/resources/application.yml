@@ -28,6 +28,10 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+    contentnegotiation:
+      # Neither Tomcat nor Spring knows .webmanifest: without this the home-screen manifest is application/octet-stream.
+      media-types:
+        webmanifest: application/manifest+json
   servlet:
     multipart:
       # 10 MB per file (profile images, chapter screenshots); VietsubService still limits .srt files to 5 MB.

@@ -20,6 +20,7 @@ public class PublicSiteBundle {
 
     private static final String ROOT = "public-site/";
     private static final String ENTRY = "public.html";
+    private static final String ADMIN_MANIFEST = "manifest.webmanifest";
     private static final String NOINDEX_META = "<meta name=\"robots\" content=\"noindex, nofollow\">";
     private static final String LONG_CACHE = "  Cache-Control: public, max-age=31536000, immutable\n";
 
@@ -64,6 +65,9 @@ public class PublicSiteBundle {
             if (relative.isEmpty() || relative.endsWith("/") || !resource.isReadable()) {
                 continue; // a directory
             }
+            if (relative.equals(ADMIN_MANIFEST)) {
+                continue; // the admin app's home-screen manifest ("Subtitle Studio"); the public site ships public.webmanifest
+            }
             Path target = dir.resolve(relative.equals(ENTRY) ? "index.html" : relative).normalize();
             if (!target.startsWith(dir)) {
                 continue;
@@ -102,6 +106,8 @@ public class PublicSiteBundle {
         sb.append("  X-Content-Type-Options: nosniff\n");
         sb.append("  Referrer-Policy: strict-origin-when-cross-origin\n");
         sb.append("  Content-Security-Policy: ").append(CSP).append("\n\n");
+        // Pages may not know .webmanifest; browsers want a manifest media type for "Add to Home Screen".
+        sb.append("/public.webmanifest\n  Content-Type: application/manifest+json\n\n");
         sb.append("/assets/*\n").append(LONG_CACHE).append('\n');
         sb.append("/media/*\n").append(LONG_CACHE).append('\n');
         // Chapter images are named by a hash of their content, and live apart from the HTML pages under /novels/.
