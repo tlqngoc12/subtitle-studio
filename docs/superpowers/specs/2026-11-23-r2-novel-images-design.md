@@ -1,6 +1,6 @@
 # Chuyển ảnh chương truyện sang Cloudflare R2
 
-Ngày: 2026-11-23 · Trạng thái: chờ duyệt (2026-11-24 đã bổ sung sau review: chặn xoá hàng loạt, `_routes.json`, hết quota Functions, checksum SDK, hạn mức R2, `HEAD`, tiến độ upload, rollback)
+Ngày: 2026-11-23 · Trạng thái: đã duyệt 2026-11-24 (2026-11-24 đã bổ sung sau review: chặn xoá hàng loạt, `_routes.json`, hết quota Functions, checksum SDK, hạn mức R2, `HEAD`, tiến độ upload, rollback)
 
 ## Mục đích
 

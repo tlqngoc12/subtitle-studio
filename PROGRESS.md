@@ -559,6 +559,16 @@ Nhánh `feat/editor-engsub-line`. Chỉ đổi frontend, không đổi API hay s
 - Backend: `ChapterExportFormat` (hàm thuần: tiêu đề, tên file làm sạch `\ / : * ? " < > |` và ký tự điều khiển, cắt 120 ký tự, markdown, html), `NovelExportService` (ghi zip trong bộ nhớ, UTF-8; log chỉ có id novel và số chương, không bao giờ log chữ), `NothingToExportException` thành 409 `NOTHING_TO_EXPORT` (`NovelErrors`).
 - Frontend: `exportNovel` (`api/novels.ts`, tên file từ `Content-Disposition`, mặc định `novel-<id>.zip`); nút tắt khi đang xuất hoặc novel chưa có chương nào; novel có chương nhưng chưa chương nào có chữ thì backend trả 409 và hiện toast lỗi (lệch nhẹ so với spec, đã duyệt). Spec [docs/superpowers/specs/2026-11-18-novel-chapter-export-design.md](docs/superpowers/specs/2026-11-18-novel-chapter-export-design.md), plan [docs/superpowers/plans/2026-11-18-novel-chapter-export.md](docs/superpowers/plans/2026-11-18-novel-chapter-export.md).
 
+### 2026-11-24: Ảnh chương lưu trên Cloudflare R2 ✅ (không có migration)
+- Spec [docs/superpowers/specs/2026-11-23-r2-novel-images-design.md](docs/superpowers/specs/2026-11-23-r2-novel-images-design.md), plan [docs/superpowers/plans/2026-11-23-r2-novel-images.md](docs/superpowers/plans/2026-11-23-r2-novel-images.md). Mục đích: deploy Pages không còn chứa khoảng 12.700 ảnh chương (giới hạn 20.000 file).
+- Cấu hình: 3 biến `SUBTITLESTUDIO_PUBLISH_R2_BUCKET`, `_R2_ACCESS_KEY_ID`, `_R2_SECRET_ACCESS_KEY` (`Publish.r2Enabled()`); trống thì Publish chạy như cũ. Khoá R2 không có trong `toString()`, log hay `wrangler.toml`.
+- `ReadCountsFunctions` đổi tên `PagesFunctions`: ghi `wrangler.toml` với D1 và/hoặc R2 (binding `NOVEL_IMAGES`), Function `functions/novel-images/[[path]].js` (GET/HEAD, chặn path xấu, ETag/304) và `site/_routes.json` chỉ gồm đường dẫn của Function đang bật.
+- `NovelExporter`/`SiteExporter.export` trả `List<ChapterImage>`; R2 bật thì không chép ảnh vào site và `_headers` bỏ khối `/novel-images/*`.
+- `R2ImageSync`: `upload` (List rồi chỉ put key còn thiếu, 8 luồng, tiến độ) chạy trước `wrangler.deploy`, lỗi thì Publish `FAILED` và không deploy; `prune` chạy sau deploy thành công, không bao giờ làm Publish hỏng, và không xoá khi tập giữ rỗng hoặc sắp xoá hơn 50%. `S3R2ImageStore` dùng AWS SDK v2 S3 (endpoint R2, checksum `WHEN_REQUIRED`); không có unit test, kiểm sau deploy.
+- Trạng thái Publish có thêm `progress` ("Uploading chapter images x/y"), nút Publish hiện dòng này khi đang publish.
+- Không thêm luật `/novel-images/* 404` vào `_redirects` khi R2 tắt: tài liệu Cloudflare nói redirect luôn được áp dụng kể cả khi có file khớp và không hỗ trợ rewrite với status khác 200, nên luật đó sẽ làm cả ảnh có thật trả 404.
+- Việc user tự làm trên Cloudflare: xem README, mục *Ảnh chương trên R2*.
+
 ## 8. Quyết định và lưu ý kỹ thuật
 
 - **Font Be Vietnam Pro** (thay Atkinson Hyperlegible Next): giao diện tiếng Việt cần font có đủ glyph dấu tiếng Việt. Khi đổi font phải kiểm tra `subsets` có `vietnamese`.
