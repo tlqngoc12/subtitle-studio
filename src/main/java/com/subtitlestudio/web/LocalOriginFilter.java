@@ -5,7 +5,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.subtitlestudio.config.SubtitleStudioProperties;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -20,11 +23,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Guards {@code /api/*} on a no-login, local-only app.
  *
  * <ul>
- *   <li>The {@code Host} header must be {@code localhost} or {@code 127.0.0.1} (any port): blocks DNS rebinding.
+ *   <li>The {@code Host} header must be {@code localhost}, {@code 127.0.0.1} or one of the configured
+ *       {@code subtitle-studio.allowed-hosts} (any port, case-insensitive): blocks DNS rebinding. The extra hosts are
+ *       exact names (for example a Tailscale {@code machine.tailnet.ts.net} that {@code tailscale serve} proxies to
+ *       this app); there are no wildcards, and the setting is empty by default.
  *   <li>A state-changing request that carries an {@code Origin} header must come from {@code http://localhost} or
- *       {@code http://127.0.0.1} (any port, so the Vite dev server works): blocks cross-site request forgery.
- *       The literal {@code null} origin (sandboxed iframe, {@code file://}) is rejected. No {@code Origin} at all
- *       (curl, tests, the Docker healthcheck) is allowed.
+ *       {@code http://127.0.0.1} (any port, so the Vite dev server works), or from {@code https://<allowed host>}
+ *       (optional port): blocks cross-site request forgery. The literal {@code null} origin (sandboxed iframe,
+ *       {@code file://}) is rejected. No {@code Origin} at all (curl, tests, the Docker healthcheck) is allowed.
  * </ul>
  */
 public class LocalOriginFilter extends OncePerRequestFilter {
@@ -35,9 +41,15 @@ public class LocalOriginFilter extends OncePerRequestFilter {
     private static final Pattern LOCAL_ORIGIN = Pattern.compile("^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?$");
 
     private final ObjectMapper mapper;
+    private final Set<String> allowedHosts;
+    private final Pattern extraOrigin;
 
-    public LocalOriginFilter(ObjectMapper mapper) {
+    /** @param allowedHosts extra host names (lowercase, no port) allowed besides localhost; may be empty */
+    public LocalOriginFilter(ObjectMapper mapper, Set<String> allowedHosts) {
         this.mapper = mapper;
+        this.allowedHosts = Set.copyOf(allowedHosts);
+        this.extraOrigin = this.allowedHosts.isEmpty() ? null : Pattern.compile("^https://("
+                + String.join("|", this.allowedHosts.stream().map(Pattern::quote).toList()) + ")(:\\d+)?$");
     }
 
     @Override
@@ -50,7 +62,7 @@ public class LocalOriginFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    private static boolean localHost(HttpServletRequest request) {
+    private boolean localHost(HttpServletRequest request) {
         String host = request.getHeader("Host");
         if (host == null) {
             host = request.getServerName();
@@ -58,7 +70,8 @@ public class LocalOriginFilter extends OncePerRequestFilter {
         if (host == null) {
             return false;
         }
-        return LOCAL_HOSTS.contains(stripPort(host));
+        String name = stripPort(host).toLowerCase(Locale.ROOT);
+        return LOCAL_HOSTS.contains(name) || allowedHosts.contains(name);
     }
 
     private static String stripPort(String host) {
@@ -69,12 +82,15 @@ public class LocalOriginFilter extends OncePerRequestFilter {
         return colon >= 0 ? host.substring(0, colon) : host;
     }
 
-    private static boolean originAllowed(HttpServletRequest request) {
+    private boolean originAllowed(HttpServletRequest request) {
         if (SAFE_METHODS.contains(request.getMethod())) {
             return true;
         }
         String origin = request.getHeader("Origin");
-        return origin == null || LOCAL_ORIGIN.matcher(origin).matches();
+        if (origin == null || LOCAL_ORIGIN.matcher(origin).matches()) {
+            return true;
+        }
+        return extraOrigin != null && extraOrigin.matcher(origin.toLowerCase(Locale.ROOT)).matches();
     }
 
     private void reject(HttpServletResponse response) throws IOException {
@@ -90,8 +106,10 @@ public class LocalOriginFilter extends OncePerRequestFilter {
     @Configuration
     static class Registration {
         @Bean
-        FilterRegistrationBean<LocalOriginFilter> localOriginFilterRegistration(ObjectMapper mapper) {
-            FilterRegistrationBean<LocalOriginFilter> bean = new FilterRegistrationBean<>(new LocalOriginFilter(mapper));
+        FilterRegistrationBean<LocalOriginFilter> localOriginFilterRegistration(ObjectMapper mapper,
+                                                                                    SubtitleStudioProperties properties) {
+            FilterRegistrationBean<LocalOriginFilter> bean = new FilterRegistrationBean<>(
+                    new LocalOriginFilter(mapper, new HashSet<>(properties.allowedHosts())));
             bean.addUrlPatterns("/api/*");
             bean.setOrder(Integer.MIN_VALUE + 10);
             return bean;

@@ -190,6 +190,8 @@ Môi trường dev: Windows, JDK 21, Maven 3.9. Có cả Git Bash lẫn PowerShe
 - Ưu tiên test slice (`@WebMvcTest`, `@DataJpaTest`) hoặc unit test thuần, thay vì `@SpringBootTest`.
 - Spring chuẩn hoá `Path` khi bind (`./data` thành `data`). Khi assert path thì so theo `toAbsolutePath().normalize()`.
 
+- **Admin trên điện thoại (Tailscale):** `LocalOriginFilter` chỉ cho Host `localhost`/`127.0.0.1` và các tên trong `subtitle-studio.allowed-hosts` (env `SUBTITLESTUDIO_ALLOWED_HOSTS`, mặc định trống; không wildcard/port/path, sai là app không khởi động). Origin của request ghi phải là local hoặc `https://<host cho phép>`. Cách dùng: README mục "Dùng admin trên điện thoại (Tailscale)". Giữ cổng bind `127.0.0.1`.
+
 ## Sau mỗi task
 
 1. Cập nhật [PROGRESS.md](PROGRESS.md): bảng tiến độ, nhật ký, quyết định và lưu ý mới.

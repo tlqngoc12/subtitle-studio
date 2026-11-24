@@ -15,13 +15,44 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "subtitle-studio")
 public record SubtitleStudioProperties(@Valid @NotNull Ytdlp ytdlp, @NotNull Path dataDir, @Valid @NotNull Gemini gemini,
-                                       @Valid @NotNull Publish publish, @Valid Novel novel, Backup backup) {
+                                       @Valid @NotNull Publish publish, @Valid Novel novel, Backup backup,
+                                       List<String> allowedHosts) {
 
     /** Missing {@code novel} settings fall back to {@link Novel#defaults()}, missing {@code backup} to {@link Backup#defaults()}. */
     @ConstructorBinding
     public SubtitleStudioProperties {
         novel = novel == null ? Novel.defaults() : novel;
         backup = backup == null ? Backup.defaults() : backup;
+        allowedHosts = normalizeHosts(allowedHosts);
+    }
+
+    /** Without {@code allowedHosts} (localhost only); for tests and callers that do not care. */
+    public SubtitleStudioProperties(Ytdlp ytdlp, Path dataDir, Gemini gemini, Publish publish, Novel novel,
+                                    Backup backup) {
+        this(ytdlp, dataDir, gemini, publish, novel, backup, null);
+    }
+
+    /**
+     * Trims, lowercases and drops blank entries; fails fast on anything that is not a bare host name (wildcard, path,
+     * port or whitespace), so a typo can never open the admin to more than the named hosts.
+     */
+    private static List<String> normalizeHosts(List<String> hosts) {
+        if (hosts == null) {
+            return List.of();
+        }
+        List<String> result = new java.util.ArrayList<>();
+        for (String raw : hosts) {
+            String host = raw == null ? "" : raw.strip().toLowerCase(java.util.Locale.ROOT);
+            if (host.isEmpty()) {
+                continue;
+            }
+            if (host.matches(".*[*/:\\s].*")) {
+                throw new IllegalArgumentException("Invalid subtitle-studio.allowed-hosts entry '" + host
+                        + "': give a bare host name such as machine.tailnet.ts.net (no wildcard, scheme, path, port or spaces).");
+            }
+            result.add(host);
+        }
+        return List.copyOf(result);
     }
 
     /** Without {@code backup} settings (the daily schedule at its default); for tests and callers that do not care. */

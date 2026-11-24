@@ -96,6 +96,7 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | Thuộc tính | Biến môi trường | Mặc định | Ý nghĩa |
 |---|---|---|---|
 | `subtitle-studio.data-dir` | `SUBTITLESTUDIO_DATADIR` | `./data` | Thư mục chứa `subs/*.vtt` (và DB H2 dev) |
+| `subtitle-studio.allowed-hosts` | `SUBTITLESTUDIO_ALLOWED_HOSTS` | (trống) | Tên host phụ được vào admin, cách nhau bằng dấu phẩy (vd tên Tailscale `*.ts.net`); không wildcard, không port |
 | `spring.profiles.active` | `SPRING_PROFILES_ACTIVE` | (trống = H2) | `oracle` để dùng Oracle |
 | | `SUBTITLESTUDIO_DB_HOST` / `_USER` / `_PASSWORD` | `localhost` / bắt buộc / bắt buộc | Kết nối Oracle (profile `oracle`) |
 | `subtitle-studio.ytdlp.path` | `SUBTITLESTUDIO_YTDLP_PATH` | `yt-dlp` | Đường dẫn tới yt-dlp |
@@ -119,6 +120,15 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.publish.google-verification` | `SUBTITLESTUDIO_PUBLISH_GOOGLE_VERIFICATION` | (trống) | Mã xác minh Google Search Console (thẻ HTML); có thì chèn `<meta name="google-site-verification">` vào mọi trang |
 | `subtitle-studio.publish.wrangler-path` | `SUBTITLESTUDIO_PUBLISH_WRANGLER_PATH` | `wrangler` (image Docker: `/opt/wrangler/...`) | CLI deploy của Cloudflare |
 | `subtitle-studio.publish.timeout` | | `5m` | Quá thời gian thì Publish báo lỗi |
+
+## Dùng admin trên điện thoại (Tailscale)
+
+1. Cài Tailscale trên PC và điện thoại, cùng một tài khoản.
+2. Trên PC chạy một lần: `tailscale serve --bg 8080` (proxy `https://<máy>.<tailnet>.ts.net` về `http://127.0.0.1:8080`).
+3. Đặt tên host đó (không có `https://`) vào `SUBTITLESTUDIO_ALLOWED_HOSTS` trong `.env`, rồi khởi động lại app.
+4. Mở `https://<máy>.<tailnet>.ts.net` trên điện thoại.
+
+Giữ cổng 8080 chỉ bind `127.0.0.1`; không mở ra LAN. Host lạ vẫn bị chặn (403 `FORBIDDEN_ORIGIN`).
 
 ## Trang public cho nhóm fan (Publish)
 

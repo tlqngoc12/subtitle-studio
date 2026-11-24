@@ -13,7 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = "subtitle-studio.allowed-hosts= Admin.Tailnet.ts.net ,, ")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class LocalOriginFilterTest {
@@ -71,5 +71,47 @@ class LocalOriginFilterTest {
     void non_api_paths_are_not_filtered() throws Exception {
         var result = mvc.perform(get("/").header("Host", "evil.example")).andReturn();
         assertThat(result.getResponse().getStatus()).isNotEqualTo(403);
+    }
+
+    @Test
+    void allowed_host_passes_get_case_insensitive_and_any_port() throws Exception {
+        mvc.perform(get("/api/ping").header("Host", "admin.tailnet.ts.net")).andExpect(status().isNoContent());
+        mvc.perform(get("/api/ping").header("Host", "ADMIN.Tailnet.ts.net:8443")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void unknown_host_is_still_403_when_hosts_are_allowed() throws Exception {
+        mvc.perform(get("/api/ping").header("Host", "other.tailnet.ts.net")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/ping").header("Host", "evil.admin.tailnet.ts.net")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void allowed_host_post_with_https_origin_passes() throws Exception {
+        var result = mvc.perform(post("/api/publish").header("Host", "admin.tailnet.ts.net")
+                .header("Origin", "https://admin.tailnet.ts.net")).andReturn();
+        assertThat(result.getResponse().getStatus()).isNotEqualTo(403);
+        result = mvc.perform(post("/api/publish").header("Host", "admin.tailnet.ts.net")
+                .header("Origin", "https://Admin.tailnet.ts.net:8443")).andReturn();
+        assertThat(result.getResponse().getStatus()).isNotEqualTo(403);
+    }
+
+    @Test
+    void allowed_host_post_with_http_or_foreign_origin_is_403() throws Exception {
+        mvc.perform(post("/api/publish").header("Host", "admin.tailnet.ts.net")
+                .header("Origin", "http://admin.tailnet.ts.net")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/publish").header("Host", "admin.tailnet.ts.net")
+                .header("Origin", "https://evil.example")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/publish").header("Host", "admin.tailnet.ts.net")
+                .header("Origin", "null")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void empty_allowed_hosts_keeps_old_behaviour() throws Exception {
+        var filter = new LocalOriginFilter(new com.fasterxml.jackson.databind.ObjectMapper(), java.util.Set.of());
+        var response = new org.springframework.mock.web.MockHttpServletResponse();
+        filter.doFilter(new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/ping") {{
+            addHeader("Host", "admin.tailnet.ts.net");
+        }}, response, new org.springframework.mock.web.MockFilterChain());
+        assertThat(response.getStatus()).isEqualTo(403);
     }
 }

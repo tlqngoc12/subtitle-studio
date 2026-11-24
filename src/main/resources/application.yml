@@ -40,6 +40,8 @@ subtitle-studio:
     path: yt-dlp
     timeout: 60s
   data-dir: ./data
+  # Extra host names allowed to reach the admin (comma-separated), e.g. a Tailscale machine.tailnet.ts.net; never a wildcard.
+  allowed-hosts: ${SUBTITLESTUDIO_ALLOWED_HOSTS:}
   gemini:
     # Empty = translation off. Set GEMINI_API_KEY in .env; never commit or log it.
     api-key: ${GEMINI_API_KEY:}
