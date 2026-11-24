@@ -101,7 +101,8 @@ public class SiteExporter {
 
     public record VideoFile(PublicVideo video, List<ViCue> vietsub) {}
 
-    public void export(Path dir, Instant publishedAt) {
+    /** @return the chapter images of the site: copied into {@code dir}, or left for the R2 upload when R2 is on. */
+    public List<ChapterImage> export(Path dir, Instant publishedAt) {
         write(dir.resolve("data/site.json"), new SiteInfo(publishedAt, publishedAt.atZone(ZoneOffset.UTC).getYear()));
 
         List<PublicVideo> videos = subtitles.list().stream()
@@ -121,8 +122,9 @@ public class SiteExporter {
         exportPhotos(dir, publicUrls);
         exportWorks(dir, publicUrls);
         exportFanfics(dir, publicUrls);
-        novels.export(dir, id -> publicUrl(id, dir, publicUrls), this::write);
+        List<ChapterImage> chapterImages = novels.export(dir, id -> publicUrl(id, dir, publicUrls), this::write);
         warnAboutFileCount(dir);
+        return chapterImages;
     }
 
     private void warnAboutFileCount(Path dir) {

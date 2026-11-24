@@ -868,4 +868,43 @@ class SiteExporterTest {
 
     @Autowired
     private ObjectMapper appMapper;
+
+    @Autowired
+    private com.subtitlestudio.novel.render.RenderCache renderCache;
+
+    private SiteExporter exporterWithR2(boolean r2) {
+        var p = properties.publish();
+        var publish = new com.subtitlestudio.config.SubtitleStudioProperties.Publish("tok", "acc", "fans", false,
+                "wrangler", Duration.ofMinutes(5), "", r2 ? "bucket" : "", r2 ? "k" : "", r2 ? "s" : "");
+        var props = new com.subtitlestudio.config.SubtitleStudioProperties(properties.ytdlp(), properties.dataDir(),
+                properties.gemini(), publish, properties.novel());
+        NovelExporter ne = new NovelExporter(novels, chapters, chapterPages, renderCache, mediaService, props);
+        return new SiteExporter(subtitlesService, vietsub, playlists, profiles, mediaRepository, mediaStorage,
+                appMapper, ne, photoService, workService, fanficService, 100_000);
+    }
+
+    @Test
+    void r2OnDoesNotCopyChapterImagesButReturnsThem() throws IOException {
+        novel("summer", null, 1, 1);
+
+        List<ChapterImage> images = exporterWithR2(true).export(out, NOW);
+
+        assertThat(out.resolve("novel-images")).doesNotExist();
+        assertThat(images).isNotEmpty();
+        assertThat(images).extracting(ChapterImage::key).allMatch(k -> k.startsWith("novel-images/summer/"));
+        assertThat(images).allMatch(i -> Files.exists(i.file()));
+        String image = readJson("data/novels/summer/1.json").get("images").get(0).asText();
+        assertThat(image).matches("/novel-images/summer/[0-9a-f]{16}-1\\.(webp|png)");
+        assertThat(images).extracting(ChapterImage::key).contains(image.substring(1));
+    }
+
+    @Test
+    void r2OffStillCopiesImagesAndReturnsThem() throws IOException {
+        novel("summer", null, 1, 1);
+
+        List<ChapterImage> images = exporterWithR2(false).export(out, NOW);
+
+        assertThat(images).isNotEmpty();
+        assertThat(images).allSatisfy(i -> assertThat(out.resolve(i.key())).exists());
+    }
 }
