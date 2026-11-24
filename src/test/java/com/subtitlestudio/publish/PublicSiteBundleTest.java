@@ -117,4 +117,19 @@ class PublicSiteBundleTest {
         assertThat(lines[0]).isEqualTo("/ /vietsub/list 301");
         assertThat(lines[lines.length - 1]).isEqualTo("/* /index.html 200");
     }
+
+    @Test
+    void r2HeadersLeaveNovelImagesToTheFunction() throws IOException {
+        bundle.writeTo(out, true, SITE, true);
+
+        assertThat(read("_headers")).doesNotContain("/novel-images/*").contains("/assets/*");
+    }
+
+    @Test
+    void r2OffKeepsTheNovelImagesHeaderAndTheSameRedirects() throws IOException {
+        bundle.writeTo(out, true, SITE, false);
+
+        assertThat(read("_headers")).contains("/novel-images/*\n  Cache-Control: public, max-age=31536000, immutable\n");
+        assertThat(read("_redirects")).isEqualTo("/ /vietsub/list 301\n/* /index.html 200\n");
+    }
 }

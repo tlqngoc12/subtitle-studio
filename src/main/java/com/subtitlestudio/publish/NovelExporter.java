@@ -58,10 +58,13 @@ public class NovelExporter {
     /**
      * @param coverUrl copies an image into the site and returns its public URL (null when missing)
      * @param write    writes a JSON file
+     * @return every chapter image of the site. With R2 on they are not copied into {@code dir}: the publish uploads them
+     *         to the bucket instead (chapter JSON still points at {@code /novel-images/...}).
      */
     @Transactional(readOnly = true)
-    public void export(Path dir, Function<Long, String> coverUrl, BiConsumer<Path, Object> write) {
+    public List<ChapterImage> export(Path dir, Function<Long, String> coverUrl, BiConsumer<Path, Object> write) {
         String watermark = watermark();
+        List<ChapterImage> chapterImages = new ArrayList<>();
         List<PublicNovelSummary> summaries = new ArrayList<>();
         for (Novel n : novels.findAllByOrderByUpdatedAtDesc()) {
             List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(n.getId());
@@ -77,7 +80,7 @@ public class NovelExporter {
                 Chapter c = published.get(i);
                 Integer prev = i > 0 ? published.get(i - 1).getChapterNo() : null;
                 Integer next = i < published.size() - 1 ? published.get(i + 1).getChapterNo() : null;
-                List<PublicPageFormat> formats = formats(dir, n, c, watermark);
+                List<PublicPageFormat> formats = formats(dir, n, c, watermark, chapterImages);
                 List<String> images = formats.stream().filter(f -> PageFormat.S.key().equals(f.key()))
                         .findFirst().orElseThrow().images();
                 write.accept(dir.resolve("data/novels/" + n.getSlug() + "/" + c.getChapterNo() + ".json"),
@@ -93,6 +96,7 @@ public class NovelExporter {
                     n.getCreatedAt(), n.getDescription(), original));
         }
         write.accept(dir.resolve("data/novels.json"), summaries);
+        return chapterImages;
     }
 
     /** The latest publish date among the published chapters (drafts never count). */
@@ -101,20 +105,27 @@ public class NovelExporter {
                 .orElse(null);
     }
 
-    private List<PublicPageFormat> formats(Path dir, Novel n, Chapter c, String watermark) {
+    private List<PublicPageFormat> formats(Path dir, Novel n, Chapter c, String watermark, List<ChapterImage> chapterImages) {
         String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
         List<RenderedFormat> rendered = renderCache.imagesFor(c.getId(),
                 new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark,
                         mediaService::loadImage));
+        boolean r2 = properties.publish().r2Enabled();
         Path target = dir.resolve("novel-images").resolve(n.getSlug());
         List<PublicPageFormat> result = new ArrayList<>();
         try {
-            Files.createDirectories(target);
+            if (!r2) {
+                Files.createDirectories(target);
+            }
             for (RenderedFormat r : rendered) {
                 List<String> urls = new ArrayList<>();
                 for (Path f : r.files()) {
-                    Files.copy(f, target.resolve(f.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-                    urls.add("/novel-images/" + n.getSlug() + "/" + f.getFileName());
+                    String url = "/novel-images/" + n.getSlug() + "/" + f.getFileName();
+                    if (!r2) {
+                        Files.copy(f, target.resolve(f.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    chapterImages.add(new ChapterImage(url.substring(1), f));
+                    urls.add(url);
                 }
                 result.add(new PublicPageFormat(r.format().key(), r.format().width(), r.format().height(), urls));
             }

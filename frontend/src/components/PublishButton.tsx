@@ -93,6 +93,11 @@ export function PublishButton({ pollMs = 2000 }: { pollMs?: number }) {
           </button>
         </span>
       </Tip>
+      {publishing && state?.progress && (
+        <p className="publish__progress" role="status">
+          {state.progress}
+        </p>
+      )}
       {nearLimit && (
         <p className="publish__warning" role="status">
           Site đang có {fileCount.toLocaleString('vi-VN')}/20.000 file (giới hạn Cloudflare Free). Sắp đầy, nên

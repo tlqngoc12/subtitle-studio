@@ -26,6 +26,11 @@ public class PublicSiteBundle {
     private final PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
     public void writeTo(Path dir, boolean indexable, String siteUrl) {
+        writeTo(dir, indexable, siteUrl, false);
+    }
+
+    /** @param r2Images chapter images are served from R2 by a Function, so {@code _headers} leaves them alone. */
+    public void writeTo(Path dir, boolean indexable, String siteUrl, boolean r2Images) {
         try {
             copyBuild(dir);
             Path index = dir.resolve("index.html");
@@ -34,7 +39,7 @@ public class PublicSiteBundle {
                 Files.writeString(index, html.replaceFirst("<head>", "<head>" + NOINDEX_META), StandardCharsets.UTF_8);
             }
             Files.writeString(dir.resolve("_redirects"), "/ /vietsub/list 301\n/* /index.html 200\n", StandardCharsets.UTF_8);
-            Files.writeString(dir.resolve("_headers"), headers(indexable), StandardCharsets.UTF_8);
+            Files.writeString(dir.resolve("_headers"), headers(indexable, r2Images), StandardCharsets.UTF_8);
             Files.writeString(dir.resolve("robots.txt"), robots(indexable, siteUrl), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not prepare the public site", e);
@@ -87,7 +92,7 @@ public class PublicSiteBundle {
             "base-uri 'self'",
             "form-action 'none'");
 
-    private static String headers(boolean indexable) {
+    private static String headers(boolean indexable, boolean r2Images) {
         StringBuilder sb = new StringBuilder();
         // Cloudflare Pages reads one "/*" block, so the noindex header shares it with the security headers.
         sb.append("/*\n");
@@ -100,7 +105,10 @@ public class PublicSiteBundle {
         sb.append("/assets/*\n").append(LONG_CACHE).append('\n');
         sb.append("/media/*\n").append(LONG_CACHE).append('\n');
         // Chapter images are named by a hash of their content, and live apart from the HTML pages under /novels/.
-        sb.append("/novel-images/*\n").append(LONG_CACHE).append('\n');
+        // With R2 the Function sets its own headers (a _headers file never applies to Function responses).
+        if (!r2Images) {
+            sb.append("/novel-images/*\n").append(LONG_CACHE).append('\n');
+        }
         // The shelf lives in the visitor's browser: keep it out of search results even on an indexable site.
         if (indexable) {
             sb.append("/novels/shelf\n  X-Robots-Tag: noindex\n\n");

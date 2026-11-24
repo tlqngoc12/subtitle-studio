@@ -30,3 +30,9 @@
   font-size: 0.8125rem;
   color: var(--brand);
 }
+
+.publish__progress {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}

@@ -112,6 +112,7 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.publish.cloudflare-api-token` | `CLOUDFLARE_API_TOKEN` | (trống = tắt Publish) | API token Cloudflare (quyền Cloudflare Pages: Edit) |
 | `subtitle-studio.publish.cloudflare-account-id` | `CLOUDFLARE_ACCOUNT_ID` | (trống) | Account ID Cloudflare |
 | `subtitle-studio.publish.cloudflare-d1-database-id` | `CLOUDFLARE_D1_DATABASE_ID` | (trống = tắt đếm lượt đọc) | ID database D1 `novel-reads`; có thì Publish kèm Pages Functions đếm lượt đọc truyện |
+| `subtitle-studio.publish.r2-bucket` / `r2-access-key-id` / `r2-secret-access-key` | `SUBTITLESTUDIO_PUBLISH_R2_BUCKET` / `_R2_ACCESS_KEY_ID` / `_R2_SECRET_ACCESS_KEY` | (trống = ảnh chương vẫn nằm trong deploy Pages) | Cả 3 có giá trị thì ảnh chương lưu ở bucket R2 và phục vụ qua Pages Function; xem mục *Ảnh chương trên R2* |
 | `subtitle-studio.publish.project` | `SUBTITLESTUDIO_PUBLISH_PROJECT` | (trống) | Tên project Cloudflare Pages; trang public ở `https://<project>.pages.dev` |
 | `subtitle-studio.publish.indexable` | `SUBTITLESTUDIO_PUBLISH_INDEXABLE` | `false` | `false` = noindex (Google không đưa trang lên kết quả tìm kiếm) |
 | `subtitle-studio.publish.site-url` | `SUBTITLESTUDIO_PUBLISH_SITE_URL` | (trống = `https://<project>.pages.dev`) | Gốc URL cho canonical, Open Graph và sitemap; dùng tên miền riêng thì điền vào, không có `/` cuối |
@@ -131,6 +132,23 @@ Nút **Publish** (góc phải thanh đầu trang) xuất bản **chỉ đọc** 
 5. Điền vào `.env`: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUBTITLESTUDIO_PUBLISH_PROJECT` (tên project ở bước 2); `docker compose up -d`.
 6. Bấm **Publish** → xác nhận → chờ thông báo **Published** → **Open site**. Gửi link `https://<project>.pages.dev` cho nhóm.
 
+- **Ảnh chương trên R2 (tuỳ chọn):** Pages Free giới hạn 20.000 file mỗi deploy, nên ảnh chương (`/novel-images/*`) có thể để ở Cloudflare R2. Khi cả 3 biến R2 có giá trị, Publish upload ảnh còn thiếu lên bucket **trước** khi deploy, và chỉ dọn ảnh thừa **sau** khi deploy thành công; người đọc vẫn thấy cùng URL. Việc bạn tự làm trên Cloudflare:
+  1. Dashboard → R2 → bật R2 (khai báo thẻ; trong hạn mức free thì không mất phí).
+  2. Tạo bucket, ví dụ `subtitle-studio-novel-images`, location tự động.
+  3. R2 → Manage API tokens → tạo token **Object Read & Write**, chỉ cho bucket này. Chép Access Key ID và Secret vào `.env` cùng tên bucket.
+  4. API token cho wrangler (`CLOUDFLARE_API_TOKEN`) có thể cần thêm quyền R2 để `wrangler pages deploy` gắn binding; deploy báo thiếu quyền thì thêm quyền R2 cho token đó.
+  5. Restart app và bấm Publish. Lần đầu lâu vì phải upload khoảng 12.700 ảnh (nút Publish hiện tiến độ).
+  6. **Rollback:** nếu quay về một bản deploy cũ trong dashboard Pages, ảnh mà chỉ bản cũ dùng có thể đã bị xoá khỏi R2. Muốn quay lại an toàn thì sửa trong app rồi Publish lại.
+  7. Theo dõi số request Functions mỗi ngày ở dashboard (Workers & Pages → project → Metrics).
+
+  | Dịch vụ | Hạn mức Free | Hiện tại / ước tính |
+  |---|---|---|
+  | R2 lưu trữ | 10 GB | 1,6 GB |
+  | R2 Class A (put, list, delete) | 1 triệu thao tác/tháng | Lần đầu khoảng 12.700, sau đó vài trăm mỗi lần Publish |
+  | R2 Class B (get, head) | 10 triệu thao tác/tháng | Mỗi lượt xem một ảnh là 1 thao tác |
+  | Pages Functions | 100.000 request/ngày, tính chung với `/api/reads` | Mỗi ảnh là 1 request; trình duyệt cache 1 năm nên đọc lại không tốn |
+
+  **Khi hết 100.000 request Functions trong ngày,** Function trả lỗi nên **ảnh chương không hiện** cho tới khi quota reset; trang, JSON và `/media/*` vẫn chạy. Nếu thường xuyên vượt thì nâng lên Workers Paid (5 USD/tháng) hoặc dùng tên miền riêng. App không có cảnh báo tự động.
 - Mặc định trang có **noindex** (meta, header `X-Robots-Tag`, `robots.txt`).
 - Mỗi lần Publish, mỗi URL công khai có một file HTML riêng (title, mô tả, canonical, Open Graph, danh sách link) và có `sitemap.xml`; điều này luôn chạy, cờ `INDEXABLE` chỉ quyết định `noindex` và `robots.txt`. Ảnh chương nằm ở `/novel-images/`.
 - **Đưa site lên Google (3 bước):**
