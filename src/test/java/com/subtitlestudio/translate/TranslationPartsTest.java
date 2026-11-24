@@ -56,4 +56,25 @@ class TranslationPartsTest {
     void noCuesMakeNoParts() {
         assertThat(TranslationParts.split(List.of(), PART)).isEmpty();
     }
+
+    @Test
+    void aPartIsAlsoCappedAt400CuesEvenWithinThePartDuration() {
+        List<Long> starts = new ArrayList<>();
+        for (int i = 0; i < 401; i++) {
+            starts.add(i * 1_000L); // 401 cues within 7 minutes
+        }
+
+        assertThat(TranslationParts.split(starts, PART)).containsExactly(
+                new TranslationParts.Range(0, 400), new TranslationParts.Range(400, 401));
+    }
+
+    @Test
+    void exactly400CuesWithinThePartDurationStayOnePart() {
+        List<Long> starts = new ArrayList<>();
+        for (int i = 0; i < 400; i++) {
+            starts.add(i * 1_000L);
+        }
+
+        assertThat(TranslationParts.split(starts, PART)).containsExactly(new TranslationParts.Range(0, 400));
+    }
 }

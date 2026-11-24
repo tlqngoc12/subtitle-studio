@@ -20,10 +20,16 @@ public final class TranslationOutput {
     }
 
     /**
-     * Returns the lines in the order of {@code sent}, text stripped and line breaks normalised to
-     * {@code \n}; throws {@link TranslationFailedException} when anything is missing, extra, duplicated or blank.
+     * The valid lines of an answer (in {@code sent} order), the sent lines that are not valid, and how many
+     * distinct ids were returned that were never sent.
      */
-    public static List<TranslatedLine> validate(List<SourceLine> sent, List<TranslatedLine> got) {
+    public record Checked(List<TranslatedLine> valid, List<SourceLine> missing, int extra) {}
+
+    /**
+     * Splits an answer: a sent id is valid when it appears exactly once with non-blank text (stripped, line breaks
+     * normalised to {@code \n}); every other sent line is missing (absent, duplicated or blank). Extra ids are only counted.
+     */
+    public static Checked check(List<SourceLine> sent, List<TranslatedLine> got) {
         Map<Integer, Integer> seen = new HashMap<>();
         Map<Integer, String> textById = new HashMap<>();
         for (TranslatedLine line : got) {
@@ -31,19 +37,33 @@ public final class TranslationOutput {
             textById.put(line.id(), line.text() == null ? "" : LINE_BREAK.matcher(line.text()).replaceAll("\n").strip());
         }
 
-        List<TranslatedLine> ordered = new ArrayList<>(sent.size());
+        List<TranslatedLine> valid = new ArrayList<>(sent.size());
+        List<SourceLine> missing = new ArrayList<>();
+        Set<Integer> sentIds = new HashSet<>();
         for (SourceLine source : sent) {
+            sentIds.add(source.id());
             String text = textById.get(source.id());
             if (seen.getOrDefault(source.id(), 0) == 1 && !text.isEmpty()) {
-                ordered.add(new TranslatedLine(source.id(), text));
+                valid.add(new TranslatedLine(source.id(), text));
+            } else {
+                missing.add(source);
             }
         }
-        boolean extra = seen.size() > sent.size()
-                || seen.keySet().stream().anyMatch(id -> sent.stream().noneMatch(s -> s.id() == id));
-        if (ordered.size() != sent.size() || extra) {
-            throw invalid(ordered.size(), sent.size());
+        int extra = (int) seen.keySet().stream().filter(id -> !sentIds.contains(id)).count();
+        return new Checked(valid, missing, extra);
+    }
+
+    /**
+     * Returns the lines in the order of {@code sent}, text stripped and line breaks normalised to
+     * {@code \n}; throws {@link TranslationFailedException} when anything is missing, duplicated or blank.
+     * Ids that were not sent are ignored.
+     */
+    public static List<TranslatedLine> validate(List<SourceLine> sent, List<TranslatedLine> got) {
+        Checked checked = check(sent, got);
+        if (!checked.missing().isEmpty()) {
+            throw invalid(checked.valid().size(), sent.size());
         }
-        return ordered;
+        return checked.valid();
     }
 
     /**

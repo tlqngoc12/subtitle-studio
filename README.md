@@ -108,7 +108,7 @@ Mở http://localhost:8080. Mặc định dùng **H2** (DB dev `./data/dev.mv.db
 | `subtitle-studio.backup.cron` | `SUBTITLESTUDIO_BACKUP_CRON` | `0 0 12 * * *` | Lịch sao lưu hằng ngày của app (cron Spring, giây trước, múi giờ `Asia/Ho_Chi_Minh`); để trống = không chạy hằng ngày (nút Backup now vẫn dùng được) |
 | `subtitle-studio.gemini.timeout` | `SUBTITLESTUDIO_GEMINI_TIMEOUT` | `3m` | Quá thời gian thì báo lỗi |
 | `subtitle-studio.gemini.max-duration` | `SUBTITLESTUDIO_GEMINI_MAXDURATION` | `180m` | Video dài hơn không dịch tự động |
-| `subtitle-studio.gemini.part-duration` | `SUBTITLESTUDIO_GEMINI_PARTDURATION` | `45m` | Video tới độ dài này dịch bằng một request; dài hơn thì chia theo ranh giới câu thành các đoạn tối đa bằng này, dịch lần lượt |
+| `subtitle-studio.gemini.part-duration` | `SUBTITLESTUDIO_GEMINI_PARTDURATION` | `45m` | Video tới độ dài này dịch bằng một request; dài hơn thì chia theo ranh giới câu thành các đoạn tối đa bằng này (và tối đa 400 câu mỗi đoạn), dịch lần lượt |
 | `subtitle-studio.publish.cloudflare-api-token` | `CLOUDFLARE_API_TOKEN` | (trống = tắt Publish) | API token Cloudflare (quyền Cloudflare Pages: Edit) |
 | `subtitle-studio.publish.cloudflare-account-id` | `CLOUDFLARE_ACCOUNT_ID` | (trống) | Account ID Cloudflare |
 | `subtitle-studio.publish.cloudflare-d1-database-id` | `CLOUDFLARE_D1_DATABASE_ID` | (trống = tắt đếm lượt đọc) | ID database D1 `novel-reads`; có thì Publish kèm Pages Functions đếm lượt đọc truyện |
@@ -168,7 +168,7 @@ Quy tắc:
 
 - Vietsub **tự upload không bao giờ bị Gemini ghi đè**. Muốn dịch bằng Gemini cho video đó thì xoá Vietsub tự upload ở trang Vietsub trước.
 - Dán lại link đã có Vietsub thì không gọi Gemini nữa (không tốn lượt); muốn dịch lại thì bấm **Dịch lại**.
-- Chỉ dịch video ≤ 3 giờ. Video tới 45 phút là một request; dài hơn thì chia thành các đoạn tối đa 45 phút, dịch lần lượt (từ đoạn 2 có kèm 8 dòng cuối của đoạn trước để giữ mạch). Một đoạn lỗi thì các đoạn đã xong được giữ trong `./data/translate-partial/<id>.json`, bấm **Dịch lại** sẽ dịch tiếp từ đoạn lỗi.
+- Chỉ dịch video ≤ 3 giờ. Video tới 45 phút là một request; dài hơn thì chia thành các đoạn tối đa 45 phút hoặc 400 câu, dịch lần lượt (từ đoạn 2 có kèm 8 dòng cuối của đoạn trước để giữ mạch). Một đoạn lỗi thì các đoạn đã xong được giữ trong `./data/translate-partial/<id>.json`, bấm **Dịch lại** sẽ dịch tiếp từ đoạn lỗi.
 - File lưu ở `./data/subs/`: `<id>.en.srt`, `<id>.vi_auto.srt` (Gemini), `<id>.vi_manual.srt` (bản tự upload, giữ nguyên file gốc).
 
 Lưu ý free tier: nội dung gửi lên có thể được Google dùng để cải thiện sản phẩm; giới hạn số request xem trong AI Studio. Hết lượt thì app báo "Hết lượt miễn phí của Gemini, thử lại sau."
@@ -272,7 +272,7 @@ Lỗi trả về dạng `application/problem+json` với field `code`: `INVALID_
   - Chạy trực tiếp: `yt-dlp -U` (hoặc `winget upgrade yt-dlp.yt-dlp`).
 - **Video giới hạn tuổi, riêng tư hoặc chỉ dành cho hội viên:** chưa hỗ trợ (cần cookies), app sẽ báo `YTDLP_FAILED`.
 - **`Could not start yt-dlp`:** yt-dlp chưa có trong `PATH`, hoặc đặt `SUBTITLESTUDIO_YTDLP_PATH` trỏ tới file chạy.
-- **Dịch Gemini báo "Gemini returned missing or mismatched lines (x/y valid)":** Gemini thỉnh thoảng trả câu trả lời thiếu hoặc sai block; app từ chối để không lưu Vietsub sai. Bấm **Translate again** (thường thành công ở lần sau). Muốn biết kiểu hỏng, tìm trong `app.log`:
+- **Dịch Gemini báo "Gemini returned missing or mismatched lines (x/y valid)":** Gemini thỉnh thoảng trả câu trả lời thiếu hoặc sai block; app giữ các dòng đúng và tự hỏi lại riêng các dòng thiếu (tối đa 2 lần); id thừa bị bỏ qua. Còn thiếu sau đó thì app từ chối để không lưu Vietsub sai. Bấm **Translate again** (thường thành công ở lần sau). Muốn biết kiểu hỏng, tìm trong `app.log`:
   - `Translation of <id video> failed: …` cho biết video nào;
   - `Gemini <model> returned an invalid answer: items=… valid=… missing=… extra=… duplicated=… blank=… missingIds=[…]` cho biết model nào và hỏng thế nào (thiếu/gộp block → `missing` lớn; đánh lại id → `extra` lớn; bỏ trống → `blank` lớn). Log không chứa nội dung phụ đề.
   - `Gemini <model> translated <n> lines`: lần dịch thành công, kèm model đã trả lời (model chính hay model dự phòng khi model chính quá tải).

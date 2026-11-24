@@ -13,11 +13,14 @@ final class TranslationParts {
         }
     }
 
+    /** Long lists make lite models stop early, so a part never holds more cues than this. */
+    static final int MAX_LINES_PER_PART = 400;
+
     private TranslationParts() {}
 
     /**
-     * A cue joins the current part while it starts less than {@code partMs} after the part's first cue; otherwise
-     * it starts a new part. A cue is never split and no part is empty.
+     * A cue joins the current part while it starts less than {@code partMs} after the part's first cue and the part
+     * has fewer than {@link #MAX_LINES_PER_PART} cues; otherwise it starts a new part. A cue is never split and no part is empty.
      *
      * @param startsMs start time of every cue, in order
      */
@@ -25,7 +28,7 @@ final class TranslationParts {
         List<Range> parts = new ArrayList<>();
         int from = 0;
         for (int i = 1; i < startsMs.size(); i++) {
-            if (startsMs.get(i) - startsMs.get(from) >= partMs) {
+            if (startsMs.get(i) - startsMs.get(from) >= partMs || i - from >= MAX_LINES_PER_PART) {
                 parts.add(new Range(from, i));
                 from = i;
             }
