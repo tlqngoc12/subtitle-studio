@@ -993,14 +993,15 @@ class ChapterServiceTest {
     }
 
     @Test
-    void reviewReturnsNewestFileOfThePosition() throws java.io.IOException {
+    void reviewLooksUpByKey() throws java.io.IOException {
         ChapterDetail[] c = profiledChapters("RvNewest", 3);
-        review("review-RvNewest-ch-2-2026-11-20.md", "old");
-        review("review-RvNewest-ch-2-2026-11-23.md", "new");
+        review("review-RvNewest--ch-2--2026-11-20.md", "old");
+        review("review-RvNewest--ch-2--2026-11-23.md", "new");
+        review("review-RvNewest--ch-3--2026-11-25.md", "other");
 
         ChapterReview r = service.review(c[1].id());
 
-        assertThat(r).isEqualTo(new ChapterReview("review-RvNewest-ch-2-2026-11-23.md", "new"));
+        assertThat(r).isEqualTo(new ChapterReview("review-RvNewest--ch-2--2026-11-23.md", "new"));
     }
 
     @Test
@@ -1008,7 +1009,7 @@ class ChapterServiceTest {
         ChapterDetail[] c = profiledChapters("RvMissing", 3);
 
         assertThatThrownBy(() -> service.review(c[2].id())).isInstanceOf(ChapterReviewNotFoundException.class)
-                .hasMessageContaining("review-RvMissing-ch-3-*.md");
+                .hasMessageContaining("review-RvMissing--ch-3--*.md");
     }
 
     @Test
@@ -1020,28 +1021,51 @@ class ChapterServiceTest {
     }
 
     @Test
-    void reorderRenumbersReviewFiles() throws java.io.IOException {
-        ChapterDetail[] c = profiledChapters("RvReorder", 3);
-        review("review-RvReorder-ch-1-2026-11-23.md", "a");
-        review("review-RvReorder-ch-3-2026-11-23.md", "c");
+    void titleChangeRenamesReviewFiles() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvRename", 2);
+        review("review-RvRename--ch-1--2026-11-23.md", "a");
+        review("review-RvRename--ch-2--2026-11-23.md", "b");
 
-        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c[2].id(), c[1].id(), c[0].id())));
+        service.update(c[0].id(), new ChapterUpdateRequest("Ngoại truyện I: Lần này", null));
 
-        assertThat(reviewText("review-RvReorder-ch-1-2026-11-23.md")).isEqualTo("c");
-        assertThat(reviewText("review-RvReorder-ch-3-2026-11-23.md")).isEqualTo("a");
+        assertThat(reviewText("review-RvRename--ngoai-truyen-i--2026-11-23.md")).isEqualTo("a");
+        assertThat(dataDir.resolve("reviews/review-RvRename--ch-1--2026-11-23.md")).doesNotExist();
+        assertThat(reviewText("review-RvRename--ch-2--2026-11-23.md")).isEqualTo("b");
     }
 
     @Test
-    void deleteArchivesAndShiftsLaterReviews() throws java.io.IOException {
+    void titleChangeKeepingTheKeyLeavesReviewFiles() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvSameKey", 1);
+        review("review-RvSameKey--ch-1--2026-11-23.md", "a");
+
+        service.update(c[0].id(), new ChapterUpdateRequest("Chương 1: Mưa", null));
+
+        assertThat(reviewText("review-RvSameKey--ch-1--2026-11-23.md")).isEqualTo("a");
+    }
+
+    @Test
+    void reorderDoesNotRenameReviewFiles() throws java.io.IOException {
+        ChapterDetail[] c = profiledChapters("RvReorder", 3);
+        review("review-RvReorder--ch-1--2026-11-23.md", "a");
+        review("review-RvReorder--ch-3--2026-11-23.md", "c");
+
+        service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c[2].id(), c[1].id(), c[0].id())));
+
+        assertThat(reviewText("review-RvReorder--ch-1--2026-11-23.md")).isEqualTo("a");
+        assertThat(reviewText("review-RvReorder--ch-3--2026-11-23.md")).isEqualTo("c");
+    }
+
+    @Test
+    void deleteArchivesReviewFiles() throws java.io.IOException {
         ChapterDetail[] c = profiledChapters("RvDelete", 3);
-        review("review-RvDelete-ch-2-2026-11-23.md", "b");
-        review("review-RvDelete-ch-3-2026-11-23.md", "c");
+        review("review-RvDelete--ch-2--2026-11-23.md", "b");
+        review("review-RvDelete--ch-3--2026-11-23.md", "c");
 
         service.delete(c[1].id());
 
-        assertThat(reviewText("_archive/review-RvDelete-ch-2-2026-11-23.md")).isEqualTo("b");
-        assertThat(reviewText("review-RvDelete-ch-2-2026-11-23.md")).isEqualTo("c");
-        assertThat(dataDir.resolve("reviews/review-RvDelete-ch-3-2026-11-23.md")).doesNotExist();
+        assertThat(reviewText("_archive/review-RvDelete--ch-2--2026-11-23.md")).isEqualTo("b");
+        assertThat(dataDir.resolve("reviews/review-RvDelete--ch-2--2026-11-23.md")).doesNotExist();
+        assertThat(reviewText("review-RvDelete--ch-3--2026-11-23.md")).isEqualTo("c");
     }
 
     @Test

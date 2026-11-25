@@ -9,7 +9,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -19,10 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Files written by the story-reviewer agent: {@code {dataDir}/reviews/review-<Profile>-ch-<x>-<date>[-vN].md}. Finds the
- * newest one of a chapter and keeps the names in step when chapters move, are deleted, or the profile is renamed. Only
- * files whose names match the exact pattern of the profile are ever touched; failures are logged, never thrown, and
- * contents are never logged.
+ * Files written by the story-reviewer agent: {@code {dataDir}/reviews/review-<Profile>--<key>--<date>[-vN].md}, where
+ * the key comes from the chapter title ({@link ChapterTitles#reviewKey}). Finds the newest one of a chapter and keeps
+ * the names in step when a title changes, a chapter is deleted, or the profile is renamed. Only files whose names
+ * match the exact pattern of the profile are ever touched; failures are logged, never thrown, and contents are never
+ * logged.
  */
 @Component
 public class ChapterReviewFiles {
@@ -42,55 +42,51 @@ public class ChapterReviewFiles {
     }
 
     /** One review file of a profile, parsed from its name. */
-    private record Found(Path path, int position, String date, int version) {
-        String name(String profile, int newPosition) {
-            return "review-" + profile + "-ch-" + newPosition + "-" + date + (version > 1 ? "-v" + version : "") + ".md";
+    private record Found(Path path, String key, String date, int version) {
+        String name(String profile, String newKey, int newVersion) {
+            return "review-" + profile + "--" + newKey + "--" + date + (newVersion > 1 ? "-v" + newVersion : "") + ".md";
         }
     }
 
-    public static String pattern(String profile, int position) {
-        return "review-" + profile + "-ch-" + position + "-*.md";
+    public static String pattern(String profile, String key) {
+        return "review-" + profile + "--" + key + "--*.md";
     }
 
-    public Optional<Path> newest(String profile, int position) {
+    public Optional<Path> newest(String profile, String key) {
         return list(profile).stream()
-                .filter(f -> f.position() == position)
+                .filter(f -> f.key().equals(key))
                 .max(Comparator.comparing(Found::date).thenComparingInt(Found::version))
                 .map(Found::path);
     }
 
-    /** Renames every version of the chapters whose position changed ({@code old -> new}); swaps never overwrite. */
-    public void renumber(String profile, Map<Integer, Integer> oldToNew) {
+    /**
+     * Renames every version of a chapter's review to a new key. Never overwrites: when the target name is taken the
+     * moved file becomes the next free {@code -vN} of that date.
+     */
+    public void rename(String profile, String fromKey, String toKey) {
+        if (fromKey == null || toKey == null || fromKey.equals(toKey)) {
+            return;
+        }
         try {
-            List<Found> affected = new ArrayList<>();
-            for (Found f : list(profile)) {
-                Integer target = oldToNew.get(f.position());
-                if (target != null && target != f.position()) {
-                    affected.add(f);
+            List<Found> mine = list(profile).stream().filter(f -> f.key().equals(fromKey))
+                    .sorted(Comparator.comparing(Found::date).thenComparingInt(Found::version)).toList();
+            for (Found f : mine) {
+                int version = f.version();
+                Path target = dir.resolve(f.name(profile, toKey, version));
+                while (Files.exists(target)) {
+                    target = dir.resolve(f.name(profile, toKey, ++version));
                 }
-            }
-            if (affected.isEmpty()) {
-                return;
-            }
-            List<Path> temps = new ArrayList<>();
-            for (Found f : affected) {
-                Path temp = dir.resolve("." + UUID.randomUUID() + ".renumber");
-                Files.move(f.path(), temp);
-                temps.add(temp);
-            }
-            for (int i = 0; i < affected.size(); i++) {
-                Found f = affected.get(i);
-                Files.move(temps.get(i), dir.resolve(f.name(profile, oldToNew.get(f.position()))));
+                Files.move(f.path(), target);
             }
         } catch (IOException | RuntimeException e) {
-            log.warn("Could not renumber review files of {}", profile, e);
+            log.warn("Could not rename review files of {}", profile, e);
         }
     }
 
     /** Moves every version of a chapter's review to {@code _archive/}; a name clash gets {@code -1}, {@code -2}. */
-    public void archive(String profile, int position) {
+    public void archive(String profile, String key) {
         try {
-            List<Found> all = list(profile).stream().filter(f -> f.position() == position).toList();
+            List<Found> all = list(profile).stream().filter(f -> f.key().equals(key)).toList();
             if (all.isEmpty()) {
                 return;
             }
@@ -116,10 +112,46 @@ public class ChapterReviewFiles {
         }
         try {
             for (Found f : list(from)) {
-                Files.move(f.path(), dir.resolve(f.name(to, f.position())));
+                Files.move(f.path(), dir.resolve(f.name(to, f.key(), f.version())));
             }
         } catch (IOException | RuntimeException e) {
             log.warn("Could not rename review files of {}", from, e);
+        }
+    }
+
+    /**
+     * One-time conversion of old names {@code review-<Profile>-ch-<position>-<date>[-vN].md} to the key format, where
+     * {@code positionToKey} maps a 1-based reading position to the key of the chapter there. Files whose position has
+     * no chapter are left alone and their names logged.
+     */
+    public void migrateLegacy(String profile, Map<Integer, String> positionToKey) {
+        if (profile == null || profile.isBlank() || !Files.isDirectory(dir)) {
+            return;
+        }
+        Pattern legacy = Pattern.compile("^review-" + Pattern.quote(profile)
+                + "-ch-([0-9]+)-([0-9]{4}-[0-9]{2}-[0-9]{2})(?:-v([0-9]+))?[.]md$");
+        try (Stream<Path> files = Files.list(dir)) {
+            List<Path> all = files.filter(Files::isRegularFile).sorted().toList();
+            for (Path path : all) {
+                Matcher m = legacy.matcher(path.getFileName().toString());
+                if (!m.matches()) {
+                    continue;
+                }
+                String key = positionToKey.get(Integer.parseInt(m.group(1)));
+                if (key == null) {
+                    log.warn("Review file {} matches no chapter and was left as it is", path.getFileName());
+                    continue;
+                }
+                int version = m.group(3) == null ? 1 : Integer.parseInt(m.group(3));
+                Found f = new Found(path, key, m.group(2), version);
+                Path target = dir.resolve(f.name(profile, key, version));
+                while (Files.exists(target)) {
+                    target = dir.resolve(f.name(profile, key, ++version));
+                }
+                Files.move(path, target);
+            }
+        } catch (IOException | RuntimeException e) {
+            log.warn("Could not convert old review file names of {}", profile, e);
         }
     }
 
@@ -127,8 +159,8 @@ public class ChapterReviewFiles {
         if (profile == null || profile.isBlank() || !Files.isDirectory(dir)) {
             return List.of();
         }
-        Pattern p = Pattern.compile(
-                "^review-" + Pattern.quote(profile) + "-ch-(\\d+)-(\\d{4}-\\d{2}-\\d{2})(?:-v(\\d+))?\\.md$");
+        Pattern p = Pattern.compile("^review-" + Pattern.quote(profile)
+                + "--([a-z0-9]+(?:-[a-z0-9]+)*)--([0-9]{4}-[0-9]{2}-[0-9]{2})(?:-v([0-9]+))?[.]md$");
         List<Found> out = new ArrayList<>();
         try (Stream<Path> files = Files.list(dir)) {
             for (Path path : (Iterable<Path>) files::iterator) {
@@ -137,7 +169,7 @@ public class ChapterReviewFiles {
                 }
                 Matcher m = p.matcher(path.getFileName().toString());
                 if (m.matches()) {
-                    out.add(new Found(path, Integer.parseInt(m.group(1)), m.group(2),
+                    out.add(new Found(path, m.group(1), m.group(2),
                             m.group(3) == null ? 1 : Integer.parseInt(m.group(3))));
                 }
             }

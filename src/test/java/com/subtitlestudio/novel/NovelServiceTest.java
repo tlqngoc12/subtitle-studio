@@ -771,13 +771,13 @@ class NovelServiceTest {
         NovelDetail d = service.create(original("rv-rn", "Review Old Rn", "A", null));
         assertThat(d.promptProfile()).isEqualTo("ReviewOldRn");
         Files.createDirectories(dataDir.resolve("reviews"));
-        Files.writeString(dataDir.resolve("reviews/review-ReviewOldRn-ch-1-2026-11-23.md"), "x");
+        Files.writeString(dataDir.resolve("reviews/review-ReviewOldRn--ch-1--2026-11-23.md"), "x");
 
         NovelDetail edited = service.update(d.id(), retitled(d, "Review New Rn", "ReviewOldRn"));
 
         assertThat(edited.promptProfile()).isEqualTo("ReviewNewRn");
-        assertThat(dataDir.resolve("reviews/review-ReviewNewRn-ch-1-2026-11-23.md")).exists();
-        assertThat(dataDir.resolve("reviews/review-ReviewOldRn-ch-1-2026-11-23.md")).doesNotExist();
+        assertThat(dataDir.resolve("reviews/review-ReviewNewRn--ch-1--2026-11-23.md")).exists();
+        assertThat(dataDir.resolve("reviews/review-ReviewOldRn--ch-1--2026-11-23.md")).doesNotExist();
     }
 
     @Test

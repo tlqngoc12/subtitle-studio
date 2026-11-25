@@ -228,37 +228,15 @@ public class ChapterService {
             throw new InvalidChapterException(List.of(new FieldError("chapterIds",
                     "List every chapter of the novel exactly once.")));
         }
-        Map<Long, Integer> before = positions(novelId);
         for (int i = 0; i < order.size(); i++) {
             byId.get(order.get(i)).setSortOrder(i + 1);
         }
         novel.touch(clock.instant());
         chapters.flush();
-        if (hasProfile(novel)) {
-            Map<Long, Integer> after = positions(novelId);
-            Map<Integer, Integer> moved = new HashMap<>();
-            before.forEach((chapterId, oldPosition) -> {
-                Integer newPosition = after.get(chapterId);
-                if (newPosition != null && !newPosition.equals(oldPosition)) {
-                    moved.put(oldPosition, newPosition);
-                }
-            });
-            reviewFiles.renumber(novel.getPromptProfile(), moved);
-        }
     }
 
     private static boolean hasProfile(Novel novel) {
         return novel.getPromptProfile() != null && !novel.getPromptProfile().isBlank();
-    }
-
-    /** Reading position (1-based) of each chapter of the novel. */
-    private Map<Long, Integer> positions(long novelId) {
-        Map<Long, Integer> out = new HashMap<>();
-        int position = 1;
-        for (Chapter c : chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId)) {
-            out.put(c.getId(), position++);
-        }
-        return out;
     }
 
     /** The newest review file of a chapter of an original story (404 when there is none). */
@@ -270,13 +248,13 @@ public class ChapterService {
             throw new ChapterReviewNotFoundException(null);
         }
         String profile = novel.getPromptProfile();
-        int position = positions(novel.getId()).get(chapterId);
-        Path file = reviewFiles.newest(profile, position)
-                .orElseThrow(() -> new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, position)));
+        String key = ChapterTitles.reviewKey(c.getTitle()).orElse("");
+        Path file = reviewFiles.newest(profile, key)
+                .orElseThrow(() -> new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, key)));
         try {
             return new ChapterReview(file.getFileName().toString(), Files.readString(file, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            throw new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, position));
+            throw new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, key));
         }
     }
 
@@ -290,7 +268,12 @@ public class ChapterService {
         Chapter c = editable(id);
         if (request.title() != null) {
             List<Chapter> all = chapters.findByNovelIdOrderByChapterNo(c.getNovel().getId());
+            String oldKey = ChapterTitles.reviewKey(c.getTitle()).orElse(null);
             c.setTitle(validateTitle(all, c.getId(), request.title()));
+            String newKey = ChapterTitles.reviewKey(c.getTitle()).orElse(null);
+            if (hasProfile(c.getNovel()) && oldKey != null && !oldKey.equals(newKey)) {
+                reviewFiles.rename(c.getNovel().getPromptProfile(), oldKey, newKey);
+            }
         }
         boolean textChanged = false;
         if (request.pages() != null && !request.pages().isEmpty() && c.hasSourceText()) {
@@ -356,7 +339,7 @@ public class ChapterService {
         Chapter c = editable(id);
         long novelId = c.getNovel().getId();
         String profile = c.getNovel().getPromptProfile();
-        Map<Long, Integer> before = positions(novelId);
+        String key = ChapterTitles.reviewKey(c.getTitle()).orElse(null);
         List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(id);
         List<Long> images = new ArrayList<>(ps.stream().map(p -> p.getMedia().getId()).toList());
         pages.deleteAll(ps);
@@ -368,14 +351,8 @@ public class ChapterService {
         chapters.flush();
         mediaService.deleteIfUnreferenced(images);
         renderCache.evict(id);
-        if (profile != null && !profile.isBlank()) {
-            int removed = before.get(id);
-            Map<Integer, Integer> shift = new HashMap<>();
-            for (int q = removed + 1; q <= before.size(); q++) {
-                shift.put(q, q - 1);
-            }
-            reviewFiles.archive(profile, removed);
-            reviewFiles.renumber(profile, shift);
+        if (profile != null && !profile.isBlank() && key != null) {
+            reviewFiles.archive(profile, key);
         }
     }
 
