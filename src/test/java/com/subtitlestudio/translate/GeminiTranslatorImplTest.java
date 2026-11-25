@@ -398,4 +398,111 @@ class GeminiTranslatorImplTest {
                 .isInstanceOf(TranslationFailedException.class);
         assertThat(server.requests()).isEqualTo(2);
     }
+
+    // ---- echo of the source line ----
+
+    /** An answer item for position {@code id} that carries the English start and Vietnamese text of line {@code of}. */
+    private static String item(int id, int of) {
+        return "{\"id\":" + id + ",\"src\":\"line " + of + "\",\"text\":\"dòng " + of + "\"}";
+    }
+
+    /** Items for ids {@code from..to-1}, each carrying its own line. */
+    private static String own(int from, int to) {
+        return java.util.stream.IntStream.range(from, to).mapToObj(i -> item(i, i))
+                .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    /** Items for ids {@code from..to-1}, each carrying the line {@code shift} after its own. */
+    private static String shifted(int from, int to, int shift) {
+        return java.util.stream.IntStream.range(from, to).mapToObj(i -> item(i, i + shift))
+                .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private static boolean asks(String body, int id) {
+        return body.contains("\\\"id\\\":" + id + ",");
+    }
+
+    @Test
+    void asksForTheSrcEchoOfEveryLine() {
+        server.replyText(GOOD, "STOP");
+
+        translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.lastBody()).contains("\"required\":[\"id\",\"src\",\"text\"]").contains("\"src\":{");
+        assertThat(GeminiTranslatorImpl.SYSTEM_RULES).contains("\"src\"").contains("3 từ đầu tiên");
+    }
+
+    @Test
+    void asksForSrcBeforeText() {
+        server.replyText(GOOD, "STOP");
+
+        translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.bodies().get(0)).contains("\"propertyOrdering\":[\"id\",\"src\",\"text\"]");
+    }
+
+    @Test
+    void asksAgainForSlidLinesAndPutsEachOnItsOwnId() {
+        // 20 lines; the model drops the content of line 8 but keeps numbering: ids 8-18 carry lines 9-19, id 19 is absent.
+        server.queueText("[" + own(0, 8) + "," + shifted(8, 19, 1) + "]");
+        server.queueText("[" + own(8, 20) + "]");
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, numbered(20));
+
+        assertThat(server.requests()).isEqualTo(2);
+        String second = server.bodies().get(1);
+        for (int id = 8; id < 20; id++) {
+            assertThat(asks(second, id)).as("asks %d", id).isTrue();
+        }
+        assertThat(asks(second, 7)).isFalse();
+        assertThat(out).hasSize(20);
+        for (int i = 0; i < 20; i++) {
+            assertThat(out.get(i)).isEqualTo(new TranslatedLine(i, "dòng " + i));
+        }
+    }
+
+    @Test
+    void catchesAMergeAndASplitWithTheRightCount() {
+        // Line 5 and 6 merged into id 5; the lines after it slide one id early until line 12 is split over ids 11 and 12.
+        server.queueText("[" + own(0, 6) + "," + shifted(6, 11, 1) + "," + item(11, 12) + "," + item(12, 12) + ","
+                + own(13, 20) + "]");
+        server.queueText("[" + own(6, 20) + "]");
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, numbered(20));
+
+        assertThat(server.requests()).isEqualTo(2);
+        String second = server.bodies().get(1);
+        assertThat(asks(second, 5)).isFalse();
+        for (int id = 6; id < 20; id++) {
+            assertThat(asks(second, id)).as("asks %d", id).isTrue();
+        }
+        assertThat(out).extracting(TranslatedLine::text)
+                .containsExactlyElementsOf(java.util.stream.IntStream.range(0, 20).mapToObj(i -> "dòng " + i).toList());
+    }
+
+    @Test
+    void aSingleParaphrasedEchoAsksAgainOnlyForThatLine() {
+        server.queueText("[" + own(0, 4) + "," + item(4, 15) + "," + own(5, 10) + "]");
+        server.queueText("[" + own(4, 5) + "]");
+
+        List<TranslatedLine> out = translator().translate(VIDEO, PROFILE, numbered(10));
+
+        assertThat(server.requests()).isEqualTo(2);
+        String second = server.bodies().get(1);
+        assertThat(asks(second, 4)).isTrue();
+        assertThat(asks(second, 5)).isFalse();
+        assertThat(out).hasSize(10);
+        assertThat(out.get(4).text()).isEqualTo("dòng 4");
+    }
+
+    @Test
+    void logsEchoMismatchesWithoutSubtitleText(CapturedOutput output) {
+        server.queueText("[" + own(0, 8) + "," + shifted(8, 19, 1) + "]");
+        server.queueText("[" + own(8, 20) + "]");
+
+        translator().translate(VIDEO, PROFILE, numbered(20));
+
+        assertThat(output).contains("echoMismatch=11 noEcho=0 firstMismatchId=8");
+        assertThat(output).doesNotContain("line 8").doesNotContain("line 9").doesNotContain("dòng");
+    }
 }
