@@ -43,6 +43,8 @@
 - "ngẩng lên" → "ngước mắt" | "nhìn lên" (gần cụm cấm)
 - "một lúc rồi" → bỏ "một lúc" | "nửa giây rồi" (từ đệm lặp ch.5–8)
 - "không phải vì" → tách câu, nói thẳng lý do (khuôn câu giải thích hộ)
+- "đi ngang qua phòng Bonnie" → "sang cánh đông" (nơi ở: hai người ở hai cánh nhà)
+- "Vâng ạ" → "Dạ" (Bonnie với Emi)
 
 ## Tóm tắt nội dung chính
 Chưa có tóm tắt.
