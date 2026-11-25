@@ -433,6 +433,15 @@ class GeminiTranslatorImplTest {
     }
 
     @Test
+    void asksForSrcBeforeText() {
+        server.replyText(GOOD, "STOP");
+
+        translator().translate(VIDEO, PROFILE, LINES);
+
+        assertThat(server.bodies().get(0)).contains("\"propertyOrdering\":[\"id\",\"src\",\"text\"]");
+    }
+
+    @Test
     void asksAgainForSlidLinesAndPutsEachOnItsOwnId() {
         // 20 lines; the model drops the content of line 8 but keeps numbering: ids 8-18 carry lines 9-19, id 19 is absent.
         server.queueText("[" + own(0, 8) + "," + shifted(8, 19, 1) + "]");

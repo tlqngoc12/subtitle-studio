@@ -146,6 +146,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
                         "src", Schema.builder().type(Type.Known.STRING).build(),
                         "text", Schema.builder().type(Type.Known.STRING).build()))
                 .required("id", "src", "text")
+                .propertyOrdering("id", "src", "text")
                 .build();
         GenerateContentConfig.Builder config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
