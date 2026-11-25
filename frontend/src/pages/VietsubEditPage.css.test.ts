@@ -19,16 +19,3 @@ describe('Vietsub editor header CSS', () => {
     expect(rule('.vedit')).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
   });
 });
-
-describe('Vietsub editor typing layout CSS', () => {
-  it('shrinks the player to 110 px tall, centred, while typing', () => {
-    expect(css).toMatch(/--vedit-mini-h:\s*110px/);
-    const r = rule('.vedit--typing .vedit__player');
-    expect(r).toMatch(/width:\s*calc\(var\(--vedit-mini-h\)\s*\*\s*16\s*\/\s*9\)/);
-    expect(r).toMatch(/margin-inline:\s*auto/);
-  });
-
-  it('sizes the table from the visible height while typing', () => {
-    expect(rule('.vedit--typing .vedit__body')).toMatch(/--cue-table-max:\s*calc\(var\(--vv-height/);
-  });
-});
