@@ -9,7 +9,7 @@ describe('site logo', () => {
     ['public.html', publicHtml],
   ])('%s uses the logo as favicon and apple-touch-icon', (_name, html) => {
     expect(html).toMatch(/<link rel="icon" type="image\/webp" href="\/logo\.webp"\s*\/?>/);
-    expect(html).toMatch(/<link rel="apple-touch-icon" href="\/logo\.webp"\s*\/?>/);
+    expect(html).toMatch(/<link rel="apple-touch-icon" sizes="180x180" href="\/apple-touch-icon\.png"\s*\/?>/);
   });
 
   it('sizes the brand logo 28px on desktop and 24px on a phone, 8px from the name', () => {
