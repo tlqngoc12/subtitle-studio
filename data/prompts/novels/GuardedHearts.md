@@ -1,3 +1,4 @@
+# Hồ sơ hiện tại
 # Hồ sơ dịch: Guarded Hearts
 
 ## Ngôn ngữ gốc
