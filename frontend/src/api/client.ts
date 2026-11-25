@@ -77,8 +77,8 @@ export class ApiError extends Error {
     readonly code: string | null,
     readonly detail: string,
     readonly fieldErrors: FieldError[] = [],
-    /** Extra ProblemDetail properties some codes carry (NOVEL_TRANSLATION_BUSY: `reason`, `chapterNo`; INVALID_SETTING: `field`). */
-    readonly extra: { reason?: string; chapterNo?: number; field?: string } = {},
+    /** Extra ProblemDetail properties some codes carry (NOVEL_TRANSLATION_BUSY: `reason`, `chapterTitle`; INVALID_SETTING: `field`). */
+    readonly extra: { reason?: string; chapterTitle?: string; field?: string } = {},
   ) {
     super(detail);
     this.name = 'ApiError';
@@ -96,14 +96,14 @@ export async function send(path: string, init?: RequestInit): Promise<Response> 
     let code: string | null = null;
     let detail = res.statusText || `HTTP ${res.status}`;
     let fieldErrors: FieldError[] = [];
-    const extra: { reason?: string; chapterNo?: number; field?: string } = {};
+    const extra: { reason?: string; chapterTitle?: string; field?: string } = {};
     try {
       const problem = await res.json();
       code = typeof problem.code === 'string' ? problem.code : null;
       detail = typeof problem.detail === 'string' ? problem.detail : detail;
       if (Array.isArray(problem.errors)) fieldErrors = problem.errors;
       if (typeof problem.reason === 'string') extra.reason = problem.reason;
-      if (typeof problem.chapterNo === 'number') extra.chapterNo = problem.chapterNo;
+      if (typeof problem.chapterTitle === 'string') extra.chapterTitle = problem.chapterTitle;
       if (typeof problem.field === 'string') extra.field = problem.field;
     } catch {
       // body was not JSON; keep the status text

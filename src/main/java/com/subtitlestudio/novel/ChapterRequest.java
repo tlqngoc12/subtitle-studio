@@ -1,5 +1,5 @@
 package com.subtitlestudio.novel;
 
-/** Add a chapter; a null {@code chapterNo} means the highest number + 1. */
-public record ChapterRequest(Integer chapterNo, String title) {
+/** Add a chapter; a blank {@code title} becomes "Chương N" (N = the highest number in the novel + 1). */
+public record ChapterRequest(String title) {
 }

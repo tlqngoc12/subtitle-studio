@@ -39,7 +39,7 @@ public class ChapterTranslationService {
     private static final Logger log = LoggerFactory.getLogger(ChapterTranslationService.class);
 
     /** What the background run needs, read in one transaction. */
-    private record Job(long novelId, int chapterNo, String chapterLabel, String novelTitle, String profile,
+    private record Job(long novelId, int chapterNo, String chapterTitle, String novelTitle, String profile,
                        String previousText, List<Long> pageIds, List<Long> mediaIds, Map<Integer, String> kept) {}
 
     private final SubtitleStudioProperties.Gemini gemini;
@@ -215,7 +215,7 @@ public class ChapterTranslationService {
                     chapterService.models().set(chapterId, model);
                 };
                 try {
-                    got = translator.translate(new ChapterPrompt(job.novelTitle(), job.chapterNo(), job.chapterLabel(),
+                    got = translator.translate(new ChapterPrompt(job.novelTitle(), job.chapterNo(), job.chapterTitle(),
                             job.profile(),
                             job.previousText(), carryOver(texts, batch.getFirst().page()),
                             batch), onTrying);
@@ -286,7 +286,7 @@ public class ChapterTranslationService {
         }
         Novel n = c.getNovel();
         String profile = profiles.read(n.getPromptProfile() == null ? "" : n.getPromptProfile());
-        return new TextJob(new TextChapterPrompt(n.getTitle(), c.getChapterNo(), c.getLabel(), profile,
+        return new TextJob(new TextChapterPrompt(n.getTitle(), c.getChapterNo(), c.getTitle(), profile,
                 previousText(n.getId(), c.getChapterNo()),
                 n.getSourceLanguage(), null, null, c.getSourceText()));
     }
@@ -348,7 +348,7 @@ public class ChapterTranslationService {
                 kept.clear();
             }
         }
-        return new Job(n.getId(), c.getChapterNo(), c.getLabel(), n.getTitle(), profile,
+        return new Job(n.getId(), c.getChapterNo(), c.getTitle(), n.getTitle(), profile,
                 previousText(n.getId(), c.getChapterNo()),
                 ps.stream().map(ChapterPage::getId).toList(), ps.stream().map(p -> p.getMedia().getId()).toList(),
                 kept);

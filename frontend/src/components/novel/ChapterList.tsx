@@ -9,15 +9,10 @@ import { EmptyState } from '../EmptyState';
 import { StatusBadges } from './StatusBadges';
 import './ChapterList.css';
 
-/** The chapter's label ("Ngoại truyện 1"), or "Chapter N". */
-export function chapterName(chapterNo: number, label?: string | null): string {
-  return label?.trim() ? label.trim() : `Chapter ${chapterNo}`;
-}
-
-/** The name with the title: "Chapter 3: Mưa", "Ngoại truyện 1: Ngày cưới". */
-export function chapterLabel(chapterNo: number, title: string | null, label?: string | null): string {
-  const name = chapterName(chapterNo, label);
-  return title ? `${name}: ${title}` : name;
+/** The part of the title before its first colon: "Chương 7: Bữa cơm" gives "Chương 7". */
+export function chapterShortName(title: string): string {
+  const colon = title.indexOf(':');
+  return (colon < 0 ? title : title.slice(0, colon)).trim();
 }
 
 /**
@@ -106,7 +101,7 @@ function ChapterRow({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: c.id,
   });
-  const name = chapterLabel(c.chapterNo, c.title, c.label);
+  const name = c.title;
   const pagesLabel = fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`;
   return (
     <li

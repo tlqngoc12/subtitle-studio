@@ -60,7 +60,7 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     /** Chapter metadata in reading order, without the text columns. */
     @org.springframework.data.jpa.repository.Query("select new com.subtitlestudio.novel.ChapterRow(c.id, c.chapterNo, "
-            + "c.title, c.label, c.translationStatus, c.translationError, c.translationModel, c.publishStatus) "
+            + "c.title, c.translationStatus, c.translationError, c.translationModel, c.publishStatus) "
             + "from Chapter c where c.novel.id = :novelId order by c.sortOrder asc, c.chapterNo asc")
     List<ChapterRow> findRowsByNovel(@org.springframework.data.repository.query.Param("novelId") long novelId);
 

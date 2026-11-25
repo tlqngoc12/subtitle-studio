@@ -12,16 +12,11 @@
   margin-bottom: var(--space-4);
 }
 
-/* Number, label and title on one row; label and title stack on phones, and sit side by side from 521px. */
+/* The chapter title takes the whole row. */
 .chapter-meta__row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-}
-
-.chapter-meta__number {
-  flex: 0 0 110px;
-  min-width: 0;
 }
 
 .chapter-meta__row .field > input {
@@ -29,24 +24,9 @@
   min-width: 0; /* a grid item otherwise keeps the input's own ~20ch width and spills over the next field */
 }
 
-.chapter-meta__label {
-  flex: 1 1 100%;
-  min-width: 0;
-}
-
 .chapter-meta__title {
   flex: 1 1 100%;
   min-width: 0;
-}
-
-@media (min-width: 521px) {
-  .chapter-meta__label {
-    flex: 0 0 220px;
-  }
-
-  .chapter-meta__title {
-    flex: 1 1 260px;
-  }
 }
 
 .field__label-row {

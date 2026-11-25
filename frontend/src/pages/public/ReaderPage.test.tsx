@@ -41,9 +41,9 @@ const NOVEL: PublicNovelDetail = {
   translatorCredit: null,
   sourceUrl: null,
   chapters: [
-    { chapterNo: 1, title: 'Mở đầu' },
-    { chapterNo: 3, title: 'Mưa' },
-    { chapterNo: 4, title: null, label: 'Special' },
+    { chapterNo: 1, title: 'Chương 1: Mở đầu' },
+    { chapterNo: 3, title: 'Chương 3: Mưa' },
+    { chapterNo: 4, title: 'Special' },
   ],
 };
 
@@ -53,8 +53,7 @@ function chapter(no: number): PublicChapterFile {
   const [prev, next] = LINKS[no];
   return {
     chapterNo: no,
-    title: no === 3 ? 'Mưa' : no === 1 ? 'Mở đầu' : null,
-    label: no === 4 ? 'Special' : null,
+    title: no === 3 ? 'Chương 3: Mưa' : no === 1 ? 'Chương 1: Mở đầu' : 'Special',
     prev,
     next,
     images: ['/novels/summer/h-1.webp', '/novels/summer/h-2.webp', '/novels/summer/h-3.webp'],
@@ -103,21 +102,21 @@ describe('ReaderPage page format and theme', () => {
   it('renders the m images on a compact screen', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
     renderAt('/novels/summer/3', fmtSource);
-    const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const imgs = await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(imgs.map((i) => i.getAttribute('src'))).toEqual(['/m-1.webp', '/m-2.webp']);
   });
 
   it('sets data-reader-theme from the stored theme', async () => {
     localStorage.setItem('reader-theme', 'oled');
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(container.querySelector('main')).toHaveAttribute('data-reader-theme', 'oled');
     expect(document.documentElement.dataset.readerTheme).toBe('oled');
   });
 
   it('clears the html theme attribute on unmount', async () => {
     const { unmount } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     unmount();
     expect(document.documentElement.dataset.readerTheme).toBeUndefined();
   });
@@ -125,7 +124,7 @@ describe('ReaderPage page format and theme', () => {
   it('img aspect-ratio follows the picked format', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }));
     renderAt('/novels/summer/3', fmtSource);
-    const imgs = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const imgs = await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(imgs[0].style.aspectRatio).toBe('auto 820 / 1215');
   });
 });
@@ -134,9 +133,9 @@ describe('ReaderPage', () => {
   it('shows every page image, not draggable, the first eager and the rest lazy', async () => {
     renderAt('/novels/summer/3');
 
-    const images = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const images = await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(images).toHaveLength(3);
-    expect(images[1]).toHaveAccessibleName('Chương 3, trang 2/3');
+    expect(images[1]).toHaveAccessibleName('Chương 3: Mưa, trang 2/3');
     expect(images[1]).toHaveAttribute('src', '/novels/summer/h-2.webp');
     expect(images[1]).toHaveAttribute('draggable', 'false');
     expect(images[0]).toHaveAttribute('loading', 'eager');
@@ -153,12 +152,12 @@ describe('ReaderPage', () => {
     await act(async () => resolve(chapter(3)));
 
     expect(screen.queryByText('Đang tải chương…')).not.toBeInTheDocument();
-    expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
+    expect(await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ })).toHaveLength(3);
   });
 
   it('shows the chapter name in the breadcrumb only; the heading is visually hidden', async () => {
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     const heading = screen.getByRole('heading', { name: 'Chương 3: Mưa' });
     expect(heading).toHaveClass('visually-hidden');
@@ -207,7 +206,7 @@ describe('ReaderPage', () => {
 
   it('has a sticky icon bar with previous, next, contents and settings, each with a tooltip', async () => {
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     const prev = within(bar()).getByRole('link', { name: 'Chương trước' });
     const next = within(bar()).getByRole('link', { name: 'Chương sau' });
@@ -232,7 +231,7 @@ describe('ReaderPage', () => {
 
   it('shows the novel title, the chapter name without its title and a back link on the left of the bar', async () => {
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     const back = within(bar()).getByRole('link', { name: 'Về trang truyện' });
     expect(back).toHaveAttribute('href', '/novels/summer');
@@ -254,7 +253,7 @@ describe('ReaderPage', () => {
 
   it('lays the bar text out on the left with ellipsis, and the size radio resizes the page column', async () => {
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     expect(/\.reader-bar__text\s*\{[^}]*min-width:\s*0/.test(css)).toBe(true);
     expect(/\.reader-bar__novel,\s*\.reader-bar__chapter\s*\{[^}]*text-overflow:\s*ellipsis/.test(css)).toBe(true);
@@ -268,7 +267,7 @@ describe('ReaderPage', () => {
 
   it('disables (does not hide) previous on the first chapter and next on the last', async () => {
     const first = renderAt('/novels/summer/1');
-    await screen.findAllByRole('img', { name: /Chương 1, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 1: Mở đầu, trang/ });
     expect(within(bar()).getByRole('button', { name: 'Chương trước' })).toBeDisabled();
     expect(within(bar()).getByRole('link', { name: 'Chương sau' })).toBeInTheDocument();
     first.unmount();
@@ -281,7 +280,7 @@ describe('ReaderPage', () => {
 
   it('keeps the bar outside the copy-guarded reader', async () => {
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     expect(container.querySelector('.reader')!.contains(bar())).toBe(false);
   });
@@ -291,7 +290,7 @@ describe('ReaderPage', () => {
       localStorage.setItem('novel-read:summer', JSON.stringify([1]));
       const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
       await userEvent.setup().click(screen.getByRole('button', { name: 'Mục lục' }));
       const list = await screen.findByRole('list', { name: 'Danh sách chương' });
@@ -311,7 +310,7 @@ describe('ReaderPage', () => {
     it('navigates to the picked chapter and closes', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
       await user.click(screen.getByRole('button', { name: 'Mục lục' }));
       await user.click(
@@ -325,7 +324,7 @@ describe('ReaderPage', () => {
     it('is a labelled modal dialog drawer with its own scrolling body, closed by the close button', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
       const trigger = screen.getByRole('button', { name: 'Mục lục' });
@@ -348,7 +347,7 @@ describe('ReaderPage', () => {
     it('closes with Escape and returns focus to the contents button', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
       const trigger = screen.getByRole('button', { name: 'Mục lục' });
 
       await user.click(trigger);
@@ -362,7 +361,7 @@ describe('ReaderPage', () => {
     it('closes when the dimmed overlay is clicked', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
       await user.click(screen.getByRole('button', { name: 'Mục lục' }));
       await screen.findByRole('dialog', { name: 'Mục lục' });
 
@@ -375,7 +374,7 @@ describe('ReaderPage', () => {
     it('traps focus inside the drawer', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
       await user.click(screen.getByRole('button', { name: 'Mục lục' }));
       const drawer = await screen.findByRole('dialog', { name: 'Mục lục' });
 
@@ -408,14 +407,14 @@ describe('ReaderPage', () => {
     it('does not turn the arrow keys into chapter changes while focus is in the list', async () => {
       const user = userEvent.setup();
       renderAt('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
       await user.click(screen.getByRole('button', { name: 'Mục lục' }));
       const list = await screen.findByRole('list', { name: 'Danh sách chương' });
 
       within(list).getByRole('link', { name: 'Special' }).focus();
       await user.keyboard('{ArrowRight}{ArrowLeft}');
 
-      expect(screen.getAllByRole('img', { name: /Chương 3, trang/, hidden: true })).toHaveLength(3);
+      expect(screen.getAllByRole('img', { name: /Chương 3: Mưa, trang/, hidden: true })).toHaveLength(3);
       expect(screen.queryByRole('img', { name: /^Special, trang/, hidden: true })).not.toBeInTheDocument();
     });
   });
@@ -478,43 +477,43 @@ describe('ReaderPage', () => {
   it('opens the next chapter with ArrowRight and the previous with ArrowLeft', async () => {
     const user = userEvent.setup();
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     await user.keyboard('{ArrowRight}');
     expect(await screen.findAllByRole('img', { name: /^Special, trang/ })).toHaveLength(3);
 
     await user.keyboard('{ArrowLeft}');
-    expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
+    expect(await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ })).toHaveLength(3);
   });
 
   it('ignores the arrows with a modifier key and at the ends', async () => {
     const user = userEvent.setup();
     renderAt('/novels/summer/1');
-    await screen.findAllByRole('img', { name: /Chương 1, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 1: Mở đầu, trang/ });
 
     await user.keyboard('{ArrowLeft}');
     await user.keyboard('{Alt>}{ArrowRight}{/Alt}');
     await user.keyboard('{Control>}{ArrowRight}{/Control}');
 
-    expect(screen.getAllByRole('img', { name: /Chương 1, trang/ })).toHaveLength(3);
+    expect(screen.getAllByRole('img', { name: /Chương 1: Mở đầu, trang/ })).toHaveLength(3);
   });
 
   it('ignores arrows typed in a form field', async () => {
     renderAt('/novels/summer/1');
-    await screen.findAllByRole('img', { name: /Chương 1, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 1: Mở đầu, trang/ });
     const field = document.createElement('input');
     document.body.append(field);
 
     fireEvent.keyDown(field, { key: 'ArrowRight' });
 
-    expect(screen.getAllByRole('img', { name: /Chương 1, trang/ })).toHaveLength(3);
+    expect(screen.getAllByRole('img', { name: /Chương 1: Mở đầu, trang/ })).toHaveLength(3);
     field.remove();
   });
 
   it('sets the tab title and restores it on unmount', async () => {
     document.title = 'before';
     const { unmount } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     expect(document.title).toBe('Chương 3: Mưa · Tình Yêu Mùa Hạ · byZenQN');
     unmount();
@@ -564,14 +563,14 @@ describe('ReaderPage', () => {
 
   it('shows the print note in Vietnamese', async () => {
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     expect(screen.getByText('Không hỗ trợ in trang này.')).toBeInTheDocument();
   });
 
   it('blocks the context menu on the pages', async () => {
     renderAt('/novels/summer/3');
-    const images = await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    const images = await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
     images[0].dispatchEvent(event);
@@ -585,7 +584,7 @@ describe('ReaderPage preferences', () => {
 
   it('stores the reading position and the chapters opened', async () => {
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     expect(JSON.parse(localStorage.getItem('novel-progress:summer')!)).toEqual({ chapterNo: 3 });
     expect(JSON.parse(localStorage.getItem('novel-read:summer')!)).toEqual([3]);
@@ -609,7 +608,7 @@ describe('ReaderPage preferences', () => {
     const user = userEvent.setup();
     const { container } = renderAt('/novels/summer/3');
 
-    expect(await screen.findAllByRole('img', { name: /Chương 3, trang/ })).toHaveLength(3);
+    expect(await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ })).toHaveLength(3);
     expect(reader(container)).toHaveAttribute('data-width', '640');
     await openSettings(user);
     expect(screen.getByRole('radio', { name: 'Giấy' })).toBeChecked();
@@ -622,7 +621,7 @@ describe('ReaderPage preferences', () => {
   it('switches the theme from the swatches and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await openSettings(user);
 
     expect(main(container)).toHaveAttribute('data-reader-theme', 'sepia');
@@ -632,7 +631,7 @@ describe('ReaderPage preferences', () => {
 
     unmount();
     const again = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(main(again.container)).toHaveAttribute('data-reader-theme', 'dark');
     await openSettings(user);
     expect(screen.getByRole('radio', { name: 'Tối' })).toBeChecked();
@@ -643,20 +642,20 @@ describe('ReaderPage preferences', () => {
   it('defaults to the dark theme when the app theme is dark, and a stored theme overrides it', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     const dark = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(main(dark.container)).toHaveAttribute('data-reader-theme', 'dark');
     dark.unmount();
 
     localStorage.setItem('reader-theme', 'light');
     const overridden = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(main(overridden.container)).toHaveAttribute('data-reader-theme', 'light');
   });
 
   it('keeps the theme when the window is inactive', async () => {
     localStorage.setItem('reader-theme', 'oled');
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     fireEvent(window, new Event('blur'));
 
@@ -672,7 +671,7 @@ describe('ReaderPage preferences', () => {
   it('picks the size 560 / 640 / 720 and remembers it', async () => {
     const user = userEvent.setup();
     const { container, unmount } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await openSettings(user);
 
     expect(reader(container)).toHaveAttribute('data-width', '640');
@@ -684,13 +683,13 @@ describe('ReaderPage preferences', () => {
 
     unmount();
     const again = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(reader(again.container)).toHaveAttribute('data-width', '560');
   });
 
   it('keeps the preference buttons outside the copy-guarded reader', async () => {
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await openSettings();
 
     expect(reader(container).contains(screen.getByRole('radio', { name: 'Tối' }))).toBe(false);
@@ -714,7 +713,7 @@ describe('ReaderPage mobile controls', () => {
     compact(true);
     vi.stubGlobal('innerHeight', 800);
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(bottom()).not.toHaveAttribute('data-hidden');
     fireEvent.click(shield(container), { clientY: 400 });
     expect(bottom()).toHaveAttribute('data-hidden');
@@ -728,7 +727,7 @@ describe('ReaderPage mobile controls', () => {
     const spy = vi.fn();
     vi.stubGlobal('scrollBy', spy);
     const { container } = renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     fireEvent.click(shield(container), { clientY: 700 });
     expect(spy).toHaveBeenLastCalledWith({ top: 720, behavior: 'smooth' });
     fireEvent.click(shield(container), { clientY: 50 });
@@ -741,7 +740,7 @@ describe('ReaderPage mobile controls', () => {
     const spy = vi.fn();
     vi.stubGlobal('scrollBy', spy);
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     fireEvent.click(screen.getByRole('slider', { name: 'Vị trí trong chương' }), { clientY: 700 });
     fireEvent.click(screen.getAllByRole('link', { name: 'Chương sau' })[0], { clientY: 700 });
     expect(bottom()).not.toHaveAttribute('data-hidden');
@@ -751,7 +750,7 @@ describe('ReaderPage mobile controls', () => {
   it('shows the position and opens the settings sheet from Aa', async () => {
     compact(true);
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await waitFor(() => expect(screen.getByText('2/3')).toBeInTheDocument());
     await userEvent.setup().click(screen.getByRole('button', { name: 'Hiển thị' }));
     expect(await screen.findByRole('dialog', { name: 'Hiển thị' })).toBeInTheDocument();
@@ -760,7 +759,7 @@ describe('ReaderPage mobile controls', () => {
   it('returns focus to the Aa button when the settings sheet closes', async () => {
     compact(true);
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     const user = userEvent.setup();
     const aa = screen.getByRole('button', { name: 'Hiển thị' });
     await user.click(aa);
@@ -773,7 +772,7 @@ describe('ReaderPage mobile controls', () => {
   it('bottom bar is not rendered on desktop', async () => {
     compact(false);
     renderAt('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     expect(bottom()).toBeNull();
     expect(document.querySelector('.reader-progress')).not.toBeNull();
   });
@@ -804,7 +803,7 @@ describe('ReaderPage loading and prefetch', () => {
     tall();
     const { getChapter, s } = spied();
     renderAt('/novels/summer/3', s);
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await new Promise((r) => setTimeout(r, 50));
     expect(getChapter).toHaveBeenCalledTimes(1);
     scrollTo(2000);
@@ -826,12 +825,12 @@ describe('ReaderPage loading and prefetch', () => {
       return source.getChapter(slug, no);
     });
     renderAt('/novels/summer/1', { ...source, getChapter } as NovelSource);
-    await screen.findAllByRole('img', { name: /Chương 1, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 1: Mở đầu, trang/ });
     scrollTo(3300);
     await waitFor(() => expect(getChapter).toHaveBeenCalledWith('summer', 3));
     getChapter.mockClear();
     fireEvent.click(screen.getAllByRole('link', { name: 'Chương sau' })[0]);
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await new Promise((r) => setTimeout(r, 80));
     expect(getChapter).toHaveBeenCalledTimes(1);
     expect(getChapter).toHaveBeenCalledWith('summer', 3);
@@ -841,7 +840,7 @@ describe('ReaderPage loading and prefetch', () => {
   it('prefetches at once when the chapter is shorter than the screen', async () => {
     const { getChapter, s } = spied();
     renderAt('/novels/summer/3', s);
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await waitFor(() => expect(getChapter).toHaveBeenCalledWith('summer', 4));
   });
 

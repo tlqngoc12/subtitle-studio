@@ -22,7 +22,7 @@ import { PageSkeleton } from "../../components/ui/Skeleton";
 import {
   PUBLIC_ERROR_TITLE,
   PUBLIC_STATUS_LABEL,
-  publicChapterLabel,
+  publicChapterTitle,
   useDocumentTitle,
 } from "./publicNames";
 import { Cover } from '../../components/ui/Cover';
@@ -170,7 +170,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                 className="chapter-list__open"
                 to={`/novels/${novel.slug}/${c.chapterNo}`}
               >
-                {publicChapterLabel(c.chapterNo, c.title, c.label)}
+                {publicChapterTitle(c)}
               </Link>
               {c.chapterNo === stored && (
                 <span className="badge badge--info">Đang đọc</span>
@@ -260,7 +260,7 @@ export default function PublicNovelPage({ source }: { source: NovelSource }) {
                     >
                       <span className="novel-cta__label">
                         Đọc tiếp:{" "}
-                        {publicChapterLabel(resume.chapterNo, resume.title, resume.label)}
+                        {publicChapterTitle(resume)}
                       </span>
                     </Link>
                   ) : (

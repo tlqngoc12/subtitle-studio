@@ -9,10 +9,10 @@ import { ChapterJump } from './ChapterJump';
 
 const chapters = [
   chapterSummary({ id: 1, chapterNo: 1, title: 'Mở đầu' }),
-  chapterSummary({ id: 2, chapterNo: 2, title: null }),
-  chapterSummary({ id: 3, chapterNo: 3, title: 'Cơn mưa' }),
-  chapterSummary({ id: 4, chapterNo: 10, title: null }),
-  chapterSummary({ id: 5, chapterNo: 100, title: null }),
+  chapterSummary({ id: 2, chapterNo: 2, title: 'Chương 2' }),
+  chapterSummary({ id: 3, chapterNo: 3, title: 'Chương 3: Cơn mưa' }),
+  chapterSummary({ id: 4, chapterNo: 10, title: 'Chương 10' }),
+  chapterSummary({ id: 5, chapterNo: 100, title: 'Chương 100' }),
 ];
 
 const getNovel = { method: 'GET', path: '/api/novels/3', status: 200, body: novelDetail({ chapters }) };
@@ -69,7 +69,7 @@ describe('ChapterJump', () => {
     await screen.findByRole('list', { name: 'Chapters' });
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     const current = rows().find((r) => r.getAttribute('aria-current') === 'page')!;
-    expect(current).toHaveTextContent('Chapter 3: Cơn mưa');
+    expect(current).toHaveTextContent('Chương 3: Cơn mưa');
     expect(current).toHaveFocus();
     expect(current.closest('li')).toHaveClass('chapter-toc__item--current');
     expect(rows().filter((r) => r.hasAttribute('aria-current'))).toHaveLength(1);

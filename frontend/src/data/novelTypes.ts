@@ -26,8 +26,8 @@ export interface PublicNovelSummary {
 
 export interface PublicChapterRef {
   chapterNo: number;
-  title: string | null;
-  /** Missing in files published before labels existed. */
+  title?: string | null;
+  /** Only in files published before the label was merged into the title. */
   label?: string | null;
   /** ISO instant the chapter was published; missing in files published before this field existed. */
   publishedAt?: string | null;
@@ -61,7 +61,8 @@ export interface PublicPageFormat {
 /** A chapter as drawn images; there is no text in it. */
 export interface PublicChapterFile {
   chapterNo: number;
-  title: string | null;
+  title?: string | null;
+  /** Only in files published before the label was merged into the title. */
   label?: string | null;
   prev: number | null;
   next: number | null;

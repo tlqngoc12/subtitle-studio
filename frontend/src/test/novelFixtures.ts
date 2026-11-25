@@ -30,8 +30,7 @@ export function chapterSummary(over: Partial<ChapterSummary> = {}): ChapterSumma
   return {
     id: 9,
     chapterNo: 1,
-    title: 'Mở đầu',
-    label: null,
+    title: 'Chapter 1: Mở đầu',
     translationStatus: 'TRANSLATED',
     translationError: null,
     translationModel: null,
@@ -63,7 +62,7 @@ export function novelDetail(over: Partial<NovelDetail> = {}): NovelDetail {
     wattpadStoryId: null,
     chapters: [
       chapterSummary(),
-      chapterSummary({ id: 10, chapterNo: 2, title: null, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' }),
+      chapterSummary({ id: 10, chapterNo: 2, title: 'Chapter 2', translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' }),
     ],
     ...over,
   };
@@ -75,8 +74,7 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     novelId: 3,
     novelTitle: 'Tình Yêu Mùa Hạ',
     chapterNo: 1,
-    title: 'Mở đầu',
-    label: null,
+    title: 'Chapter 1: Mở đầu',
     translationStatus: 'TRANSLATED',
     translationError: null,
     translationModel: null,

@@ -59,9 +59,8 @@ export interface NovelSummary {
 export interface ChapterSummary {
   id: number;
   chapterNo: number;
-  title: string | null;
-  /** Shown instead of "Chapter N" (e.g. "Ngoại truyện 1"). */
-  label: string | null;
+  /** The chapter's name everywhere ("Chương 7: Bữa cơm hai người", "Ngoại truyện I"). */
+  title: string;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
   /** Gemini model(s) translating now, or that translated it; null = unknown. */
@@ -106,8 +105,7 @@ export interface ChapterDetail {
   novelId: number;
   novelTitle: string;
   chapterNo: number;
-  title: string | null;
-  label: string | null;
+  title: string;
   translationStatus: ChapterTranslationStatus;
   translationError: string | null;
   /** Gemini model(s) translating now, or that translated it; null = unknown. */
@@ -177,7 +175,7 @@ export async function deleteNovel(id: number): Promise<void> {
   await send(`/api/novels/${id}`, { method: 'DELETE' });
 }
 
-export async function addChapter(novelId: number, input: { chapterNo?: number; title?: string }): Promise<ChapterDetail> {
+export async function addChapter(novelId: number, input: { title?: string }): Promise<ChapterDetail> {
   return (await send(`/api/novels/${novelId}/chapters`, json('POST', input))).json();
 }
 
@@ -193,8 +191,6 @@ export async function getChapterReview(id: number): Promise<{ fileName: string; 
 export async function updateChapter(
   id: number,
   input: {
-    chapterNo?: number;
-    label?: string;
     title?: string;
     pages?: { id: number; textVi: string }[];
     text?: string;

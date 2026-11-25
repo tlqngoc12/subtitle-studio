@@ -14,7 +14,7 @@ import type {
 import {
   PUBLIC_STATUS_LABEL,
   latestUpdate,
-  publicChapterName,
+  publicChapterTitle,
   publicChapterCount,
 } from "./publicNames";
 import { formatInstant } from "../../lib/dates";
@@ -117,7 +117,7 @@ export default function FeaturedNovels({
               className="button button--primary"
               to={`/novels/${novel.slug}/${resume.chapterNo}`}
             >
-              Đọc tiếp: {publicChapterName(resume.chapterNo, resume.label)}
+              Đọc tiếp: {publicChapterTitle(resume)}
             </Link>
           ) : (
             <Link

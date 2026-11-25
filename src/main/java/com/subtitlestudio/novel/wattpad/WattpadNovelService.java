@@ -383,7 +383,7 @@ public class WattpadNovelService {
                 .orElse(null);
         if (translating != null) {
             throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING,
-                    translating.getChapterNo());
+                    translating.getChapterNo(), translating.getTitle());
         }
         translation.requireReady(novel);
         return novel;

@@ -9,7 +9,6 @@ import {
   type ChapterDetail,
 } from '../api/novels';
 import type { Dispatch, SetStateAction } from 'react';
-import { chapterLabel } from '../components/novel/ChapterList';
 import type { ConfirmOptions } from '../components/useConfirmDialog';
 import { errorMessage } from './errors';
 import { toastError, toastSkippedImages } from './toast';
@@ -69,7 +68,7 @@ export function useChapterActions({
     try {
       const next = await fetchTranslateNext(chapter.novelId);
       toast.info('Translation started', {
-        description: next.title ?? chapterLabel(next.chapterNo, next.title, next.label),
+        description: next.title,
       });
       toastSkippedImages(next.skippedImages);
       openChapter(next.id);

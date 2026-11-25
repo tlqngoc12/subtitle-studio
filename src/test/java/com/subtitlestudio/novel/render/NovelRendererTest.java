@@ -24,7 +24,7 @@ class NovelRendererTest {
     private final ImageEncoder png = ImageEncoder.png();
 
     private static RenderInput input(String text) {
-        return new RenderInput("Tình Yêu Mùa Hạ", 3, null, "Mưa", text, "subtitle-studio-vn.pages.dev");
+        return new RenderInput("Tình Yêu Mùa Hạ", 3, "Chương 3: Mưa", text, "subtitle-studio-vn.pages.dev");
     }
 
     private static String text(int paragraphs) {
@@ -32,12 +32,14 @@ class NovelRendererTest {
     }
 
     @Test
-    void headingUsesTheLabelWhenThereIsOne() {
-        RenderInput plain = new RenderInput("T", 3, null, "Mưa", "x", "w");
-        RenderInput special = new RenderInput("T", 31, "Ngoại truyện 1", "Mưa", "x", "w");
+    void headingIsTheTitleOrChapterNumber() {
+        RenderInput titled = new RenderInput("T", 3, "Chương 3: Mưa", "x", "w");
+        RenderInput special = new RenderInput("T", 31, "Ngoại truyện 1", "x", "w");
+        RenderInput untitled = new RenderInput("T", 4, null, "x", "w");
 
-        assertThat(NovelRenderer.heading(plain)).isEqualTo("Chương 3: Mưa");
-        assertThat(NovelRenderer.heading(special)).isEqualTo("Ngoại truyện 1: Mưa");
+        assertThat(NovelRenderer.heading(titled)).isEqualTo("Chương 3: Mưa");
+        assertThat(NovelRenderer.heading(special)).isEqualTo("Ngoại truyện 1");
+        assertThat(NovelRenderer.heading(untitled)).isEqualTo("Chương 4");
     }
 
     @Test
@@ -306,7 +308,7 @@ class NovelRendererTest {
         String line = NovelRenderer.clean("Ừ, nhưng chỉ trong mấy bộ truyện khác của tác giả thôi 😜, đùa đấy ✌🏻 ❤️ 👨‍👩‍👧");
         assertAllDrawable(renderer.styled(line, renderer.font()));
         // the heading uses the bold title font
-        assertAllDrawable(renderer.styled(NovelRenderer.heading(new RenderInput("T", 8, null, "Đùa 😜", "x", "w")),
+        assertAllDrawable(renderer.styled(NovelRenderer.heading(new RenderInput("T", 8, "Đùa 😜", "x", "w")),
                 renderer.font().deriveFont(Font.BOLD)));
     }
 
@@ -335,7 +337,7 @@ class NovelRendererTest {
     }
 
     private static RenderInput withImages(String text, java.util.Map<Long, BufferedImage> images) {
-        return new RenderInput("Tình Yêu Mùa Hạ", 3, null, "Mưa", text, "subtitle-studio-vn.pages.dev", images::get);
+        return new RenderInput("Tình Yêu Mùa Hạ", 3, "Chương 3: Mưa", text, "subtitle-studio-vn.pages.dev", images::get);
     }
 
     /** The color at the middle of a page, ignoring the faint watermark (6 % black at most). */

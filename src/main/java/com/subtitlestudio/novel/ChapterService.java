@@ -33,8 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ChapterService {
 
-    static final int MAX_TITLE = 200;
-    static final int MAX_LABEL = 100;
+    static final int MAX_TITLE = ChapterTitles.MAX_TITLE;
     private static final Set<ImageType> PAGE_TYPES = Set.of(ImageType.PNG, ImageType.JPEG, ImageType.WEBP);
 
     private final NovelRepository novels;
@@ -75,7 +74,13 @@ public class ChapterService {
 
     @Transactional
     public ChapterDetail add(long novelId, ChapterRequest request) {
-        return detail(create(novelId, request));
+        return detail(create(novelId, null, request == null ? null : request.title(), null));
+    }
+
+    /** Like {@link #add} with a chosen internal chapter number (tests build numbering gaps with it). */
+    @Transactional
+    ChapterDetail addNumbered(long novelId, int chapterNo, String title) {
+        return detail(create(novelId, chapterNo, title, null));
     }
 
     /** Adds a DRAFT chapter at the end holding a Wattpad part's original text; returns its id. */
@@ -91,11 +96,7 @@ public class ChapterService {
     @Transactional
     public long addFromSource(long novelId, String title, String sourceText, String wattpadPartId, Instant fetchedAt,
                               List<ChapterImageLink> images) {
-        String shortTitle = title == null ? null : title.strip();
-        if (shortTitle != null && shortTitle.length() > MAX_TITLE) {
-            shortTitle = shortTitle.substring(0, MAX_TITLE);
-        }
-        Chapter c = create(novelId, new ChapterRequest(null, shortTitle));
+        Chapter c = create(novelId, null, null, title);
         c.setSourceText(sourceText);
         c.setWattpadPartId(wattpadPartId);
         c.setSourceFetchedAt(fetchedAt);
@@ -188,17 +189,27 @@ public class ChapterService {
         return detail(c);
     }
 
-    private Chapter create(long novelId, ChapterRequest request) {
+    /**
+     * A new chapter at the end. The number is internal: the highest + 1 unless {@code chapterNo} is given. A blank
+     * {@code title} becomes {@code Chương N}, followed by {@code partName} (a Wattpad part's name) when there is one.
+     */
+    private Chapter create(long novelId, Integer chapterNo, String title, String partName) {
         Novel novel = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
         List<Chapter> existing = chapters.findByNovelIdOrderByChapterNo(novelId);
-        int no = request.chapterNo() != null ? request.chapterNo()
+        int no = chapterNo != null ? chapterNo
                 : existing.isEmpty() ? 1 : existing.getLast().getChapterNo() + 1;
-        String title = validate(no, request.title());
+        if (no < 1) {
+            throw new InvalidChapterException(List.of(new FieldError("chapterNo", "Use a chapter number of 1 or more.")));
+        }
         if (existing.stream().anyMatch(c -> c.getChapterNo() == no)) {
             throw new DuplicateChapterNumberException(no);
         }
+        String given = title == null || title.isBlank() ? null : title.strip();
+        String shown = given != null ? given
+                : ChapterTitles.defaultTitle(existing.stream().map(Chapter::getTitle).toList(), partName);
+        shown = validateTitle(existing, null, shown);
         novel.touch(clock.instant());
-        Chapter created = new Chapter(novel, no, title, clock.instant());
+        Chapter created = new Chapter(novel, no, shown, clock.instant());
         // New chapters go last in the reading order, whatever their number.
         created.setSortOrder(existing.stream().mapToInt(Chapter::getSortOrder).max().orElse(0) + 1);
         return chapters.save(created);
@@ -217,37 +228,15 @@ public class ChapterService {
             throw new InvalidChapterException(List.of(new FieldError("chapterIds",
                     "List every chapter of the novel exactly once.")));
         }
-        Map<Long, Integer> before = positions(novelId);
         for (int i = 0; i < order.size(); i++) {
             byId.get(order.get(i)).setSortOrder(i + 1);
         }
         novel.touch(clock.instant());
         chapters.flush();
-        if (hasProfile(novel)) {
-            Map<Long, Integer> after = positions(novelId);
-            Map<Integer, Integer> moved = new HashMap<>();
-            before.forEach((chapterId, oldPosition) -> {
-                Integer newPosition = after.get(chapterId);
-                if (newPosition != null && !newPosition.equals(oldPosition)) {
-                    moved.put(oldPosition, newPosition);
-                }
-            });
-            reviewFiles.renumber(novel.getPromptProfile(), moved);
-        }
     }
 
     private static boolean hasProfile(Novel novel) {
         return novel.getPromptProfile() != null && !novel.getPromptProfile().isBlank();
-    }
-
-    /** Reading position (1-based) of each chapter of the novel. */
-    private Map<Long, Integer> positions(long novelId) {
-        Map<Long, Integer> out = new HashMap<>();
-        int position = 1;
-        for (Chapter c : chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId)) {
-            out.put(c.getId(), position++);
-        }
-        return out;
     }
 
     /** The newest review file of a chapter of an original story (404 when there is none). */
@@ -259,13 +248,13 @@ public class ChapterService {
             throw new ChapterReviewNotFoundException(null);
         }
         String profile = novel.getPromptProfile();
-        int position = positions(novel.getId()).get(chapterId);
-        Path file = reviewFiles.newest(profile, position)
-                .orElseThrow(() -> new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, position)));
+        String key = ChapterTitles.reviewKey(c.getTitle()).orElse("");
+        Path file = reviewFiles.newest(profile, key)
+                .orElseThrow(() -> new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, key)));
         try {
             return new ChapterReview(file.getFileName().toString(), Files.readString(file, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            throw new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, position));
+            throw new ChapterReviewNotFoundException(ChapterReviewFiles.pattern(profile, key));
         }
     }
 
@@ -277,22 +266,14 @@ public class ChapterService {
     @Transactional
     public ChapterDetail update(long id, ChapterUpdateRequest request) {
         Chapter c = editable(id);
-        int no = request.chapterNo() != null ? request.chapterNo() : c.getChapterNo();
-        String title = request.title() != null ? validate(no, request.title()) : validate(no, c.getTitle());
-        if (no != c.getChapterNo()) {
-            if (c.getPublishStatus() == ChapterPublishStatus.PUBLISHED) {
-                throw new ChapterPublishedException(id);
-            }
-            chapters.findByNovelIdAndChapterNo(c.getNovel().getId(), no).ifPresent(other -> {
-                throw new DuplicateChapterNumberException(no);
-            });
-            c.setChapterNo(no);
-        }
         if (request.title() != null) {
-            c.setTitle(title);
-        }
-        if (request.label() != null) {
-            c.setLabel(label(request.label(), no));
+            List<Chapter> all = chapters.findByNovelIdOrderByChapterNo(c.getNovel().getId());
+            String oldKey = ChapterTitles.reviewKey(c.getTitle()).orElse(null);
+            c.setTitle(validateTitle(all, c.getId(), request.title()));
+            String newKey = ChapterTitles.reviewKey(c.getTitle()).orElse(null);
+            if (hasProfile(c.getNovel()) && oldKey != null && !oldKey.equals(newKey)) {
+                reviewFiles.rename(c.getNovel().getPromptProfile(), oldKey, newKey);
+            }
         }
         boolean textChanged = false;
         if (request.pages() != null && !request.pages().isEmpty() && c.hasSourceText()) {
@@ -358,7 +339,7 @@ public class ChapterService {
         Chapter c = editable(id);
         long novelId = c.getNovel().getId();
         String profile = c.getNovel().getPromptProfile();
-        Map<Long, Integer> before = positions(novelId);
+        String key = ChapterTitles.reviewKey(c.getTitle()).orElse(null);
         List<ChapterPage> ps = pages.findByChapterIdOrderByPosition(id);
         List<Long> images = new ArrayList<>(ps.stream().map(p -> p.getMedia().getId()).toList());
         pages.deleteAll(ps);
@@ -370,14 +351,8 @@ public class ChapterService {
         chapters.flush();
         mediaService.deleteIfUnreferenced(images);
         renderCache.evict(id);
-        if (profile != null && !profile.isBlank()) {
-            int removed = before.get(id);
-            Map<Integer, Integer> shift = new HashMap<>();
-            for (int q = removed + 1; q <= before.size(); q++) {
-                shift.put(q, q - 1);
-            }
-            reviewFiles.archive(profile, removed);
-            reviewFiles.renumber(profile, shift);
+        if (profile != null && !profile.isBlank() && key != null) {
+            reviewFiles.archive(profile, key);
         }
     }
 
@@ -520,38 +495,30 @@ public class ChapterService {
         c.getNovel().touch(clock.instant());
     }
 
-    private static String validate(int chapterNo, String title) {
-        List<FieldError> errors = new ArrayList<>();
-        if (chapterNo < 1) {
-            errors.add(new FieldError("chapterNo", "Use a chapter number of 1 or more."));
+    /**
+     * The stripped title, which must be filled, fit the column, give a review key and not share that key with another
+     * chapter of the novel ({@code others} may contain the chapter itself: it is skipped by {@code selfId}).
+     */
+    private static String validateTitle(List<Chapter> others, Long selfId, String title) {
+        String t = title == null ? "" : title.strip();
+        if (t.isEmpty()) {
+            throw titleError("Enter a chapter title.");
         }
-        String t = title == null || title.isBlank() ? null : title.strip();
-        if (t != null && t.length() > MAX_TITLE) {
-            errors.add(new FieldError("title", "Use at most " + MAX_TITLE + " characters."));
+        if (t.length() > MAX_TITLE) {
+            throw titleError("Use at most " + MAX_TITLE + " characters.");
         }
-        if (!errors.isEmpty()) {
-            throw new InvalidChapterException(errors);
+        String key = ChapterTitles.reviewKey(t)
+                .orElseThrow(() -> titleError("Use letters or digits in the chapter name."));
+        for (Chapter o : others) {
+            if (!Objects.equals(o.getId(), selfId) && ChapterTitles.reviewKey(o.getTitle()).filter(key::equals).isPresent()) {
+                throw titleError("Another chapter of this novel already uses the name \"" + key + "\".");
+            }
         }
         return t;
     }
 
-    private static final java.util.regex.Pattern DEFAULT_NAME =
-            java.util.regex.Pattern.compile("(?iu)(?:chapter|chương)\\s+0*(\\d+)");
-
-    /** Stripped; blank means no label, and so does the chapter's own default name ("Chapter 16" on chapter 16). */
-    static String label(String label, int chapterNo) {
-        String l = label.isBlank() ? null : label.strip();
-        if (l != null && l.length() > MAX_LABEL) {
-            throw new InvalidChapterException(
-                    List.of(new FieldError("label", "Use at most " + MAX_LABEL + " characters.")));
-        }
-        if (l != null) {
-            java.util.regex.Matcher m = DEFAULT_NAME.matcher(l);
-            if (m.matches() && m.group(1).length() <= 9 && Integer.parseInt(m.group(1)) == chapterNo) {
-                return null;
-            }
-        }
-        return l;
+    private static InvalidChapterException titleError(String message) {
+        return new InvalidChapterException(List.of(new FieldError("title", message)));
     }
 
     private List<PageDto> pageDtos(long chapterId) {
@@ -587,7 +554,7 @@ public class ChapterService {
         }
         String shownModel = models.shown(c);
         return new ChapterDetail(c.getId(), c.getNovel().getId(), c.getNovel().getTitle(), c.getChapterNo(),
-                c.getTitle(), c.getLabel(), c.getTranslationStatus(), c.getTranslationError(), shownModel, c.getTranslatedAt(),
+                c.getTitle(), c.getTranslationStatus(), c.getTranslationError(), shownModel, c.getTranslatedAt(),
                 c.isEditedAfterTranslation(), c.getPublishStatus(), pageDtos(c.getId()),
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
                 c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())

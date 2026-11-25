@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { Link } from "react-router";
 import { IconButton } from "../../components/ui/IconButton";
 import type { PublicChapterRef } from "../../data/novelTypes";
-import { publicChapterLabel } from "./publicNames";
+import { publicChapterTitle } from "./publicNames";
 import { readReadChapters } from "./readerPrefs";
 import { OWN_KEYS } from "./readerKeys";
 import "../../styles/chapter-toc.css";
@@ -92,13 +92,13 @@ function ChapterToc({
             <Link
               ref={current ? currentRef : undefined}
               className="chapter-toc__link"
-              title={publicChapterLabel(c.chapterNo, c.title, c.label)}
+              title={publicChapterTitle(c)}
               to={`/novels/${slug}/${c.chapterNo}`}
               aria-current={current ? "true" : undefined}
               onClick={onPick}
             >
               <span className="chapter-toc__name">
-                {publicChapterLabel(c.chapterNo, c.title, c.label)}
+                {publicChapterTitle(c)}
               </span>
             </Link>
             {current && <span className="badge badge--info">Đang đọc</span>}

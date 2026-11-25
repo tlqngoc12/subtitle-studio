@@ -216,7 +216,7 @@ class ChapterTranslationServiceTest {
     }
 
     private ChapterDetail chapter(int no, int pageCount) {
-        ChapterDetail c = chapterService.add(novel.getId(), new ChapterRequest(no, null));
+        ChapterDetail c = chapterService.addNumbered(novel.getId(), no, null);
         if (pageCount > 0) {
             chapterService.addPages(c.id(), IntStream.rangeClosed(1, pageCount)
                     .mapToObj(i -> new NamedImage("p" + i + ".png", TestImages.png())).toList());
@@ -255,7 +255,7 @@ class ChapterTranslationServiceTest {
         assertThat(reload(c.id()).hasSourceText()).isFalse();
 
         ChapterDetail written = chapterService.update(c.id(),
-                new ChapterUpdateRequest(null, "Mở đầu", null, "Đoạn một.\n\nĐoạn hai."));
+                new ChapterUpdateRequest("Mở đầu", null, "Đoạn một.\n\nĐoạn hai."));
         assertThat(written.text()).isEqualTo("Đoạn một.\n\nĐoạn hai.");
         assertThat(service.publish(c.id()).publishStatus()).isEqualTo(ChapterPublishStatus.PUBLISHED);
     }
@@ -782,7 +782,7 @@ class ChapterTranslationServiceTest {
     void translateAgainOverwritesAnEditedTextAndStartsOver() {
         long id = textChapter(1, "Text");
         service.start(id);
-        chapterService.update(id, new ChapterUpdateRequest(null, null, null, "My own edit"));
+        chapterService.update(id, new ChapterUpdateRequest(null, null, "My own edit"));
         assertThat(reload(id).isEditedAfterTranslation()).isTrue();
 
         service.start(id);
@@ -821,7 +821,7 @@ class ChapterTranslationServiceTest {
 
         Chapter c = reload(id);
         assertThat(c.getAiText()).isEqualTo("VI: First.\n\nSecond.").isEqualTo(c.getTextVi());
-        chapterService.update(id, new ChapterUpdateRequest(null, null, null, "edited"));
+        chapterService.update(id, new ChapterUpdateRequest(null, null, "edited"));
         assertThat(reload(id).getTextVi()).isEqualTo("edited");
         assertThat(reload(id).getAiText()).isEqualTo("VI: First.\n\nSecond.");
     }

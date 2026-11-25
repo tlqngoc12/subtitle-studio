@@ -271,7 +271,7 @@ public class NovelService {
         Map<Long, Integer> pageCounts = new HashMap<>();
         pages.countPerChapter(n.getId()).forEach(row -> pageCounts.put((Long) row[0], ((Number) row[1]).intValue()));
         List<ChapterSummary> list = chapters.findRowsByNovel(n.getId()).stream()
-                .map(c -> new ChapterSummary(c.id(), c.chapterNo(), c.title(), c.label(),
+                .map(c -> new ChapterSummary(c.id(), c.chapterNo(), c.title(),
                         c.translationStatus(),
                         c.translationError(), models.shown(c), c.publishStatus(), pageCounts.getOrDefault(c.id(), 0),
                         suspect.getOrDefault(c.id(), 0),

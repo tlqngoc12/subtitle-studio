@@ -262,8 +262,9 @@ public class NovelRenderer {
     }
 
     static String heading(RenderInput input) {
-        String t = input.chapterTitle() == null || input.chapterTitle().isBlank() ? "" : ": " + input.chapterTitle();
-        return clean((input.hasLabel() ? input.chapterLabel().strip() : "Chương " + input.chapterNo()) + t);
+        String t = input.chapterTitle() == null || input.chapterTitle().isBlank()
+                ? "Chương " + input.chapterNo() : input.chapterTitle().strip();
+        return clean(t);
     }
 
     /** Lines of the text, each non-empty one a paragraph and each empty one a blank line; leading/trailing blanks dropped. */

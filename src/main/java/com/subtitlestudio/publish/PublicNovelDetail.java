@@ -13,5 +13,5 @@ public record PublicNovelDetail(String slug, String title, String coverUrl, Stri
                                 String trailerVideoId, List<PublicChapterRef> chapters, boolean original) {
 
     /** One published chapter in the list; {@code publishedAt} may be null (files from before it existed). */
-    public record PublicChapterRef(int chapterNo, String title, String label, Instant publishedAt) {}
+    public record PublicChapterRef(int chapterNo, String title, Instant publishedAt) {}
 }

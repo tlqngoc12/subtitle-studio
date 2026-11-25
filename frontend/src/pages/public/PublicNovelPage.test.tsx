@@ -36,8 +36,8 @@ const DETAIL: PublicNovelDetail = {
   sourceUrl: 'https://example.com/book',
   trailerVideoId: null,
   chapters: [
-    { chapterNo: 1, title: 'Mở đầu' },
-    { chapterNo: 3, title: null, label: 'Ngoại truyện 1' },
+    { chapterNo: 1, title: 'Chương 1: Mở đầu' },
+    { chapterNo: 3, title: 'Ngoại truyện 1' },
   ],
 };
 
@@ -124,7 +124,7 @@ describe('PublicNovelPage', () => {
   const noDescription = () => source({ getNovel: async () => ({ ...DETAIL, description: null }) });
   const MANY: PublicNovelDetail = {
     ...DETAIL,
-    chapters: Array.from({ length: 13 }, (_, i) => ({ chapterNo: i + 1, title: `C${i + 1}` })),
+    chapters: Array.from({ length: 13 }, (_, i) => ({ chapterNo: i + 1, title: `Chương ${i + 1}: C${i + 1}` })),
   };
 
   it('is a hero header from PageHeader: Novels > title breadcrumbs, cover before the title, facts and Read bar inside', async () => {
@@ -166,8 +166,8 @@ describe('PublicNovelPage', () => {
       ...DETAIL,
       novelStatus: 'ONGOING',
       chapters: [
-        { chapterNo: 1, title: 'Mở đầu', publishedAt: '2026-11-01T03:00:00Z' },
-        { chapterNo: 3, title: null, label: 'Ngoại truyện 1', publishedAt: '2026-11-12T03:00:00Z' },
+        { chapterNo: 1, title: 'Chương 1: Mở đầu', publishedAt: '2026-11-01T03:00:00Z' },
+        { chapterNo: 3, title: 'Ngoại truyện 1', publishedAt: '2026-11-12T03:00:00Z' },
       ],
     };
     const dated = () => source({ getNovel: async () => DATED });

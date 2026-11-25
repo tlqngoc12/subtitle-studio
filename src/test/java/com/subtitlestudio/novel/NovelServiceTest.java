@@ -687,7 +687,6 @@ class NovelServiceTest {
         long id = novel("shape");
         Novel novel = em.find(Novel.class, id);
         Chapter one = new Chapter(novel, 1, "Một", NOW);
-        one.setLabel("Ngoại truyện 1");
         one.setSortOrder(2);
         one.setPublishStatus(ChapterPublishStatus.PUBLISHED);
         one.setTranslationModel("gemini-x");
@@ -701,7 +700,7 @@ class NovelServiceTest {
 
         // the previous code path: entities -> ChapterSummary
         List<ChapterSummary> old = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(id).stream()
-                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
+                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(),
                         c.getTranslationStatus(), c.getTranslationError(), c.getTranslationModel(),
                         c.getPublishStatus(), (int) pages.countByChapterId(c.getId()), 0,
                         c.getTranslationModel() != null)) // "gemini-x" is not the main model "m"
@@ -772,13 +771,13 @@ class NovelServiceTest {
         NovelDetail d = service.create(original("rv-rn", "Review Old Rn", "A", null));
         assertThat(d.promptProfile()).isEqualTo("ReviewOldRn");
         Files.createDirectories(dataDir.resolve("reviews"));
-        Files.writeString(dataDir.resolve("reviews/review-ReviewOldRn-ch-1-2026-11-23.md"), "x");
+        Files.writeString(dataDir.resolve("reviews/review-ReviewOldRn--ch-1--2026-11-23.md"), "x");
 
         NovelDetail edited = service.update(d.id(), retitled(d, "Review New Rn", "ReviewOldRn"));
 
         assertThat(edited.promptProfile()).isEqualTo("ReviewNewRn");
-        assertThat(dataDir.resolve("reviews/review-ReviewNewRn-ch-1-2026-11-23.md")).exists();
-        assertThat(dataDir.resolve("reviews/review-ReviewOldRn-ch-1-2026-11-23.md")).doesNotExist();
+        assertThat(dataDir.resolve("reviews/review-ReviewNewRn--ch-1--2026-11-23.md")).exists();
+        assertThat(dataDir.resolve("reviews/review-ReviewOldRn--ch-1--2026-11-23.md")).doesNotExist();
     }
 
     @Test

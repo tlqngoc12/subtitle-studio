@@ -460,7 +460,7 @@ class WattpadNovelServiceTest {
                     assertThat(busy.reason())
                             .isEqualTo(com.subtitlestudio.novel.NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING);
                     assertThat(busy.chapterNo()).isEqualTo(25);
-                    assertThat(busy.getMessage()).isEqualTo("Chapter 25 is still translating.");
+                    assertThat(busy.getMessage()).isEqualTo("Chương 25: Rain is still translating.");
                 });
         verifyNothingFetchedOrStarted();
     }
@@ -468,6 +468,7 @@ class WattpadNovelServiceTest {
     private void translatingChapter(long novelId, int chapterNo) {
         com.subtitlestudio.novel.Chapter c = org.mockito.Mockito.mock(com.subtitlestudio.novel.Chapter.class);
         when(c.getChapterNo()).thenReturn(chapterNo);
+        when(c.getTitle()).thenReturn("Chương " + chapterNo + ": Rain");
         when(chapters.findFirstByNovelIdAndTranslationStatusOrderByChapterNo(novelId,
                 com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING)).thenReturn(Optional.of(c));
     }
@@ -732,7 +733,7 @@ class WattpadNovelServiceTest {
     }
 
     private static com.subtitlestudio.novel.ChapterDetail realDetail() {
-        return new com.subtitlestudio.novel.ChapterDetail(9, 3, "Warm", 1, "One", null,
+        return new com.subtitlestudio.novel.ChapterDetail(9, 3, "Warm", 1, "One",
                 com.subtitlestudio.novel.ChapterTranslationStatus.TRANSLATING, null, null, null, false,
                 com.subtitlestudio.novel.ChapterPublishStatus.DRAFT, List.of(), null, null, null, null, "1631821143",
                 null, "en");
