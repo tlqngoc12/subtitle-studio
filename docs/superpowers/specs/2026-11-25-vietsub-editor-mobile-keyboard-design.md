@@ -1,6 +1,6 @@
 # Vietsub editor on phones: room to type when the keyboard is open
 
-Date: 2026-11-25 · Size: small change · Status: approved by the user (2026-11-25)
+Date: 2026-11-25 · Size: small change · Status: reverted after a try on a real iPhone (2026-11-25)
 
 ## Why
 
