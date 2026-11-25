@@ -1,5 +1,6 @@
 /* Vietsub editor: the player stays in view while the lines scroll beside or below it. */
 .vedit {
+  --vedit-mini-h: 110px;
   /* A long title must not widen the page: the breadcrumb ellipsis and the title wrap inside the screen. */
   grid-template-columns: minmax(0, 1fr);
 }
@@ -54,3 +55,21 @@
   margin: calc(var(--space-2) - var(--space-6)) 0 0;
 }
 
+
+/* A phone with the keyboard open while typing: a small video and a table that fits what is left of the visible
+   area. After the 1024 px block on purpose; the class is never set at that width. */
+.vedit--typing .vedit__player {
+  width: calc(var(--vedit-mini-h) * 16 / 9);
+  margin-inline: auto;
+  transition: width var(--dur-base) var(--ease-out);
+}
+
+.vedit--typing .vedit__body {
+  --cue-table-max: calc(var(--vv-height, 100dvh) - var(--topbar-h, 56px) - var(--vedit-mini-h) - var(--space-8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vedit--typing .vedit__player {
+    transition: none;
+  }
+}
