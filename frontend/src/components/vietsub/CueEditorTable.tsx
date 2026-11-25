@@ -93,8 +93,6 @@ interface Props {
   /** The player time. The table highlights and follows the line on screen, else the one before it, else the first. */
   currentMs: number;
   readOnly: boolean;
-  /** The on-screen keyboard is open and the table is short: the focused line is kept at the top of the box. */
-  compact?: boolean;
   /** Server messages by line index; the first one is scrolled into view when the set changes. */
   errors: Readonly<Record<number, string>>;
   onChange: (index: number, text: string) => void;
@@ -110,13 +108,11 @@ interface Props {
  * at once; focus is never moved. Focusing the text of a different line than the last focused one seeks the video to
  * that line and pauses it (clicking or moving inside the same line does not), without ending the wait above.
  */
-function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, compact = false, errors, onChange, onSeek, onSeekPause }: Props) {
+function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, errors, onChange, onSeek, onSeekPause }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const [holding, setHolding] = useState(false);
   const timer = useRef<number | undefined>(undefined);
-  /** Index of the row whose textarea has focus now (-1 when none): compact mode scrolls that row to the top. */
-  const [focusIdx, setFocusIdx] = useState(-1);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -175,17 +171,6 @@ function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, compact
     scrollTo(scrollTarget);
   }, [scrollTarget, holding, scrollTo]);
 
-  // Compact (keyboard open): the focused row goes to the top of the box, under the header. The box's own scrollTop is
-  // used, not scrollIntoView, so Safari does not pan the page. Focus is never moved, and the 3 s wait is untouched.
-  useEffect(() => {
-    if (!compact || focusIdx < 0) return;
-    const el = box.current;
-    const row = el?.querySelectorAll('tbody tr')[focusIdx];
-    if (!el || !row) return;
-    const head = el.querySelector('thead')?.getBoundingClientRect().height ?? 0;
-    el.scrollTop += row.getBoundingClientRect().top - el.getBoundingClientRect().top - head;
-  }, [compact, focusIdx]);
-
   // Lines rejected by a save: show the first one. Clearing a message while typing must not move the table.
   const shownErrors = useRef<ReadonlySet<string>>(new Set());
   useEffect(() => {
@@ -201,14 +186,11 @@ function CueEditorTableImpl({ cues, english, texts, currentMs, readOnly, compact
     if (!(e.target instanceof HTMLTextAreaElement)) return;
     window.clearTimeout(timer.current);
     setHolding(true);
-    const rows = Array.from(box.current?.querySelectorAll('tbody tr') ?? []);
-    setFocusIdx(rows.indexOf(e.target.closest('tr') as Element));
   }
 
   function onBlur(e: FocusEvent) {
     if (!(e.target instanceof HTMLTextAreaElement)) return;
     if (e.relatedTarget instanceof HTMLTextAreaElement && box.current?.contains(e.relatedTarget)) return;
-    setFocusIdx(-1);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setHolding(false), SCROLL_RESUME_MS);
   }

@@ -26,8 +26,6 @@ import { NotFoundState } from '../components/ui/NotFoundState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { errorMessage, type ErrorMessage } from '../lib/errors';
 import { findActiveIndex } from '../lib/findActiveCue';
-import { useKeyboardOpen } from '../lib/useKeyboardOpen';
-import { useMediaQuery } from '../lib/useMediaQuery';
 import { useTranslationPolling } from '../lib/useTranslationPolling';
 import { useYouTubePlayer } from '../player/useYouTubePlayer';
 import './VietsubEditPage.css';
@@ -228,11 +226,6 @@ function Editor({
   const player = useYouTubePlayer(playerRef, video.id);
   const { seekTo, pause } = player;
   const [changingStatus, setChangingStatus] = useState(false);
-  // Phone with the keyboard open while a line is being typed: a small player and a table that fits the visible area.
-  const [focused, setFocused] = useState(false);
-  const keyboard = useKeyboardOpen();
-  const wide = useMediaQuery('(min-width: 1024px)');
-  const compact = focused && keyboard && !wide;
 
   /** The table compares with the saved text, and keeps the timing of the loaded lines. */
   const baseline = useMemo(() => cues.map((c, i) => ({ ...c, text: saved[i] })), [cues, saved]);
@@ -371,7 +364,7 @@ function Editor({
   );
 
   return (
-    <Page width="wide" className={compact ? 'vedit vedit--typing' : 'vedit'}>
+    <Page width="wide" className="vedit">
       <div className="vedit__top">
         <PageHeader
           breadcrumbs={crumbs(video)}
@@ -444,17 +437,7 @@ function Editor({
         </Alert>
       )}
 
-      <div
-        className="vedit__body"
-        onFocus={(e) => {
-          if (e.target instanceof HTMLTextAreaElement && !e.target.readOnly) setFocused(true);
-        }}
-        onBlur={(e) => {
-          const next = e.relatedTarget;
-          if (next instanceof HTMLTextAreaElement && e.currentTarget.contains(next)) return;
-          setFocused(false);
-        }}
-      >
+      <div className="vedit__body">
         <div className="vedit__player">
           <VideoPlayer containerRef={playerRef} cue={overlayCue} error={player.error} playerState={player.state} />
         </div>
@@ -464,7 +447,6 @@ function Editor({
           texts={texts}
           currentMs={player.currentMs}
           readOnly={translating}
-          compact={compact}
           errors={lineErrors}
           onChange={onChange}
           onSeek={seekTo}
