@@ -1165,3 +1165,10 @@ Nhánh `fix/ios-filled-viewport-fit`. Chỉ đổi frontend.
 
 ### 2026-11-25: Gỡ phần chừa chỗ cho bàn phím ở trình sửa Vietsub
 - Đã hoàn tác thay đổi bàn phím của PR #74 (`useKeyboardOpen`, video thu nhỏ, bảng vừa khung khi gõ) vì thử trên iPhone thật thì màn hình cứ nhảy qua lại và khó dùng hơn. Giữ lại phần kiểm tra dòng dịch (`src`) và sửa `logo.test.ts`; spec/plan giữ để tham khảo.
+
+### 2026-11-25: Tiêu đề chương thay nhãn và số (Flyway V30)
+- Spec [docs/superpowers/specs/2026-11-25-chapter-title-merge-design.md](docs/superpowers/specs/2026-11-25-chapter-title-merge-design.md), plan [docs/superpowers/plans/2026-11-25-chapter-title-merge.md](docs/superpowers/plans/2026-11-25-chapter-title-merge.md). `label` được gộp vào `title` rồi xoá; `chapterNo` thành id nội bộ (vẫn ở link công khai, file publish và bộ đếm lượt đọc), UI không còn ô Number và Label.
+- Migration V30 duyệt từng truyện theo thứ tự đọc: chương có nhãn lấy nhãn làm tên (và nhớ số nếu nhãn là `Chương N`), chương không nhãn nối tiếp số (`Chương {last+1}`), tên + `: ` + tiêu đề cũ nếu có. Chỉ truyện Until I See You đổi số (16 chương không nhãn thành Chương 8 đến 23, đúng thứ tự đọc).
+- File review đổi tên theo mã từ tiêu đề: `review-<Hồ sơ>--<mã>--<ngày>[-vN].md` (`ch-N` hoặc slug). Đổi tiêu đề thì đổi tên file; đổi thứ tự thì không; lúc khởi động tự đổi một lần các tên cũ theo vị trí đọc. Agent `story-reviewer` và `chapter-prompt-writer` (ngoài repo) đã cập nhật theo quy ước mới.
+- Zip export một chương: `<slug>-<mã>-<ngày>.zip`. Thông báo "đang dịch" dùng tiêu đề chương.
+- **Sau khi deploy:** bấm Publish một lần để JSON chương công khai bỏ `label`.
