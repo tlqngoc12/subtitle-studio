@@ -1,7 +1,7 @@
-# Hồ sơ truyện: Unknown
+# Hồ sơ truyện: Behind Her
 
 ## Thông tin
-- Tên truyện: "Unknown"
+- Tên truyện: "Behind Her"
 - Tác giả: byZenQN
 - Thể loại: chưa rõ
 - Truyện được viết bằng tiếng Việt. Đây là truyện sáng tác, không dịch từ nguồn nào.
@@ -37,6 +37,12 @@
 - (Thêm dòng dạng "cụm sai" → "gợi ý" | "gợi ý khác" (lý do). Nút Check ở trang chương dùng các dòng này.)
 - bỏ luật chung: "đeo đồng hồ"
 - bỏ luật chung: "tháo đồng hồ"
+- "cúi đầu" → "chắp tay chào" | "nhìn xuống" (cụm cấm; lặp ch.5–8)
+- "cúi xuống" → "khom người" | "nhìn xuống" (cụm cấm)
+- "ngẩng đầu" → "ngước mắt" | "nhìn lên" (cụm cấm)
+- "ngẩng lên" → "ngước mắt" | "nhìn lên" (gần cụm cấm)
+- "một lúc rồi" → bỏ "một lúc" | "nửa giây rồi" (từ đệm lặp ch.5–8)
+- "không phải vì" → tách câu, nói thẳng lý do (khuôn câu giải thích hộ)
 
 ## Tóm tắt nội dung chính
 Chưa có tóm tắt.
