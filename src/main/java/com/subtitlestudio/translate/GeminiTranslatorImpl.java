@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Gemini translation (via {@link GeminiCaller}): one request per call (plus up to two follow-ups for lines it left out), structured JSON output
- * ({@code [{id, text}]}), and no automatic retries so a quota error does not burn more of the free tier.
+ * ({@code [{id, src, text}]}), and no automatic retries so a quota error does not burn more of the free tier.
  */
 @Component
 public class GeminiTranslatorImpl implements GeminiTranslator {
@@ -32,6 +32,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             - Dịch tự nhiên, đúng văn phong phụ đề: ngắn gọn, dễ đọc khi xem video, không dịch từng chữ.
             - Đầu vào là mảng các block phụ đề, mỗi block có id và text. Với mỗi id đầu vào trả đúng một phần tử cùng id; \
             không thêm, bớt, gộp hay tách block.
+            - Mỗi phần tử có thêm "src": chép y nguyên 3 từ đầu tiên trong text tiếng Anh của block đó (chỉ để đối chiếu, không dịch).
             - Giữ nguyên các dấu xuống dòng (\\n) và gạch đầu dòng hội thoại ("- ") trong mỗi block.
             - Một câu bị cắt qua nhiều block thì dịch sao cho mỗi block khớp với phần lời nói của nó.
             - Hồ sơ dịch (bối cảnh, nhân vật, xưng hô, tên riêng) bên dưới được ưu tiên khi có mâu thuẫn.
@@ -45,7 +46,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
     static final int MAX_FOLLOW_UPS = 2;
 
     private static final Logger log = LoggerFactory.getLogger(GeminiTranslatorImpl.class);
-    private static final TypeReference<List<TranslatedLine>> LINES = new TypeReference<>() {};
+    private static final TypeReference<List<AnswerLine>> LINES = new TypeReference<>() {};
 
     private final GeminiSettings settings;
     private final ObjectMapper mapper;
@@ -80,8 +81,8 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             VideoContext context = attempt == 0 ? video : followUpContext(video, lines, valid, missing.get(0));
             GeminiCaller.Answer answer = caller.generate(
                     List.of(Part.fromText(userContent(context, profile, missing))), config(), onTrying);
-            List<TranslatedLine> got = parse(answer, missing.size());
-            TranslationOutput.Checked checked = TranslationOutput.check(missing, got);
+            List<AnswerLine> got = parse(answer, missing.size());
+            TranslationOutput.Checked checked = TranslationOutput.checkAnswer(missing, got);
             checked.valid().forEach(line -> valid.put(line.id(), line));
             if (checked.extra() > 0) {
                 log.info("Gemini {} returned {} ids that were not sent; ignored", answer.model(), checked.extra());
@@ -93,7 +94,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
             answeredBy = answer.model();
             if (!checked.missing().isEmpty()) {
                 // Answers vary between runs, so a rejected one is only diagnosable from this line (no subtitle text in it).
-                log.warn("Gemini {} returned an invalid answer: {}", answeredBy, TranslationOutput.describe(missing, got));
+                log.warn("Gemini {} returned an invalid answer: {}", answeredBy, TranslationOutput.describeAnswer(missing, got));
             }
             missing = checked.missing();
         }
@@ -105,7 +106,7 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
     }
 
     /** The answer's lines; an answer that is not the expected JSON counts as having no valid line. */
-    private List<TranslatedLine> parse(GeminiCaller.Answer answer, int asked) {
+    private List<AnswerLine> parse(GeminiCaller.Answer answer, int asked) {
         try {
             return mapper.readValue(answer.text(), LINES);
         } catch (JsonProcessingException e) {
@@ -142,8 +143,9 @@ public class GeminiTranslatorImpl implements GeminiTranslator {
                 .type(Type.Known.OBJECT)
                 .properties(Map.of(
                         "id", Schema.builder().type(Type.Known.INTEGER).build(),
+                        "src", Schema.builder().type(Type.Known.STRING).build(),
                         "text", Schema.builder().type(Type.Known.STRING).build()))
-                .required("id", "text")
+                .required("id", "src", "text")
                 .build();
         GenerateContentConfig.Builder config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(SYSTEM_RULES)))
