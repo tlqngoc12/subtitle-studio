@@ -26,10 +26,10 @@ const NOVEL: PublicNovelDetail = {
   novelStatus: 'ONGOING',
   translatorCredit: null,
   sourceUrl: null,
-  chapters: [{ chapterNo: 3, title: 'Mưa' }],
+  chapters: [{ chapterNo: 3, title: 'Chương 3: Mưa' }],
 };
 
-const CHAPTER: PublicChapterFile = { chapterNo: 3, title: 'Mưa', label: null, prev: null, next: null, images: ['/a.webp'] };
+const CHAPTER: PublicChapterFile = { chapterNo: 3, title: 'Chương 3: Mưa', prev: null, next: null, images: ['/a.webp'] };
 
 const source: NovelSource = { listNovels: async () => [], getNovel: async () => NOVEL, getChapter: async () => CHAPTER };
 const site = { source: {}, readOnly: true, homePath: '/vietsub/list' } as unknown as Site;
@@ -63,7 +63,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('reader controls in the top bar', () => {
   it('replace the logo and the main menu on the chapter route only', async () => {
     renderApp('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
     expect(within(topbar()).queryByRole('link', { name: 'Subtitle Studio' })).not.toBeInTheDocument();
     expect(within(topbar()).queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('reader controls in the top bar', () => {
   it('give the menu back when the reader is left', async () => {
     const user = userEvent.setup();
     renderApp('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await user.click(within(reader()).getByRole('link', { name: 'Về trang truyện' }));
 
     expect(await screen.findByText('novel page')).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('reader controls in the top bar', () => {
   it('settings popover shows the theme and size groups', async () => {
     const user = userEvent.setup();
     renderApp('/novels/summer/3');
-    await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+    await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
     await user.click(within(reader()).getByRole('button', { name: 'Cài đặt' }));
     expect(screen.getByRole('radiogroup', { name: 'Màu nền' })).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: 'Cỡ chữ' })).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('reader controls in the top bar', () => {
 
     it('slides away scrolling down and returns scrolling up or near the top', async () => {
       renderApp('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
       expect(hidden()).toBe(false);
 
       scrollTo(40);
@@ -124,7 +124,7 @@ describe('reader controls in the top bar', () => {
     it('stays while a popover is open', async () => {
       const user = userEvent.setup();
       renderApp('/novels/summer/3');
-      await screen.findAllByRole('img', { name: /Chương 3, trang/ });
+      await screen.findAllByRole('img', { name: /Chương 3: Mưa, trang/ });
 
       await user.click(within(reader()).getByRole('button', { name: 'Cài đặt' }));
       scrollTo(900);

@@ -68,7 +68,7 @@ describe('NovelPage', () => {
     expect(title).toHaveTextContent('<b>Rất dài</b>');
     expect(within(row).getByLabelText('12 pages')).toBeInTheDocument();
     await userEvent.setup().hover(title);
-    expect((await screen.findAllByText(new RegExp('Chapter 1: <b>'))).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(new RegExp('<b>Rất dài</b>'))).length).toBeGreaterThan(0);
     expect(css).toMatch(/\.chapter-list__title\s*\{[^}]*text-overflow:\s*ellipsis/);
     expect(css).toMatch(/\.chapter-list__open\s*\{[^}]*flex-wrap:\s*nowrap/);
   });
@@ -723,22 +723,22 @@ describe('NovelPage busy novel', () => {
 
   it('shows the translating chapter and the reason when a chapter translates', async () => {
     const busy = wattpad({
-      chapters: [chapterSummary({ id: 10, chapterNo: 25, pageCount: 0, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' })],
+      chapters: [chapterSummary({ id: 10, chapterNo: 25, title: 'Chương 25: Mưa', pageCount: 0, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' })],
     });
     fakeFetch([route(busy), parts]);
     renderPage();
     await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
 
-    expect(line()).toHaveTextContent('Chapter 25 is translating…');
+    expect(line()).toHaveTextContent('Chương 25: Mưa is translating…');
     expect(next()).toBeDisabled();
-    await expectTooltip(next().parentElement!, 'Chapter 25 is still translating');
+    await expectTooltip(next().parentElement!, 'Chương 25: Mưa is still translating');
   });
 
   it('polls while a chapter translates, then drops the line and re-enables the button', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const translating = wattpad({
-        chapters: [chapterSummary({ id: 10, chapterNo: 25, pageCount: 0, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' })],
+        chapters: [chapterSummary({ id: 10, chapterNo: 25, title: 'Chương 25: Mưa', pageCount: 0, translationStatus: 'TRANSLATING', publishStatus: 'DRAFT' })],
       });
       const routes = [route(translating), parts];
       const calls = fakeFetch(routes);

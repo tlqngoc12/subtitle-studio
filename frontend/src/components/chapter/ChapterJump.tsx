@@ -3,7 +3,6 @@ import { List } from 'lucide-react';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { getNovel, type ChapterSummary } from '../../api/novels';
-import { chapterLabel } from '../novel/ChapterList';
 import { StatusBadges } from '../novel/StatusBadges';
 import { IconButton } from '../ui/IconButton';
 import { PopoverPanel } from '../ui/PopoverPanel';
@@ -83,7 +82,7 @@ export function ChapterJump({
         ) : (
           <ul className="chapter-toc__list chapter-jump__list" aria-label="Chapters">
             {chapters.map((c) => {
-              const name = chapterLabel(c.chapterNo, c.title, c.label);
+              const name = c.title;
               const to = chapterPath(c.id);
               const current = c.id === currentId;
               return (

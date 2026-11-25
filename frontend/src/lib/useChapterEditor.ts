@@ -19,8 +19,6 @@ export type LastSave = { kind: 'saved' | 'autosaved'; at: Date };
 export function useChapterEditor(chapterId: number) {
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [text, setText] = useState('');
-  const [number, setNumber] = useState('');
-  const [label, setLabel] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,9 +46,7 @@ export function useChapterEditor(chapterId: number) {
     setChapter(c);
     setText(c.text);
     setCounted(c.text);
-    setNumber(String(c.chapterNo));
-    setLabel(c.label ?? '');
-    setTitle(c.title ?? '');
+    setTitle(c.title);
   }
 
   useEffect(() => {
@@ -75,10 +71,7 @@ export function useChapterEditor(chapterId: number) {
 
   const dirty =
     chapter !== null &&
-    (number !== String(chapter.chapterNo) ||
-      label !== (chapter.label ?? '') ||
-      title !== (chapter.title ?? '') ||
-      text !== chapter.text);
+    (title !== chapter.title || text !== chapter.text);
 
   useEffect(() => {
     if (!dirty) return;
@@ -87,8 +80,8 @@ export function useChapterEditor(chapterId: number) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  // Save is allowed only for a loaded, edited chapter that is not busy/translating and has a Number.
-  const canSave = dirty && !translating && !busy && number !== '';
+  // Save is allowed only for a loaded, edited chapter that is not busy or translating. A blank title is refused by the server, whose message is shown.
+  const canSave = dirty && !translating && !busy;
   const saveRef = useRef<(auto: boolean) => Promise<void>>(async () => {});
   const canSaveRef = useRef(canSave);
   canSaveRef.current = canSave;
@@ -139,8 +132,6 @@ export function useChapterEditor(chapterId: number) {
       await run(async () => {
         load(
           await updateChapter(chapterId, {
-            chapterNo: Number(number),
-            label: label.trim(),
             title: title.trim(),
             text,
           }),
@@ -156,7 +147,7 @@ export function useChapterEditor(chapterId: number) {
 
   return {
     chapter, setChapter, load,
-    text, setText, number, setNumber, label, setLabel, title, setTitle,
+    text, setText, title, setTitle,
     error, setError, busy, run, starting, setStarting, saving, lastSave,
     finding, setFinding, hits, setHits,
     counts, originalParagraphs,

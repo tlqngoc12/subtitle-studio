@@ -4,15 +4,19 @@ import { formatInstant } from '../../lib/dates';
 
 /** Vietnamese names and copy shared by the public Novels pages (the admin UI stays English). */
 
-/** The chapter's label ("Ngoại truyện 1"), or "Chương N". */
-export function publicChapterName(chapterNo: number, label?: string | null): string {
-  return label?.trim() ? label.trim() : `Chương ${chapterNo}`;
+/**
+ * The chapter's name: its title ("Chương 3: Mưa", "Ngoại truyện I"). Files published before the label was merged into
+ * the title may have no title (the old `label` is used) or neither ("Chương N").
+ */
+export function publicChapterTitle(c: { chapterNo: number; title?: string | null; label?: string | null }): string {
+  return c.title?.trim() || c.label?.trim() || `Chương ${c.chapterNo}`;
 }
 
-/** The name with the title: "Chương 3: Mưa", "Ngoại truyện 1: Ngày cưới". */
-export function publicChapterLabel(chapterNo: number, title: string | null, label?: string | null): string {
-  const name = publicChapterName(chapterNo, label);
-  return title ? `${name}: ${title}` : name;
+/** The part of the title before its first colon ("Chương 3: Mưa" gives "Chương 3"); the reader bar has room for no more. */
+export function publicChapterShortName(c: { chapterNo: number; title?: string | null; label?: string | null }): string {
+  const title = publicChapterTitle(c);
+  const colon = title.indexOf(':');
+  return (colon < 0 ? title : title.slice(0, colon)).trim();
 }
 
 export const PUBLIC_STATUS_LABEL: Record<NovelStatus, string> = { ONGOING: 'Đang ra', COMPLETED: 'Hoàn thành' };

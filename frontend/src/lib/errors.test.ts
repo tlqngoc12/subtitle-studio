@@ -32,7 +32,7 @@ describe('errorMessage', () => {
     ['CHAPTER_NOT_FOUND', 'This chapter no longer exists.'],
     ['PAGE_NOT_FOUND', 'This page no longer exists.'],
     ['INVALID_NOVEL', 'Check the highlighted fields.'],
-    ['INVALID_CHAPTER', 'Check the chapter number and title.'],
+    ['INVALID_CHAPTER', 'Check the chapter title.'],
     ['DUPLICATE_NOVEL_SLUG', 'Another novel already uses this slug.'],
     ['DUPLICATE_CHAPTER_NUMBER', 'This novel already has a chapter with that number.'],
     ['INVALID_PAGE_ORDER', 'The pages changed meanwhile. They have been reloaded.'],
@@ -41,6 +41,11 @@ describe('errorMessage', () => {
     ['CHAPTER_PUBLISHED', 'This chapter is published.'],
   ])('maps %s to an English message', (code, expected) => {
     expect(errorMessage(new ApiError(400, code, 'detail')).title).toContain(expected);
+  });
+
+  it('shows the message of a refused chapter title', () => {
+    const e = new ApiError(400, 'INVALID_CHAPTER', 'x', [{ field: 'title', message: 'Enter a chapter title.' }]);
+    expect(errorMessage(e).title).toBe('Enter a chapter title.');
   });
 
   it('explains an unreadable .srt and keeps the server detail', () => {
@@ -109,12 +114,12 @@ describe('errorMessage', () => {
 });
 
 describe('errorMessage for NOVEL_TRANSLATION_BUSY', () => {
-  const busy = (extra: { reason?: string; chapterNo?: number }) =>
+  const busy = (extra: { reason?: string; chapterTitle?: string }) =>
     errorMessage(new ApiError(409, 'NOVEL_TRANSLATION_BUSY', 'x', [], extra));
 
   it('names the translating chapter', () => {
-    expect(busy({ reason: 'CHAPTER_TRANSLATING', chapterNo: 25 })).toEqual({
-      title: 'Chapter 25 is still translating',
+    expect(busy({ reason: 'CHAPTER_TRANSLATING', chapterTitle: 'Chương 25: Mưa' })).toEqual({
+      title: 'Chương 25: Mưa is still translating',
       hint: 'Wait for it to finish, then try again.',
     });
   });

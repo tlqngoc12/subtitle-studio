@@ -32,10 +32,10 @@ function publicErrorMessage(error: unknown): ErrorMessage {
 }
 
 /** NOVEL_TRANSLATION_BUSY: a chapter of the novel is still translating (older servers send no reason). */
-function busyMessage(reason: string | undefined, chapterNo: number | undefined): ErrorMessage {
+function busyMessage(reason: string | undefined, chapterTitle: string | undefined): ErrorMessage {
   if (reason === 'CHAPTER_TRANSLATING') {
     return {
-      title: busyTitle({ reason, chapterNo: chapterNo ?? null }),
+      title: busyTitle({ reason, chapterTitle: chapterTitle ?? null }),
       hint: 'Wait for it to finish, then try again.',
     };
   }
@@ -116,7 +116,7 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
     case 'INVALID_NOVEL':
       return { title: 'Check the highlighted fields.' };
     case 'INVALID_CHAPTER':
-      return { title: 'Check the chapter number and title.' };
+      return { title: error.fieldErrors[0]?.message ?? 'Check the chapter title.' };
     case 'BANNER_FULL':
       return { title: 'The banner already has 5 novels.', hint: 'Remove one from the banner first.' };
     case 'DUPLICATE_NOVEL_SLUG':
@@ -140,7 +140,7 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
     case 'CHAPTER_TEXT_SOURCE':
       return { title: 'This chapter comes from Wattpad text, so it has no pages.' };
     case 'NOVEL_TRANSLATION_BUSY':
-      return busyMessage(error.extra.reason, error.extra.chapterNo);
+      return busyMessage(error.extra.reason, error.extra.chapterTitle);
     case 'CHAPTER_ALREADY_TRANSLATED':
       return { title: 'This chapter is already translated.', hint: 'Use Translate again on the chapter page.' };
     case 'WATTPAD_PART_DELETED':

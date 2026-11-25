@@ -125,7 +125,7 @@ describe('ChapterPage', () => {
       method: 'GET',
       path: '/api/novels/3',
       status: 200,
-      body: novelDetail({ chapters: [chapterSummary({ id: 8, chapterNo: 0 }), chapterSummary({ id: 9 }), chapterSummary({ id: 10, chapterNo: 2 })] }),
+      body: novelDetail({ chapters: [chapterSummary({ id: 8, chapterNo: 0 }), chapterSummary({ id: 9 }), chapterSummary({ id: 10, chapterNo: 2, title: 'Chapter 2: Mưa' })] }),
     };
 
     it('shows an icon-only All chapters button between Previous and Next', async () => {
@@ -458,7 +458,7 @@ describe('ChapterPage', () => {
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     const sent = JSON.parse(String(calls.find((c) => c.method === 'PUT')!.body));
-    expect(sent).toEqual({ chapterNo: 1, label: '', title: 'Mở đầu', text: 'Cả chương đã sửa' });
+    expect(sent).toEqual({ title: 'Chapter 1: Mở đầu', text: 'Cả chương đã sửa' });
     await waitFor(() => expect(textBox()).toHaveValue('Cả chương đã sửa'));
   });
 
@@ -559,10 +559,9 @@ describe('ChapterPage', () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
 
-    expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toBeEnabled();
-    expect(screen.getByLabelText('Chapter title (optional)')).toBeEnabled();
-    expect(screen.getByLabelText('Chapter label (optional)')).toBeEnabled();
+    expect(screen.getByLabelText('Chapter title')).toBeEnabled();
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Add page screenshots')).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Pages' })).not.toBeInTheDocument();
@@ -571,27 +570,46 @@ describe('ChapterPage', () => {
     expect(await menuItem('Unpublish')).toBeInTheDocument();
   });
 
-  it('saves a label shown instead of the chapter number', async () => {
+  it('saves the chapter title, never a number or a label', async () => {
     const calls = renderPage([
       get(),
       {
         method: 'PUT',
         path: '/api/chapters/9',
         status: 200,
-        body: chapterDetail({ chapterNo: 31, label: 'Ngoại truyện 1' }),
+        body: chapterDetail({ title: 'Ngoại truyện I' }),
       },
     ]);
     await loaded();
 
-    await user().clear(screen.getByLabelText('Number'));
-    await user().type(screen.getByLabelText('Number'), '31');
-    await user().type(screen.getByLabelText('Chapter label (optional)'), 'Ngoại truyện 1');
+    expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Chapter label (optional)')).not.toBeInTheDocument();
+    await user().clear(screen.getByLabelText('Chapter title'));
+    await user().type(screen.getByLabelText('Chapter title'), 'Ngoại truyện I');
     await user().click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     const sent = JSON.parse(String(calls.find((c) => c.method === 'PUT')!.body));
-    expect(sent).toMatchObject({ chapterNo: 31, label: 'Ngoại truyện 1' });
-    expect(await screen.findByRole('heading', { name: 'Ngoại truyện 1: Mở đầu' })).toBeInTheDocument();
+    expect(sent).toEqual({ title: 'Ngoại truyện I', text: expect.any(String) });
+    expect(await screen.findByRole('heading', { name: 'Ngoại truyện I' })).toBeInTheDocument();
+  });
+
+  it('shows the field error when the server refuses the title', async () => {
+    renderPage([
+      get(),
+      {
+        method: 'PUT',
+        path: '/api/chapters/9',
+        status: 400,
+        body: { code: 'INVALID_CHAPTER', detail: 'x', errors: [{ field: 'title', message: 'Enter a chapter title.' }] },
+      },
+    ]);
+    await loaded();
+
+    await user().clear(screen.getByLabelText('Chapter title'));
+    await user().click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Enter a chapter title.')).toBeInTheDocument();
   });
 
   it('keeps every control on a draft chapter', async () => {
@@ -599,7 +617,7 @@ describe('ChapterPage', () => {
     await loaded();
 
     expect(screen.queryByText(/This chapter is published/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Number')).toBeEnabled();
+    expect(screen.getByLabelText('Chapter title')).toBeEnabled();
     expect(screen.getByLabelText('Add page screenshots')).toBeInTheDocument();
     expect(await menuItem('Translate again')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Drag to reorder: page 1' })).toBeInTheDocument();
@@ -895,51 +913,18 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     expect(puts(calls)).toHaveLength(0);
   });
 
-  it('sends no request when the Number is empty', async () => {
-    const calls = renderPage([get(), put]);
-    await loaded();
-    fireEvent.change(screen.getByLabelText('Number'), { target: { value: '' } });
-    vi.useFakeTimers();
-    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS * 2));
-    ctrlS();
-    expect(puts(calls)).toHaveLength(0);
-  });
-
-  it('puts Number, Chapter label and Chapter title in one wrapping row', async () => {
+  it('has only the Chapter title in the details row, with an info tooltip', async () => {
     renderPage([get()]);
     await loaded();
 
-    const row = screen.getByLabelText('Number').closest('.chapter-meta__row')!;
+    const row = screen.getByLabelText('Chapter title').closest('.chapter-meta__row')!;
     expect(row).not.toBeNull();
-    expect(row.contains(screen.getByLabelText('Chapter label (optional)'))).toBe(true);
-    expect(row.contains(screen.getByLabelText('Chapter title (optional)'))).toBe(true);
-    expect([...row.querySelectorAll(':scope > .field')].map((f) => f.className)).toEqual([
-      'field chapter-meta__number',
-      'field chapter-meta__label',
-      'field chapter-meta__title',
-    ]);
-    const rule = (name: string) => new RegExp(`\\.chapter-meta__${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
-    expect(/\.chapter-meta__row\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/.test(css)).toBe(true);
-    expect(rule('number')).toMatch(/flex:\s*0 0 1\d\dpx/);
-    // Mobile-first: label and title each take a whole line on a phone (they overlapped when squeezed side by side);
-    // from 521px the label is a fixed column and the title takes the rest.
-    expect(rule('label')).toMatch(/flex:\s*1 1 100%/);
-    expect(rule('title')).toMatch(/flex:\s*1 1 100%/);
-    expect(/@media \(min-width: 521px\)\s*\{\s*\.chapter-meta__label\s*\{[^}]*flex:\s*0 0 2[0-4]\dpx/.test(css)).toBe(true);
-    expect(/@media \(min-width: 521px\)\s*\{[^@]*\.chapter-meta__title\s*\{[^}]*flex:\s*1 1 2\d\dpx/.test(css)).toBe(true);
-  });
-
-  it('explains Number and Chapter label with info tooltips instead of hint lines', async () => {
-    renderPage([get()]);
-    await loaded();
-    expect(screen.getByLabelText('Number')).toBeInTheDocument();
+    expect([...row.querySelectorAll(':scope > .field')].map((f) => f.className)).toEqual(['field chapter-meta__title']);
+    expect(css).toContain('.chapter-meta__row');
+    expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Order')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Sorts the chapters/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Shown instead of the number/)).not.toBeInTheDocument();
-    const info = screen.getByRole('button', { name: 'About Number' });
-    await user().hover(info);
-    expect((await screen.findAllByText(/Drag chapters in the list to change the reading order\./)).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'About Chapter label' })).toBeInTheDocument();
+    await user().hover(screen.getByRole('button', { name: 'About Chapter title' }));
+    expect((await screen.findAllByText(/The chapter's name everywhere/)).length).toBeGreaterThan(0);
   });
 });
 
@@ -1058,7 +1043,7 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
     expect(screen.queryByRole('region', { name: 'Original text' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /^Original/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
-    expect(screen.getByText(/This chapter is published: only the text, label and title can be edited\./)).toBeInTheDocument();
+    expect(screen.getByText(/This chapter is published: only the text and title can be edited\./)).toBeInTheDocument();
     expect(textBox()).toHaveValue('Bản dịch');
     expect(screen.queryByLabelText('Number')).not.toBeInTheDocument();
   });
@@ -1095,12 +1080,12 @@ describe('ChapterPage from Wattpad (original text, no pages)', () => {
   it('words the published note for each kind of chapter', async () => {
     renderPage([get({ publishStatus: 'PUBLISHED' })]);
     await loaded();
-    expect(screen.getByText('This chapter is published: only the text, label and title can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
+    expect(screen.getByText('This chapter is published: only the text and title can be edited. Unpublish to change pages or translate again.')).toBeInTheDocument();
     cleanup();
 
     renderPage([wattpad({ publishStatus: 'PUBLISHED', translationStatus: 'TRANSLATED', text: 'x' })]);
     await loaded();
-    expect(screen.getByText('This chapter is published: only the text, label and title can be edited. Unpublish to translate again.')).toBeInTheDocument();
+    expect(screen.getByText('This chapter is published: only the text and title can be edited. Unpublish to translate again.')).toBeInTheDocument();
     expect(screen.queryByText(/change pages/)).not.toBeInTheDocument();
   });
 
@@ -1246,7 +1231,7 @@ describe('ChapterPage: Fetch & translate next', () => {
 
     const button = screen.getByRole('button', { name: NEXT });
     expect(button).toBeDisabled();
-    await expectTooltip(button.parentElement!, 'Chapter 1 is still translating');
+    await expectTooltip(button.parentElement!, 'Chapter 1: Mở đầu is still translating');
   });
 });
 
@@ -1434,12 +1419,12 @@ describe('ChapterPage editor and save state', () => {
   it('puts the chapter and novel in the tab title, with a dot while there are unsaved changes', async () => {
     renderPage([get(), put]);
     await loaded();
-    expect(document.title).toBe('Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio');
+    expect(document.title).toBe('Chapter 1: Mở đầu · Tình Yêu Mùa Hạ · Subtitle Studio');
 
     edit();
-    expect(document.title).toBe('● Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio');
+    expect(document.title).toBe('● Chapter 1: Mở đầu · Tình Yêu Mùa Hạ · Subtitle Studio');
     await user().click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(document.title).toBe('Ch. 1 · Tình Yêu Mùa Hạ · Subtitle Studio'));
+    await waitFor(() => expect(document.title).toBe('Chapter 1: Mở đầu · Tình Yêu Mùa Hạ · Subtitle Studio'));
   });
 
   it('shows nothing before the first save, then Unsaved changes, Saving…, Saved HH:mm', async () => {
@@ -1597,14 +1582,13 @@ describe('ChapterPage: text first on a phone', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
-  it('keeps the label, title and the translated-by line in a "Chapter details" disclosure', async () => {
+  it('keeps the title and the translated-by line in a "Chapter details" disclosure', async () => {
     stubWidth(true);
     renderPage([get({ translationModel: 'gemini-2.5-pro' })]);
     await loaded();
 
     expect(within(details()).getByText('Chapter details')).toBeInTheDocument();
-    expect(within(details()).getByLabelText('Chapter label (optional)')).toBeInTheDocument();
-    expect(within(details()).getByLabelText('Chapter title (optional)')).toBeInTheDocument();
+    expect(within(details()).getByLabelText('Chapter title')).toBeInTheDocument();
     expect(within(details()).getByText('Translated by gemini-2.5-pro')).toBeInTheDocument();
     expect(textBox().closest('details')).toBeNull();
   });
@@ -1838,20 +1822,20 @@ describe('ChapterPage editor CSS cannot stop the textarea growing', () => {
 });
 
 describe('ChapterPage bar title', () => {
-  it('shows a short label in the bar, not the long title the H1 already has', async () => {
-    renderPage([get({ chapterNo: 25, title: 'A very long chapter title that the H1 shows' })]);
+  it('shows the short name in the bar, not the long title the H1 already has', async () => {
+    renderPage([get({ chapterNo: 25, title: 'Chương 25: A very long chapter title that the H1 shows' })]);
     await screen.findByRole('heading', { level: 1 });
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A very long chapter title');
     const title = document.querySelector('.chapter-bar__title')!;
-    expect(title).toHaveTextContent(/^Chapter 25$/);
+    expect(title).toHaveTextContent(/^Chương 25$/);
   });
 
-  it('uses the custom label when there is one', async () => {
-    renderPage([get({ label: 'Ngoại truyện 1' })]);
+  it('shows a title without a colon whole', async () => {
+    renderPage([get({ title: 'Ngoại truyện I' })]);
     await screen.findByRole('heading', { level: 1 });
 
-    expect(document.querySelector('.chapter-bar__title')).toHaveTextContent(/^Ngoại truyện 1$/);
+    expect(document.querySelector('.chapter-bar__title')).toHaveTextContent(/^Ngoại truyện I$/);
   });
 });
 

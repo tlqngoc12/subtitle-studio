@@ -17,8 +17,8 @@ import { scrollToProgress, useScrollProgress } from "../../lib/useScrollProgress
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import {
   PUBLIC_ERROR_TITLE,
-  publicChapterLabel,
-  publicChapterName,
+  publicChapterShortName,
+  publicChapterTitle,
   useDocumentTitle,
 } from "./publicNames";
 import { ReaderSkeleton } from "./ReaderSkeleton";
@@ -155,7 +155,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
   }, [slug, openedNo]);
 
   const current = chapter
-    ? publicChapterLabel(chapter.chapterNo, chapter.title, chapter.label)
+    ? publicChapterTitle(chapter)
     : null;
   useDocumentTitle(current && novel ? `${current} · ${novel.title}` : current);
 
@@ -199,15 +199,14 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
 
   const loadingTitle = novel?.chapters.find((c) => c.chapterNo === Number(chapterNo));
 
+  const chapterTitle = publicChapterTitle(chapter ?? { chapterNo: Number(chapterNo) });
+
   const crumbs = [
     { label: "Novels", to: "/novels" },
     ...(novel ? [novelsTabCrumb(novel.original === true, PUBLIC_NOVELS_TAB_LABELS)] : []),
     { label: novel?.title ?? "Về trang truyện", to: `/novels/${slug}` },
     {
-      label: publicChapterName(
-        chapter?.chapterNo ?? Number(chapterNo),
-        chapter?.label,
-      ),
+      label: chapterTitle,
     },
   ];
 
@@ -222,10 +221,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
       <ReaderBar
         slug={slug}
         novelTitle={novel?.title ?? ""}
-        chapterName={publicChapterName(
-          chapter?.chapterNo ?? Number(chapterNo),
-          chapter?.label,
-        )}
+        chapterName={publicChapterShortName(chapter ?? { chapterNo: Number(chapterNo) })}
         prev={prev}
         next={next}
         steps={!notFound}
@@ -297,7 +293,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
         <>
           {loadingTitle && (
             <h1 className="reader-loading-title">
-              {publicChapterLabel(loadingTitle.chapterNo, loadingTitle.title, loadingTitle.label)}
+              {publicChapterTitle(loadingTitle)}
             </h1>
           )}
           <ReaderSkeleton />
@@ -317,7 +313,7 @@ export default function ReaderPage({ source }: { source: NovelSource }) {
                 key={src}
                 className="reader__page"
                 src={src}
-                alt={`${publicChapterName(chapter.chapterNo, chapter.label)}, trang ${i + 1}/${format.images.length}`}
+                alt={`${publicChapterTitle(chapter)}, trang ${i + 1}/${format.images.length}`}
                 style={{ aspectRatio: `auto ${format.width} / ${format.height}` }}
                 draggable={false}
                 loading={i === 0 ? "eager" : "lazy"}

@@ -3,25 +3,23 @@ import { describe, expect, it } from 'vitest';
 import {
   SITE_NAME,
   bannerNovels,
-  publicChapterLabel,
-  publicChapterName,
+  publicChapterTitle,
   relativeTime,
   useDocumentTitle,
 } from './publicNames';
 import { formatInstant } from '../../lib/dates';
 
 describe('publicNames', () => {
-  it('names a chapter by its number or label', () => {
-    expect(publicChapterName(5)).toBe('Chương 5');
-    expect(publicChapterName(5, null)).toBe('Chương 5');
-    expect(publicChapterName(5, '  ')).toBe('Chương 5');
-    expect(publicChapterName(31, ' Ngoại truyện 1 ')).toBe('Ngoại truyện 1');
+  it('names a chapter by its title', () => {
+    expect(publicChapterTitle({ chapterNo: 5, title: 'Chương 7: A' })).toBe('Chương 7: A');
+    expect(publicChapterTitle({ chapterNo: 31, title: ' Ngoại truyện I ' })).toBe('Ngoại truyện I');
   });
 
-  it('adds the title', () => {
-    expect(publicChapterLabel(5, 'Mưa', null)).toBe('Chương 5: Mưa');
-    expect(publicChapterLabel(5, null)).toBe('Chương 5');
-    expect(publicChapterLabel(31, 'Ngày cưới', 'Ngoại truyện 1')).toBe('Ngoại truyện 1: Ngày cưới');
+  it('falls back for files published before the label was merged into the title', () => {
+    expect(publicChapterTitle({ chapterNo: 5, label: 'Chương 4', title: null })).toBe('Chương 4');
+    expect(publicChapterTitle({ chapterNo: 5, title: '  ', label: 'Chương 4' })).toBe('Chương 4');
+    expect(publicChapterTitle({ chapterNo: 5 })).toBe('Chương 5');
+    expect(publicChapterTitle({ chapterNo: 5, title: null, label: null })).toBe('Chương 5');
   });
 
   it('formats relative time', () => {

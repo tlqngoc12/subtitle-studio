@@ -1,27 +1,27 @@
 import type { NovelDetail } from '../api/novels';
 
 /** Why a novel cannot start another translation now: one Gemini job per novel at a time. */
-export type NovelBusy = { reason: 'CHAPTER_TRANSLATING'; chapterNo: number | null };
+export type NovelBusy = { reason: 'CHAPTER_TRANSLATING'; chapterTitle: string | null };
 
 /** The chapter that is translating, else null. */
 export function novelBusy(novel: Pick<NovelDetail, 'chapters'>): NovelBusy | null {
   const translating = novel.chapters.find((c) => c.translationStatus === 'TRANSLATING');
-  if (translating) return { reason: 'CHAPTER_TRANSLATING', chapterNo: translating.chapterNo };
+  if (translating) return { reason: 'CHAPTER_TRANSLATING', chapterTitle: translating.title };
   return null;
 }
 
 /** On the chapter page only the chapter's own fields are known: whether it is translating. */
-export function chapterBusy(chapter: { translationStatus: string; chapterNo: number }): NovelBusy | null {
-  if (chapter.translationStatus === 'TRANSLATING') return { reason: 'CHAPTER_TRANSLATING', chapterNo: chapter.chapterNo };
+export function chapterBusy(chapter: { translationStatus: string; title: string }): NovelBusy | null {
+  if (chapter.translationStatus === 'TRANSLATING') return { reason: 'CHAPTER_TRANSLATING', chapterTitle: chapter.title };
   return null;
 }
 
-/** The tooltip and error title: "Chapter 25 is still translating". */
+/** The tooltip and error title: "Chương 25: Mưa is still translating". */
 export function busyTitle(busy: NovelBusy): string {
-  return busy.chapterNo === null ? 'A chapter is still translating' : `Chapter ${busy.chapterNo} is still translating`;
+  return busy.chapterTitle === null ? 'A chapter is still translating' : `${busy.chapterTitle} is still translating`;
 }
 
-/** The muted status line: "Chapter 25 is translating…". */
+/** The muted status line: "Chương 25: Mưa is translating…". */
 export function busyLine(busy: NovelBusy): string {
-  return busy.chapterNo === null ? 'A chapter is translating…' : `Chapter ${busy.chapterNo} is translating…`;
+  return busy.chapterTitle === null ? 'A chapter is translating…' : `${busy.chapterTitle} is translating…`;
 }

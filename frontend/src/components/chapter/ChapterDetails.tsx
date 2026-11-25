@@ -70,22 +70,18 @@ interface Props {
   original?: boolean;
   locked: boolean;
   translating: boolean;
-  number: string;
-  label: string;
   title: string;
-  onNumberChange: (value: string) => void;
-  onLabelChange: (value: string) => void;
   onTitleChange: (value: string) => void;
   counts: { words: number; characters: number; paragraphs: number };
   originalParagraphs: number | null;
 }
 
-/** The collapsible "Chapter details": number, label, title, the counts and the model that translated it. */
+/** The collapsible "Chapter details": the title, the counts and the model that translated it. */
 export function ChapterDetails({
   chapter, idBase, published, fromText, original = false, locked, translating,
-  number, label, title, onNumberChange, onLabelChange, onTitleChange, counts, originalParagraphs,
+  title, onTitleChange, counts, originalParagraphs,
 }: Props) {
-  // The details (number, label, title, translated by) start closed on a phone so the text comes first; the person's
+  // The details (title, translated by) start closed on a phone so the text comes first; the person's
   // own choice is remembered.
   const roomy = useMediaQuery('(min-width: 761px)');
   const [detailsChoice, setDetailsChoice] = useState<boolean | null>(readDetailsChoice);
@@ -117,47 +113,27 @@ export function ChapterDetails({
       {published && (
         <p className="chapter-note muted">
           {original
-            ? 'This chapter is published: only the text, label and title can be edited. Unpublish to change its number.'
-            : `This chapter is published: only the text, label and title can be edited. ${
+            ? 'This chapter is published: only the text and title can be edited.'
+            : `This chapter is published: only the text and title can be edited. ${
                 fromText ? 'Unpublish to translate again.' : 'Unpublish to change pages or translate again.'
               }`}
         </p>
       )}
       <div className="chapter-meta">
-      <div className="chapter-meta__row">
-        {!published && (
-          <div className="field chapter-meta__number">
+        <div className="chapter-meta__row">
+          <div className="field chapter-meta__title">
             <div className="field__label-row">
-              <label htmlFor={`${idBase}-no`}>Number</label>
-              <Tip label="The chapter's link number. Drag chapters in the list to change the reading order.">
-                <button className="info-icon" type="button" aria-label="About Number">
+              <label htmlFor={`${idBase}-title`}>Chapter title</label>
+              <Tip label="The chapter's name everywhere, e.g. Chương 7: Bữa cơm hai người, Ngoại truyện I.">
+                <button className="info-icon" type="button" aria-label="About Chapter title">
                   <Info className="icon" aria-hidden="true" />
                 </button>
               </Tip>
             </div>
-            <input id={`${idBase}-no`} type="text" inputMode="numeric" value={number} disabled={locked}
-              onChange={(e) => onNumberChange(e.target.value.replace(/\D/g, ''))} />
+            <input id={`${idBase}-title`} type="text" maxLength={200} value={title} disabled={locked} required
+              onChange={(e) => onTitleChange(e.target.value)} />
           </div>
-        )}
-        <div className="field chapter-meta__label">
-          <div className="field__label-row">
-            <label htmlFor={`${idBase}-label`}>Chapter label (optional)</label>
-            <Tip label="Shown instead of the number, e.g. Ngoại truyện 1, Special.">
-              <button className="info-icon" type="button" aria-label="About Chapter label">
-                <Info className="icon" aria-hidden="true" />
-              </button>
-            </Tip>
-          </div>
-          <input id={`${idBase}-label`} type="text" maxLength={100} value={label} disabled={locked}
-            placeholder="e.g. Ngoại truyện 1"
-            onChange={(e) => onLabelChange(e.target.value)} />
         </div>
-        <div className="field chapter-meta__title">
-          <label htmlFor={`${idBase}-title`}>Chapter title (optional)</label>
-          <input id={`${idBase}-title`} type="text" maxLength={200} value={title} disabled={locked}
-            onChange={(e) => onTitleChange(e.target.value)} />
-        </div>
-      </div>
       </div>
       <div className="chapter-details__meta">
         <p className="chapter-count muted">

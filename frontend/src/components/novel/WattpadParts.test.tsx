@@ -121,7 +121,7 @@ describe('WattpadParts', () => {
     renderParts(novelWith('TRANSLATING'));
     await screen.findByText('PROLOGUE');
 
-    await expectTooltip(action('Chapter 2: Three Seconds').parentElement!, 'Chapter 1 is still translating');
+    await expectTooltip(action('Chapter 2: Three Seconds').parentElement!, 'Chapter 1: Cold Brew is still translating');
   });
 
   it('asks before translating out of order', async () => {

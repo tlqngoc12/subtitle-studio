@@ -3,7 +3,7 @@ import { useInView } from '../lib/useInView';
 import { useAdminTitle } from '../lib/useAdminTitle';
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { chapterLabel } from '../components/novel/ChapterList';
+import { chapterShortName } from '../components/novel/ChapterList';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
 import { FindReplace } from '../components/novel/FindReplace';
 import { StatusBadges } from '../components/novel/StatusBadges';
@@ -45,13 +45,13 @@ export default function ChapterPage() {
   const [checkSlot, setCheckSlot] = useState<HTMLElement | null>(null);
   const editor = useChapterEditor(chapterId);
   const {
-    chapter, text, setText, number, setNumber, label, setLabel, title, setTitle, error, busy, starting,
+    chapter, text, setText, title, setTitle, error, busy, starting,
     finding, setFinding, hits, setHits, counts, originalParagraphs, translating, dirty, canSave,
   } = editor;
   const [h1Ref, h1InView] = useInView<HTMLSpanElement>();
   // A published text chapter shows its original only on request (Show original); a draft always shows it.
   const [originalOpen, setOriginalOpen] = useState(false);
-  useAdminTitle(chapter ? `Ch. ${chapter.chapterNo} · ${chapter.novelTitle}` : null, dirty);
+  useAdminTitle(chapter ? `${chapter.title} · ${chapter.novelTitle}` : null, dirty);
   const pages = useChapterPages({
     chapterId, chapter, setChapter: editor.setChapter, setError: editor.setError, run: editor.run, confirm,
   });
@@ -161,10 +161,10 @@ export default function ChapterPage() {
           { label: 'Novels', to: '/novels' },
           novelsTabCrumb(original, ADMIN_NOVELS_TAB_LABELS),
           { label: chapter.novelTitle, to: novelPath },
-          { label: chapterLabel(chapter.chapterNo, chapter.title, chapter.label) },
+          { label: chapter.title },
         ]}
         onNavigate={(e, to) => void leave(e, to)}
-        title={<span ref={h1Ref}>{chapterLabel(chapter.chapterNo, chapter.title, chapter.label)}</span>}
+        title={<span ref={h1Ref}>{chapter.title}</span>}
       />
 
       <ChapterBar
@@ -174,7 +174,7 @@ export default function ChapterPage() {
             onAddNext={() => void actions.addNext()} />
         }
         // Short: the H1 above already shows the full title.
-        title={chapter.label?.trim() || `Chapter ${chapter.chapterNo}`}
+        title={chapterShortName(chapter.title)}
         titleHidden={h1InView === true}
         badges={<StatusBadges translation={original ? undefined : chapter.translationStatus} publish={chapter.publishStatus} />}
         saveState={saveState}
@@ -234,8 +234,8 @@ export default function ChapterPage() {
 
       <ChapterDetails
         chapter={chapter} idBase={ids} published={published} fromText={fromText} original={original} locked={locked} translating={translating}
-        number={number} label={label} title={title}
-        onNumberChange={setNumber} onLabelChange={setLabel} onTitleChange={setTitle}
+        title={title}
+        onTitleChange={setTitle}
         counts={counts} originalParagraphs={originalParagraphs}
       />
 

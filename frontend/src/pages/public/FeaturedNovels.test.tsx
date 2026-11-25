@@ -37,9 +37,9 @@ function detail(slug: string, first = 1): PublicNovelDetail {
     translatorCredit: null,
     sourceUrl: null,
     chapters: [
-      { chapterNo: first, title: 'Mở đầu' },
-      { chapterNo: first + 2, title: 'Mưa' },
-      { chapterNo: first + 3, title: null, label: 'Special' },
+      { chapterNo: first, title: 'Chương 1: Mở đầu' },
+      { chapterNo: first + 2, title: 'Chương 3: Mưa' },
+      { chapterNo: first + 3, title: 'Special' },
     ],
   };
 }
@@ -111,7 +111,7 @@ describe('FeaturedNovels', () => {
     localStorage.setItem('novel-progress:a', JSON.stringify({ chapterNo: 3 }));
     await renderBanner();
 
-    const resume = screen.getByRole('link', { name: 'Đọc tiếp: Chương 3' });
+    const resume = screen.getByRole('link', { name: 'Đọc tiếp: Chương 3: Mưa' });
     expect(resume).toHaveAttribute('href', '/novels/a/3');
     expect(screen.queryByRole('link', { name: 'Đọc từ đầu' })).not.toBeInTheDocument();
   });
