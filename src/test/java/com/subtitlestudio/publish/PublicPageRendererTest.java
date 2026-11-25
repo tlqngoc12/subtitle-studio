@@ -35,8 +35,8 @@ class PublicPageRendererTest {
         write("data/novels.json", "[{\"slug\":\"sugar\",\"title\":\"Be My Sugar\",\"coverUrl\":\"/media/c.webp\","
                 + "\"description\":\"Sweet story\",\"lastPublishedAt\":\"2026-11-21T01:00:00Z\"}]");
         write("data/novels/sugar.json", "{\"slug\":\"sugar\",\"title\":\"Be My Sugar\",\"chapters\":["
-                + "{\"chapterNo\":3,\"title\":\"x\",\"label\":null,\"publishedAt\":\"2026-11-19T01:00:00Z\"},"
-                + "{\"chapterNo\":4,\"title\":\"y\",\"label\":\"Ngoại truyện 1\",\"publishedAt\":null}]}");
+                + "{\"chapterNo\":3,\"title\":\"Chương 3\",\"publishedAt\":\"2026-11-19T01:00:00Z\"},"
+                + "{\"chapterNo\":4,\"title\":\"Ngoại truyện 1\",\"publishedAt\":null}]}");
         write("data/novels/sugar/3.json", "{\"chapterNo\":3,\"prev\":null,\"next\":4,"
                 + "\"images\":[\"/novel-images/sugar/a-1.webp\"],\"formats\":[]}");
     }

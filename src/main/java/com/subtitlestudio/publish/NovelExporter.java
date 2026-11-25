@@ -84,12 +84,12 @@ public class NovelExporter {
                 List<String> images = formats.stream().filter(f -> PageFormat.S.key().equals(f.key()))
                         .findFirst().orElseThrow().images();
                 write.accept(dir.resolve("data/novels/" + n.getSlug() + "/" + c.getChapterNo() + ".json"),
-                        new PublicChapterFile(c.getChapterNo(), c.getTitle(), c.getLabel(), prev, next, images, formats));
+                        new PublicChapterFile(c.getChapterNo(), c.getTitle(), prev, next, images, formats));
             }
             write.accept(dir.resolve("data/novels/" + n.getSlug() + ".json"), new PublicNovelDetail(n.getSlug(),
                     n.getTitle(), cover, n.getOriginalAuthor(), n.getDescription(), tags, n.getNovelStatus(),
                     n.getTranslatorCredit(), n.getSourceUrl(), n.getTrailerVideoId(),
-                    published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle(), c.getLabel(),
+                    published.stream().map(c -> new PublicChapterRef(c.getChapterNo(), c.getTitle(),
                             c.getPublishedAt())).toList(), original));
             summaries.add(new PublicNovelSummary(n.getSlug(), n.getTitle(), cover, n.getOriginalAuthor(), tags,
                     n.getNovelStatus(), published.size(), all.size(), lastPublishedAt(published), n.getUpdatedAt(), n.isFeatured(),
@@ -108,7 +108,7 @@ public class NovelExporter {
     private List<PublicPageFormat> formats(Path dir, Novel n, Chapter c, String watermark, List<ChapterImage> chapterImages) {
         String text = ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId()));
         List<RenderedFormat> rendered = renderCache.imagesFor(c.getId(),
-                new RenderInput(n.getTitle(), c.getChapterNo(), c.getLabel(), c.getTitle(), text, watermark,
+                new RenderInput(n.getTitle(), c.getChapterNo(), c.getTitle(), text, watermark,
                         mediaService::loadImage));
         boolean r2 = properties.publish().r2Enabled();
         Path target = dir.resolve("novel-images").resolve(n.getSlug());

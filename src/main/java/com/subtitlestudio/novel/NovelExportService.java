@@ -71,8 +71,7 @@ public class NovelExportService {
         try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
             for (int i = 0; i < withText.size(); i++) {
                 Exported e = withText.get(i);
-                String heading = ChapterExportFormat.heading(e.chapter().getChapterNo(), e.chapter().getLabel(),
-                        e.chapter().getTitle());
+                String heading = ChapterExportFormat.heading(e.chapter().getTitle());
                 String base = ChapterExportFormat.fileBase(e.position(), all.size(), heading);
                 add(zip, base + ".md", ChapterExportFormat.markdown(heading, e.text()));
                 add(zip, base + ".html", ChapterExportFormat.html(heading, e.text()));
@@ -93,7 +92,7 @@ public class NovelExportService {
         if (text.isBlank()) {
             throw NothingToExportException.forChapter(chapterId);
         }
-        String heading = ChapterExportFormat.heading(chapter.getChapterNo(), chapter.getLabel(), chapter.getTitle());
+        String heading = ChapterExportFormat.heading(chapter.getTitle());
         List<Chapter> all = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(chapter.getNovel().getId());
         int position = 1;
         for (int i = 0; i < all.size(); i++) {
@@ -111,7 +110,8 @@ public class NovelExportService {
         }
         log.info("Exported chapter {} of novel {}", chapterId, chapter.getNovel().getId());
         String date = LocalDate.now(clock.withZone(ZoneId.systemDefault())).toString();
-        return new NovelExport(chapter.getNovel().getSlug() + "-chapter-" + chapter.getChapterNo() + "-" + date
+        return new NovelExport(chapter.getNovel().getSlug() + "-"
+                + ChapterTitles.reviewKey(chapter.getTitle()).orElse("chapter-" + chapter.getChapterNo()) + "-" + date
                 + ".zip", bytes.toByteArray());
     }
 

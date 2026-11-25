@@ -174,8 +174,11 @@ public class PublicPageRenderer {
     }
 
     private static String chapterName(JsonNode chapter) {
-        String label = text(chapter, "label");
-        return label != null ? label : "Chương " + chapter.path("chapterNo").asInt();
+        String title = text(chapter, "title");
+        if (title == null) {
+            title = text(chapter, "label"); // files published before the label was merged into the title
+        }
+        return title != null ? title : "Chương " + chapter.path("chapterNo").asInt();
     }
 
     // ---- HTML ----

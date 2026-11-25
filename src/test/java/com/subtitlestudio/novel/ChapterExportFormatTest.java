@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
 class ChapterExportFormatTest {
 
     @Test
-    void headingUsesLabelOrChapterNumberAndTitle() {
-        assertEquals("Chapter 3", heading(3, null, null));
-        assertEquals("Chapter 3 - Mưa", heading(3, " ", "Mưa"));
-        assertEquals("Ngoại truyện 1 - Mưa", heading(3, "Ngoại truyện 1", "Mưa"));
+    void headingShowsTheTitleWithItsFirstColonAsADash() {
+        assertEquals("Chương 7 - Bữa cơm", heading("Chương 7: Bữa cơm"));
+        assertEquals("Nhân vật", heading("Nhân vật"));
+        assertEquals("Chương 7", heading(" Chương 7: "));
     }
 
     @Test

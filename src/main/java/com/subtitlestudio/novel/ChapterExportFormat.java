@@ -20,9 +20,16 @@ public final class ChapterExportFormat {
     private ChapterExportFormat() {
     }
 
-    public static String heading(int chapterNo, String label, String title) {
-        String base = label != null && !label.isBlank() ? label.strip() : "Chapter " + chapterNo;
-        return title != null && !title.isBlank() ? base + " - " + title.strip() : base;
+    /** The title with its first colon shown as a dash: {@code Chương 7: Bữa cơm} becomes {@code Chương 7 - Bữa cơm}. */
+    public static String heading(String title) {
+        String t = title == null ? "" : title.strip();
+        int colon = t.indexOf(':');
+        if (colon < 0) {
+            return t;
+        }
+        String rest = t.substring(colon + 1).strip();
+        String name = t.substring(0, colon).strip();
+        return rest.isEmpty() ? name : name + " - " + rest;
     }
 
     /** {@code NNN - <heading>} without extension; {@code position} is 1-based in the full reading order, as in review file names. */

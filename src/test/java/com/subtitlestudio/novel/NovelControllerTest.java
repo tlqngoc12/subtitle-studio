@@ -78,7 +78,7 @@ class NovelControllerTest {
 
     @Test
     void reordersChapters()throws Exception {
-        ChapterSummary row = new ChapterSummary(11, 1, null, null, ChapterTranslationStatus.NONE, null, null,
+        ChapterSummary row = new ChapterSummary(11, 1, null, ChapterTranslationStatus.NONE, null, null,
                 ChapterPublishStatus.DRAFT, 0, 0);
         when(service.get(3L)).thenReturn(new NovelDetail(3, "s", "T", null, null, null, null, List.of(),
                 NovelStatus.ONGOING, null, null, null, null, List.of(row),
@@ -235,7 +235,7 @@ class NovelControllerTest {
 
     @Test
     void fetchTranslateReturns202() throws Exception {
-        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
+        when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One",
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
                 "", null, null, "text", "77", null, "en"));
 
@@ -246,18 +246,19 @@ class NovelControllerTest {
     @Test
     void fetchTranslateBusyIs409() throws Exception {
         when(wattpadNovels.fetchAndTranslate(3L, "77")).thenThrow(new NovelTranslationBusyException(3,
-                NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING, 25));
+                NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING, 25, "Chương 25: Rain"));
 
         mvc.perform(post("/api/novels/3/wattpad/parts/77/fetch-translate")).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOVEL_TRANSLATION_BUSY"))
                 .andExpect(jsonPath("$.reason").value("CHAPTER_TRANSLATING"))
                 .andExpect(jsonPath("$.chapterNo").value(25))
-                .andExpect(jsonPath("$.detail").value("Chapter 25 is still translating."));
+                .andExpect(jsonPath("$.chapterTitle").value("Chương 25: Rain"))
+                .andExpect(jsonPath("$.detail").value("Chương 25: Rain is still translating."));
     }
 
     @Test
     void fetchTranslateNextReturns202() throws Exception {
-        when(wattpadNovels.fetchAndTranslateNext(3L)).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One", null,
+        when(wattpadNovels.fetchAndTranslateNext(3L)).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One",
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),
                 "", null, null, "text", "77", null, "en"));
 

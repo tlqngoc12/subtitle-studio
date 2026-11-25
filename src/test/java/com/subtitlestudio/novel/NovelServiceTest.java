@@ -687,7 +687,6 @@ class NovelServiceTest {
         long id = novel("shape");
         Novel novel = em.find(Novel.class, id);
         Chapter one = new Chapter(novel, 1, "Một", NOW);
-        one.setLabel("Ngoại truyện 1");
         one.setSortOrder(2);
         one.setPublishStatus(ChapterPublishStatus.PUBLISHED);
         one.setTranslationModel("gemini-x");
@@ -701,7 +700,7 @@ class NovelServiceTest {
 
         // the previous code path: entities -> ChapterSummary
         List<ChapterSummary> old = chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(id).stream()
-                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(), c.getLabel(),
+                .map(c -> new ChapterSummary(c.getId(), c.getChapterNo(), c.getTitle(),
                         c.getTranslationStatus(), c.getTranslationError(), c.getTranslationModel(),
                         c.getPublishStatus(), (int) pages.countByChapterId(c.getId()), 0,
                         c.getTranslationModel() != null)) // "gemini-x" is not the main model "m"

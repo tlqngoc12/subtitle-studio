@@ -70,7 +70,7 @@ class NovelExportServiceTest {
     }
 
     private Chapter chapter(int no, int sort, String textVi) {
-        Chapter c = new Chapter(novel, no, null, NOW);
+        Chapter c = new Chapter(novel, no, "Chương " + no, NOW);
         c.setSortOrder(sort);
         c.setTextVi(textVi);
         return chapters.saveAndFlush(c);
@@ -106,10 +106,10 @@ class NovelExportServiceTest {
 
         assertThat(export.fileName()).isEqualTo("summer-love-" + java.time.LocalDate.ofInstant(NOW, java.time.ZoneId.systemDefault()) + ".zip");
         Map<String, String> files = unzip(export.zip());
-        assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chapter 1.md", "001 - Chapter 1.html",
-                "003 - Chapter 3.md", "003 - Chapter 3.html");
-        assertThat(files.get("003 - Chapter 3.md")).endsWith("P1\n\nP2");
-        assertThat(files.get("001 - Chapter 1.html")).contains("<p>A</p>");
+        assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chương 1.md", "001 - Chương 1.html",
+                "003 - Chương 3.md", "003 - Chương 3.html");
+        assertThat(files.get("003 - Chương 3.md")).endsWith("P1\n\nP2");
+        assertThat(files.get("001 - Chương 1.html")).contains("<p>A</p>");
     }
 
     @Test
@@ -120,10 +120,10 @@ class NovelExportServiceTest {
 
         Map<String, String> files = unzip(service.export(novel.getId()).zip());
 
-        assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chapter 1.md", "001 - Chapter 1.html",
-                "003 - Chapter 3.md", "003 - Chapter 3.html");
+        assertThat(new ArrayList<>(files.keySet())).containsExactly("001 - Chương 1.md", "001 - Chương 1.html",
+                "003 - Chương 3.md", "003 - Chương 3.html");
         assertThat(unzip(service.exportChapter(c3.getId()).zip()).keySet())
-                .containsExactly("003 - Chapter 3.md", "003 - Chapter 3.html");
+                .containsExactly("003 - Chương 3.md", "003 - Chương 3.html");
     }
 
     @Test
@@ -154,14 +154,14 @@ class NovelExportServiceTest {
 
         NovelExportService.NovelExport export = service.exportChapter(c3.getId());
 
-        assertThat(export.fileName()).isEqualTo("summer-love-chapter-3-"
+        assertThat(export.fileName()).isEqualTo("summer-love-ch-3-"
                 + java.time.LocalDate.ofInstant(NOW, java.time.ZoneId.systemDefault()) + ".zip");
         Map<String, String> files = unzip(export.zip());
         assertThat(files).hasSize(2);
         List<String> names = new ArrayList<>(files.keySet());
         assertThat(names.get(0)).endsWith(".md");
         assertThat(names.get(1)).endsWith(".html");
-        String heading = ChapterExportFormat.heading(3, null, null);
+        String heading = ChapterExportFormat.heading("Chương 3");
         assertThat(files.get(names.get(0))).contains(ChapterExportFormat.markdown(heading, "Xin chào"));
     }
 

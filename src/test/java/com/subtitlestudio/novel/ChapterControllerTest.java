@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(ApiExceptionHandler.class)
 class ChapterControllerTest {
 
-    static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu", null,
+    static final ChapterDetail DETAIL = new ChapterDetail(9, 3, "Tình Yêu", 1, "Mở đầu",
             ChapterTranslationStatus.NONE, null, null, null, false, ChapterPublishStatus.DRAFT,
             List.of(new PageDto(11, 1, "/api/media/5", null, null, false, false)), "", null, null, null, null, null, "th");
 
@@ -153,7 +153,7 @@ class ChapterControllerTest {
         mvc.perform(put("/api/chapters/9").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"x\",\"pages\":[{\"id\":11,\"textVi\":\"Chào\"}]}"))
                 .andExpect(status().isOk());
-        verify(service).update(9L, new ChapterUpdateRequest(null, "x", List.of(new PageTextEdit(11, "Chào"))));
+        verify(service).update(9L, new ChapterUpdateRequest("x", List.of(new PageTextEdit(11, "Chào"))));
     }
 
     @Test

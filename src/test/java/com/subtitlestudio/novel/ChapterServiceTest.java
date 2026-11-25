@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.subtitlestudio.config.SubtitleStudioProperties;
+import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.profile.ImageSniffer;
 import com.subtitlestudio.profile.InvalidMediaException;
 import com.subtitlestudio.profile.MediaService;
@@ -98,7 +99,7 @@ class ChapterServiceTest {
     }
 
     private ChapterDetail chapterWithPages(int no, String... names) {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(no, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), no, null);
         service.addPages(c.id(), java.util.Arrays.stream(names).map(ChapterServiceTest::img).toList());
         return service.get(c.id());
     }
@@ -112,10 +113,10 @@ class ChapterServiceTest {
 
     @Test
     void addDefaultsToNextNumber() {
-        assertThat(service.add(novel.getId(), new ChapterRequest(null, null)).chapterNo()).isEqualTo(1);
-        service.add(novel.getId(), new ChapterRequest(3, "Ba"));
+        assertThat(service.add(novel.getId(), new ChapterRequest(null)).chapterNo()).isEqualTo(1);
+        service.addNumbered(novel.getId(), 3, "Ba");
 
-        ChapterDetail next = service.add(novel.getId(), new ChapterRequest(null, null));
+        ChapterDetail next = service.add(novel.getId(), new ChapterRequest(null));
 
         assertThat(next.chapterNo()).isEqualTo(4);
         assertThat(next.novelTitle()).isEqualTo("Tình Yêu");
@@ -131,9 +132,9 @@ class ChapterServiceTest {
 
     @Test
     void reorderChangesTheListButNeverTheChapterNumbers() {
-        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
-        ChapterDetail c3 = service.add(novel.getId(), new ChapterRequest(3, null));
+        ChapterDetail c1 = service.addNumbered(novel.getId(), 1, null);
+        ChapterDetail c2 = service.addNumbered(novel.getId(), 2, null);
+        ChapterDetail c3 = service.addNumbered(novel.getId(), 3, null);
 
         service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c3.id(), c1.id(), c2.id())));
 
@@ -149,10 +150,10 @@ class ChapterServiceTest {
 
     @Test
     void reorderRejectsMissingDuplicateOrForeignIdsAndChangesNothing() {
-        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        ChapterDetail c1 = service.addNumbered(novel.getId(), 1, null);
+        ChapterDetail c2 = service.addNumbered(novel.getId(), 2, null);
         Novel other = novels.save(new Novel("o", "Other", NovelStatus.ONGOING, NOW));
-        ChapterDetail foreign = service.add(other.getId(), new ChapterRequest(1, null));
+        ChapterDetail foreign = service.addNumbered(other.getId(), 1, null);
         List<List<Long>> bad = List.of(
                 List.of(c2.id()),
                 List.of(c2.id(), c2.id()),
@@ -176,8 +177,8 @@ class ChapterServiceTest {
 
     @Test
     void reorderWorksOnPublishedChapters() {
-        ChapterDetail c1 = service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
+        ChapterDetail c1 = service.addNumbered(novel.getId(), 1, null);
+        ChapterDetail c2 = service.addNumbered(novel.getId(), 2, null);
         setStatus(c1.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
 
         service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c2.id(), c1.id())));
@@ -187,33 +188,31 @@ class ChapterServiceTest {
 
     @Test
     void chapterAddedAfterAReorderIsLastEvenWithASmallerNumber() {
-        ChapterDetail c5 = service.add(novel.getId(), new ChapterRequest(5, null));
-        ChapterDetail c6 = service.add(novel.getId(), new ChapterRequest(6, null));
+        ChapterDetail c5 = service.addNumbered(novel.getId(), 5, null);
+        ChapterDetail c6 = service.addNumbered(novel.getId(), 6, null);
         service.reorderChapters(novel.getId(), new ChapterOrderRequest(List.of(c6.id(), c5.id())));
 
-        ChapterDetail c2 = service.add(novel.getId(), new ChapterRequest(2, null));
-        ChapterDetail auto = service.add(novel.getId(), new ChapterRequest(null, null));
+        ChapterDetail c2 = service.addNumbered(novel.getId(), 2, null);
+        ChapterDetail auto = service.add(novel.getId(), new ChapterRequest(null));
 
         assertThat(listOrder()).containsExactly(c6.id(), c5.id(), c2.id(), auto.id());
         assertThat(auto.chapterNo()).isEqualTo(7);
     }
 
     @Test
-    void duplicateNumberOnAddAndOnRenumber() {
-        service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail two = service.add(novel.getId(), new ChapterRequest(2, null));
+    void duplicateInternalNumberIsRejected() {
+        service.addNumbered(novel.getId(), 1, null);
+        service.addNumbered(novel.getId(), 2, null);
 
-        assertThatThrownBy(() -> service.add(novel.getId(), new ChapterRequest(1, null)))
-                .isInstanceOf(DuplicateChapterNumberException.class);
-        assertThatThrownBy(() -> service.update(two.id(), new ChapterUpdateRequest(1, null, null)))
+        assertThatThrownBy(() -> service.addNumbered(novel.getId(), 1, null))
                 .isInstanceOf(DuplicateChapterNumberException.class);
     }
 
     @Test
     void chapterNoMustBePositiveAndTitleShort() {
-        assertThatThrownBy(() -> service.add(novel.getId(), new ChapterRequest(0, null)))
+        assertThatThrownBy(() -> service.addNumbered(novel.getId(), 0, null))
                 .isInstanceOf(InvalidChapterException.class);
-        assertThatThrownBy(() -> service.add(novel.getId(), new ChapterRequest(1, "x".repeat(201))))
+        assertThatThrownBy(() -> service.addNumbered(novel.getId(), 1, "x".repeat(201)))
                 .isInstanceOf(InvalidChapterException.class);
     }
 
@@ -266,7 +265,7 @@ class ChapterServiceTest {
 
     @Test
     void addPages_reads_each_file_only_when_storing() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, null);
         List<String> log = new ArrayList<>();
         List<CountingContent> contents = new ArrayList<>();
         for (String n : List.of("1.png", "2.png", "3.png")) {
@@ -288,7 +287,7 @@ class ChapterServiceTest {
 
     @Test
     void addPages_rejects_oversize_by_size_without_reading() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, null);
         List<String> log = new ArrayList<>();
         CountingContent big = new CountingContent("big.png", TestImages.png(), 300_000, log);
 
@@ -301,7 +300,7 @@ class ChapterServiceTest {
 
     @Test
     void uploadRejectsNonImageGifAndTooLarge() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, null);
 
         assertThatThrownBy(() -> service.addPages(c.id(),
                 List.of(new NamedImage("a.txt", "hello".getBytes(StandardCharsets.UTF_8)))))
@@ -353,7 +352,7 @@ class ChapterServiceTest {
         long pageId = c.pages().getFirst().id();
 
         ChapterDetail updated = service.update(c.id(),
-                new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(pageId, "Xin chào"))));
+                new ChapterUpdateRequest(null, List.of(new PageTextEdit(pageId, "Xin chào"))));
 
         assertThat(updated.pages().getFirst().textVi()).isEqualTo("Xin chào");
         assertThat(updated.editedAfterTranslation()).isTrue();
@@ -363,13 +362,13 @@ class ChapterServiceTest {
     void sameTextDoesNotSetEditedFlag() {
         ChapterDetail c = chapterWithPages(1, "a.png");
         long pageId = c.pages().getFirst().id();
-        service.update(c.id(), new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(pageId, "A"))));
+        service.update(c.id(), new ChapterUpdateRequest(null, List.of(new PageTextEdit(pageId, "A"))));
         Chapter ch = chapters.findById(c.id()).orElseThrow();
         ch.setEditedAfterTranslation(false);
         chapters.saveAndFlush(ch);
 
         ChapterDetail again = service.update(c.id(),
-                new ChapterUpdateRequest(null, "Tựa", List.of(new PageTextEdit(pageId, "A"))));
+                new ChapterUpdateRequest("Tựa", List.of(new PageTextEdit(pageId, "A"))));
 
         assertThat(again.editedAfterTranslation()).isFalse();
     }
@@ -379,7 +378,7 @@ class ChapterServiceTest {
         ChapterDetail a = chapterWithPages(1, "a.png");
         ChapterDetail b = chapterWithPages(2, "b.png");
 
-        assertThatThrownBy(() -> service.update(a.id(), new ChapterUpdateRequest(null, null,
+        assertThatThrownBy(() -> service.update(a.id(), new ChapterUpdateRequest(null,
                 List.of(new PageTextEdit(b.pages().getFirst().id(), "x"))))).isInstanceOf(PageNotFoundException.class);
     }
 
@@ -387,13 +386,13 @@ class ChapterServiceTest {
     void wholeChapterTextIsSavedApartFromPages() {
         ChapterDetail c = chapterWithPages(1, "a.png", "b.png");
         List<Long> ids = c.pages().stream().map(PageDto::id).toList();
-        service.update(c.id(), new ChapterUpdateRequest(null, null,
+        service.update(c.id(), new ChapterUpdateRequest(null,
                 List.of(new PageTextEdit(ids.get(0), "Một"), new PageTextEdit(ids.get(1), "Hai"))));
         assertThat(service.get(c.id()).text()).isEqualTo("Một\n\nHai");
         Chapter ch = chapters.findById(c.id()).orElseThrow();
         ch.setEditedAfterTranslation(false);
 
-        ChapterDetail edited = service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Cả chương liền mạch"));
+        ChapterDetail edited = service.update(c.id(), new ChapterUpdateRequest(null, null, "Cả chương liền mạch"));
 
         assertThat(edited.text()).isEqualTo("Cả chương liền mạch");
         assertThat(edited.editedAfterTranslation()).isTrue();
@@ -404,10 +403,10 @@ class ChapterServiceTest {
     void blankWholeTextFallsBackToPages() {
         ChapterDetail c = chapterWithPages(1, "a.png");
         long id = c.pages().getFirst().id();
-        service.update(c.id(), new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(id, "Một"))));
-        service.update(c.id(), new ChapterUpdateRequest(null, null, null, "Sửa"));
+        service.update(c.id(), new ChapterUpdateRequest(null, List.of(new PageTextEdit(id, "Một"))));
+        service.update(c.id(), new ChapterUpdateRequest(null, null, "Sửa"));
 
-        ChapterDetail cleared = service.update(c.id(), new ChapterUpdateRequest(null, null, null, "   "));
+        ChapterDetail cleared = service.update(c.id(), new ChapterUpdateRequest(null, null, "   "));
 
         assertThat(cleared.text()).isEqualTo("Một");
     }
@@ -424,58 +423,75 @@ class ChapterServiceTest {
                 .isInstanceOf(ChapterTranslationInProgressException.class);
         assertThatThrownBy(() -> service.deletePage(c.id(), ids.get(0)))
                 .isInstanceOf(ChapterTranslationInProgressException.class);
-        assertThatThrownBy(() -> service.update(c.id(), new ChapterUpdateRequest(null, "x", null)))
+        assertThatThrownBy(() -> service.update(c.id(), new ChapterUpdateRequest("x", null)))
                 .isInstanceOf(ChapterTranslationInProgressException.class);
         assertThatThrownBy(() -> service.delete(c.id()))
                 .isInstanceOf(ChapterTranslationInProgressException.class);
     }
 
     @Test
-    void labelIsSavedClearedAndLimited() {
-        ChapterDetail c = chapterWithPages(31, "a.png");
+    void createUsesDefaultTitle() {
+        service.addNumbered(novel.getId(), 1, "Nhân vật");
+        service.addNumbered(novel.getId(), 3, "Chương 3: X");
 
-        ChapterDetail labelled = service.update(c.id(), ChapterUpdateRequest.label("  Ngoại truyện 1 "));
-        assertThat(labelled.label()).isEqualTo("Ngoại truyện 1");
-        assertThat(labelled.chapterNo()).isEqualTo(31);
-        assertThat(service.update(c.id(), new ChapterUpdateRequest(null, "Tựa", null)).label())
-                .isEqualTo("Ngoại truyện 1");
+        assertThat(service.add(novel.getId(), new ChapterRequest(null)).title()).isEqualTo("Chương 4");
+        assertThat(service.add(novel.getId(), new ChapterRequest("  ")).title()).isEqualTo("Chương 5");
+    }
 
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("  ")).label()).isNull();
-        assertThatThrownBy(() -> service.update(c.id(), ChapterUpdateRequest.label("x".repeat(101))))
+    @Test
+    void blankTitleRejected() {
+        ChapterDetail c = chapterWithPages(1, "a.png");
+
+        assertThatThrownBy(() -> service.update(c.id(), new ChapterUpdateRequest("  ", null)))
+                .isInstanceOfSatisfying(InvalidChapterException.class,
+                        e -> assertThat(e.errors()).extracting(FieldError::field).containsExactly("title"));
+    }
+
+    @Test
+    void titleWithoutLettersOrDigitsRejected() {
+        ChapterDetail c = chapterWithPages(1, "a.png");
+
+        assertThatThrownBy(() -> service.update(c.id(), new ChapterUpdateRequest("💜", null)))
                 .isInstanceOf(InvalidChapterException.class);
     }
 
     @Test
-    void labelThatIsTheDefaultNameIsStoredAsNull() {
-        ChapterDetail c = chapterWithPages(16, "a.png");
+    void duplicateReviewKeyRejected() {
+        service.addNumbered(novel.getId(), 1, "Chương 7: A");
+        ChapterDetail second = service.addNumbered(novel.getId(), 2, "Chương 8");
 
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Chapter 16")).label()).isNull();
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label(" chương  16 ")).label()).isNull();
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("CHAPTER 016")).label()).isNull();
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Chapter 3")).label()).isEqualTo("Chapter 3");
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Chapter 16.5")).label())
-                .isEqualTo("Chapter 16.5");
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Ngoại truyện 1")).label())
-                .isEqualTo("Ngoại truyện 1");
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("  ")).label()).isNull();
+        assertThatThrownBy(() -> service.update(second.id(), new ChapterUpdateRequest("chương 07", null)))
+                .isInstanceOfSatisfying(InvalidChapterException.class, e -> {
+                    assertThat(e.errors()).extracting(FieldError::field).containsExactly("title");
+                    assertThat(e.errors().getFirst().message())
+                            .isEqualTo("Another chapter of this novel already uses the name \"ch-7\".");
+                });
     }
 
     @Test
-    void defaultNameIsComparedWithTheNewChapterNumber() {
-        ChapterDetail c = chapterWithPages(16, "a.png");
+    void chapterTitleCanKeepItsOwnKey() {
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, "Chương 7: A");
 
-        ChapterDetail moved = service.update(c.id(), new ChapterUpdateRequest(40, null, null, null, "Chapter 40"));
-        assertThat(moved.label()).isNull();
-        assertThat(service.update(c.id(), new ChapterUpdateRequest(41, null, null, null, "Chapter 40")).label())
-                .isEqualTo("Chapter 40");
+        assertThat(service.update(c.id(), new ChapterUpdateRequest("Chương 7: B", null)).title())
+                .isEqualTo("Chương 7: B");
     }
 
     @Test
-    void publishedChapterAcceptsALabel() {
+    void chapterNumberStaysWhenTitleChanges() {
+        ChapterDetail c = chapterWithPages(31, "a.png");
+
+        ChapterDetail renamed = service.update(c.id(), new ChapterUpdateRequest("Ngoại truyện 1", null));
+
+        assertThat(renamed.title()).isEqualTo("Ngoại truyện 1");
+        assertThat(renamed.chapterNo()).isEqualTo(31);
+    }
+
+    @Test
+    void publishedChapterAcceptsATitle() {
         ChapterDetail c = chapterWithPages(5, "a.png");
         setStatus(c.id(), ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
 
-        assertThat(service.update(c.id(), ChapterUpdateRequest.label("Special")).label()).isEqualTo("Special");
+        assertThat(service.update(c.id(), new ChapterUpdateRequest("Special", null)).title()).isEqualTo("Special");
     }
 
     @Test
@@ -490,10 +506,7 @@ class ChapterServiceTest {
                 .isInstanceOf(ChapterPublishedException.class);
         assertThatThrownBy(() -> service.deletePage(c.id(), ids.get(0)))
                 .isInstanceOf(ChapterPublishedException.class);
-        assertThatThrownBy(() -> service.update(c.id(), new ChapterUpdateRequest(4, null, null)))
-                .isInstanceOf(ChapterPublishedException.class);
-
-        ChapterDetail edited = service.update(c.id(), new ChapterUpdateRequest(3, "Tựa mới",
+        ChapterDetail edited = service.update(c.id(), new ChapterUpdateRequest("Tựa mới",
                 List.of(new PageTextEdit(ids.get(0), "Sửa chữ"))));
 
         assertThat(edited.title()).isEqualTo("Tựa mới");
@@ -503,9 +516,9 @@ class ChapterServiceTest {
 
     @Test
     void prevNextIdsFollowReadingOrder() {
-        ChapterDetail one = service.add(novel.getId(), new ChapterRequest(1, null));
-        ChapterDetail three = service.add(novel.getId(), new ChapterRequest(3, null));
-        ChapterDetail five = service.add(novel.getId(), new ChapterRequest(5, null));
+        ChapterDetail one = service.addNumbered(novel.getId(), 1, null);
+        ChapterDetail three = service.addNumbered(novel.getId(), 3, null);
+        ChapterDetail five = service.addNumbered(novel.getId(), 5, null);
 
         ChapterDetail mid = service.get(three.id());
 
@@ -531,7 +544,7 @@ class ChapterServiceTest {
 
     @Test
     void deleteRemovesChapterImagesAndTheirUnusedMedia() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, null);
         com.subtitlestudio.profile.Media image = mediaService.store("a.png", TestImages.png());
         chapterImageRepository.save(new ChapterImage(chapters.findById(c.id()).orElseThrow(), image,
                 "https://img.wattpad.com/a.jpg", 1));
@@ -576,7 +589,7 @@ class ChapterServiceTest {
     }
 
     private ChapterUpdateRequest text(String text) {
-        return new ChapterUpdateRequest(null, null, null, text);
+        return new ChapterUpdateRequest(null, null, text);
     }
 
     @Test
@@ -646,7 +659,7 @@ class ChapterServiceTest {
 
     @Test
     void aChapterWithoutImagesIsNotChecked() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(7, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 7, null);
 
         assertThat(service.update(c.id(), text("Văn bản [[image:5]] tự do")).text()).isEqualTo("Văn bản [[image:5]] tự do");
     }
@@ -657,7 +670,7 @@ class ChapterServiceTest {
         long id = chapterWithMarkers(1, a);
         service.update(id, text("[[image:" + a + "]]\n\nOK"));
 
-        assertThat(service.update(id, new ChapterUpdateRequest(null, "New title", null, "[[image:" + a + "]]\n\nOK"))
+        assertThat(service.update(id, new ChapterUpdateRequest("New title", null, "[[image:" + a + "]]\n\nOK"))
                 .title()).isEqualTo("New title");
     }
 
@@ -699,7 +712,7 @@ class ChapterServiceTest {
     }
 
     private ChapterDetail landscapeChapter(int no, int pageCount) {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(no, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), no, null);
         List<NamedImage> files = new ArrayList<>();
         for (int i = 1; i <= pageCount; i++) {
             files.add(new NamedImage("p" + i + ".jpg", TestImages.jpeg(300, 200)));
@@ -713,7 +726,7 @@ class ChapterServiceTest {
         ChapterDetail c = landscapeChapter(1, 1);
         PageDto before = c.pages().getFirst();
         assertThat(before.landscape()).isTrue();
-        service.update(c.id(), new ChapterUpdateRequest(null, null,
+        service.update(c.id(), new ChapterUpdateRequest(null,
                 List.of(new PageTextEdit(before.id(), "x")), null));
 
         PageDto after = service.rotatePage(c.id(), before.id(), RotateDirection.RIGHT).getFirst();
@@ -809,12 +822,12 @@ class ChapterServiceTest {
         long p2 = c.pages().get(1).id();
 
         ChapterDetail half = service.update(c.id(),
-                new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(p1, "Một"))));
+                new ChapterUpdateRequest(null, List.of(new PageTextEdit(p1, "Một"))));
         assertThat(half.translationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
         assertThat(half.translationError()).isEqualTo("Gemini failed");
 
         ChapterDetail full = service.update(c.id(),
-                new ChapterUpdateRequest(null, null, List.of(new PageTextEdit(p2, "Hai"))));
+                new ChapterUpdateRequest(null, List.of(new PageTextEdit(p2, "Hai"))));
         assertThat(full.translationStatus()).isEqualTo(ChapterTranslationStatus.TRANSLATED);
         assertThat(full.translationError()).isNull();
     }
@@ -825,9 +838,7 @@ class ChapterServiceTest {
         setFailed(id, ChapterTranslationStatus.FAILED);
 
         assertThat(service.update(id, text("   ")).translationStatus()).isEqualTo(ChapterTranslationStatus.FAILED);
-        assertThat(service.update(id, new ChapterUpdateRequest(null, "New title", null)).translationStatus())
-                .isEqualTo(ChapterTranslationStatus.FAILED);
-        assertThat(service.update(id, ChapterUpdateRequest.label("L1")).translationStatus())
+        assertThat(service.update(id, new ChapterUpdateRequest("New title", null)).translationStatus())
                 .isEqualTo(ChapterTranslationStatus.FAILED);
         assertThat(service.get(id).translationError()).isEqualTo("Gemini failed");
     }
@@ -855,14 +866,14 @@ class ChapterServiceTest {
 
     @Test
     void addFromSourceAppendsADraftChapterWithTheOriginalText() {
-        service.add(novel.getId(), new ChapterRequest(null, "Existing"));
+        service.add(novel.getId(), new ChapterRequest("Existing"));
 
-        long id = service.addFromSource(novel.getId(), " Chapter 1: Cold Brew ", "Line one.\n\nLine two.", "1552",
+        long id = service.addFromSource(novel.getId(), " Cold Brew ", "Line one.\n\nLine two.", "1552",
                 NOW);
 
         ChapterDetail d = service.get(id);
         assertThat(d.chapterNo()).isEqualTo(2);
-        assertThat(d.title()).isEqualTo("Chapter 1: Cold Brew");
+        assertThat(d.title()).isEqualTo("Chương 1: Cold Brew");
         assertThat(d.sourceText()).isEqualTo("Line one.\n\nLine two.");
         assertThat(d.wattpadPartId()).isEqualTo("1552");
         assertThat(d.sourceFetchedAt()).isEqualTo(NOW);
@@ -892,7 +903,7 @@ class ChapterServiceTest {
                 .isInstanceOf(ChapterTextSourceException.class);
         assertThatThrownBy(() -> service.rotatePages(id, RotateDirection.LEFT))
                 .isInstanceOf(ChapterTextSourceException.class);
-        assertThatThrownBy(() -> service.update(id, new ChapterUpdateRequest(null, null,
+        assertThatThrownBy(() -> service.update(id, new ChapterUpdateRequest(null,
                 List.of(new PageTextEdit(5L, "x")), null))).isInstanceOf(ChapterTextSourceException.class);
     }
 
@@ -900,7 +911,7 @@ class ChapterServiceTest {
     void aTextChapterStillTakesTitleAndTextEdits() {
         long id = wattpadChapter(1, "11");
 
-        ChapterDetail d = service.update(id, new ChapterUpdateRequest(null, "New title", null, "Bản dịch"));
+        ChapterDetail d = service.update(id, new ChapterUpdateRequest("New title", null, "Bản dịch"));
 
         assertThat(d.title()).isEqualTo("New title");
         assertThat(d.text()).isEqualTo("Bản dịch");
@@ -910,7 +921,7 @@ class ChapterServiceTest {
     @Test
     void replaceSourceTextKeepsTheTranslation() {
         long id = wattpadChapter(1, "11");
-        service.update(id, new ChapterUpdateRequest(null, null, null, "Bản dịch"));
+        service.update(id, new ChapterUpdateRequest(null, null, "Bản dịch"));
 
         ChapterDetail d = service.replaceSourceText(id, "Fresh original", NOW.plusSeconds(60));
 
@@ -925,7 +936,7 @@ class ChapterServiceTest {
         setStatus(published, ChapterTranslationStatus.TRANSLATED, ChapterPublishStatus.PUBLISHED);
         long translating = wattpadChapter(2, "12");
         setStatus(translating, ChapterTranslationStatus.TRANSLATING, ChapterPublishStatus.DRAFT);
-        long screenshots = service.add(novel.getId(), new ChapterRequest(null, null)).id();
+        long screenshots = service.add(novel.getId(), new ChapterRequest(null)).id();
 
         assertThatThrownBy(() -> service.reloadablePartId(published)).isInstanceOf(ChapterPublishedException.class);
         assertThatThrownBy(() -> service.replaceSourceText(published, "x", NOW))
@@ -943,7 +954,7 @@ class ChapterServiceTest {
 
     @Test
     void detailFlagsAChapterTranslatedByAFallbackModel() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, null);
         Chapter row = chapters.findById(c.id()).orElseThrow();
         row.setTranslationStatus(ChapterTranslationStatus.TRANSLATED);
 
@@ -967,7 +978,7 @@ class ChapterServiceTest {
         novels.saveAndFlush(novel);
         ChapterDetail[] out = new ChapterDetail[count];
         for (int i = 0; i < count; i++) {
-            out[i] = service.add(novel.getId(), new ChapterRequest(i + 1, null));
+            out[i] = service.addNumbered(novel.getId(), i + 1, null);
         }
         return out;
     }
@@ -1002,7 +1013,7 @@ class ChapterServiceTest {
 
     @Test
     void reviewThrowsWhenTheNovelHasNoProfile() {
-        ChapterDetail c = service.add(novel.getId(), new ChapterRequest(1, null));
+        ChapterDetail c = service.addNumbered(novel.getId(), 1, null);
 
         assertThatThrownBy(() -> service.review(c.id())).isInstanceOf(ChapterReviewNotFoundException.class)
                 .hasMessageContaining("no profile");

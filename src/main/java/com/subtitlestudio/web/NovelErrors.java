@@ -148,6 +148,7 @@ class NovelErrors {
         ProblemDetail pd = ProblemDetails.problem(HttpStatus.CONFLICT, "NOVEL_TRANSLATION_BUSY", e.getMessage());
         pd.setProperty("reason", e.reason().name());
         pd.setProperty("chapterNo", e.chapterNo());
+        pd.setProperty("chapterTitle", e.chapterTitle());
         return pd;
     }
 

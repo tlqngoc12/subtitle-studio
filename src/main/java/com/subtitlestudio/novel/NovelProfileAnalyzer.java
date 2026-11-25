@@ -134,7 +134,7 @@ public class NovelProfileAnalyzer {
         chapters.findFirstByNovelIdAndTranslationStatusOrderByChapterNo(novelId, ChapterTranslationStatus.TRANSLATING)
                 .ifPresent(c -> {
                     throw new NovelTranslationBusyException(novelId, NovelTranslationBusyException.Reason.CHAPTER_TRANSLATING,
-                            c.getChapterNo());
+                            c.getChapterNo(), c.getTitle());
                 });
         String profile = store.read(name);
         Selection selection = select(collect(name).stream().map(ChapterEdits::edits).toList(), MAX_CHARS);
