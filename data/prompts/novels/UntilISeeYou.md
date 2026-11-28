@@ -3,7 +3,7 @@
 ## Thông tin
 - Tên truyện: "Until I See You"
 - Tác giả: byZenQN
-- Thể loại: GL hiện đại; ngược nhưng ngọt; chữa lành. Dự kiến 30 chương (5 phần); mỗi chương 4.500–5.500 chữ, không quá 6.000.
+- Thể loại: GL hiện đại; ngược nhưng ngọt; chữa lành. Dự kiến 30 chương (5 phần); mỗi chương 3.500–4.500 chữ, trần 5.000; chương dài thì tách làm hai.
 - Truyện được viết bằng tiếng Việt. Đây là truyện sáng tác, không dịch từ nguồn nào.
 
 ## Bối cảnh
@@ -12,6 +12,7 @@
 ## Nhân vật
 - Bonnie: nữ, 26 tuổi, tiểu thư gia đình tài phiệt Bangkok; sau tai nạn mất thị lực và trí nhớ, được Emi cưu mang. (Ch.1: người gọi điện KHÔNG gọi em là "Bonnie" — tên "Bonnie" do Emi đặt sau này.)
 - Emi: nữ, 29 tuổi, nghèo, sống bằng việc làm thêm (việc chính ở nhà hàng, ca làm thêm ở cửa hàng tiện lợi); trách nhiệm, ít nói, kiên nhẫn.
+- Chỗ ngủ: Bonnie ngủ giường, Emi ngủ đệm dưới sàn (từ ch.3), không ngủ chung giường.
 - Phụ: mẹ Bonnie (quyền lực, kiểm soát), cha Bonnie, người thân liên quan đến âm mưu.
 
 ## Xưng hô
@@ -35,7 +36,17 @@
 - Không thêm lời bình hay tóm tắt của người viết vào giữa truyện.
 
 ## Kiểm tra
-- (Thêm dòng dạng "cụm sai" → "gợi ý" | "gợi ý khác" (lý do). Nút Check ở trang chương dùng các dòng này.)
+- "cúi đầu" → "lặng đi" | "thu vai lại" (cụm cấm; lặp ch.3–7)
+- "cúi xuống" → "khom người" | "lặng đi" (cụm cấm)
+- "ngẩng đầu" → "hướng mặt lên" | "dừng tay" (cụm cấm)
+- "ngẩng lên" → "hướng mặt lên" | "dừng tay" (biến thể cụm cấm)
+- "khó gọi tên" → tả cảm giác bằng hành động cụ thể (cụm cấm)
+- "không trả lời ngay" → "lặng đi" | "ngập ngừng" (cụm cấm)
+- "nhìn đồng hồ" → "xem điện thoại" (không dùng đồng hồ đeo tay)
+- "giường của mình" → "tấm đệm dưới sàn" (Emi ngủ đệm sàn; chỉ sửa khi nói về Emi)
+- "Bonnie khẽ gật đầu" → "Bonnie gật đầu" (cụm quen tay)
+- "quay đầu về phía" → "hướng về phía" | "nghiêng mặt về phía" (cụm quen tay)
+- "như thể" → "như" | "tưởng như" (dùng quá dày)
 
 ## Tóm tắt nội dung chính
 Chưa có tóm tắt.
