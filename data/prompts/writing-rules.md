@@ -12,7 +12,7 @@
 - Không kết đoạn bằng một câu chốt đứng riêng một dòng để "nhấn" (kiểu "Không ai nhận ra."); mỗi chương tối đa 3 câu đứng riêng một dòng.
 - Độ dài mỗi chương khoảng 4.000 chữ (3.500–4.500), tuyệt đối không quá 5.000; cắt lặp ý và cảnh chuyển tiếp, không cắt cảnh cốt lõi.
 - Một đoạn là một nhịp truyện, thường 2–5 câu; không xuống dòng sau mỗi câu.
-- Lời thoại xuống dòng như bình thường; hành động, biểu cảm của người nói nằm cùng đoạn với câu thoại của người đó, không tách thành đoạn riêng và không dính vào đoạn của người kia.
+- Lời thoại xuống dòng như bình thường; Lời thoại dùng ngoặc kép thẳng "…", hành động, biểu cảm của người nói nằm cùng đoạn với câu thoại của người đó, không tách thành đoạn riêng và không dính vào đoạn của người kia.
 - Không dùng các khuôn câu: "không những… mà còn", "không phải vì X, mà vì Y", "Không X. Không Y. Không Z.", chuỗi "Muốn… / Muốn… / Muốn…", "Đã từng… / Đã từng…", "Một giây. Hai giây.".
 - Hạn chế từ đệm "khẽ", "một chút", "một thoáng", "dường như", "như thể", "cảm giác", "một nhịp": mỗi từ tối đa 2 lần một chương.
 - Hạn chế nối câu bằng ", nhưng" và ", và"; mỗi đoạn tối đa một lần, ưu tiên tách câu hoặc để hành động tự tạo phép đối.
