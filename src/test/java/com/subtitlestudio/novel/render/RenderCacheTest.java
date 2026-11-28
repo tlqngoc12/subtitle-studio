@@ -92,6 +92,50 @@ class RenderCacheTest {
         }
     }
 
+    private void corruptCountsAndCheck(byte[] garbage) throws IOException {
+        RenderCache cache = cache();
+        List<RenderedFormat> first = cache.imagesFor(7, input("Xin chào"));
+        try (Stream<Path> files = Files.list(dir.resolve("7"))) {
+            for (Path c : files.filter(f -> f.toString().endsWith(".count")).toList()) {
+                Files.write(c, garbage);
+            }
+        }
+
+        List<RenderedFormat> second = cache.imagesFor(7, input("Xin chào"));
+
+        assertThat(second).isEqualTo(first);
+        assertThat(all(second)).isNotEmpty().allSatisfy(f -> assertThat(f).isRegularFile());
+        try (Stream<Path> files = Files.list(dir.resolve("7"))) {
+            for (Path c : files.filter(f -> f.toString().endsWith(".count")).toList()) {
+                assertThat(Files.readString(c)).matches("[1-9][0-9]*");
+            }
+        }
+    }
+
+    @Test
+    void nulFilledCountIsRedrawn() throws IOException {
+        corruptCountsAndCheck(new byte[] {0, 0});
+    }
+
+    @Test
+    void emptyOrGarbageCountIsRedrawn() throws IOException {
+        corruptCountsAndCheck(new byte[0]);
+        corruptCountsAndCheck("abc".getBytes());
+        corruptCountsAndCheck("0".getBytes());
+    }
+
+    @Test
+    void strayTmpOfOldHashIsRemoved() throws IOException {
+        RenderCache cache = cache();
+        cache.imagesFor(7, input("Xin chào"));
+        Path stray = dir.resolve("7").resolve("deadbeefdeadbeef.count.tmp");
+        Files.writeString(stray, "1");
+
+        cache.imagesFor(7, input("Xin chào"));
+
+        assertThat(stray).doesNotExist();
+    }
+
     @Test
     void evictDeletesTheChapterFolder() {
         RenderCache cache = cache();
