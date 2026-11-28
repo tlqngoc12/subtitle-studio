@@ -201,7 +201,7 @@ describe('WattpadSyncAllDialog', () => {
       items: [{ partId: '1', chapterId: 5 }, { partId: '2', chapterId: null }],
     });
     expect(onChanged).toHaveBeenCalledOnce();
-    expect(toast.success).toHaveBeenCalledWith('Synced 1, added 1');
+    expect(toast.success).toHaveBeenCalledWith('Synced with Wattpad', { description: 'Synced 1, added 1' });
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -253,7 +253,7 @@ describe('WattpadSyncAllDialog', () => {
     expect(alert).toHaveTextContent('Edited here: The chapter is Published. Unpublish it to sync.');
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(onChanged).toHaveBeenCalledOnce();
-    expect(toast.success).toHaveBeenCalledWith('Synced 1, added 0');
+    expect(toast.success).toHaveBeenCalledWith('Synced with Wattpad', { description: 'Synced 1, added 0' });
     expect(vi.mocked(toast.error).mock.calls[0][0]).toBe('2 chapters could not be synced');
     await user.click(footerButton('Close'));
     expect(onOpenChange).toHaveBeenCalledWith(false);

@@ -176,7 +176,8 @@ function SyncAllBody({
       );
       onChanged();
       if (done.synced + done.created > 0 || done.failed.length === 0) {
-        toast.success(`Synced ${done.synced}, added ${done.created}`);
+        // Repo toast format: a short title, the specifics in the description.
+        toast.success('Synced with Wattpad', { description: `Synced ${done.synced}, added ${done.created}` });
       }
       if (done.failed.length === 0) {
         setRunning(false);
