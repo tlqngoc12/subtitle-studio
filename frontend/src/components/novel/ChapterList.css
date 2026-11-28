@@ -70,6 +70,13 @@
   align-items: center;
 }
 
+/* Synced from Wattpad: information, so the purple ink. */
+.chapter-list__synced {
+  display: inline-flex;
+  align-items: center;
+  color: var(--brand-2-ink);
+}
+
 .chapter-list__pages {
   display: inline-flex;
   align-items: center;

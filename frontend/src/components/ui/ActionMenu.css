@@ -1,0 +1,8 @@
+/* Menu item wrapper: the tooltip trigger for a disabled item (a disabled button swallows hover). */
+.action-menu__item {
+  display: block;
+}
+
+.action-menu__item > .member-menu__item {
+  width: 100%;
+}

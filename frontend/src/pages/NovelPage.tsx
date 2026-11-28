@@ -2,7 +2,7 @@ import { useAdminTitle } from '../lib/useAdminTitle';
 import { TabsList } from '../components/ui/TabsList';
 import * as Tabs from '@radix-ui/react-tabs';
 import { TabTrigger } from '../components/ui/TabTrigger';
-import { CloudDownload, Download, Plus } from 'lucide-react';
+import { CloudDownload, Download, Plus, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ import { ChapterList } from '../components/novel/ChapterList';
 import { NovelForm } from '../components/novel/NovelForm';
 import { NovelProfileTab } from '../components/novel/NovelProfileTab';
 import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
+import { WattpadSyncAllDialog } from '../components/novel/WattpadSyncAllDialog';
 import { useNovelPolling } from '../lib/useNovelPolling';
 import { busyTitle, novelBusy } from '../lib/novelBusy';
 import { BusyLine } from '../components/novel/BusyLine';
@@ -37,6 +38,7 @@ import { Page } from '../components/ui/Page';
 import { NotFoundState } from '../components/ui/NotFoundState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
+import { ActionMenu, type ActionMenuItem } from '../components/ui/ActionMenu';
 import { Toolbar } from '../components/ui/Toolbar';
 import { Cover } from '../components/ui/Cover';
 
@@ -57,6 +59,7 @@ export default function NovelPage() {
   const [notFound, setNotFound] = useState(false);
   const [adding, setAdding] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   useEffect(() => {
     getNovel(novelId)
@@ -153,6 +156,25 @@ export default function NovelPage() {
     }
   }
 
+  /** The `⋯` menu of an original story's Chapters tab: Sync with Wattpad, Add chapter, Export. */
+  function originalActions(n: NovelDetail): ActionMenuItem[] {
+    return [
+      {
+        label: 'Sync with Wattpad',
+        icon: RefreshCw,
+        onSelect: () => setSyncOpen(true),
+        disabledReason: n.wattpadStoryId ? undefined : 'Add a Wattpad link in Details to sync.',
+      },
+      { label: 'Add chapter', icon: Plus, onSelect: () => void add(), disabled: adding },
+      {
+        label: exporting ? 'Exporting…' : 'Export',
+        icon: Download,
+        onSelect: () => void exportChapters(),
+        disabled: exporting || n.chapters.length === 0,
+      },
+    ];
+  }
+
   return (
     <Page>
       {confirmDialog}
@@ -183,6 +205,10 @@ export default function NovelPage() {
 
           {busy && <BusyLine busy={busy} />}
 
+          {syncOpen && (
+            <WattpadSyncAllDialog open onOpenChange={setSyncOpen} novelId={novelId} onChanged={() => void reloadNovel()} />
+          )}
+
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
             <TabsList aria-label="Novel sections">
               <TabTrigger className="tabs__tab" value="chapters">
@@ -205,6 +231,9 @@ export default function NovelPage() {
               <Toolbar
                 className="toolbar--above-list"
                 actions={
+                  novel.sourceType === 'ORIGINAL' ? (
+                    <ActionMenu label="Chapter actions" items={originalActions(novel)} />
+                  ) : (
                   <>
                     <button className="button" type="button" onClick={() => void exportChapters()}
                       disabled={exporting || novel.chapters.length === 0}>
@@ -230,6 +259,7 @@ export default function NovelPage() {
                       </button>
                     )}
                   </>
+                  )
                 }
               />
               <ChapterList novelId={novelId} chapters={novel.chapters} fromText={novel.sourceType === 'WATTPAD'}

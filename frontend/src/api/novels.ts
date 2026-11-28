@@ -61,6 +61,10 @@ export interface NovelSummary {
 export interface ChapterSummary {
   id: number;
   chapterNo: number;
+  /** Original stories: when the chapter was last synced from Wattpad; null when it never was (or not an original). */
+  lastSyncedAt: string | null;
+  /** Original stories: the part's modification date on Wattpad in the synced version; null when unknown. */
+  wattpadModifiedAt: string | null;
   /** The chapter's name everywhere ("Chương 7: Bữa cơm hai người", "Ngoại truyện I"). */
   title: string;
   translationStatus: ChapterTranslationStatus;
@@ -134,6 +138,8 @@ export interface ChapterDetail {
   sourceType: NovelSourceType;
   /** An ORIGINAL chapter whose novel has a Wattpad link: the chapter page offers Sync from Wattpad. */
   wattpadLinked: boolean;
+  /** The Wattpad part an ORIGINAL chapter was last synced from; null when it never was. */
+  originalWattpadPartId: string | null;
 }
 
 function json(method: string, body: unknown): RequestInit {
@@ -345,6 +351,61 @@ export async function fetchTranslateNext(novelId: number): Promise<ChapterDetail
 /** Fetches the chapter's original text from Wattpad again (Draft chapters only); the translation is untouched. */
 export async function reloadChapterOriginal(chapterId: number): Promise<ChapterDetail> {
   return (await send(`/api/chapters/${chapterId}/reload-original`, { method: 'POST' })).json();
+}
+
+/** Where a Wattpad part stands against the chapter of an original story it matches. */
+export type WattpadSyncStatus =
+  | 'DELETED'
+  | 'PUBLISHED'
+  | 'UP_TO_DATE'
+  | 'UPDATED'
+  | 'LOCAL_EDITS'
+  | 'NOT_SYNCED'
+  | 'NEW_PART';
+
+export interface WattpadSyncPart {
+  partId: string;
+  title: string;
+  /** The part's modification date on Wattpad; null when Wattpad gave none. */
+  modifiedAt: string | null;
+  wordCount: number;
+  status: WattpadSyncStatus;
+  /** The chapter it matches (null for a new part) and that chapter's last sync. */
+  chapterId: number | null;
+  chapterTitle: string | null;
+  lastSyncedAt: string | null;
+}
+
+/** The parts in Wattpad order, minus the up-to-date ones, which are only counted. */
+export interface WattpadSyncPlan {
+  parts: WattpadSyncPart[];
+  upToDate: number;
+}
+
+export interface WattpadSyncFailure {
+  partId: string;
+  title: string;
+  code: string;
+  message: string;
+}
+
+export interface WattpadSyncResult {
+  synced: number;
+  created: number;
+  failed: WattpadSyncFailure[];
+}
+
+/** What Sync with Wattpad would do to each chapter of an original story (one request to Wattpad, nothing written). */
+export async function getWattpadSyncPlan(novelId: number): Promise<WattpadSyncPlan> {
+  return (await send(`/api/novels/${novelId}/wattpad/sync-plan`)).json();
+}
+
+/** Syncs the chosen parts: `chapterId` null adds a new Draft chapter for that part. */
+export async function syncNovelFromWattpad(
+  novelId: number,
+  items: { partId: string; chapterId: number | null }[],
+): Promise<WattpadSyncResult> {
+  return (await send(`/api/novels/${novelId}/wattpad/sync`, json('POST', { items }))).json();
 }
 
 /** Replaces a Draft chapter's text with one Wattpad part of its novel's linked story (title and status stay). */

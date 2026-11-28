@@ -38,6 +38,8 @@ export function chapterSummary(over: Partial<ChapterSummary> = {}): ChapterSumma
     publishStatus: 'PUBLISHED',
     pageCount: 3,
     suspectPages: 0,
+    lastSyncedAt: null,
+    wattpadModifiedAt: null,
     ...over,
   };
 }
@@ -95,6 +97,7 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     sourceLanguage: 'th',
     sourceType: 'SCREENSHOTS',
     wattpadLinked: false,
+    originalWattpadPartId: null,
     ...over,
   };
 }

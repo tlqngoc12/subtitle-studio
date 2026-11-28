@@ -751,6 +751,48 @@ class NovelServiceTest {
     }
 
     @Test
+    void anOriginalStoryChapterListCarriesTheSyncMarks() {
+        long id = novel("orig-sync");
+        Novel novel = em.find(Novel.class, id);
+        novel.setSourceType(NovelSourceType.ORIGINAL);
+        Instant synced = Instant.parse("2026-11-25T09:10:00Z");
+        Instant modified = Instant.parse("2026-11-28T14:30:00Z");
+        Chapter one = new Chapter(novel, 1, "Một", NOW);
+        one.setSourceFetchedAt(synced);
+        one.setWattpadModifiedAt(modified);
+        Chapter two = new Chapter(novel, 2, "Hai", NOW);
+        Chapter three = new Chapter(novel, 3, "Ba", NOW);
+        three.setSourceFetchedAt(synced);
+        chapters.save(one);
+        chapters.save(two);
+        chapters.save(three);
+        em.flush();
+        em.clear();
+
+        List<ChapterSummary> rows = service.get(id).chapters();
+
+        assertThat(rows).extracting(ChapterSummary::lastSyncedAt).containsExactly(synced, null, synced);
+        assertThat(rows).extracting(ChapterSummary::wattpadModifiedAt).containsExactly(modified, null, null);
+    }
+
+    @Test
+    void otherNovelsChapterListsHaveNoSyncMarks() {
+        long id = novel("translated-no-marks");
+        Novel novel = em.find(Novel.class, id);
+        Chapter one = new Chapter(novel, 1, "Một", NOW);
+        one.setSourceFetchedAt(Instant.parse("2026-11-25T09:10:00Z"));
+        one.setWattpadModifiedAt(Instant.parse("2026-11-28T14:30:00Z"));
+        chapters.save(one);
+        em.flush();
+        em.clear();
+
+        ChapterSummary row = service.get(id).chapters().getFirst();
+
+        assertThat(row.lastSyncedAt()).isNull();
+        assertThat(row.wattpadModifiedAt()).isNull();
+    }
+
+    @Test
     void detail_rows_match_previous_shape() throws IOException {
         long id = novel("shape");
         Novel novel = em.find(Novel.class, id);

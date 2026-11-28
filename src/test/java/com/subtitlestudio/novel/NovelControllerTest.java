@@ -234,6 +234,58 @@ class NovelControllerTest {
     }
 
     @Test
+    void syncPlanIsReadOnlyAndListsTheParts() throws Exception {
+        when(wattpadNovels.syncPlan(3L)).thenReturn(new com.subtitlestudio.novel.wattpad.WattpadSyncPlan(List.of(
+                new com.subtitlestudio.novel.wattpad.SyncPlanItem("77", "One", AT, 120,
+                        com.subtitlestudio.novel.wattpad.SyncStatus.UPDATED, 9L, "Chương 1: One", AT)), 4));
+
+        mvc.perform(get("/api/novels/3/wattpad/sync-plan")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.upToDate").value(4))
+                .andExpect(jsonPath("$.parts[0].partId").value("77"))
+                .andExpect(jsonPath("$.parts[0].status").value("UPDATED"))
+                .andExpect(jsonPath("$.parts[0].chapterId").value(9))
+                .andExpect(jsonPath("$.parts[0].lastSyncedAt").value("2026-11-05T10:00:00Z"));
+    }
+
+    @Test
+    void syncPlanWithoutALinkIs409() throws Exception {
+        when(wattpadNovels.syncPlan(3L)).thenThrow(new NovelNotWattpadException(3));
+
+        mvc.perform(get("/api/novels/3/wattpad/sync-plan")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_NOT_WATTPAD"));
+    }
+
+    @Test
+    void syncRunsTheChosenItems() throws Exception {
+        when(wattpadNovels.syncMany(eq(3L), any())).thenReturn(new com.subtitlestudio.novel.wattpad.WattpadSyncResult(
+                2, 1, List.of(new com.subtitlestudio.novel.wattpad.WattpadSyncResult.Failure("5", "Five",
+                        "WATTPAD_PART_EMPTY", "Wattpad has no text."))));
+
+        mvc.perform(post("/api/novels/3/wattpad/sync").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"items\":[{\"partId\":\"77\",\"chapterId\":9},{\"partId\":\"78\",\"chapterId\":null}]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.synced").value(2))
+                .andExpect(jsonPath("$.created").value(1))
+                .andExpect(jsonPath("$.failed[0].partId").value("5"))
+                .andExpect(jsonPath("$.failed[0].code").value("WATTPAD_PART_EMPTY"));
+        org.mockito.ArgumentCaptor<List<com.subtitlestudio.novel.wattpad.WattpadSyncRequest.Item>> items =
+                org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(wattpadNovels).syncMany(eq(3L), items.capture());
+        org.assertj.core.api.Assertions.assertThat(items.getValue()).containsExactly(
+                new com.subtitlestudio.novel.wattpad.WattpadSyncRequest.Item("77", 9L),
+                new com.subtitlestudio.novel.wattpad.WattpadSyncRequest.Item("78", null));
+    }
+
+    @Test
+    void syncWhileRunningIs409() throws Exception {
+        when(wattpadNovels.syncMany(eq(3L), any()))
+                .thenThrow(new com.subtitlestudio.novel.wattpad.WattpadSyncRunningException(3));
+
+        mvc.perform(post("/api/novels/3/wattpad/sync").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"items\":[]}")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("WATTPAD_SYNC_RUNNING"));
+    }
+
+    @Test
     void fetchTranslateReturns202() throws Exception {
         when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One",
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),

@@ -15,7 +15,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.YesNoConverter;
+import org.hibernate.type.SqlTypes;
 
 /** One chapter of a novel: its pages are {@link ChapterPage} rows. */
 @Entity
@@ -61,6 +63,16 @@ public class Chapter {
 
     @Column(name = "source_fetched_at")
     private Instant sourceFetchedAt;
+
+    @Column(name = "original_wattpad_part_id", length = 20)
+    private String originalWattpadPartId;
+
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "wattpad_synced_hash", length = 64)
+    private String wattpadSyncedHash;
+
+    @Column(name = "wattpad_modified_at")
+    private Instant wattpadModifiedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "translation_status", length = 20, nullable = false)
@@ -176,6 +188,33 @@ public class Chapter {
 
     public void setSourceFetchedAt(Instant sourceFetchedAt) {
         this.sourceFetchedAt = sourceFetchedAt;
+    }
+
+    /** The Wattpad part an original chapter was last synced from (not {@link #getWattpadPartId}). */
+    public String getOriginalWattpadPartId() {
+        return originalWattpadPartId;
+    }
+
+    public void setOriginalWattpadPartId(String originalWattpadPartId) {
+        this.originalWattpadPartId = originalWattpadPartId;
+    }
+
+    /** SHA-256 of the text right after the last sync from Wattpad; null when it was never synced. */
+    public String getWattpadSyncedHash() {
+        return wattpadSyncedHash;
+    }
+
+    public void setWattpadSyncedHash(String wattpadSyncedHash) {
+        this.wattpadSyncedHash = wattpadSyncedHash;
+    }
+
+    /** The part's modifyDate on Wattpad in the synced version (null when Wattpad gave none). */
+    public Instant getWattpadModifiedAt() {
+        return wattpadModifiedAt;
+    }
+
+    public void setWattpadModifiedAt(Instant wattpadModifiedAt) {
+        this.wattpadModifiedAt = wattpadModifiedAt;
     }
 
     /** True for a chapter whose original is text (Wattpad) rather than page screenshots. */

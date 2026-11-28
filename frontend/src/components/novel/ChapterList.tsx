@@ -1,11 +1,12 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowDown, ArrowUp, FileText, GripVertical, Images, TriangleAlert } from 'lucide-react';
+import { ArrowDown, ArrowUp, CloudCheck, FileText, GripVertical, Images, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router';
 import { Tip } from '../Tip';
 import type { ChapterSummary } from '../../api/novels';
 import { EmptyState } from '../EmptyState';
+import { formatInstantWithTime } from '../../lib/dates';
 import { StatusBadges } from './StatusBadges';
 import './ChapterList.css';
 
@@ -13,6 +14,13 @@ import './ChapterList.css';
 export function chapterShortName(title: string): string {
   const colon = title.indexOf(':');
   return (colon < 0 ? title : title.slice(0, colon)).trim();
+}
+
+/** The tooltip (and accessible name) of the synced icon: the Wattpad date of the synced version, then the sync time. */
+export function syncedLabel(c: Pick<ChapterSummary, 'lastSyncedAt' | 'wattpadModifiedAt'>): string | null {
+  if (!c.lastSyncedAt) return null;
+  const synced = `Last synced: ${formatInstantWithTime(c.lastSyncedAt)}`;
+  return c.wattpadModifiedAt ? `Wattpad: ${formatInstantWithTime(c.wattpadModifiedAt)} · ${synced}` : synced;
 }
 
 /**
@@ -102,6 +110,7 @@ function ChapterRow({
     id: c.id,
   });
   const name = c.title;
+  const synced = original ? syncedLabel(c) : null;
   const pagesLabel = fromText && c.pageCount === 0 ? 'Wattpad text' : `${c.pageCount} ${c.pageCount === 1 ? 'page' : 'pages'}`;
   return (
     <li
@@ -120,6 +129,13 @@ function ChapterRow({
           </Tip>
           <span className="chapter-list__meta">
             <StatusBadges compact translation={original ? undefined : c.translationStatus} publish={c.publishStatus} model={c.translationModel} fallback={c.translatedByFallback} />
+            {synced && (
+              <Tip label={synced}>
+                <span className="chapter-list__synced" role="img" aria-label={synced} tabIndex={0}>
+                  <CloudCheck className="icon icon--sm" aria-hidden="true" />
+                </span>
+              </Tip>
+            )}
             {!original && (
               <Tip label={pagesLabel}>
                 <span className="chapter-list__pages" role="img" aria-label={pagesLabel} tabIndex={0}>

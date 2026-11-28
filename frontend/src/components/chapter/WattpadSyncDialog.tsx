@@ -28,6 +28,12 @@ export function sameTitlePart(parts: WattpadPart[], chapterTitle: string): Wattp
   return parts.find((p) => !p.deleted && normalizeTitle(p.title) === wanted) ?? null;
 }
 
+/** The part (not deleted) the chapter was last synced from, or null. */
+export function linkedPart(parts: WattpadPart[], linkedPartId: string | null): WattpadPart | null {
+  if (!linkedPartId) return null;
+  return parts.find((p) => !p.deleted && p.partId === linkedPartId) ?? null;
+}
+
 /** The message of a failed load or sync; a story without a link says so in the words of this feature. */
 function syncError(e: unknown): ErrorMessage {
   if (e instanceof ApiError && e.code === 'NOVEL_NOT_WATTPAD') return { title: 'This story has no Wattpad link.' };
@@ -44,6 +50,7 @@ export function WattpadSyncDialog({
   novelId,
   chapterId,
   chapterTitle,
+  linkedPartId = null,
   onSynced,
 }: {
   open: boolean;
@@ -51,6 +58,8 @@ export function WattpadSyncDialog({
   novelId: number;
   chapterId: number;
   chapterTitle: string;
+  /** The part the chapter was last synced from: preselected and labelled Linked, ahead of Same title. */
+  linkedPartId?: string | null;
   /** Called with the chapter the server returned, after the dialog closes. */
   onSynced: (chapter: ChapterDetail) => void;
 }) {
@@ -71,6 +80,7 @@ export function WattpadSyncDialog({
             novelId={novelId}
             chapterId={chapterId}
             chapterTitle={chapterTitle}
+            linkedPartId={linkedPartId}
             syncing={syncing}
             setSyncing={setSyncing}
             onCancel={() => onOpenChange(false)}
@@ -90,6 +100,7 @@ function SyncBody({
   novelId,
   chapterId,
   chapterTitle,
+  linkedPartId,
   syncing,
   setSyncing,
   onCancel,
@@ -98,6 +109,7 @@ function SyncBody({
   novelId: number;
   chapterId: number;
   chapterTitle: string;
+  linkedPartId: string | null;
   syncing: boolean;
   setSyncing: (syncing: boolean) => void;
   onCancel: () => void;
@@ -120,7 +132,7 @@ function SyncBody({
       .then((list) => {
         if (!current) return;
         setParts(list);
-        setSelected(sameTitlePart(list, chapterTitle)?.partId ?? null);
+        setSelected(linkedPart(list, linkedPartId)?.partId ?? sameTitlePart(list, chapterTitle)?.partId ?? null);
       })
       .catch((e) => {
         if (current) setLoadError(syncError(e));
@@ -132,7 +144,9 @@ function SyncBody({
   }, [novelId, attempt]);
 
   const chosen = parts?.find((p) => p.partId === selected) ?? null;
-  const sameTitleId = parts ? sameTitlePart(parts, chapterTitle)?.partId : null;
+  const linkedId = parts ? linkedPart(parts, linkedPartId)?.partId : null;
+  // The link outranks the title: Same title only labels a part when the chapter has no linked part on Wattpad.
+  const sameTitleId = parts && !linkedId ? sameTitlePart(parts, chapterTitle)?.partId : null;
 
   async function replace() {
     if (!chosen) return;
@@ -207,6 +221,7 @@ function SyncBody({
                     Deleted
                   </span>
                 )}
+                {p.partId === linkedId && <span className="badge badge--info">Linked</span>}
                 {p.partId === sameTitleId && <span className="badge badge--info">Same title</span>}
               </span>
             </label>

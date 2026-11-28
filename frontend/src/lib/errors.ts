@@ -153,6 +153,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       return { title: 'Wattpad images for this part could not be downloaded.', hint: 'Try again later.' };
     case 'WATTPAD_PART_NOT_FOUND':
       return { title: 'This part is not in the story.' };
+    case 'WATTPAD_SYNC_RUNNING':
+      return { title: 'A sync with Wattpad is already running for this story.', hint: 'Wait for it to finish, then try again.' };
     case 'WATTPAD_NOTHING_NEXT':
       return { title: 'Every Wattpad part is already translated.' };
     case 'NOVEL_NOT_TRANSLATABLE':
@@ -222,5 +224,25 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       };
     default:
       return { title: `Something went wrong (HTTP ${error.status}).`, hint: error.detail };
+  }
+}
+
+/** Why one part of a Sync with Wattpad batch failed, from the `code` the server gave it (its English text otherwise). */
+export function syncFailureReason(code: string, message: string): string {
+  switch (code) {
+    case 'CHAPTER_PUBLISHED':
+      return 'The chapter is Published. Unpublish it to sync.';
+    case 'CHAPTER_NOT_FOUND':
+      return 'The chapter no longer exists.';
+    case 'CHAPTER_MISMATCH':
+      return 'The chapter changed meanwhile. Open Sync with Wattpad again.';
+    case 'WATTPAD_PART_DELETED':
+    case 'WATTPAD_PART_EMPTY':
+    case 'WATTPAD_PART_IMAGES_FAILED':
+    case 'WATTPAD_PART_NOT_FOUND':
+    case 'WATTPAD_UNAVAILABLE':
+      return errorMessage(new ApiError(0, code, message)).title;
+    default:
+      return message;
   }
 }

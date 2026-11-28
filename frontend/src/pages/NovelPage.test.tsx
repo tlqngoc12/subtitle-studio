@@ -202,6 +202,36 @@ describe('NovelPage', () => {
       expect(screen.queryByRole('button', { name: /Fetch & translate next/ })).not.toBeInTheDocument();
     });
 
+    it('syncedIcon: a chapter synced from Wattpad shows a purple icon whose tooltip names both dates', async () => {
+      fakeFetch([{ ...getStory, body: { ...story, chapters: [
+        chapterSummary({ id: 1, title: 'Chương 1', translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT',
+          lastSyncedAt: '2026-11-25T02:10:00Z', wattpadModifiedAt: '2026-11-28T07:30:00Z' }),
+        chapterSummary({ id: 2, title: 'Chương 2', translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT',
+          lastSyncedAt: '2026-11-25T02:10:00Z', wattpadModifiedAt: null }),
+        chapterSummary({ id: 3, title: 'Chương 3', translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT' }),
+      ] } }]);
+      renderPage();
+      const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
+
+      const both = within(rows[0]).getByLabelText('Wattpad: 28/11/2026 14:30 · Last synced: 25/11/2026 09:10');
+      expect(both).toHaveClass('chapter-list__synced');
+      expect(both.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      await expectTooltip(both, 'Wattpad: 28/11/2026 14:30 · Last synced: 25/11/2026 09:10');
+      expect(within(rows[1]).getByLabelText('Last synced: 25/11/2026 09:10')).toBeInTheDocument();
+      expect(rows[2].querySelector('.chapter-list__synced')).toBeNull();
+      expect(css).toMatch(/\.chapter-list__synced\s*\{[^}]*color:\s*var\(--brand-2-ink\)/);
+    });
+
+    it('syncedIcon: other kinds of novel never show it', async () => {
+      fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [
+        chapterSummary({ lastSyncedAt: '2026-11-25T02:10:00Z' }),
+      ] }) }]);
+      renderPage();
+      const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
+
+      expect(rows[0].querySelector('.chapter-list__synced')).toBeNull();
+    });
+
     it('addChapterCreatesTextChapter: Add chapter posts an empty chapter and opens it', async () => {
       const calls = fakeFetch([
         getStory,
@@ -211,10 +241,78 @@ describe('NovelPage', () => {
       const user = userEvent.setup();
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
 
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
       await user.click(screen.getByRole('button', { name: 'Add chapter' }));
 
       expect(await screen.findByText('chapter 44')).toBeInTheDocument();
       expect(calls.find((c) => c.method === 'POST')!.body).toBe('{}');
+    });
+
+    it('chapterActionsMenu: one ⋯ button replaces Export and Add chapter, with Sync, Add chapter, Export in order', async () => {
+      fakeFetch([{ ...getStory, body: { ...story, wattpadStoryId: '396487502' } }]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      const toolbar = document.querySelector('.toolbar') as HTMLElement;
+      expect(within(toolbar).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Chapter actions']);
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+      const labels = screen.getAllByRole('button').map((b) => b.textContent).filter(Boolean);
+      expect(labels.slice(-3)).toEqual(['Sync with Wattpad', 'Add chapter', 'Export']);
+      expect(screen.getByRole('button', { name: 'Sync with Wattpad' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    });
+
+    it('chapterActionsMenu: Sync with Wattpad opens the dialog, which asks the server for the plan', async () => {
+      const calls = fakeFetch([
+        { ...getStory, body: { ...story, wattpadStoryId: '396487502' } },
+        { method: 'GET', path: '/api/novels/3/wattpad/sync-plan', status: 200, body: { parts: [], upToDate: 4 } },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+      await user.click(screen.getByRole('button', { name: 'Sync with Wattpad' }));
+
+      expect(await screen.findByRole('dialog', { name: 'Sync with Wattpad' })).toBeInTheDocument();
+      expect(await screen.findByText('Everything is up to date with Wattpad.')).toBeInTheDocument();
+      expect(calls.filter((c) => c.path === '/api/novels/3/wattpad/sync-plan')).toHaveLength(1);
+    });
+
+    it('chapterActionsMenu: Sync is off with the reason when the story has no Wattpad link', async () => {
+      fakeFetch([getStory]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+      const sync = screen.getByRole('button', { name: 'Sync with Wattpad' });
+      expect(sync).toBeDisabled();
+      await expectTooltip(sync.parentElement!, 'Add a Wattpad link in Details to sync.');
+    });
+
+    it('chapterActionsMenu: Export is off while the story has no chapters', async () => {
+      fakeFetch([{ ...getStory, body: { ...story, chapters: [] } }]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+      expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Add chapter' })).toBeEnabled();
+    });
+
+    it('other kinds keep the toolbar: no ⋯ menu', async () => {
+      fakeFetch([getNovel]);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      expect(screen.queryByRole('button', { name: 'Chapter actions' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
     });
 
     it('editOriginalKeepsKind: the form asks for no source fields and saves as ORIGINAL', async () => {

@@ -27,12 +27,12 @@ const partsRoute = (body: unknown = PARTS, status = 200): Route => ({
   method: 'GET', path: '/api/novels/3/wattpad/parts', status, body,
 });
 
-function open(over: { onSynced?: (c: unknown) => void; onOpenChange?: (o: boolean) => void } = {}) {
+function open(over: { onSynced?: (c: unknown) => void; onOpenChange?: (o: boolean) => void; linkedPartId?: string | null } = {}) {
   const onSynced = over.onSynced ?? vi.fn();
   const onOpenChange = over.onOpenChange ?? vi.fn();
   render(
     <WattpadSyncDialog open onOpenChange={onOpenChange} novelId={3} chapterId={9} chapterTitle="chương 1: mở đầu"
-      onSynced={onSynced} />,
+      linkedPartId={over.linkedPartId ?? null} onSynced={onSynced} />,
   );
   return { onSynced, onOpenChange };
 }
@@ -43,6 +43,29 @@ describe('same title matching', () => {
     expect(normalizeTitle('Chương'.normalize('NFD'))).toBe(normalizeTitle('Chương'.normalize('NFC')));
     expect(sameTitlePart(PARTS, 'CHƯƠNG 1: Mở đầu')?.partId).toBe('2');
     expect(sameTitlePart([part({ partId: '9', title: 'Gone', deleted: true })], 'Gone')).toBeNull();
+  });
+});
+
+describe('WattpadSyncDialog linked part', () => {
+  it('preselects the linked part and labels it Linked, ahead of the part with the same title', async () => {
+    fakeFetch([partsRoute()]);
+    open({ linkedPartId: '1' });
+
+    const radio = await screen.findByRole('radio', { name: /Prologue/ });
+
+    expect(radio).toBeChecked();
+    expect(screen.getByText('Linked')).toBeInTheDocument();
+    expect(screen.queryByText('Same title')).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Chương 1:\s+Mở đầu/ })).not.toBeChecked();
+  });
+
+  it('falls back to the same title when the linked part is gone or deleted', async () => {
+    fakeFetch([partsRoute()]);
+    open({ linkedPartId: '3' });
+
+    expect(await screen.findByRole('radio', { name: /Chương 1:\s+Mở đầu/ })).toBeChecked();
+    expect(screen.queryByText('Linked')).not.toBeInTheDocument();
+    expect(screen.getByText('Same title')).toBeInTheDocument();
   });
 });
 

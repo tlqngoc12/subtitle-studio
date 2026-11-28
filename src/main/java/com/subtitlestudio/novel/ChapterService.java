@@ -186,16 +186,72 @@ public class ChapterService {
     }
 
     /**
-     * Replaces the whole text of a Draft chapter of a linked original story (after a sync from Wattpad). The title,
-     * status and everything else stay; the length is limited like a hand edit (the text column is unbounded).
+     * Adds a Draft chapter at the end of an original story holding the text of a Wattpad part, and records the sync
+     * like {@link #replaceOriginalText}. The title is the part's name; when that cannot be a title (too long, no
+     * letters or digits, or its name is already used by another chapter) it becomes {@code Chương N: <name>}.
+     * Returns the new chapter's id.
      */
     @Transactional
-    public ChapterDetail replaceOriginalText(long id, String text) {
+    public long addOriginalFromSync(long novelId, String partName, String text, String partId,
+                                    Instant wattpadModifiedAt) {
+        List<Chapter> existing = chapters.findByNovelIdOrderByChapterNo(novelId);
+        String name = partName == null ? "" : partName.strip();
+        java.util.Optional<String> key = ChapterTitles.reviewKey(name);
+        boolean usable = !name.isEmpty() && name.length() <= MAX_TITLE && key.isPresent()
+                && existing.stream().noneMatch(o -> ChapterTitles.reviewKey(o.getTitle()).filter(key.get()::equals).isPresent());
+        releasePart(partId, null);
+        Chapter c = create(novelId, null, usable ? name : null, usable ? null : name);
+        c.setTextVi(text == null || text.isBlank() ? null : text);
+        c.setSourceFetchedAt(clock.instant());
+        c.setOriginalWattpadPartId(partId);
+        c.setWattpadSyncedHash(ChapterSyncHash.of(c.getTextVi()));
+        c.setWattpadModifiedAt(wattpadModifiedAt);
+        return c.getId();
+    }
+
+    /** Takes the part id off any chapter (of any novel: the column is unique) but {@code keepId}, before it is reused. */
+    private void releasePart(String partId, Long keepId) {
+        if (partId == null) {
+            return;
+        }
+        for (Chapter other : chapters.findByOriginalWattpadPartId(partId)) {
+            if (!other.getId().equals(keepId)) {
+                other.setOriginalWattpadPartId(null);
+                chapters.flush();
+            }
+        }
+    }
+
+    /**
+     * The chapters of an original story in reading order, as the Wattpad sync sees them. Only a chapter that has been
+     * synced (has a part id) gets the hash of its current text.
+     */
+    @Transactional(readOnly = true)
+    public List<OriginalChapterState> originalStates(long novelId) {
+        return chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId).stream()
+                .map(c -> new OriginalChapterState(c.getId(), c.getTitle(),
+                        c.getPublishStatus() == ChapterPublishStatus.PUBLISHED, c.getOriginalWattpadPartId(),
+                        c.getSourceFetchedAt(), c.getWattpadSyncedHash(),
+                        c.getOriginalWattpadPartId() == null ? null : ChapterSyncHash.of(c.getTextVi())))
+                .toList();
+    }
+
+    /**
+     * Replaces the whole text of a Draft chapter of a linked original story (after a sync from Wattpad) and records
+     * the sync: the part it came from (taken off another chapter of the novel that held it), the hash of the stored
+     * text, the part's modification date on Wattpad and when it happened. The title, status and everything else stay;
+     * the length is limited like a hand edit (the text column is unbounded).
+     */
+    @Transactional
+    public ChapterDetail replaceOriginalText(long id, String text, String partId, Instant wattpadModifiedAt) {
         Chapter c = editable(id);
         syncable(c);
+        releasePart(partId, c.getId());
         c.setTextVi(text == null || text.isBlank() ? null : text);
-        // When it was last synced: shown on the chapter page, and nothing else reads it for an original chapter.
         c.setSourceFetchedAt(clock.instant());
+        c.setOriginalWattpadPartId(partId);
+        c.setWattpadSyncedHash(ChapterSyncHash.of(c.getTextVi()));
+        c.setWattpadModifiedAt(wattpadModifiedAt);
         touch(c);
         return detail(c);
     }
@@ -594,6 +650,7 @@ public class ChapterService {
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
                 c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())
                 .withSourceType(c.getNovel().getSourceType())
+                .withOriginalWattpadPartId(c.getOriginalWattpadPartId())
                 .withWattpadLinked(c.getNovel().getSourceType() == NovelSourceType.ORIGINAL
                         && c.getNovel().getWattpadStoryId() != null)
                 .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, gemini.current().model()));

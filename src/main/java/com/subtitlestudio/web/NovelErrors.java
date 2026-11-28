@@ -167,6 +167,13 @@ class NovelErrors {
     }
 
 
+    @ExceptionHandler(com.subtitlestudio.novel.wattpad.WattpadSyncRunningException.class)
+    ProblemDetail wattpadSyncRunning(com.subtitlestudio.novel.wattpad.WattpadSyncRunningException e) {
+        return ProblemDetails.problem(HttpStatus.CONFLICT, com.subtitlestudio.novel.wattpad.WattpadSyncRunningException.CODE,
+                e.getMessage());
+    }
+
+
     @ExceptionHandler(com.subtitlestudio.novel.wattpad.WattpadNothingNextException.class)
     ProblemDetail wattpadNothingNext(com.subtitlestudio.novel.wattpad.WattpadNothingNextException e) {
         return ProblemDetails.problem(HttpStatus.CONFLICT, com.subtitlestudio.novel.wattpad.WattpadNothingNextException.CODE,

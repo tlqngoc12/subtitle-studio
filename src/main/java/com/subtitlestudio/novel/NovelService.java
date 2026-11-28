@@ -282,12 +282,14 @@ public class NovelService {
                 .forEach(p -> suspect.merge(p.getChapter().getId(), 1, Integer::sum));
         Map<Long, Integer> pageCounts = new HashMap<>();
         pages.countPerChapter(n.getId()).forEach(row -> pageCounts.put((Long) row[0], ((Number) row[1]).intValue()));
+        boolean original = n.getSourceType() == NovelSourceType.ORIGINAL;
         List<ChapterSummary> list = chapters.findRowsByNovel(n.getId()).stream()
                 .map(c -> new ChapterSummary(c.id(), c.chapterNo(), c.title(),
                         c.translationStatus(),
                         c.translationError(), models.shown(c), c.publishStatus(), pageCounts.getOrDefault(c.id(), 0),
                         suspect.getOrDefault(c.id(), 0),
-                        GeminiCaller.translatedByFallback(models.shown(c), gemini.current().model())))
+                        GeminiCaller.translatedByFallback(models.shown(c), gemini.current().model()),
+                        original ? c.sourceFetchedAt() : null, original ? c.wattpadModifiedAt() : null))
                 .toList();
         return new NovelDetail(n.getId(), n.getSlug(), n.getTitle(),
                 n.getCover() == null ? null : n.getCover().getId(), coverUrl(n), n.getOriginalAuthor(),
