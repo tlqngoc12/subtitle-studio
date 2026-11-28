@@ -21,6 +21,7 @@ import com.subtitlestudio.novel.ChapterTranslationStatus;
 import com.subtitlestudio.novel.NovelTranslationBusyException;
 import com.subtitlestudio.novel.DuplicateWattpadNovelException;
 import com.subtitlestudio.novel.NovelNotFoundException;
+import com.subtitlestudio.novel.OriginalChapterState;
 import com.subtitlestudio.novel.NovelNotWattpadException;
 import com.subtitlestudio.novel.NovelProfileNames;
 import com.subtitlestudio.novel.NovelProfileStore;
@@ -62,6 +63,9 @@ public class WattpadNovelService {
     static final String NO_TEXT = "Wattpad has no text for this part (locked, empty or removed).";
     static final String IMAGES_FAILED = "Wattpad images for this part could not be downloaded.";
     static final String DID_NOT_ANSWER = "Wattpad did not answer. Try again later.";
+    static final String CHAPTER_PUBLISHED = "CHAPTER_PUBLISHED";
+    static final String CHAPTER_NOT_FOUND = "CHAPTER_NOT_FOUND";
+    static final String CHAPTER_MISMATCH = "CHAPTER_MISMATCH";
 
     private final WattpadClient wattpad;
     private final NovelRepository novels;
@@ -73,6 +77,8 @@ public class WattpadNovelService {
     private final NovelProfileStore profiles;
     private final Sleeper sleeper;
     private final Clock clock;
+    /** Stories whose bulk sync is running: one batch per story at a time. */
+    private final Set<Long> syncing = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public WattpadNovelService(WattpadClient wattpad, NovelRepository novels, NovelService novelService,
                                MediaService mediaService, ChapterRepository chapters, ChapterService chapterService,
@@ -250,6 +256,17 @@ public class WattpadNovelService {
             throw new WattpadPartProblemException(WattpadPartProblemException.DELETED,
                     "This part was deleted on Wattpad.");
         }
+        String text = fetchPlainText(partId);
+        ChapterDetail synced = chapterService.replaceOriginalText(chapterId, text, partId, part.modifiedAt());
+        log.info("Synced chapter {} from Wattpad part {} ({} characters)", chapterId, partId, text.length());
+        return synced;
+    }
+
+    /**
+     * The text of a part for an original story: images dropped (never downloaded), paragraphs separated by a blank
+     * line. A part without text is a WATTPAD_PART_EMPTY problem. Calls Wattpad, so never inside a transaction.
+     */
+    private String fetchPlainText(String partId) {
         WattpadText.Parsed parsed = WattpadText.parse(wattpad.partText(partId));
         String text = parsed.text().isEmpty() ? "" : java.util.Arrays.stream(parsed.text().split("\n\n"))
                 .filter(paragraph -> WattpadText.placeholderIndex(paragraph) < 0)
@@ -257,9 +274,131 @@ public class WattpadNovelService {
         if (text.isBlank()) {
             throw new WattpadPartProblemException(WattpadPartProblemException.EMPTY, NO_TEXT);
         }
-        ChapterDetail synced = chapterService.replaceOriginalText(chapterId, text, partId, part.modifiedAt());
-        log.info("Synced chapter {} from Wattpad part {} ({} characters)", chapterId, partId, text.length());
-        return synced;
+        return text;
+    }
+
+    /**
+     * Syncs the parts the user chose, in Wattpad order, with a short pause between parts. The plan is worked out again
+     * first: an item that no longer fits (its chapter is now Published, was linked to another part, is gone, or the
+     * part was deleted) is reported in {@code failed} and nothing is written for it. {@code LOCAL_EDITS} and
+     * {@code NOT_SYNCED} items are not refused: the user chose them and confirmed. A part that fails is reported and
+     * the others go on. Only one batch runs per story at a time. Wattpad is never called inside a transaction: each
+     * part is written by its own short one.
+     */
+    public WattpadSyncResult syncMany(long novelId, List<WattpadSyncRequest.Item> items) {
+        String storyId = originalStory(novelId).getWattpadStoryId();
+        if (!syncing.add(novelId)) {
+            throw new WattpadSyncRunningException(novelId);
+        }
+        try {
+            return runSync(novelId, storyId, items == null ? List.of() : items);
+        } finally {
+            syncing.remove(novelId);
+        }
+    }
+
+    private WattpadSyncResult runSync(long novelId, String storyId, List<WattpadSyncRequest.Item> items) {
+        List<WattpadPart> parts = wattpad.storyWithParts(storyId).parts();
+        List<OriginalChapterState> states = chapterService.originalStates(novelId);
+        Map<Long, OriginalChapterState> byId = new HashMap<>();
+        Map<String, OriginalChapterState> byPart = new HashMap<>();
+        for (OriginalChapterState s : states) {
+            byId.put(s.id(), s);
+            if (s.originalPartId() != null) {
+                byPart.putIfAbsent(s.originalPartId(), s);
+            }
+        }
+        Map<String, WattpadSyncRequest.Item> wanted = new java.util.LinkedHashMap<>();
+        for (WattpadSyncRequest.Item item : items) {
+            if (item != null && item.partId() != null) {
+                wanted.putIfAbsent(item.partId(), item);
+            }
+        }
+        List<WattpadSyncResult.Failure> failed = new ArrayList<>();
+        Set<String> inStory = new HashSet<>();
+        Set<Long> usedChapters = new HashSet<>();
+        int synced = 0;
+        int created = 0;
+        boolean fetchedBefore = false;
+        for (WattpadPart part : parts) {
+            inStory.add(part.id());
+            WattpadSyncRequest.Item item = wanted.get(part.id());
+            if (item == null) {
+                continue;
+            }
+            WattpadSyncResult.Failure problem = invalid(part, item, byId, byPart, usedChapters);
+            if (problem != null) {
+                failed.add(problem);
+                continue;
+            }
+            if (item.chapterId() != null) {
+                usedChapters.add(item.chapterId());
+            }
+            if (fetchedBefore) {
+                sleeper.sleep(PAUSE_BETWEEN_PARTS_MS);
+            }
+            fetchedBefore = true;
+            try {
+                String text = fetchPlainText(part.id());
+                if (item.chapterId() == null) {
+                    chapterService.addOriginalFromSync(novelId, part.title(), text, part.id(), part.modifiedAt());
+                    created++;
+                } else {
+                    chapterService.replaceOriginalText(item.chapterId(), text, part.id(), part.modifiedAt());
+                    synced++;
+                }
+            } catch (WattpadPartProblemException e) {
+                failed.add(failure(part, e.code(), e.getMessage()));
+            } catch (WattpadUnavailableException e) {
+                failed.add(failure(part, "WATTPAD_UNAVAILABLE", DID_NOT_ANSWER));
+            } catch (com.subtitlestudio.novel.ChapterPublishedException e) {
+                failed.add(failure(part, CHAPTER_PUBLISHED, "The chapter is Published now. Unpublish it to sync."));
+            } catch (RuntimeException e) {
+                log.warn("Could not sync Wattpad part {}: {}", part.id(), e.toString());
+                failed.add(failure(part, "SYNC_FAILED", "Could not save this part."));
+            }
+        }
+        for (WattpadSyncRequest.Item item : wanted.values()) {
+            if (!inStory.contains(item.partId())) {
+                failed.add(new WattpadSyncResult.Failure(item.partId(), item.partId(),
+                        WattpadPartProblemException.NOT_FOUND, "This part is not in the story."));
+            }
+        }
+        log.info("Synced novel {} from Wattpad: {} replaced, {} added, {} failed", novelId, synced, created,
+                failed.size());
+        return new WattpadSyncResult(synced, created, failed);
+    }
+
+    /** Why an item no longer fits the current state, or null when it may be done. */
+    private static WattpadSyncResult.Failure invalid(WattpadPart part, WattpadSyncRequest.Item item,
+                                                     Map<Long, OriginalChapterState> byId,
+                                                     Map<String, OriginalChapterState> byPart,
+                                                     Set<Long> usedChapters) {
+        if (part.deleted()) {
+            return failure(part, WattpadPartProblemException.DELETED, "This part was deleted on Wattpad.");
+        }
+        OriginalChapterState holder = byPart.get(part.id());
+        if (item.chapterId() == null) {
+            return holder == null ? null : failure(part, CHAPTER_MISMATCH,
+                    "This part already belongs to a chapter. Open Sync with Wattpad again.");
+        }
+        OriginalChapterState chapter = byId.get(item.chapterId());
+        if (chapter == null) {
+            return failure(part, CHAPTER_NOT_FOUND, "The chapter no longer exists.");
+        }
+        if (chapter.published()) {
+            return failure(part, CHAPTER_PUBLISHED, "The chapter is Published now. Unpublish it to sync.");
+        }
+        boolean linkedElsewhere = chapter.originalPartId() != null && !chapter.originalPartId().equals(part.id());
+        boolean partElsewhere = holder != null && holder.id() != chapter.id();
+        if (linkedElsewhere || partElsewhere || usedChapters.contains(chapter.id())) {
+            return failure(part, CHAPTER_MISMATCH, "The chapter is linked to another part. Open Sync with Wattpad again.");
+        }
+        return null;
+    }
+
+    private static WattpadSyncResult.Failure failure(WattpadPart part, String code, String message) {
+        return new WattpadSyncResult.Failure(part.id(), part.title(), code, message);
     }
 
     /**

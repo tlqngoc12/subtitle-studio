@@ -6,6 +6,8 @@ import com.subtitlestudio.novel.wattpad.WattpadNovelPreview;
 import com.subtitlestudio.novel.wattpad.WattpadPartRow;
 import com.subtitlestudio.novel.wattpad.WattpadNovelService;
 import com.subtitlestudio.novel.wattpad.WattpadSyncPlan;
+import com.subtitlestudio.novel.wattpad.WattpadSyncRequest;
+import com.subtitlestudio.novel.wattpad.WattpadSyncResult;
 import com.subtitlestudio.novel.wattpad.WattpadUrlRequest;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +98,12 @@ public class NovelController {
     @GetMapping("/{id}/wattpad/sync-plan")
     public WattpadSyncPlan wattpadSyncPlan(@PathVariable long id) {
         return wattpadNovels.syncPlan(id);
+    }
+
+    /** Syncs the chosen Wattpad parts into the original story's chapters (replaces text, adds new Draft chapters). */
+    @PostMapping("/{id}/wattpad/sync")
+    public WattpadSyncResult wattpadSync(@PathVariable long id, @RequestBody WattpadSyncRequest request) {
+        return wattpadNovels.syncMany(id, request.items());
     }
 
     @PostMapping("/{id}/wattpad/import")

@@ -186,6 +186,29 @@ public class ChapterService {
     }
 
     /**
+     * Adds a Draft chapter at the end of an original story holding the text of a Wattpad part, and records the sync
+     * like {@link #replaceOriginalText}. The title is the part's name; when that cannot be a title (too long, no
+     * letters or digits, or its name is already used by another chapter) it becomes {@code Chương N: <name>}.
+     * Returns the new chapter's id.
+     */
+    @Transactional
+    public long addOriginalFromSync(long novelId, String partName, String text, String partId,
+                                    Instant wattpadModifiedAt) {
+        List<Chapter> existing = chapters.findByNovelIdOrderByChapterNo(novelId);
+        String name = partName == null ? "" : partName.strip();
+        java.util.Optional<String> key = ChapterTitles.reviewKey(name);
+        boolean usable = !name.isEmpty() && name.length() <= MAX_TITLE && key.isPresent()
+                && existing.stream().noneMatch(o -> ChapterTitles.reviewKey(o.getTitle()).filter(key.get()::equals).isPresent());
+        Chapter c = create(novelId, null, usable ? name : null, usable ? null : name);
+        c.setTextVi(text == null || text.isBlank() ? null : text);
+        c.setSourceFetchedAt(clock.instant());
+        c.setOriginalWattpadPartId(partId);
+        c.setWattpadSyncedHash(ChapterSyncHash.of(c.getTextVi()));
+        c.setWattpadModifiedAt(wattpadModifiedAt);
+        return c.getId();
+    }
+
+    /**
      * The chapters of an original story in reading order, as the Wattpad sync sees them. Only a chapter that has been
      * synced (has a part id) gets the hash of its current text.
      */

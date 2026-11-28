@@ -1074,6 +1074,41 @@ class ChapterServiceTest {
     }
 
     @Test
+    void addOriginalFromSyncAddsADraftAtTheEndTitledLikeThePart() {
+        long a = linkedOriginalChapter();
+        long novelId = chapters.findById(a).orElseThrow().getNovel().getId();
+        Instant modified = Instant.parse("2026-11-20T08:00:00Z");
+
+        long id = service.addOriginalFromSync(novelId, " Đêm mưa ", "Text from Wattpad", "9002", modified);
+
+        ChapterDetail d = service.get(id);
+        assertThat(d.title()).isEqualTo("Đêm mưa");
+        assertThat(d.text()).isEqualTo("Text from Wattpad");
+        assertThat(d.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+        assertThat(d.originalWattpadPartId()).isEqualTo("9002");
+        assertThat(d.sourceFetchedAt()).isEqualTo(NOW);
+        assertThat(d.prevChapterId()).isEqualTo(a);
+        Chapter row = chapters.findById(id).orElseThrow();
+        assertThat(row.getWattpadSyncedHash()).isEqualTo(ChapterSyncHash.of("Text from Wattpad"));
+        assertThat(row.getWattpadModifiedAt()).isEqualTo(modified);
+    }
+
+    @Test
+    void addOriginalFromSyncUsesTheDefaultTitleWhenTheNameCannotBeOne() {
+        long a = linkedOriginalChapter(); // "Chương 1: Mở đầu"
+        long novelId = chapters.findById(a).orElseThrow().getNovel().getId();
+
+        // Same name key as chapter 1, a name without letters, and a name that is too long.
+        long same = service.addOriginalFromSync(novelId, "Chương 1", "t", "1", null);
+        long symbols = service.addOriginalFromSync(novelId, "???", "t", "2", null);
+        long tooLong = service.addOriginalFromSync(novelId, "x".repeat(300), "t", "3", null);
+
+        assertThat(service.get(same).title()).isEqualTo("Chương 2: Chương 1");
+        assertThat(service.get(symbols).title()).isEqualTo("Chương 3: ???");
+        assertThat(service.get(tooLong).title()).startsWith("Chương 4: xxx").hasSize(200);
+    }
+
+    @Test
     void aHandSaveKeepsThePartAndTheHash() {
         long id = linkedOriginalChapter();
         service.replaceOriginalText(id, "Synced", "9001", null);
