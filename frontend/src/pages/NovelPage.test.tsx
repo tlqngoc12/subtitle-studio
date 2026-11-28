@@ -202,6 +202,36 @@ describe('NovelPage', () => {
       expect(screen.queryByRole('button', { name: /Fetch & translate next/ })).not.toBeInTheDocument();
     });
 
+    it('syncedIcon: a chapter synced from Wattpad shows a purple icon whose tooltip names both dates', async () => {
+      fakeFetch([{ ...getStory, body: { ...story, chapters: [
+        chapterSummary({ id: 1, title: 'Chương 1', translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT',
+          lastSyncedAt: '2026-11-25T02:10:00Z', wattpadModifiedAt: '2026-11-28T07:30:00Z' }),
+        chapterSummary({ id: 2, title: 'Chương 2', translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT',
+          lastSyncedAt: '2026-11-25T02:10:00Z', wattpadModifiedAt: null }),
+        chapterSummary({ id: 3, title: 'Chương 3', translationStatus: 'NONE', pageCount: 0, publishStatus: 'DRAFT' }),
+      ] } }]);
+      renderPage();
+      const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
+
+      const both = within(rows[0]).getByLabelText('Wattpad: 28/11/2026 14:30 · Last synced: 25/11/2026 09:10');
+      expect(both).toHaveClass('chapter-list__synced');
+      expect(both.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      await expectTooltip(both, 'Wattpad: 28/11/2026 14:30 · Last synced: 25/11/2026 09:10');
+      expect(within(rows[1]).getByLabelText('Last synced: 25/11/2026 09:10')).toBeInTheDocument();
+      expect(rows[2].querySelector('.chapter-list__synced')).toBeNull();
+      expect(css).toMatch(/\.chapter-list__synced\s*\{[^}]*color:\s*var\(--brand-2-ink\)/);
+    });
+
+    it('syncedIcon: other kinds of novel never show it', async () => {
+      fakeFetch([{ ...getNovel, body: novelDetail({ chapters: [
+        chapterSummary({ lastSyncedAt: '2026-11-25T02:10:00Z' }),
+      ] }) }]);
+      renderPage();
+      const rows = within(await screen.findByRole('list', { name: 'Chapters' })).getAllByRole('listitem');
+
+      expect(rows[0].querySelector('.chapter-list__synced')).toBeNull();
+    });
+
     it('addChapterCreatesTextChapter: Add chapter posts an empty chapter and opens it', async () => {
       const calls = fakeFetch([
         getStory,

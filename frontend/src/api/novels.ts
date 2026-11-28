@@ -61,6 +61,10 @@ export interface NovelSummary {
 export interface ChapterSummary {
   id: number;
   chapterNo: number;
+  /** Original stories: when the chapter was last synced from Wattpad; null when it never was (or not an original). */
+  lastSyncedAt: string | null;
+  /** Original stories: the part's modification date on Wattpad in the synced version; null when unknown. */
+  wattpadModifiedAt: string | null;
   /** The chapter's name everywhere ("Chương 7: Bữa cơm hai người", "Ngoại truyện I"). */
   title: string;
   translationStatus: ChapterTranslationStatus;
