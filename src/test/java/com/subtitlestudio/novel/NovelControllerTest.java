@@ -234,6 +234,28 @@ class NovelControllerTest {
     }
 
     @Test
+    void syncPlanIsReadOnlyAndListsTheParts() throws Exception {
+        when(wattpadNovels.syncPlan(3L)).thenReturn(new com.subtitlestudio.novel.wattpad.WattpadSyncPlan(List.of(
+                new com.subtitlestudio.novel.wattpad.SyncPlanItem("77", "One", AT, 120,
+                        com.subtitlestudio.novel.wattpad.SyncStatus.UPDATED, 9L, "Chương 1: One", AT)), 4));
+
+        mvc.perform(get("/api/novels/3/wattpad/sync-plan")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.upToDate").value(4))
+                .andExpect(jsonPath("$.parts[0].partId").value("77"))
+                .andExpect(jsonPath("$.parts[0].status").value("UPDATED"))
+                .andExpect(jsonPath("$.parts[0].chapterId").value(9))
+                .andExpect(jsonPath("$.parts[0].lastSyncedAt").value("2026-11-05T10:00:00Z"));
+    }
+
+    @Test
+    void syncPlanWithoutALinkIs409() throws Exception {
+        when(wattpadNovels.syncPlan(3L)).thenThrow(new NovelNotWattpadException(3));
+
+        mvc.perform(get("/api/novels/3/wattpad/sync-plan")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("NOVEL_NOT_WATTPAD"));
+    }
+
+    @Test
     void fetchTranslateReturns202() throws Exception {
         when(wattpadNovels.fetchAndTranslate(3L, "77")).thenReturn(new ChapterDetail(9, 3, "Warm", 1, "One",
                 ChapterTranslationStatus.TRANSLATING, null, null, null, false, ChapterPublishStatus.DRAFT, List.of(),

@@ -262,6 +262,25 @@ public class WattpadNovelService {
         return synced;
     }
 
+    /**
+     * The plan of a Sync with Wattpad for an original story: what each Wattpad part would do to which chapter. Read
+     * only; Wattpad is called once, outside any transaction.
+     */
+    public WattpadSyncPlan syncPlan(long novelId) {
+        String storyId = originalStory(novelId).getWattpadStoryId();
+        List<WattpadPart> parts = wattpad.storyWithParts(storyId).parts();
+        return OriginalSyncPlanner.plan(parts, chapterService.originalStates(novelId));
+    }
+
+    /** An original story that has a Wattpad link. */
+    private Novel originalStory(long novelId) {
+        Novel n = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
+        if (n.getSourceType() != NovelSourceType.ORIGINAL || n.getWattpadStoryId() == null) {
+            throw new NovelNotWattpadException(novelId);
+        }
+        return n;
+    }
+
     /** The original text of a part with its images stored: markers in place of the images, links to own them. */
     private record PreparedText(String text, List<ChapterImageLink> links, int skipped, boolean allImagesFailed,
                                 List<Long> newMedia) {

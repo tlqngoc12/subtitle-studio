@@ -1054,6 +1054,26 @@ class ChapterServiceTest {
     }
 
     @Test
+    void originalStatesListTheChaptersInReadingOrderWithTheHashOfTheirCurrentText() {
+        long a = linkedOriginalChapter();
+        long novelId = chapters.findById(a).orElseThrow().getNovel().getId();
+        long b = service.addNumbered(novelId, 2, "Chương 2: Hai").id();
+        service.replaceOriginalText(a, "Synced", "9001", null);
+        service.update(a, new ChapterUpdateRequest(null, null, "Edited"));
+
+        List<OriginalChapterState> states = service.originalStates(novelId);
+
+        assertThat(states).extracting(OriginalChapterState::id).containsExactly(a, b);
+        assertThat(states.get(0).originalPartId()).isEqualTo("9001");
+        assertThat(states.get(0).syncedHash()).isEqualTo(ChapterSyncHash.of("Synced"));
+        assertThat(states.get(0).currentHash()).isEqualTo(ChapterSyncHash.of("Edited"));
+        assertThat(states.get(0).sourceFetchedAt()).isEqualTo(NOW);
+        assertThat(states.get(1).originalPartId()).isNull();
+        assertThat(states.get(1).currentHash()).isNull();
+        assertThat(states.get(1).published()).isFalse();
+    }
+
+    @Test
     void aHandSaveKeepsThePartAndTheHash() {
         long id = linkedOriginalChapter();
         service.replaceOriginalText(id, "Synced", "9001", null);

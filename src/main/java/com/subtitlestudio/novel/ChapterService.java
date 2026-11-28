@@ -186,6 +186,20 @@ public class ChapterService {
     }
 
     /**
+     * The chapters of an original story in reading order, as the Wattpad sync sees them. Only a chapter that has been
+     * synced (has a part id) gets the hash of its current text.
+     */
+    @Transactional(readOnly = true)
+    public List<OriginalChapterState> originalStates(long novelId) {
+        return chapters.findByNovelIdOrderBySortOrderAscChapterNoAsc(novelId).stream()
+                .map(c -> new OriginalChapterState(c.getId(), c.getTitle(),
+                        c.getPublishStatus() == ChapterPublishStatus.PUBLISHED, c.getOriginalWattpadPartId(),
+                        c.getSourceFetchedAt(), c.getWattpadSyncedHash(),
+                        c.getOriginalWattpadPartId() == null ? null : ChapterSyncHash.of(c.getTextVi())))
+                .toList();
+    }
+
+    /**
      * Replaces the whole text of a Draft chapter of a linked original story (after a sync from Wattpad) and records
      * the sync: the part it came from (taken off another chapter of the novel that held it), the hash of the stored
      * text, the part's modification date on Wattpad and when it happened. The title, status and everything else stay;
