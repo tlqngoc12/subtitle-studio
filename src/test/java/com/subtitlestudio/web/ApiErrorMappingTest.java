@@ -67,6 +67,7 @@ import com.subtitlestudio.url.InvalidUrlException;
 import com.subtitlestudio.video.FileTooLargeException;
 import com.subtitlestudio.video.InvalidVietsubTextException;
 import com.subtitlestudio.video.NoVietsubException;
+import com.subtitlestudio.video.ViManualFileMissingException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.video.VietsubChangedException;
 import com.subtitlestudio.video.VietsubNotManualException;
@@ -178,6 +179,7 @@ class ApiErrorMappingTest {
             c(PublishNotConfiguredException::new, HttpStatus.SERVICE_UNAVAILABLE, "PUBLISH_NOT_CONFIGURED"),
             c(() -> new MediaNotFoundException(1), HttpStatus.NOT_FOUND, "MEDIA_NOT_FOUND"),
             c(() -> new NoVietsubException("v"), HttpStatus.NOT_FOUND, "NO_VIETSUB"),
+            c(() -> new ViManualFileMissingException("v"), HttpStatus.NOT_FOUND, "VI_MANUAL_FILE_MISSING"),
             c(() -> new VietsubChangedException("v"), HttpStatus.CONFLICT, "VIETSUB_CHANGED"),
             c(() -> new InvalidVietsubTextException(FIELDS), HttpStatus.BAD_REQUEST, "INVALID_VIETSUB_TEXT"),
             c(() -> new UnknownProfileException("n"), HttpStatus.BAD_REQUEST, "UNKNOWN_PROFILE"),

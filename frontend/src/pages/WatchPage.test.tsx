@@ -51,6 +51,7 @@ const video: VideoDto = {
   translationModel: null,
   translatedByFallback: false,
   editStatus: null,
+  viManualFile: false,
 };
 
 const cues: ViCue[] = [

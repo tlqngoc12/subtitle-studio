@@ -1,5 +1,5 @@
 import { useAdminTitle } from '../lib/useAdminTitle';
-import { CircleCheck, FileUp, Languages, RotateCcw, Save } from 'lucide-react';
+import { CircleCheck, FileUp, FileDown, Languages, RotateCcw, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import {
   getCues,
   getVideo,
   getVietsub,
+  reloadVietsubFromFile,
   saveVietsubText,
   setEditStatus,
   type CueDto,
@@ -226,6 +227,7 @@ function Editor({
   const player = useYouTubePlayer(playerRef, video.id);
   const { seekTo, pause } = player;
   const [changingStatus, setChangingStatus] = useState(false);
+  const [reloading, setReloading] = useState(false);
 
   /** The table compares with the saved text, and keeps the timing of the loaded lines. */
   const baseline = useMemo(() => cues.map((c, i) => ({ ...c, text: saved[i] })), [cues, saved]);
@@ -308,6 +310,31 @@ function Editor({
     [video.id],
   );
 
+  /** Replaces every line with the file on disk, after a confirm; then the editor is loaded again (no unsaved state). */
+  const reloadFromFile = useCallback(async () => {
+    const ok = await confirm({
+      title: `Reload subtitles from ${video.id}.vi_manual.srt?`,
+      description:
+        "Every line will be replaced by the file's content. Edits in the app that are not in the file will be lost." +
+        (dirty ? ' You have unsaved changes.' : ''),
+      confirmLabel: 'Reload',
+      destructive: true,
+    });
+    if (!ok) return;
+    setReloading(true);
+    setSaveError(null);
+    try {
+      await reloadVietsubFromFile(video.id);
+      toast.success('Reloaded from file');
+      onReload();
+    } catch (e) {
+      setSaveError({ message: errorMessage(e), reload: false });
+      toast.error(errorMessage(e).title);
+    } finally {
+      setReloading(false);
+    }
+  }, [confirm, video.id, dirty, onReload]);
+
   // Ctrl+S / ⌘S saves instead of opening the browser's "save page" dialog.
   const saveRef = useRef(save);
   saveRef.current = save;
@@ -383,6 +410,19 @@ function Editor({
                   >
                     <Save className="icon" aria-hidden="true" />
                     Save
+                  </button>
+                </span>
+              </Tip>
+              <Tip label={video.viManualFile ? `Reload from ${video.id}.vi_manual.srt` : 'No vi_manual.srt file for this video.'}>
+                <span className="tip-target" tabIndex={video.viManualFile ? undefined : 0}>
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={!video.viManualFile || translating || saving || reloading}
+                    onClick={() => void reloadFromFile()}
+                  >
+                    <FileDown className="icon" aria-hidden="true" />
+                    Reload from file
                   </button>
                 </span>
               </Tip>

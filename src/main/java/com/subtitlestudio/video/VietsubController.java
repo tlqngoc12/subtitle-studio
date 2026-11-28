@@ -26,7 +26,10 @@ public class VietsubController {
     private final VietsubService service;
     private final GeminiSettings gemini;
 
-    public VietsubController(VietsubService service, GeminiSettings gemini) {
+    private final SubtitleFileStore files;
+
+    public VietsubController(VietsubService service, GeminiSettings gemini, SubtitleFileStore files) {
+        this.files = files;
         this.service = service;
         this.gemini = gemini;
     }
@@ -46,6 +49,12 @@ public class VietsubController {
     @PutMapping("/api/videos/{id}/vietsub/text")
     public VideoDto saveText(@PathVariable String id, @RequestBody VietsubTextRequest request) {
         return dto(service.saveText(id, request));
+    }
+
+    /** Reloads the Vietsub from {@code <id>.vi_manual.srt} on disk; the edit status is kept. */
+    @PostMapping("/api/videos/{id}/vietsub/reload-file")
+    public VideoDto reloadFile(@PathVariable String id) {
+        return dto(service.reloadFromFile(id));
     }
 
     /** Marks the Vietsub as DONE or back to IN_PROGRESS. */
@@ -73,6 +82,6 @@ public class VietsubController {
     }
 
     private VideoDto dto(Video v) {
-        return VideoDto.from(v, null, null, gemini.current().model());
+        return VideoDto.from(v, null, null, gemini.current().model(), files.hasViManual(v.getId()));
     }
 }

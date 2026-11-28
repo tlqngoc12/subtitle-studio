@@ -102,6 +102,7 @@ describe('errorMessage', () => {
     });
     expect(errorMessage(new ApiError(400, 'INVALID_VIETSUB_TEXT', 'x')).title).toBe('Check the highlighted lines.');
     expect(errorMessage(new ApiError(404, 'NO_VIETSUB', 'x')).title).toContain('no Vietsub');
+    expect(errorMessage(new ApiError(404, 'VI_MANUAL_FILE_MISSING', 'x')).title).toContain('vi_manual.srt');
   });
 
   it('falls back to the HTTP status when there is no known code', () => {

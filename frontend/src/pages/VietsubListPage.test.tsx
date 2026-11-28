@@ -34,6 +34,7 @@ function video(id: string, title: string, viCueCount: number, viUpdatedAt: strin
     translationModel: null,
     translatedByFallback: false,
     editStatus: null,
+    viManualFile: false,
   };
 }
 

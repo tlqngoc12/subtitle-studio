@@ -70,6 +70,7 @@ const video: VideoDto = {
   translationModel: null,
   translatedByFallback: false,
   editStatus: null,
+  viManualFile: false,
 };
 
 const cues: ViCue[] = [
@@ -939,5 +940,93 @@ describe('VietsubEditPage', () => {
 
       expect(await screen.findByText('away page')).toBeInTheDocument();
     });
+  });
+});
+
+describe('VietsubEditPage Reload from file', () => {
+  const RELOAD = { method: 'POST', path: `/api/videos/${ID}/vietsub/reload-file` };
+  const withFile: VideoDto = { ...video, viSource: 'MANUAL', viManualFile: true };
+  const button = () => screen.getByRole('button', { name: 'Reload from file' });
+  const reloaded: ViCue[] = [
+    { startMs: 0, endMs: 1_000, text: 'Từ file một' },
+    { startMs: 1_000, endMs: 2_000, text: 'Từ file hai' },
+    { startMs: 3_000, endMs: 4_500, text: 'Từ file ba' },
+  ];
+
+  beforeEach(() => {
+    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.error).mockClear();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('is disabled with an explanation when there is no vi_manual.srt file', async () => {
+    await renderEditor({ ...video, viManualFile: false });
+
+    expect(button()).toBeDisabled();
+    await expectTooltip(button().closest('.tip-target') as HTMLElement, 'No vi_manual.srt file for this video.');
+  });
+
+  it('is enabled when the file exists', async () => {
+    await renderEditor(withFile);
+
+    expect(button()).toBeEnabled();
+  });
+
+  it('Cancel closes the dialog and calls nothing', async () => {
+    await renderEditor(withFile);
+    const calls = fakeFetch([...routes(withFile), { ...RELOAD, status: 200, body: withFile }]);
+    const user = userEvent.setup();
+
+    await user.click(button());
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveAccessibleName(`Reload subtitles from ${ID}.vi_manual.srt?`);
+    expect(dialog).toHaveTextContent("Every line will be replaced by the file's content.");
+    expect(dialog).not.toHaveTextContent('You have unsaved changes.');
+    await answerConfirm('Cancel');
+
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('Reload posts, loads the new lines, clears unsaved state and toasts', async () => {
+    await renderEditor(withFile);
+    const user = userEvent.setup();
+    await user.type(area(1), '!');
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    const calls = fakeFetch([
+      { ...RELOAD, status: 200, body: withFile },
+      ...routes({ ...withFile, viUpdatedAt: '2026-11-28T10:00:00Z' }, reloaded),
+    ]);
+
+    await user.click(button());
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('You have unsaved changes.');
+    await answerConfirm('Reload');
+
+    await waitFor(() => expect(area(1)).toHaveValue('Từ file một'));
+    expect(area(3)).toHaveValue('Từ file ba');
+    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+    expect(calls.filter((c) => c.method === 'POST').map((c) => c.path)).toEqual([RELOAD.path]);
+    expect(toast.success).toHaveBeenCalledWith('Reloaded from file');
+  });
+
+  it('shows the error from the server and keeps the editor as it was', async () => {
+    await renderEditor(withFile);
+    const user = userEvent.setup();
+    await user.type(area(1), '!');
+    fakeFetch([
+      ...routes(withFile),
+      { ...RELOAD, status: 404, body: problem(404, 'VI_MANUAL_FILE_MISSING', 'No vi_manual.srt file') },
+    ]);
+
+    await user.click(button());
+    await answerConfirm('Reload');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('There is no vi_manual.srt file for this video.');
+    expect(area(1)).toHaveValue('Xin chào!');
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
   });
 });

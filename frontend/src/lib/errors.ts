@@ -97,6 +97,8 @@ export function errorMessage(error: unknown, { readOnly = false }: { readOnly?: 
       };
     case 'TRANSLATION_IN_PROGRESS':
       return { title: 'This is already being translated.', hint: 'Wait until the translation finishes.' };
+    case 'VI_MANUAL_FILE_MISSING':
+      return { title: 'There is no vi_manual.srt file for this video.', hint: 'Save an edit or upload an .srt first.' };
     case 'VIETSUB_CHANGED':
       return { title: 'This Vietsub changed since you opened it.', hint: 'Reload to see the latest version.' };
     case 'VIETSUB_NOT_MANUAL':

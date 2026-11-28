@@ -11,6 +11,7 @@ import com.subtitlestudio.url.InvalidUrlException;
 import com.subtitlestudio.video.FileTooLargeException;
 import com.subtitlestudio.video.InvalidVietsubTextException;
 import com.subtitlestudio.video.NoVietsubException;
+import com.subtitlestudio.video.ViManualFileMissingException;
 import com.subtitlestudio.video.VideoNotFoundException;
 import com.subtitlestudio.video.VietsubChangedException;
 import com.subtitlestudio.video.VietsubNotManualException;
@@ -110,6 +111,12 @@ class VideoErrors {
     @ExceptionHandler(NoVietsubException.class)
     ProblemDetail noVietsub(NoVietsubException e) {
         return ProblemDetails.problem(HttpStatus.NOT_FOUND, "NO_VIETSUB", e.getMessage());
+    }
+
+
+    @ExceptionHandler(ViManualFileMissingException.class)
+    ProblemDetail viManualFileMissing(ViManualFileMissingException e) {
+        return ProblemDetails.problem(HttpStatus.NOT_FOUND, "VI_MANUAL_FILE_MISSING", e.getMessage());
     }
 
 
