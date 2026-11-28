@@ -278,6 +278,7 @@ export default function ChapterPage() {
           novelId={chapter.novelId}
           chapterId={chapterId}
           chapterTitle={chapter.title}
+          linkedPartId={chapter.originalWattpadPartId}
           onSynced={(synced) => {
             // The server's chapter becomes the saved state: unsaved edits are dropped, as the dialog warned.
             editor.load(synced);

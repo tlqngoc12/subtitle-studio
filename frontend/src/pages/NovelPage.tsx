@@ -21,6 +21,7 @@ import { ChapterList } from '../components/novel/ChapterList';
 import { NovelForm } from '../components/novel/NovelForm';
 import { NovelProfileTab } from '../components/novel/NovelProfileTab';
 import { WattpadParts, novelIsBusy } from '../components/novel/WattpadParts';
+import { WattpadSyncAllDialog } from '../components/novel/WattpadSyncAllDialog';
 import { useNovelPolling } from '../lib/useNovelPolling';
 import { busyTitle, novelBusy } from '../lib/novelBusy';
 import { BusyLine } from '../components/novel/BusyLine';
@@ -58,7 +59,7 @@ export default function NovelPage() {
   const [notFound, setNotFound] = useState(false);
   const [adding, setAdding] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [, setSyncOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   useEffect(() => {
     getNovel(novelId)
@@ -203,6 +204,10 @@ export default function NovelPage() {
           />
 
           {busy && <BusyLine busy={busy} />}
+
+          {syncOpen && (
+            <WattpadSyncAllDialog open onOpenChange={setSyncOpen} novelId={novelId} onChanged={() => void reloadNovel()} />
+          )}
 
           <Tabs.Root value={tab} onValueChange={setTab} className="tabs">
             <TabsList aria-label="Novel sections">

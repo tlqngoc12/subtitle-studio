@@ -264,6 +264,23 @@ describe('NovelPage', () => {
       expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
     });
 
+    it('chapterActionsMenu: Sync with Wattpad opens the dialog, which asks the server for the plan', async () => {
+      const calls = fakeFetch([
+        { ...getStory, body: { ...story, wattpadStoryId: '396487502' } },
+        { method: 'GET', path: '/api/novels/3/wattpad/sync-plan', status: 200, body: { parts: [], upToDate: 4 } },
+      ]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+      await user.click(screen.getByRole('button', { name: 'Sync with Wattpad' }));
+
+      expect(await screen.findByRole('dialog', { name: 'Sync with Wattpad' })).toBeInTheDocument();
+      expect(await screen.findByText('Everything is up to date with Wattpad.')).toBeInTheDocument();
+      expect(calls.filter((c) => c.path === '/api/novels/3/wattpad/sync-plan')).toHaveLength(1);
+    });
+
     it('chapterActionsMenu: Sync is off with the reason when the story has no Wattpad link', async () => {
       fakeFetch([getStory]);
       renderPage();

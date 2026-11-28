@@ -1,0 +1,20 @@
+/* Extra bits of the Sync with Wattpad dialog; the rows reuse .wattpad-sync__* from the chapter-page dialog. */
+.sync-all__target {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A caution that is not an error: orange ink, never red. */
+.sync-all__warning {
+  color: var(--brand-ink);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.sync-all__failures {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}

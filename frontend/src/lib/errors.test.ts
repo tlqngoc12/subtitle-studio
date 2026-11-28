@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../api/client';
-import { errorMessage } from './errors';
+import { errorMessage, syncFailureReason } from './errors';
 
 describe('errorMessage', () => {
   it.each([
@@ -23,6 +23,7 @@ describe('errorMessage', () => {
     ['WATTPAD_PART_IMAGES_FAILED', 'images for this part could not be downloaded'],
     ['WATTPAD_PART_NOT_FOUND', 'not in the story'],
     ['WATTPAD_NOTHING_NEXT', 'already translated'],
+    ['WATTPAD_SYNC_RUNNING', 'already running'],
     ['NOVEL_NOT_TRANSLATABLE', 'original story'],
     ['PLAYLIST_NOT_FOUND', 'This playlist no longer exists.'],
     ['INVALID_PLAYLIST', 'Check the playlist name and description.'],
@@ -126,5 +127,16 @@ describe('errorMessage for NOVEL_TRANSLATION_BUSY', () => {
 
   it('falls back to the general text when an older backend sends no reason', () => {
     expect(busy({}).title).toBe('Another chapter is still translating');
+  });
+});
+
+describe('syncFailureReason', () => {
+  it('words the codes of a failed part, and falls back to the server text', () => {
+    expect(syncFailureReason('CHAPTER_PUBLISHED', 'x')).toBe('The chapter is Published. Unpublish it to sync.');
+    expect(syncFailureReason('CHAPTER_NOT_FOUND', 'x')).toBe('The chapter no longer exists.');
+    expect(syncFailureReason('CHAPTER_MISMATCH', 'x')).toContain('Open Sync with Wattpad again');
+    expect(syncFailureReason('WATTPAD_PART_EMPTY', 'x')).toContain('no text for this part');
+    expect(syncFailureReason('WATTPAD_UNAVAILABLE', 'x')).toBe('Wattpad did not answer. Try again later.');
+    expect(syncFailureReason('SYNC_FAILED', 'Could not save this part.')).toBe('Could not save this part.');
   });
 });
