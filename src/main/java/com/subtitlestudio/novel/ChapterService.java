@@ -199,6 +199,7 @@ public class ChapterService {
         java.util.Optional<String> key = ChapterTitles.reviewKey(name);
         boolean usable = !name.isEmpty() && name.length() <= MAX_TITLE && key.isPresent()
                 && existing.stream().noneMatch(o -> ChapterTitles.reviewKey(o.getTitle()).filter(key.get()::equals).isPresent());
+        releasePart(partId, null);
         Chapter c = create(novelId, null, usable ? name : null, usable ? null : name);
         c.setTextVi(text == null || text.isBlank() ? null : text);
         c.setSourceFetchedAt(clock.instant());
@@ -206,6 +207,19 @@ public class ChapterService {
         c.setWattpadSyncedHash(ChapterSyncHash.of(c.getTextVi()));
         c.setWattpadModifiedAt(wattpadModifiedAt);
         return c.getId();
+    }
+
+    /** Takes the part id off any chapter (of any novel: the column is unique) but {@code keepId}, before it is reused. */
+    private void releasePart(String partId, Long keepId) {
+        if (partId == null) {
+            return;
+        }
+        for (Chapter other : chapters.findByOriginalWattpadPartId(partId)) {
+            if (!other.getId().equals(keepId)) {
+                other.setOriginalWattpadPartId(null);
+                chapters.flush();
+            }
+        }
     }
 
     /**
@@ -232,14 +246,7 @@ public class ChapterService {
     public ChapterDetail replaceOriginalText(long id, String text, String partId, Instant wattpadModifiedAt) {
         Chapter c = editable(id);
         syncable(c);
-        if (partId != null) {
-            for (Chapter other : chapters.findByNovelIdAndOriginalWattpadPartId(c.getNovel().getId(), partId)) {
-                if (!other.getId().equals(c.getId())) {
-                    other.setOriginalWattpadPartId(null);
-                    chapters.flush();
-                }
-            }
-        }
+        releasePart(partId, c.getId());
         c.setTextVi(text == null || text.isBlank() ? null : text);
         c.setSourceFetchedAt(clock.instant());
         c.setOriginalWattpadPartId(partId);

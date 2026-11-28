@@ -1108,6 +1108,39 @@ class ChapterServiceTest {
         assertThat(service.get(tooLong).title()).startsWith("Chương 4: xxx").hasSize(200);
     }
 
+    private long otherNovelChapterHolding(String partId) {
+        Novel other = new Novel("orig-old", "Cũ", NovelStatus.ONGOING, NOW);
+        other.setSourceType(NovelSourceType.ORIGINAL);
+        other.setWattpadStoryId("5555");
+        other = novels.save(other);
+        long id = service.addNumbered(other.getId(), 1, "Chương 1").id();
+        service.replaceOriginalText(id, "Old novel text", partId, null);
+        return id;
+    }
+
+    @Test
+    void replaceOriginalTextTakesAPartHeldByAChapterOfAnotherNovel() {
+        long old = otherNovelChapterHolding("9001");
+        long mine = linkedOriginalChapter();
+
+        service.replaceOriginalText(mine, "New", "9001", null);
+
+        assertThat(chapters.findById(old).orElseThrow().getOriginalWattpadPartId()).isNull();
+        assertThat(chapters.findById(mine).orElseThrow().getOriginalWattpadPartId()).isEqualTo("9001");
+    }
+
+    @Test
+    void addOriginalFromSyncTakesAPartHeldByAChapterOfAnotherNovel() {
+        long old = otherNovelChapterHolding("9001");
+        long mine = linkedOriginalChapter();
+        long novelId = chapters.findById(mine).orElseThrow().getNovel().getId();
+
+        long added = service.addOriginalFromSync(novelId, "Hai", "Text", "9001", null);
+
+        assertThat(chapters.findById(old).orElseThrow().getOriginalWattpadPartId()).isNull();
+        assertThat(chapters.findById(added).orElseThrow().getOriginalWattpadPartId()).isEqualTo("9001");
+    }
+
     @Test
     void aHandSaveKeepsThePartAndTheHash() {
         long id = linkedOriginalChapter();
