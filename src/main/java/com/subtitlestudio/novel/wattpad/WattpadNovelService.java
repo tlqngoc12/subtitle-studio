@@ -145,7 +145,7 @@ public class WattpadNovelService {
 
     /** The story's parts in story order, each with the chapter it was imported as (if any). */
     public List<WattpadPartRow> parts(long novelId) {
-        String storyId = wattpadStoryOf(novelId);
+        String storyId = linkedStory(novelId).getWattpadStoryId();
         List<WattpadPart> parts = wattpad.storyWithParts(storyId).parts();
         Map<String, Long> imported = importedParts(novelId);
         return parts.stream().map(p -> new WattpadPartRow(p.id(), p.title(), p.wordCount(), p.createdAt(),
@@ -234,6 +234,32 @@ public class WattpadNovelService {
             discard(prepared);
             throw e;
         }
+    }
+
+    /**
+     * Replaces the text of a Draft chapter of a linked original story with the text of one Wattpad part. The title
+     * stays, images are dropped (never downloaded). Wattpad is called outside any transaction, and the chapter is
+     * only written once everything has been fetched.
+     */
+    public ChapterDetail syncOriginal(long chapterId, String partId) {
+        String storyId = chapterService.syncablePart(chapterId);
+        WattpadPart part = wattpad.storyWithParts(storyId).parts().stream()
+                .filter(p -> p.id().equals(partId)).findFirst().orElseThrow(() -> new WattpadPartProblemException(
+                        WattpadPartProblemException.NOT_FOUND, "This part is not in the story."));
+        if (part.deleted()) {
+            throw new WattpadPartProblemException(WattpadPartProblemException.DELETED,
+                    "This part was deleted on Wattpad.");
+        }
+        WattpadText.Parsed parsed = WattpadText.parse(wattpad.partText(partId));
+        String text = parsed.text().isEmpty() ? "" : java.util.Arrays.stream(parsed.text().split("\n\n"))
+                .filter(paragraph -> WattpadText.placeholderIndex(paragraph) < 0)
+                .collect(java.util.stream.Collectors.joining("\n\n"));
+        if (text.isBlank()) {
+            throw new WattpadPartProblemException(WattpadPartProblemException.EMPTY, NO_TEXT);
+        }
+        ChapterDetail synced = chapterService.replaceOriginalText(chapterId, text);
+        log.info("Synced chapter {} from Wattpad part {} ({} characters)", chapterId, partId, text.length());
+        return synced;
     }
 
     /** The original text of a part with its images stored: markers in place of the images, links to own them. */
@@ -418,6 +444,16 @@ public class WattpadNovelService {
     private Novel wattpadNovel(long novelId) {
         Novel n = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
         if (n.getSourceType() != NovelSourceType.WATTPAD || n.getWattpadStoryId() == null) {
+            throw new NovelNotWattpadException(novelId);
+        }
+        return n;
+    }
+
+    /** A Wattpad novel, or an original story that has a Wattpad link: the ones whose parts may be listed. */
+    private Novel linkedStory(long novelId) {
+        Novel n = novels.findById(novelId).orElseThrow(() -> new NovelNotFoundException(novelId));
+        boolean linkable = n.getSourceType() == NovelSourceType.WATTPAD || n.getSourceType() == NovelSourceType.ORIGINAL;
+        if (!linkable || n.getWattpadStoryId() == null) {
             throw new NovelNotWattpadException(novelId);
         }
         return n;

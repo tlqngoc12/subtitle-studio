@@ -947,6 +947,58 @@ class ChapterServiceTest {
         assertThat(service.get(published).sourceText()).isEqualTo("Original text 1");
     }
 
+    // ---- sync an original story's chapter from Wattpad ----
+
+    private long linkedOriginalChapter() {
+        Novel original = new Novel("orig", "Truyện", NovelStatus.ONGOING, NOW);
+        original.setSourceType(NovelSourceType.ORIGINAL);
+        original.setWattpadStoryId("4242");
+        original = novels.save(original);
+        long id = service.addNumbered(original.getId(), 1, "Chương 1: Mở đầu").id();
+        service.update(id, new ChapterUpdateRequest(null, null, "Old text"));
+        return id;
+    }
+
+    @Test
+    void syncablePartIsTheLinkOfADraftOriginalChapter() {
+        assertThat(service.syncablePart(linkedOriginalChapter())).isEqualTo("4242");
+    }
+
+    @Test
+    void syncablePartRefusesAPublishedChapterAndAStoryWithoutALink() {
+        long published = linkedOriginalChapter();
+        setStatus(published, ChapterTranslationStatus.NONE, ChapterPublishStatus.PUBLISHED);
+        assertThatThrownBy(() -> service.syncablePart(published)).isInstanceOf(ChapterPublishedException.class);
+
+        Novel unlinked = new Novel("orig2", "Không link", NovelStatus.ONGOING, NOW);
+        unlinked.setSourceType(NovelSourceType.ORIGINAL);
+        long noLink = service.addNumbered(novels.save(unlinked).getId(), 1, null).id();
+        assertThatThrownBy(() -> service.syncablePart(noLink)).isInstanceOf(NovelNotWattpadException.class);
+
+        long translated = service.addNumbered(novel.getId(), 7, null).id();
+        assertThatThrownBy(() -> service.syncablePart(translated)).isInstanceOf(NovelNotWattpadException.class);
+    }
+
+    @Test
+    void replaceOriginalTextKeepsTheTitleAndTheStatus() {
+        long id = linkedOriginalChapter();
+
+        ChapterDetail d = service.replaceOriginalText(id, "New text from Wattpad");
+
+        assertThat(d.text()).isEqualTo("New text from Wattpad");
+        assertThat(d.title()).isEqualTo("Chương 1: Mở đầu");
+        assertThat(d.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+    }
+
+    @Test
+    void replaceOriginalTextChecksTheChapterAgain() {
+        long id = linkedOriginalChapter();
+        setStatus(id, ChapterTranslationStatus.NONE, ChapterPublishStatus.PUBLISHED);
+
+        assertThatThrownBy(() -> service.replaceOriginalText(id, "x")).isInstanceOf(ChapterPublishedException.class);
+        assertThat(service.get(id).text()).isEqualTo("Old text");
+    }
+
     @Test
     void reloadablePartIdIsTheWattpadPart() {
         assertThat(service.reloadablePartId(wattpadChapter(1, "777"))).isEqualTo("777");

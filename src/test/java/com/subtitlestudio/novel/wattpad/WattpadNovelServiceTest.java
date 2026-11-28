@@ -665,6 +665,103 @@ class WattpadNovelServiceTest {
         verify(chapterService, org.mockito.Mockito.times(1)).addFromSource(3L, "One", "Hello", "1", NOW);
     }
 
+    // ---- original story: parts and sync ----
+
+    private Novel original(long id, String storyId) {
+        Novel n = new Novel("orig", "Orig", NovelStatus.ONGOING, NOW);
+        ReflectionTestUtils.setField(n, "id", id);
+        n.setSourceType(NovelSourceType.ORIGINAL);
+        n.setWattpadStoryId(storyId);
+        when(novels.findById(id)).thenReturn(Optional.of(n));
+        return n;
+    }
+
+    @Test
+    void partsAcceptAnOriginalWithALinkWithNoImportedChapter() {
+        original(6, "396487502");
+        storyParts(part("1", "One", false));
+        when(chapters.importedParts(6L)).thenReturn(java.util.Collections.singletonList(new Object[] {"1", 55L}));
+
+        assertThat(service.parts(6)).extracting(WattpadPartRow::partId).containsExactly("1");
+    }
+
+    @Test
+    void partsRefuseAnOriginalWithoutALinkAndImportRefusesAnyOriginal() {
+        original(6, null);
+        original(7, "396487502");
+
+        assertThatThrownBy(() -> service.parts(6)).isInstanceOf(com.subtitlestudio.novel.NovelNotWattpadException.class);
+        assertThatThrownBy(() -> service.importParts(7, List.of("1")))
+                .isInstanceOf(com.subtitlestudio.novel.NovelNotWattpadException.class);
+        assertThatThrownBy(() -> service.fetchAndTranslate(7, "1"))
+                .isInstanceOf(com.subtitlestudio.novel.NovelNotWattpadException.class);
+        verify(wattpad, never()).storyWithParts(anyString());
+    }
+
+    @Test
+    void syncReplacesTheTextOnce() {
+        when(chapterService.syncablePart(5L)).thenReturn("396487502");
+        storyParts(part("1", "One", false), part("2", "Two", false));
+        when(wattpad.partText("2")).thenReturn("<p>Hello</p><p>***</p><p>World</p>");
+        com.subtitlestudio.novel.ChapterDetail detail = mock(com.subtitlestudio.novel.ChapterDetail.class);
+        when(chapterService.replaceOriginalText(5L, "Hello\n\n***\n\nWorld")).thenReturn(detail);
+
+        assertThat(service.syncOriginal(5L, "2")).isSameAs(detail);
+        verify(wattpad, org.mockito.Mockito.times(1)).storyWithParts("396487502");
+        verify(wattpad, never()).downloadImage(anyString(), anyLong());
+    }
+
+    @Test
+    void syncDropsImagesAndNeverDownloadsThem() {
+        when(chapterService.syncablePart(5L)).thenReturn("396487502");
+        storyParts(part("1", "One", false));
+        when(wattpad.partText("1")).thenReturn(
+                "<p>Before</p><p><img src=\"https://img.wattpad.com/a.jpg\"></p><p>After</p>");
+        when(chapterService.replaceOriginalText(anyLong(), anyString()))
+                .thenReturn(mock(com.subtitlestudio.novel.ChapterDetail.class));
+
+        service.syncOriginal(5L, "1");
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(chapterService).replaceOriginalText(eq(5L), text.capture());
+        assertThat(text.getValue()).isEqualTo("Before\n\nAfter");
+        verify(wattpad, never()).downloadImage(anyString(), anyLong());
+        verify(mediaService, never()).store(anyString(), any());
+    }
+
+    @Test
+    void syncProblemsWriteNothing() {
+        when(chapterService.syncablePart(5L)).thenReturn("396487502");
+        storyParts(part("1", "One", false), part("3", "Gone", true), part("4", "Empty", false),
+                part("5", "Pics", false));
+        when(wattpad.partText("4")).thenReturn("<p> </p>");
+        when(wattpad.partText("5")).thenReturn("<p><img src=\"https://img.wattpad.com/a.jpg\"></p>");
+
+        assertThatThrownBy(() -> service.syncOriginal(5L, "99")).isInstanceOfSatisfying(
+                WattpadPartProblemException.class, e -> assertThat(e.code()).isEqualTo("WATTPAD_PART_NOT_FOUND"));
+        assertThatThrownBy(() -> service.syncOriginal(5L, "3")).isInstanceOfSatisfying(
+                WattpadPartProblemException.class, e -> assertThat(e.code()).isEqualTo("WATTPAD_PART_DELETED"));
+        assertThatThrownBy(() -> service.syncOriginal(5L, "4")).isInstanceOfSatisfying(
+                WattpadPartProblemException.class, e -> assertThat(e.code()).isEqualTo("WATTPAD_PART_EMPTY"));
+        assertThatThrownBy(() -> service.syncOriginal(5L, "5")).isInstanceOfSatisfying(
+                WattpadPartProblemException.class, e -> assertThat(e.code()).isEqualTo("WATTPAD_PART_EMPTY"));
+        verify(wattpad, never()).partText("3");
+        verify(chapterService, never()).replaceOriginalText(anyLong(), anyString());
+    }
+
+    @Test
+    void syncWritesNothingWhenWattpadFailsOrTheChapterIsNotSyncable() {
+        when(chapterService.syncablePart(5L)).thenReturn("396487502");
+        storyParts(part("1", "One", false));
+        when(wattpad.partText("1")).thenThrow(new WattpadUnavailableException("down"));
+        assertThatThrownBy(() -> service.syncOriginal(5L, "1")).isInstanceOf(WattpadUnavailableException.class);
+
+        when(chapterService.syncablePart(6L)).thenThrow(new com.subtitlestudio.novel.ChapterPublishedException(6));
+        assertThatThrownBy(() -> service.syncOriginal(6L, "1"))
+                .isInstanceOf(com.subtitlestudio.novel.ChapterPublishedException.class);
+        verify(chapterService, never()).replaceOriginalText(anyLong(), anyString());
+    }
+
     // ---- automatic translation profile ----
 
     private static NovelRequest profileRequest(String title, String profile, String language) {
