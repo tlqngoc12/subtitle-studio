@@ -124,6 +124,73 @@ class NovelServiceTest {
                 NovelSourceType.ORIGINAL, "th", null, null);
     }
 
+    private static NovelRequest originalLinked(String slug, String title, String wattpadUrl) {
+        NovelRequest r = original(slug, title, "A", "SummerLove");
+        return new NovelRequest(r.slug(), r.title(), null, r.originalAuthor(), r.description(), r.tags(),
+                r.novelStatus(), null, null, r.promptProfile(), null, NovelSourceType.ORIGINAL, "vi", "999", null,
+                wattpadUrl);
+    }
+
+    @Test
+    void anOriginalKeepsTheStoryIdOfItsWattpadLink() {
+        NovelDetail d = service.create(originalLinked("linked", "Linked", " https://www.wattpad.com/story/420481110-slug "));
+
+        assertThat(d.wattpadStoryId()).isEqualTo("420481110");
+        assertThat(d.sourceType()).isEqualTo(NovelSourceType.ORIGINAL);
+    }
+
+    @Test
+    void aBlankWattpadLinkOnAnOriginalMeansNoLink() {
+        assertThat(service.create(originalLinked("unlinked", "Unlinked", "  ")).wattpadStoryId()).isNull();
+    }
+
+    @Test
+    void anOriginalRejectsAChapterLinkAndAStrangeLink() {
+        assertThat(errorsOf(originalLinked("l-1", "L1", "https://www.wattpad.com/123456-some-chapter")))
+                .containsExactly(new FieldError("wattpadUrl",
+                        "Paste the story link (wattpad.com/story/…), not a chapter link."));
+        assertThat(errorsOf(originalLinked("l-2", "L2", "https://example.com/story/123")))
+                .containsExactly(new FieldError("wattpadUrl", "Use a Wattpad story link (wattpad.com/story/…)."));
+    }
+
+    @Test
+    void otherKindsIgnoreTheWattpadUrl() {
+        NovelRequest r = valid();
+        NovelRequest withUrl = new NovelRequest(r.slug(), r.title(), null, r.originalAuthor(), r.description(),
+                r.tags(), r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), null,
+                NovelSourceType.SCREENSHOTS, "th", null, null, "not a link at all");
+
+        assertThat(service.create(withUrl).wattpadStoryId()).isNull();
+    }
+
+    @Test
+    void editingAnOriginalSetsChangesAndClearsTheLink() {
+        NovelDetail d = service.create(originalLinked("edit-link", "Edit Link", null));
+        assertThat(d.wattpadStoryId()).isNull();
+
+        assertThat(service.update(d.id(), originalLinked("edit-link", "Edit Link", "https://www.wattpad.com/story/111"))
+                .wattpadStoryId()).isEqualTo("111");
+        // Saving the same link again is not a duplicate of itself.
+        assertThat(service.update(d.id(), originalLinked("edit-link", "Edit Link", "https://www.wattpad.com/story/111"))
+                .wattpadStoryId()).isEqualTo("111");
+        assertThat(service.update(d.id(), originalLinked("edit-link", "Edit Link", "https://www.wattpad.com/story/222"))
+                .wattpadStoryId()).isEqualTo("222");
+        assertThat(service.update(d.id(), originalLinked("edit-link", "Edit Link", null)).wattpadStoryId()).isNull();
+    }
+
+    @Test
+    void aLinkAlreadyUsedByAnotherNovelIsADuplicate() {
+        NovelDetail first = service.create(originalLinked("dup-a", "Dup A", "https://www.wattpad.com/story/555"));
+        NovelDetail second = service.create(originalLinked("dup-b", "Dup B", null));
+
+        assertThatThrownBy(() -> service.create(originalLinked("dup-c", "Dup C", "https://www.wattpad.com/story/555")))
+                .isInstanceOf(DuplicateWattpadNovelException.class);
+        assertThatThrownBy(() -> service.update(second.id(),
+                originalLinked("dup-b", "Dup B", "https://www.wattpad.com/story/555")))
+                .isInstanceOf(DuplicateWattpadNovelException.class)
+                .satisfies(e -> assertThat(((DuplicateWattpadNovelException) e).novelId()).isEqualTo(first.id()));
+    }
+
     @Test
     void validatorAcceptsOriginalWithVi() {
         NovelDetail d = service.create(original("my-story", "Câu chuyện của tôi", "EmiBonnie", null));

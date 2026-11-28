@@ -133,7 +133,7 @@ public class NovelService {
     private static NovelRequest withProfile(NovelRequest r, String profile) {
         return new NovelRequest(r.slug(), r.title(), r.coverMediaId(), r.originalAuthor(), r.description(), r.tags(),
                 r.novelStatus(), r.translatorCredit(), r.sourceUrl(), profile, r.trailerUrl(), r.sourceType(),
-                r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl());
+                r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl(), r.wattpadUrl());
     }
 
     /** The kind of a novel never changes: an original stays original, and no other novel becomes one. */
@@ -152,7 +152,7 @@ public class NovelService {
     private static NovelRequest withKind(NovelRequest r, NovelSourceType type) {
         return new NovelRequest(r.slug(), r.title(), r.coverMediaId(), r.originalAuthor(), r.description(), r.tags(),
                 r.novelStatus(), r.translatorCredit(), r.sourceUrl(), r.promptProfile(), r.trailerUrl(), type,
-                r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl());
+                r.sourceLanguage(), r.wattpadStoryId(), r.coverUrl(), r.wattpadUrl());
     }
 
     @Transactional
@@ -161,6 +161,15 @@ public class NovelService {
         NovelRequest r = validator.validate(keepingKind(n, request));
         if (!r.slug().equals(n.getSlug()) && novels.existsBySlug(r.slug())) {
             throw new DuplicateNovelSlugException(r.slug());
+        }
+        if (n.getSourceType() == NovelSourceType.ORIGINAL) {
+            if (r.wattpadStoryId() != null) {
+                novels.findByWattpadStoryId(r.wattpadStoryId()).filter(existing -> !existing.getId().equals(n.getId()))
+                        .ifPresent(existing -> {
+                            throw new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
+                        });
+            }
+            n.setWattpadStoryId(r.wattpadStoryId());
         }
         Long oldCover = n.getCover() == null ? null : n.getCover().getId();
         boolean renamed = !r.slug().equals(n.getSlug());

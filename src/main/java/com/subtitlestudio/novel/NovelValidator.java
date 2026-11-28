@@ -1,5 +1,6 @@
 package com.subtitlestudio.novel;
 
+import com.subtitlestudio.fanfic.WattpadLink;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.common.YouTubeIds;
 import java.util.ArrayList;
@@ -47,7 +48,8 @@ public class NovelValidator {
                 original ? null : trim(r.sourceUrl()), trim(r.promptProfile()), trim(r.trailerUrl()), type,
                 original ? ORIGINAL_LANGUAGE
                         : r.sourceLanguage() == null ? "th" : r.sourceLanguage().strip().toLowerCase(java.util.Locale.ROOT),
-                original ? null : trim(r.wattpadStoryId()), original ? null : trim(r.coverUrl()));
+                original ? null : trim(r.wattpadStoryId()), original ? null : trim(r.coverUrl()),
+                original ? trim(r.wattpadUrl()) : null);
         List<FieldError> errors = new ArrayList<>();
         if (n.slug() == null || n.slug().length() > MAX_SLUG || !SLUG.matcher(n.slug()).matches()) {
             errors.add(new FieldError("slug", "Use lowercase letters, numbers and single hyphens."));
@@ -85,6 +87,15 @@ public class NovelValidator {
                 errors.add(new FieldError("wattpadStoryId", "A Wattpad story id (digits) is required."));
             }
         }
+        String originalStoryId = null;
+        if (original && n.wattpadUrl() != null) {
+            originalStoryId = WattpadLink.storyId(n.wattpadUrl()).orElse(null);
+            if (originalStoryId == null) {
+                errors.add(new FieldError("wattpadUrl", WattpadLink.isChapterLink(n.wattpadUrl())
+                        ? "Paste the story link (wattpad.com/story/…), not a chapter link."
+                        : "Use a Wattpad story link (wattpad.com/story/…)."));
+            }
+        }
         String trailerId = null;
         if (n.trailerUrl() != null) {
             trailerId = trailerId(n.trailerUrl());
@@ -97,8 +108,8 @@ public class NovelValidator {
         }
         return new NovelRequest(n.slug(), n.title(), n.coverMediaId(), n.originalAuthor(), n.description(), n.tags(),
                 n.novelStatus(), n.translatorCredit(), n.sourceUrl(), n.promptProfile(), trailerId, n.sourceType(),
-                n.sourceLanguage(), n.sourceType() == NovelSourceType.WATTPAD ? n.wattpadStoryId() : null,
-                n.sourceType() == NovelSourceType.WATTPAD ? n.coverUrl() : null);
+                n.sourceLanguage(), n.sourceType() == NovelSourceType.WATTPAD ? n.wattpadStoryId() : originalStoryId,
+                n.sourceType() == NovelSourceType.WATTPAD ? n.coverUrl() : null, null);
     }
 
     /** The video id of a YouTube link, or null when it is too long or not a YouTube video link. */
