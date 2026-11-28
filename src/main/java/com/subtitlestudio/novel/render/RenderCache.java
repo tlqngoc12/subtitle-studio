@@ -6,6 +6,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,6 +15,8 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Chapter images on disk: {@code {dir}/{chapterId}/{hash}-{k}.{ext}}, where the hash covers everything that changes
@@ -22,6 +25,8 @@ import java.util.stream.Stream;
  * a complete set of that format.
  */
 public class RenderCache {
+
+    private static final Logger log = LoggerFactory.getLogger(RenderCache.class);
 
     private final Path dir;
     private final NovelRenderer renderer;
@@ -59,9 +64,15 @@ public class RenderCache {
             throws IOException {
         Path count = chapterDir.resolve(hash + ".count");
         if (Files.isRegularFile(count)) {
-            List<Path> files = files(chapterDir, hash, Integer.parseInt(Files.readString(count).strip()));
-            if (files.stream().allMatch(Files::isRegularFile)) {
-                return files;
+            int n = readCount(count);
+            if (n <= 0) {
+                log.warn("Unreadable render count marker, redrawing: chapterDir={} hash={}",
+                        chapterDir.getFileName(), hash);
+            } else {
+                List<Path> files = files(chapterDir, hash, n);
+                if (files.stream().allMatch(Files::isRegularFile)) {
+                    return files;
+                }
             }
         }
         List<BufferedImage> images = renderer.render(input, format);
@@ -69,10 +80,29 @@ public class RenderCache {
         for (int i = 0; i < images.size(); i++) {
             Path tmp = chapterDir.resolve(files.get(i).getFileName() + ".tmp");
             Files.write(tmp, encoder.encode(images.get(i)));
-            Files.move(tmp, files.get(i), StandardCopyOption.REPLACE_EXISTING);
+            move(tmp, files.get(i));
         }
-        Files.writeString(count, String.valueOf(images.size()));
+        Path countTmp = chapterDir.resolve(hash + ".count.tmp");
+        Files.writeString(countTmp, String.valueOf(images.size()));
+        move(countTmp, count);
         return files;
+    }
+
+    /** The marker's number, or 0 when the file is unreadable or not a positive integer (e.g. NUL bytes). */
+    private static int readCount(Path count) {
+        try {
+            return Math.max(0, Integer.parseInt(Files.readString(count).strip()));
+        } catch (IOException | RuntimeException e) {
+            return 0;
+        }
+    }
+
+    private static void move(Path tmp, Path target) throws IOException {
+        try {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     /** Deletes a chapter's images (chapter or novel deleted). */
