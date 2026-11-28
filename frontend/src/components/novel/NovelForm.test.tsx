@@ -2,10 +2,12 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../api/client';
 import { css } from '../../test/css';
 import { fakeFetch } from '../../test/fakeFetch';
 import { novelDetail } from '../../test/novelFixtures';
 import { expectTooltip } from '../../test/tooltip';
+import type { NovelInput } from '../../api/novels';
 import { NovelForm } from './NovelForm';
 
 const profiles = { method: 'GET', path: '/api/novel-profiles', status: 200, body: { configured: true, profiles: [] } };
@@ -155,5 +157,56 @@ describe('NovelForm', () => {
     await user.click(screen.getByLabelText('Tags (optional)'));
 
     expect(await screen.findByRole('option', { name: 'Slow burn' })).toBeInTheDocument();
+  });
+
+  it('shows the Wattpad link field for an original story only, prefilled from its story id', async () => {
+    fakeFetch([profiles, profiles]);
+    const { unmount } = renderForm({ initial: novelDetail({ sourceType: 'ORIGINAL', wattpadStoryId: '420481110' }) });
+
+    expect(screen.getByLabelText('Wattpad link (optional)')).toHaveValue('https://www.wattpad.com/story/420481110');
+    expect(screen.getByText('Paste the story link to sync chapters from Wattpad.')).toBeInTheDocument();
+    unmount();
+
+    renderForm({ initial: novelDetail({ sourceType: 'SCREENSHOTS' }) });
+    expect(screen.queryByLabelText('Wattpad link (optional)')).not.toBeInTheDocument();
+  });
+
+  it('sends the Wattpad link of an original story, or null when blank', async () => {
+    fakeFetch([profiles]);
+    const onSubmit = vi.fn(async () => {});
+    renderForm({ onSubmit, kind: 'original', initial: undefined });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Title'), 'Truyện');
+    await user.type(screen.getByLabelText('Author'), 'Tôi');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenLastCalledWith(expect.objectContaining({ wattpadUrl: null }));
+
+    await user.type(screen.getByLabelText('Wattpad link (optional)'), ' https://www.wattpad.com/story/1 ');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenLastCalledWith(expect.objectContaining({ wattpadUrl: 'https://www.wattpad.com/story/1' }));
+  });
+
+  it('does not send wattpadUrl for a translated novel', async () => {
+    fakeFetch([profiles]);
+    const onSubmit = vi.fn(async (_input: NovelInput) => {});
+    renderForm({ onSubmit, initial: novelDetail({ sourceType: 'SCREENSHOTS' }) });
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('wattpadUrl');
+  });
+
+  it('shows the server error of the Wattpad link under the field', async () => {
+    fakeFetch([profiles]);
+    const onSubmit = vi.fn(async () => {
+      throw new ApiError(400, 'INVALID_NOVEL', 'Invalid', [{ field: 'wattpadUrl', message: 'Use a Wattpad story link (wattpad.com/story/…).' }]);
+    });
+    renderForm({ onSubmit, initial: novelDetail({ sourceType: 'ORIGINAL' }) });
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Use a Wattpad story link (wattpad.com/story/…).')).toBeInTheDocument();
+    expect(screen.getByLabelText('Wattpad link (optional)')).toHaveAttribute('aria-invalid', 'true');
   });
 });

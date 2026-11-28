@@ -30,6 +30,8 @@ export interface NovelInput {
   /** Wattpad novels: the story id, and (create only) the story's cover to download. */
   wattpadStoryId?: string | null;
   coverUrl?: string | null;
+  /** Original stories: an optional Wattpad story link (https://www.wattpad.com/story/<id>); null removes it. */
+  wattpadUrl?: string | null;
 }
 
 export interface NovelSummary {
@@ -73,7 +75,7 @@ export interface ChapterSummary {
   translatedByFallback: boolean;
 }
 
-export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 'sourceType' | 'sourceLanguage' | 'wattpadStoryId' | 'coverUrl'> {
+export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 'sourceType' | 'sourceLanguage' | 'wattpadStoryId' | 'coverUrl' | 'wattpadUrl'> {
   sourceType: NovelSourceType;
   sourceLanguage: SourceLanguage;
   wattpadStoryId: string | null;
