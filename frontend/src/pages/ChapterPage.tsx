@@ -45,7 +45,9 @@ export default function ChapterPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [checkSlot, setCheckSlot] = useState<HTMLElement | null>(null);
-  const editor = useChapterEditor(chapterId);
+  // Saving waits while the Sync from Wattpad dialog is open: a save landing after the sync would restore the old text.
+  const [syncOpen, setSyncOpen] = useState(false);
+  const editor = useChapterEditor(chapterId, syncOpen);
   const {
     chapter, text, setText, title, setTitle, error, busy, starting,
     finding, setFinding, hits, setHits, counts, originalParagraphs, translating, dirty, canSave,
@@ -53,7 +55,6 @@ export default function ChapterPage() {
   const [h1Ref, h1InView] = useInView<HTMLSpanElement>();
   // A published text chapter shows its original only on request (Show original); a draft always shows it.
   const [originalOpen, setOriginalOpen] = useState(false);
-  const [syncOpen, setSyncOpen] = useState(false);
   useAdminTitle(chapter ? `${chapter.title} · ${chapter.novelTitle}` : null, dirty);
   const pages = useChapterPages({
     chapterId, chapter, setChapter: editor.setChapter, setError: editor.setError, run: editor.run, confirm,

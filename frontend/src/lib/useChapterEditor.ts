@@ -14,9 +14,9 @@ export type LastSave = { kind: 'saved' | 'autosaved'; at: Date };
 
 /**
  * The state of the chapter page: the chapter as the server has it, the edited fields, saving (by hand, Ctrl+S and
- * every 15 minutes), polling while it translates, the counts and the find panel.
+ * every 15 minutes; none while `paused`), polling while it translates, the counts and the find panel.
  */
-export function useChapterEditor(chapterId: number) {
+export function useChapterEditor(chapterId: number, paused = false) {
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
@@ -81,7 +81,8 @@ export function useChapterEditor(chapterId: number) {
   }, [dirty]);
 
   // Save is allowed only for a loaded, edited chapter that is not busy or translating. A blank title is refused by the server, whose message is shown.
-  const canSave = dirty && !translating && !busy;
+  // `paused` (a dialog is about to replace the text) turns off every save, so old text never overwrites the new.
+  const canSave = dirty && !translating && !busy && !paused;
   const saveRef = useRef<(auto: boolean) => Promise<void>>(async () => {});
   const canSaveRef = useRef(canSave);
   canSaveRef.current = canSave;

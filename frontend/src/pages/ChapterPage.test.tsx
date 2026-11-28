@@ -903,6 +903,35 @@ describe('ChapterPage save shortcuts and auto-save', () => {
     expect(puts(calls)).toHaveLength(0);
   });
 
+  it('never saves while Sync from Wattpad is open, and the synced text is clean afterwards', async () => {
+    const original = { sourceType: 'ORIGINAL' as const, sourceLanguage: 'vi' as const, pages: [], translationStatus: 'NONE' as const,
+      translationModel: null, sourceText: null, wattpadLinked: true };
+    const calls = renderPage([
+      get({ ...original, text: 'Old text' }),
+      put,
+      { method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200,
+        body: [{ partId: '7', title: 'Chapter 1: Mở đầu', wordCount: 10, createdAt: null, modifiedAt: null, deleted: false, importedChapterId: null }] },
+      { method: 'POST', path: '/api/chapters/9/wattpad-sync', status: 200, body: chapterDetail({ ...original, text: 'Synced text' }) },
+    ]);
+    await loaded();
+    edit();
+    await chooseAction('Sync from Wattpad');
+    const dialog = await screen.findByRole('dialog', { name: 'Sync from Wattpad' });
+    await within(dialog).findByRole('radio', { name: /Chapter 1: Mở đầu/ });
+
+    vi.useFakeTimers();
+    await act(() => vi.advanceTimersByTimeAsync(AUTO_SAVE_MS * 2));
+    ctrlS();
+    vi.useRealTimers();
+    expect(puts(calls)).toHaveLength(0);
+
+    await user().click(within(dialog).getByRole('button', { name: 'Sync' }));
+    await user().click(within(dialog).getByRole('button', { name: 'Replace text' }));
+    await waitFor(() => expect(textBox()).toHaveValue('Synced text'));
+    expect(puts(calls)).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   it('sends no request while the chapter is TRANSLATING', async () => {
     const calls = renderPage([get({ translationStatus: 'TRANSLATING' }), put]);
     await screen.findByRole('heading', { level: 1 });

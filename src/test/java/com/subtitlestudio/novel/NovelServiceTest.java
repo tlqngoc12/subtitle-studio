@@ -184,7 +184,8 @@ class NovelServiceTest {
         NovelDetail second = service.create(originalLinked("dup-b", "Dup B", null));
 
         assertThatThrownBy(() -> service.create(originalLinked("dup-c", "Dup C", "https://www.wattpad.com/story/555")))
-                .isInstanceOf(DuplicateWattpadNovelException.class);
+                .isInstanceOf(DuplicateWattpadNovelException.class)
+                .hasMessage("This Wattpad story is already linked to “Dup A”.");
         assertThatThrownBy(() -> service.update(second.id(),
                 originalLinked("dup-b", "Dup B", "https://www.wattpad.com/story/555")))
                 .isInstanceOf(DuplicateWattpadNovelException.class)

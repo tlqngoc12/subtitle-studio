@@ -105,7 +105,9 @@ public class NovelService {
         }
         if (r.wattpadStoryId() != null) {
             novels.findByWattpadStoryId(r.wattpadStoryId()).ifPresent(existing -> {
-                throw new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
+                throw r.sourceType() == NovelSourceType.ORIGINAL
+                        ? DuplicateWattpadNovelException.linked(existing.getTitle(), existing.getId())
+                        : new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
             });
         }
         // An original story with no profile chosen gets one made from the original-story template.
@@ -166,7 +168,7 @@ public class NovelService {
             if (r.wattpadStoryId() != null) {
                 novels.findByWattpadStoryId(r.wattpadStoryId()).filter(existing -> !existing.getId().equals(n.getId()))
                         .ifPresent(existing -> {
-                            throw new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
+                            throw DuplicateWattpadNovelException.linked(existing.getTitle(), existing.getId());
                         });
             }
             n.setWattpadStoryId(r.wattpadStoryId());
