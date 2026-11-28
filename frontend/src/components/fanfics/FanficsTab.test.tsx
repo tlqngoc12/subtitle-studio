@@ -411,6 +411,21 @@ describe('FanficsTab (admin)', () => {
       expect(screen.queryByRole('link', { name: 'Translate this story' })).not.toBeInTheDocument();
     });
 
+
+    it('does not point a story card at an original story that links the same Wattpad story', async () => {
+      fakeFetch([
+        { method: 'GET', path: '/api/fanfics', status: 200, body: STORIES.slice(0, 1) },
+        { method: 'GET', path: '/api/novels', status: 200, body: [{ id: 41, wattpadStoryId: '396487502', sourceType: 'ORIGINAL' }] },
+      ]);
+      renderWithRoutes();
+      await screen.findByRole('link', { name: /Chợ Đêm/ });
+
+      await userEvent.click(screen.getByRole('button', { name: /^Menu for Chợ Đêm/ }));
+
+      expect(await screen.findByRole('link', { name: 'Translate this story' })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Open translation' })).not.toBeInTheDocument();
+    });
+
     it('still offers Translate this story when the novels cannot be listed', async () => {
       fakeFetch([{ method: 'GET', path: '/api/fanfics', status: 200, body: STORIES.slice(0, 1) }]);
       renderWithRoutes();

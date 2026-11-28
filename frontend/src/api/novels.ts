@@ -30,6 +30,8 @@ export interface NovelInput {
   /** Wattpad novels: the story id, and (create only) the story's cover to download. */
   wattpadStoryId?: string | null;
   coverUrl?: string | null;
+  /** Original stories: an optional Wattpad story link (https://www.wattpad.com/story/<id>); null removes it. */
+  wattpadUrl?: string | null;
 }
 
 export interface NovelSummary {
@@ -73,7 +75,7 @@ export interface ChapterSummary {
   translatedByFallback: boolean;
 }
 
-export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 'sourceType' | 'sourceLanguage' | 'wattpadStoryId' | 'coverUrl'> {
+export interface NovelDetail extends Omit<NovelInput, 'tags' | 'trailerUrl' | 'sourceType' | 'sourceLanguage' | 'wattpadStoryId' | 'coverUrl' | 'wattpadUrl'> {
   sourceType: NovelSourceType;
   sourceLanguage: SourceLanguage;
   wattpadStoryId: string | null;
@@ -130,6 +132,8 @@ export interface ChapterDetail {
   skippedImages?: number;
   /** The novel's kind; ORIGINAL chapters are written by hand and are never translated. */
   sourceType: NovelSourceType;
+  /** An ORIGINAL chapter whose novel has a Wattpad link: the chapter page offers Sync from Wattpad. */
+  wattpadLinked: boolean;
 }
 
 function json(method: string, body: unknown): RequestInit {
@@ -343,3 +347,7 @@ export async function reloadChapterOriginal(chapterId: number): Promise<ChapterD
   return (await send(`/api/chapters/${chapterId}/reload-original`, { method: 'POST' })).json();
 }
 
+/** Replaces a Draft chapter's text with one Wattpad part of its novel's linked story (title and status stay). */
+export async function syncChapterFromWattpad(chapterId: number, partId: string): Promise<ChapterDetail> {
+  return (await send(`/api/chapters/${chapterId}/wattpad-sync`, json('POST', { partId }))).json();
+}

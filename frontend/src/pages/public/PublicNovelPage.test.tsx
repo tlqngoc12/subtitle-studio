@@ -56,7 +56,7 @@ describe('PublicNovelsPage', () => {
   it('has Vietnamese headings, an empty state and a tab title', async () => {
     document.title = 'before';
     const { unmount } = render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/novels?tab=translated']}>
         <PublicNovelsPage source={source({ listNovels: async () => [] })} />
       </MemoryRouter>,
     );
@@ -71,7 +71,7 @@ describe('PublicNovelsPage', () => {
 
   it('shows the status in Vietnamese', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/novels?tab=translated']}>
         <PublicNovelsPage source={source()} />
       </MemoryRouter>,
     );
@@ -81,7 +81,7 @@ describe('PublicNovelsPage', () => {
 
   it('shows a card per novel with x/y chapters', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/novels?tab=translated']}>
         <PublicNovelsPage source={source()} />
       </MemoryRouter>,
     );

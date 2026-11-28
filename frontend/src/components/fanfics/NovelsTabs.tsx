@@ -29,17 +29,17 @@ export function novelsTabCrumb(
   return { label: labels[tab], to: `/novels?tab=${tab}` };
 }
 
-/** The selected Novels tab, kept in `?tab=` so it survives reload and can be linked; Translated is the default. */
+/** The selected Novels tab, kept in `?tab=` so it survives reload and can be linked; Originals is the default. */
 export function useNovelsTab(): [NovelsTab, (tab: NovelsTab) => void] {
   const [params, setParams] = useSearchParams();
   const wanted = params.get('tab');
-  const tab: NovelsTab = wanted === 'fanfics' || wanted === 'originals' ? wanted : 'translated';
+  const tab: NovelsTab = wanted === 'fanfics' || wanted === 'translated' ? wanted : 'originals';
   const setTab = (next: NovelsTab) =>
-    setParams(next === 'translated' ? {} : { tab: next }, { replace: true });
+    setParams(next === 'originals' ? {} : { tab: next }, { replace: true });
   return [tab, setTab];
 }
 
-/** Translated | Originals (the page's own content) | Fanfics, as underlined tabs shared by the admin and public Novels pages. */
+/** Originals | Translated (the page's own content) | Fanfics, as underlined tabs shared by the admin and public Novels pages. */
 export function NovelsTabs({
   tab,
   onTabChange,
@@ -56,11 +56,11 @@ export function NovelsTabs({
   return (
     <Tabs.Root value={tab} onValueChange={(v) => onTabChange(v as NovelsTab)} className="tabs">
       <TabsList aria-label={useT()('Novels sections', 'Các mục truyện')}>
-        <TabTrigger className="tabs__tab" value="translated">
-          {labels.translated}
-        </TabTrigger>
         <TabTrigger className="tabs__tab" value="originals">
           {labels.originals}
+        </TabTrigger>
+        <TabTrigger className="tabs__tab" value="translated">
+          {labels.translated}
         </TabTrigger>
         <TabTrigger className="tabs__tab" value="fanfics">
           {labels.fanfics}

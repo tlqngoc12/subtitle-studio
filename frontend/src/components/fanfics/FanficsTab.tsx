@@ -105,7 +105,7 @@ export function FanficsTab() {
         if (!current) return;
         const map: Record<string, number> = {};
         novels.forEach((n) => {
-          if (n.wattpadStoryId) map[n.wattpadStoryId] = n.id;
+          if (n.wattpadStoryId && n.sourceType !== 'ORIGINAL') map[n.wattpadStoryId] = n.id;
         });
         setTranslations(map);
       })

@@ -3,6 +3,7 @@ import { useInView } from '../lib/useInView';
 import { useAdminTitle } from '../lib/useAdminTitle';
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { toast } from 'sonner';
 import { chapterShortName } from '../components/novel/ChapterList';
 import { ChapterBar, type ChapterMenuItem, type SaveState } from '../components/novel/ChapterBar';
 import { FindReplace } from '../components/novel/FindReplace';
@@ -12,6 +13,7 @@ import { ChapterLightbox } from '../components/chapter/ChapterLightbox';
 import { ChapterNav } from '../components/chapter/ChapterNav';
 import { ChapterPagesSection, SuspectPagesWarning } from '../components/chapter/ChapterPagesSection';
 import { ChapterTextEditor } from '../components/chapter/ChapterTextEditor';
+import { WattpadSyncDialog } from '../components/chapter/WattpadSyncDialog';
 import { Alert } from '../components/ui/Alert';
 import { IconButton } from '../components/ui/IconButton';
 import { Page } from '../components/ui/Page';
@@ -43,7 +45,9 @@ export default function ChapterPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [checkSlot, setCheckSlot] = useState<HTMLElement | null>(null);
-  const editor = useChapterEditor(chapterId);
+  // Saving waits while the Sync from Wattpad dialog is open: a save landing after the sync would restore the old text.
+  const [syncOpen, setSyncOpen] = useState(false);
+  const editor = useChapterEditor(chapterId, syncOpen);
   const {
     chapter, text, setText, title, setTitle, error, busy, starting,
     finding, setFinding, hits, setHits, counts, originalParagraphs, translating, dirty, canSave,
@@ -150,6 +154,16 @@ export default function ChapterPage() {
             onSelect: () => void actions.translate(),
           },
         ]),
+    // An original story with a Wattpad link can copy a part of it into this chapter (Draft only).
+    ...(original && chapter.wattpadLinked
+      ? [{
+          label: 'Sync from Wattpad',
+          icon: RefreshCw,
+          disabled: locked,
+          disabledReason: published ? 'Unpublish to sync from Wattpad.' : undefined,
+          onSelect: () => setSyncOpen(true),
+        }]
+      : []),
     ...(draftOriginal ? [{ label: 'Reload original', icon: RefreshCw, disabled: locked, onSelect: () => void actions.reloadOriginal() }] : []),
   ];
 
@@ -256,6 +270,21 @@ export default function ChapterPage() {
         textRef={textRef} locked={locked} hits={hits} finding={finding} barSlot={checkSlot}
         originalToggle={fromText && published ? { shown: originalOpen, onToggle: () => setOriginalOpen((v) => !v) } : undefined}
       />
+
+      {syncOpen && (
+        <WattpadSyncDialog
+          open
+          onOpenChange={setSyncOpen}
+          novelId={chapter.novelId}
+          chapterId={chapterId}
+          chapterTitle={chapter.title}
+          onSynced={(synced) => {
+            // The server's chapter becomes the saved state: unsaved edits are dropped, as the dialog warned.
+            editor.load(synced);
+            toast.success('Synced from Wattpad');
+          }}
+        />
+      )}
 
       <ChapterLightbox pages={chapter.pages} index={pages.enlarged} onClose={() => pages.setEnlarged(null)} />
     </Page>

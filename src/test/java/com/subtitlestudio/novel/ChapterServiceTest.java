@@ -87,6 +87,9 @@ class ChapterServiceTest {
     @Autowired
     private TestEntityManager em;
 
+    @Autowired
+    private MutableClock clock;
+
     private Novel novel;
 
     @BeforeEach
@@ -945,6 +948,78 @@ class ChapterServiceTest {
                 .isInstanceOf(ChapterTranslationInProgressException.class);
         assertThatThrownBy(() -> service.reloadablePartId(screenshots)).isInstanceOf(InvalidChapterException.class);
         assertThat(service.get(published).sourceText()).isEqualTo("Original text 1");
+    }
+
+    // ---- sync an original story's chapter from Wattpad ----
+
+    private long linkedOriginalChapter() {
+        Novel original = new Novel("orig", "Truyện", NovelStatus.ONGOING, NOW);
+        original.setSourceType(NovelSourceType.ORIGINAL);
+        original.setWattpadStoryId("4242");
+        original = novels.save(original);
+        long id = service.addNumbered(original.getId(), 1, "Chương 1: Mở đầu").id();
+        service.update(id, new ChapterUpdateRequest(null, null, "Old text"));
+        return id;
+    }
+
+    @Test
+    void syncablePartIsTheLinkOfADraftOriginalChapter() {
+        long id = linkedOriginalChapter();
+        assertThat(service.syncablePart(id)).isEqualTo("4242");
+        assertThat(service.get(id).wattpadLinked()).isTrue();
+        assertThat(service.get(service.addNumbered(novel.getId(), 8, null).id()).wattpadLinked()).isFalse();
+    }
+
+    @Test
+    void syncablePartRefusesAPublishedChapterAndAStoryWithoutALink() {
+        long published = linkedOriginalChapter();
+        setStatus(published, ChapterTranslationStatus.NONE, ChapterPublishStatus.PUBLISHED);
+        assertThatThrownBy(() -> service.syncablePart(published)).isInstanceOf(ChapterPublishedException.class);
+
+        Novel unlinked = new Novel("orig2", "Không link", NovelStatus.ONGOING, NOW);
+        unlinked.setSourceType(NovelSourceType.ORIGINAL);
+        long noLink = service.addNumbered(novels.save(unlinked).getId(), 1, null).id();
+        assertThatThrownBy(() -> service.syncablePart(noLink)).isInstanceOf(NovelNotWattpadException.class);
+
+        long translated = service.addNumbered(novel.getId(), 7, null).id();
+        assertThatThrownBy(() -> service.syncablePart(translated)).isInstanceOf(NovelNotWattpadException.class);
+    }
+
+    @Test
+    void replaceOriginalTextKeepsTheTitleAndTheStatus() {
+        long id = linkedOriginalChapter();
+
+        ChapterDetail d = service.replaceOriginalText(id, "New text from Wattpad");
+
+        assertThat(d.text()).isEqualTo("New text from Wattpad");
+        assertThat(d.title()).isEqualTo("Chương 1: Mở đầu");
+        assertThat(d.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+    }
+
+    @Test
+    void syncRecordsWhenAndAHandSaveDoesNotChangeIt() {
+        long id = linkedOriginalChapter();
+        assertThat(service.get(id).sourceFetchedAt()).isNull();
+        clock.advance(java.time.Duration.ofHours(1));
+
+        ChapterDetail synced = service.replaceOriginalText(id, "Synced");
+
+        assertThat(synced.sourceFetchedAt()).isEqualTo(NOW.plusSeconds(3600));
+        assertThat(synced.sourceText()).isNull();
+        clock.advance(java.time.Duration.ofHours(1));
+        ChapterDetail edited = service.update(id, new ChapterUpdateRequest(null, null, "By hand"));
+        assertThat(edited.text()).isEqualTo("By hand");
+        assertThat(edited.sourceFetchedAt()).isEqualTo(NOW.plusSeconds(3600));
+        clock.reset();
+    }
+
+    @Test
+    void replaceOriginalTextChecksTheChapterAgain() {
+        long id = linkedOriginalChapter();
+        setStatus(id, ChapterTranslationStatus.NONE, ChapterPublishStatus.PUBLISHED);
+
+        assertThatThrownBy(() -> service.replaceOriginalText(id, "x")).isInstanceOf(ChapterPublishedException.class);
+        assertThat(service.get(id).text()).isEqualTo("Old text");
     }
 
     @Test

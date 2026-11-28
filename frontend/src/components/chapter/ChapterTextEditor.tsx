@@ -130,6 +130,9 @@ export function ChapterTextEditor({ chapter, idBase, showOriginal, text, onTextC
             />
           </div>
         </div>
+        {isOriginal && chapter.sourceFetchedAt && (
+          <p className="muted">Synced from Wattpad {formatInstantWithTime(chapter.sourceFetchedAt)}</p>
+        )}
         {check.review.error && <Alert title={check.review.error} />}
         {check.review.on && (
           <div className="review-summary">

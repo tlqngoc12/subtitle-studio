@@ -192,6 +192,24 @@ class ChapterControllerTest {
     }
 
     @Test
+    void wattpadSyncReturnsTheChapter() throws Exception {
+        when(wattpadNovels.syncOriginal(9L, "1552")).thenReturn(DETAIL);
+
+        mvc.perform(post("/api/chapters/9/wattpad-sync").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"partId\":\"1552\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(9));
+    }
+
+    @Test
+    void wattpadSyncOfAPublishedChapterIs409() throws Exception {
+        when(wattpadNovels.syncOriginal(9L, "1552")).thenThrow(new ChapterPublishedException(9));
+
+        mvc.perform(post("/api/chapters/9/wattpad-sync").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"partId\":\"1552\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CHAPTER_PUBLISHED"));
+    }
+
+    @Test
     void savingWithoutAnImageMarkerIs400WithItsCode() throws Exception {
         when(service.update(eq(9L), any())).thenThrow(new ChapterImageMarkersException());
 

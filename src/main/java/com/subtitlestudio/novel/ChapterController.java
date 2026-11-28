@@ -55,6 +55,12 @@ public class ChapterController {
         return wattpadNovels.reloadOriginal(id);
     }
 
+    /** Replaces the text of a Draft chapter of an original story with a part of its linked Wattpad story. */
+    @PostMapping("/api/chapters/{id}/wattpad-sync")
+    public ChapterDetail wattpadSync(@PathVariable long id, @RequestBody WattpadSyncRequest request) {
+        return wattpadNovels.syncOriginal(id, request.partId());
+    }
+
     @PostMapping("/api/chapters/{id}/publish")
     public ChapterDetail publish(@PathVariable long id) {
         return translation.publish(id);

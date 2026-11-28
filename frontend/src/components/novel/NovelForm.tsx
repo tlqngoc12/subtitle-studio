@@ -54,7 +54,7 @@ function blankToNull(value: string): string | null {
  * The eight novel fields plus slug and translation profile (create and edit). `wattpad` prefills a new novel from a
  * Wattpad story and adds the Source language field; an existing Wattpad novel shows that field too. An original story
  * (`kind="original"`, or an existing ORIGINAL novel) has a required author and no source language, original link or
- * translator credit; its kind is sent on every save so editing never changes it.
+ * translator credit, but may have a Wattpad story link (chapters sync from it); its kind is sent on every save so editing never changes it.
  */
 export function NovelForm({
   initial,
@@ -102,6 +102,11 @@ export function NovelForm({
   );
   const [credit, setCredit] = useState(initial?.translatorCredit ?? '');
   const [sourceUrl, setSourceUrl] = useState(initial?.sourceUrl ?? wattpad?.storyUrl ?? '');
+  const [wattpadUrl, setWattpadUrl] = useState(
+    initial?.sourceType === 'ORIGINAL' && initial.wattpadStoryId
+      ? `https://www.wattpad.com/story/${initial.wattpadStoryId}`
+      : '',
+  );
   const [trailer, setTrailer] = useState(trailerLink(initial?.trailerVideoId));
   const [profile, setProfile] = useState(initial?.promptProfile ?? '');
   const [profiles, setProfiles] = useState<string[]>([]);
@@ -156,7 +161,7 @@ export function NovelForm({
         sourceUrl: original ? null : blankToNull(sourceUrl),
         promptProfile: blankToNull(profile),
         trailerUrl: blankToNull(trailer),
-        ...(original ? { sourceType: 'ORIGINAL' as const } : {}),
+        ...(original ? { sourceType: 'ORIGINAL' as const, wattpadUrl: blankToNull(wattpadUrl) } : {}),
         ...(fromWattpad ? { sourceLanguage } : {}),
         ...(wattpad
           ? {
@@ -339,6 +344,17 @@ export function NovelForm({
               aria-invalid={a.invalid} aria-describedby={a.describedBy} onChange={(e) => setSourceUrl(e.target.value)} />
           ),
         })}
+        {original &&
+          renderField({
+            name: 'wattpadUrl',
+            label: 'Wattpad link (optional)',
+            hint: 'Paste the story link to sync chapters from Wattpad.',
+            children: (a) => (
+              <input id={a.id} type="text" inputMode="url" maxLength={1000} placeholder="https://www.wattpad.com/story/…"
+                value={wattpadUrl} aria-invalid={a.invalid} aria-describedby={a.describedBy}
+                onChange={(e) => setWattpadUrl(e.target.value)} />
+            ),
+          })}
         {renderField({
           name: 'trailerUrl',
           label: 'Trailer (YouTube link, optional)',
