@@ -32,7 +32,7 @@ User viết truyện sáng tác (Novels › Originals) và đăng lên Wattpad, 
 ## Dữ liệu
 
 - Không có migration. Truyện ORIGINAL được phép có `wattpad_story_id` (trước đây validator luôn đặt null).
-- `t_chapter` không đổi: chương sync xong vẫn là chương ORIGINAL bình thường (`source_text` null, `wattpad_part_id` null, chữ ở `text_vi`).
+- `t_chapter` không đổi cấu trúc: chương sync xong vẫn là chương ORIGINAL bình thường (`source_text` null, `wattpad_part_id` null, chữ ở `text_vi`). Mỗi lần sync ghi `t_chapter.source_fetched_at` = thời điểm sync gần nhất (lưu tay không đổi cột này). Chỉ có `ChapterTextEditor` đọc nó và chỉ trong cột Original của chương có `source_text`, nên chương ORIGINAL không bị coi là chương Wattpad dịch.
 
 ## Backend
 
@@ -85,6 +85,7 @@ User viết truyện sáng tác (Novels › Originals) và đăng lên Wattpad, 
      > Are you sure you want to replace the text of "‹tiêu đề chương›" with "‹tên phần Wattpad›" from Wattpad? Your current text will be lost, including any unsaved changes. The chapter title stays the same.
      Nút: **Replace text** (kiểu nguy hiểm, đỏ, vì làm mất dữ liệu) · **Cancel**.
   4. Đang sync: nút hiện "Syncing…", khoá dialog. Xong: đóng dialog, nạp lại chương từ response (bỏ phần chưa lưu), toast "Synced from Wattpad". Lỗi: hiện trong dialog theo `code` (`lib/errors.ts`), giữ nguyên chữ chương.
+- Chương ORIGINAL có `sourceFetchedAt` hiện dòng mờ **Synced from Wattpad dd/MM/yyyy HH:mm** (`formatInstantWithTime`) ngay dưới hàng nhãn "Chapter text"; chưa sync thì không có dòng. Sync xong dòng cập nhật theo response.
 - Chuỗi giao diện bằng tiếng Anh (admin). Màu theo token sẵn có: nút chính cam `--brand`, mục đang chọn tím `--brand-2`, chỉ nút Replace text màu đỏ.
 - API client: `listWattpadParts(novelId)` (có thể đã có trong `api/novels.ts`), thêm `syncChapterFromWattpad(chapterId, partId)`.
 

@@ -103,9 +103,10 @@ public class NovelService {
         if (novels.existsBySlug(r.slug())) {
             throw new DuplicateNovelSlugException(r.slug());
         }
+        boolean originalLink = r.sourceType() == NovelSourceType.ORIGINAL;
         if (r.wattpadStoryId() != null) {
             novels.findByWattpadStoryId(r.wattpadStoryId()).ifPresent(existing -> {
-                throw r.sourceType() == NovelSourceType.ORIGINAL
+                throw originalLink
                         ? DuplicateWattpadNovelException.linked(existing.getTitle(), existing.getId())
                         : new DuplicateWattpadNovelException(existing.getTitle(), existing.getId());
             });

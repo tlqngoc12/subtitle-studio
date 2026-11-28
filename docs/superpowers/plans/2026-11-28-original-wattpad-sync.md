@@ -35,3 +35,8 @@ Mỗi task: viết test trước, code, chạy test, commit riêng (message ti�
 ## T5. Tài liệu + kiểm tra cuối
 - `CLAUDE.md` mục Truyện sáng tác: ORIGINAL được có `wattpad_story_id` (link tuỳ chọn), `POST /api/chapters/{id}/wattpad-sync`, `parts` nhận ORIGINAL, chỉ Draft, bỏ ảnh, tiêu đề giữ nguyên; link spec/plan này.
 - Chạy toàn bộ test backend + frontend + tsc; cập nhật mô tả PR #82 (tiếng Anh): thêm phần Wattpad sync, cách kiểm tra, lệnh test và kết quả.
+
+## T6. Ghi thời điểm sync, tạm dừng lưu khi sync, câu báo trùng link
+- `ChapterService.replaceOriginalText` ghi `source_fetched_at` = `clock.instant()`; trang chương hiện dòng mờ "Synced from Wattpad dd/MM/yyyy HH:mm" cho chương ORIGINAL có giá trị này. Test: sync đặt đúng giờ, lưu tay không đổi; trang chương hiện/ẩn/cập nhật sau sync.
+- `useChapterEditor(chapterId, paused)`: `ChapterPage` truyền `syncOpen` để tự lưu và Ctrl+S tắt khi hộp Sync mở (tránh PUT cũ ghi đè chữ vừa sync). Test với fake timers.
+- `DuplicateWattpadNovelException.linked`: truyện ORIGINAL trùng link báo "This Wattpad story is already linked to “X”." (cùng mã `NOVEL_WATTPAD_EXISTS`); truyện dịch giữ câu cũ.
