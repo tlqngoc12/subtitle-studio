@@ -44,6 +44,9 @@ class VietsubControllerTest {
     @MockitoBean
     private VietsubService service;
 
+    @MockitoBean
+    private SubtitleFileStore files;
+
     private ResultActions postVietsub() throws Exception {
         return mvc.perform(multipart("/api/vietsub")
                 .file(new MockMultipartFile("file", "vi.srt", "application/x-subrip", SRT))
@@ -247,5 +250,31 @@ class VietsubControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value(code))
                 .andExpect(jsonPath("$.detail").isNotEmpty());
+    }
+
+    @Test
+    void reloadFileReturnsVideoWithFileFlag() throws Exception {
+        when(service.reloadFromFile(ID)).thenReturn(video());
+        when(files.hasViManual(ID)).thenReturn(true);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/videos/" + ID + "/vietsub/reload-file"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ID))
+                .andExpect(jsonPath("$.viManualFile").value(true));
+    }
+
+    @Test
+    void reloadFileMapsErrors() throws Exception {
+        when(service.reloadFromFile(ID))
+                .thenThrow(new ViManualFileMissingException(ID))
+                .thenThrow(new VideoNotFoundException(ID))
+                .thenThrow(new InvalidSrtException("No subtitle text found"));
+        var req = org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .post("/api/videos/" + ID + "/vietsub/reload-file");
+
+        expectProblem(mvc.perform(req), 404, "VI_MANUAL_FILE_MISSING");
+        expectProblem(mvc.perform(req), 404, "VIDEO_NOT_FOUND");
+        expectProblem(mvc.perform(req), 400, "INVALID_SRT");
     }
 }

@@ -343,4 +343,97 @@ class VietsubServiceTest {
 
         assertThat(service.getCues(ID)).isEmpty();
     }
+
+    private Path manualFile() {
+        return SUBS_DIR.resolve(ID + ".vi_manual.srt");
+    }
+
+    private void writeManualFile(byte[] bytes) throws IOException {
+        Files.createDirectories(SUBS_DIR);
+        Files.write(manualFile(), bytes);
+    }
+
+    @Test
+    void reloadFromFileReplacesCuesWithFileContent() throws IOException {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nCũ"));
+        reload();
+        writeManualFile(srt("00:00:05,000 --> 00:00:06,000\nMới một", "00:00:07,000 --> 00:00:08,000\nMới hai"));
+        clock.set(NOW.plusSeconds(60));
+
+        Video video = service.reloadFromFile(ID);
+        reload();
+
+        assertThat(service.getCues(ID)).containsExactly(
+                new ViCue(5_000, 6_000, "Mới một"), new ViCue(7_000, 8_000, "Mới hai"));
+        assertThat(video.getViCueCount()).isEqualTo(2);
+        Video stored = videos.findById(ID).orElseThrow();
+        assertThat(stored.getViSource()).isEqualTo(ViSource.MANUAL);
+        assertThat(stored.getViUpdatedAt()).isEqualTo(NOW.plusSeconds(60));
+    }
+
+    @Test
+    void reloadFromFileKeepsEditStatus() throws IOException {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nCũ")); // DONE
+        reload();
+        videos.findById(ID).orElseThrow().setEditStatus(EditStatus.IN_PROGRESS);
+        reload();
+        writeManualFile(srt("00:00:05,000 --> 00:00:06,000\nMới"));
+
+        service.reloadFromFile(ID);
+        reload();
+
+        assertThat(videos.findById(ID).orElseThrow().getEditStatus()).isEqualTo(EditStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void reloadFromFileDoesNotRewriteTheFile() throws IOException {
+        saveVideo(ID);
+        byte[] original = ("\uFEFF1\r\n00:00:05,000 --> 00:00:06,000\r\nMới\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+        writeManualFile(original);
+
+        service.reloadFromFile(ID);
+
+        assertThat(Files.readAllBytes(manualFile())).isEqualTo(original);
+    }
+
+    @Test
+    void reloadFromFileFailsWhenFileMissing() throws IOException {
+        saveVideo(ID);
+        Files.deleteIfExists(manualFile());
+
+        assertThatThrownBy(() -> service.reloadFromFile(ID)).isInstanceOf(ViManualFileMissingException.class);
+    }
+
+    @Test
+    void reloadFromFileFailsForUnknownVideo() throws IOException {
+        writeManualFile(srt("00:00:05,000 --> 00:00:06,000\nMới"));
+
+        assertThatThrownBy(() -> service.reloadFromFile("zzzzzzzzzzz")).isInstanceOf(VideoNotFoundException.class);
+        verify(subtitleService, never()).fetch(any());
+    }
+
+    @Test
+    void reloadFromFileKeepsOldCuesWhenFileIsBroken() throws IOException {
+        saveVideo(ID);
+        service.add(URL, srt("00:00:01,000 --> 00:00:02,000\nCũ"));
+        reload();
+        writeManualFile("not an srt".getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> service.reloadFromFile(ID)).isInstanceOf(InvalidSrtException.class);
+        reload();
+
+        assertThat(service.getCues(ID)).containsExactly(new ViCue(1_000, 2_000, "Cũ"));
+    }
+
+    @Test
+    void reloadFromFileRejectsFileOver5Mb() throws IOException {
+        saveVideo(ID);
+        byte[] big = new byte[5 * 1024 * 1024 + 1];
+        java.util.Arrays.fill(big, (byte) 'a');
+        writeManualFile(big);
+
+        assertThatThrownBy(() -> service.reloadFromFile(ID)).isInstanceOf(FileTooLargeException.class);
+    }
 }

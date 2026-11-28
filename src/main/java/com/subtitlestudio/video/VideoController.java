@@ -36,9 +36,11 @@ public class VideoController {
     private final PromptProfileStore profiles;
     private final TranslationService translation;
     private final GeminiSettings gemini;
+    private final SubtitleFileStore files;
 
     public VideoController(SubtitleService service, SrtWriter srtWriter, PromptProfileStore profiles,
-                           TranslationService translation, GeminiSettings gemini) {
+                           TranslationService translation, GeminiSettings gemini, SubtitleFileStore files) {
+        this.files = files;
         this.gemini = gemini;
         this.service = service;
         this.srtWriter = srtWriter;
@@ -90,7 +92,7 @@ public class VideoController {
 
     private VideoDto dto(Video v) {
         return VideoDto.from(v, translation.activeModel(v.getId()), translation.activePart(v.getId()),
-                gemini.current().model());
+                gemini.current().model(), files.hasViManual(v.getId()));
     }
 
     @GetMapping("/{id}/cues")

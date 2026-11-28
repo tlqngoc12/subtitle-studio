@@ -7,6 +7,10 @@ import com.subtitlestudio.subtitle.SrtEntry;
 import com.subtitlestudio.subtitle.SrtParser;
 import com.subtitlestudio.subtitle.SrtWriter;
 import com.subtitlestudio.url.UrlParser;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.Normalizer;
 import com.subtitlestudio.profile.FieldError;
 import com.subtitlestudio.translate.TranslationInProgressException;
@@ -72,7 +76,38 @@ public class VietsubService {
         if (!videos.existsById(id)) {
             subtitleService.fetch(url);
         }
-        Video saved = tx.execute(status -> {
+        Video saved = replaceCues(id, cues, true); // an uploaded file is a finished Vietsub
+        files.writeViManual(id, srt); // the upload exactly as received
+        return saved;
+    }
+
+    /**
+     * Reloads the Vietsub from {@code <id>.vi_manual.srt} on disk (edited by hand outside the app). Same import as
+     * {@link #add}, but the edit status is kept and the file is not rewritten: it is the source.
+     */
+    public Video reloadFromFile(String id) {
+        if (!videos.existsById(id)) {
+            throw new VideoNotFoundException(id);
+        }
+        Path file = files.path(id, "vi_manual");
+        byte[] srt;
+        try {
+            if (!Files.exists(file)) {
+                throw new ViManualFileMissingException(id);
+            }
+            if (Files.size(file) > MAX_SRT_BYTES) {
+                throw new FileTooLargeException();
+            }
+            srt = Files.readAllBytes(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return replaceCues(id, toCues(srtParser.parse(srt).entries()), false);
+    }
+
+    /** Replaces every cue of the video in one transaction; the source becomes MANUAL. */
+    private Video replaceCues(String id, List<ViCue> cues, boolean markDone) {
+        return tx.execute(status -> {
             viCues.deleteByVideoId(id); // clears the persistence context, so load the video afterwards
             Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
             List<ViCueEntity> entities = new ArrayList<>(cues.size());
@@ -82,11 +117,11 @@ public class VietsubService {
             }
             viCues.saveAll(entities);
             video.updateVietsub(cues.size(), clock.instant(), ViSource.MANUAL);
-            video.setEditStatus(EditStatus.DONE); // an uploaded file is a finished Vietsub
+            if (markDone) {
+                video.setEditStatus(EditStatus.DONE);
+            }
             return video;
         });
-        files.writeViManual(id, srt); // the upload exactly as received
-        return saved;
     }
 
     /** The stored Vietsub as a downloadable {@code {title}_{id}.vi.srt}. */

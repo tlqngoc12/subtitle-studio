@@ -60,6 +60,9 @@ class VideoControllerTest {
     private SubtitleService service;
 
     @MockitoBean
+    private SubtitleFileStore files;
+
+    @MockitoBean
     private PromptProfileStore profiles;
 
     @MockitoBean

@@ -24,7 +24,8 @@ public record VideoDto(
         String translationModel,
         EditStatus editStatus,
         String activePart,
-        boolean translatedByFallback) {
+        boolean translatedByFallback,
+        boolean viManualFile) {
 
     public static VideoDto from(Video v) {
         return from(v, null);
@@ -48,6 +49,12 @@ public record VideoDto(
      * translation model names any other model (null = not known, so false).
      */
     public static VideoDto from(Video v, String activeModel, String activePart, String mainModel) {
+        return from(v, activeModel, activePart, mainModel, false);
+    }
+
+    /** {@code viManualFile}: whether {@code <id>.vi_manual.srt} exists on disk (the editor's Reload from file). */
+    public static VideoDto from(Video v, String activeModel, String activePart, String mainModel,
+                                boolean viManualFile) {
         String shownModel = v.getTranslationStatus() == TranslationStatus.TRANSLATING ? activeModel
                 : v.getTranslationModel();
         return new VideoDto(v.getId(), v.getTitle(), v.getChannel(), v.getDurationSec(), v.getSubLang(),
@@ -58,6 +65,7 @@ public record VideoDto(
                 shownModel,
                 v.getEditStatus(),
                 v.getTranslationStatus() == TranslationStatus.TRANSLATING ? activePart : null,
-                mainModel != null && GeminiCaller.translatedByFallback(shownModel, mainModel));
+                mainModel != null && GeminiCaller.translatedByFallback(shownModel, mainModel),
+                viManualFile);
     }
 }
