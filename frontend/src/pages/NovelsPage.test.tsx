@@ -12,7 +12,7 @@ import NovelsPage from './NovelsPage';
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/novels']}>
+    <MemoryRouter initialEntries={['/novels?tab=translated']}>
       <NovelsPage />
     </MemoryRouter>,
   );
@@ -97,9 +97,19 @@ describe('NovelsPage tabs', () => {
     );
   }
 
-  it('opens on Translated by default', async () => {
+  it('opens on Originals by default, listed first', async () => {
     fakeFetch([novelsRoute, fanficsRoute]);
     renderAt('/novels');
+
+    const tabs = screen.getAllByRole('tab').map((t) => t.textContent);
+    expect(tabs).toEqual(['Originals', 'Translated', 'Fanfics']);
+    expect(screen.getByRole('tab', { name: 'Originals' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('link', { name: 'New story' })).toBeInTheDocument();
+  });
+
+  it('selects Translated from ?tab=translated', async () => {
+    fakeFetch([novelsRoute, fanficsRoute]);
+    renderAt('/novels?tab=translated');
 
     expect(screen.getByRole('tab', { name: 'Translated' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ })).toBeInTheDocument();
@@ -121,7 +131,7 @@ describe('NovelsPage tabs', () => {
 
   it('tabsSplitByKind: Translated lists translated novels and Originals lists original ones', async () => {
     fakeFetch([mixedRoute, fanficsRoute]);
-    renderAt('/novels');
+    renderAt('/novels?tab=translated');
 
     expect(await screen.findByRole('link', { name: /Tình Yêu Mùa Hạ/ })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Truyện Của Tôi/ })).not.toBeInTheDocument();
@@ -160,7 +170,7 @@ describe('NovelsPage tabs', () => {
 
   it('switches tabs by clicking', async () => {
     fakeFetch([novelsRoute, fanficsRoute]);
-    renderAt('/novels');
+    renderAt('/novels?tab=translated');
 
     await userEvent.click(screen.getByRole('tab', { name: 'Fanfics' }));
     expect(await screen.findByRole('link', { name: /Warm Story/ })).toBeInTheDocument();

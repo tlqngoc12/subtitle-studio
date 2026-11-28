@@ -54,7 +54,7 @@ function sourceOf(list: PublicNovelSummary[]): NovelSource {
 
 function renderHome(list = EIGHT) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/novels?tab=translated']}>
       <PublicNovelsPage source={sourceOf(list)} />
     </MemoryRouter>,
   );
@@ -232,7 +232,7 @@ describe('PublicNovelsPage (home)', () => {
 
   it('shows the Vietnamese notice when the list cannot be loaded', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/novels?tab=translated']}>
         <PublicNovelsPage source={{ ...sourceOf([]), listNovels: () => Promise.reject(new Error('x')) }} />
       </MemoryRouter>,
     );
@@ -253,8 +253,17 @@ describe('PublicNovelsPage tabs', () => {
     );
   }
 
-  it('defaults to Translated', async () => {
+  it('defaults to Sáng tác, listed first', async () => {
     renderAt('/novels');
+
+    const tabs = screen.getAllByRole('tab').map((t) => t.textContent);
+    expect(tabs).toEqual(['Sáng tác', 'Truyện dịch', 'Fanfic']);
+    expect(screen.getByRole('tab', { name: 'Sáng tác' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText('Chưa có truyện sáng tác nào. Quay lại sau nhé.')).toBeInTheDocument();
+  });
+
+  it('opens on Truyện dịch from ?tab=translated', async () => {
+    renderAt('/novels?tab=translated');
 
     expect(screen.getByRole('tab', { name: 'Truyện dịch' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByRole('list', { name: 'Danh sách truyện' })).toBeInTheDocument();
@@ -274,7 +283,7 @@ describe('PublicNovelsPage tabs', () => {
   const MIXED = [novel(1), novel(2, { original: true, title: 'Truyện Sáng Tác' }), novel(3, { original: false })];
 
   it('tabsSplitByKind: Truyện dịch and Sáng tác list their own novels', async () => {
-    renderMixed('/novels', MIXED);
+    renderMixed('/novels?tab=translated', MIXED);
 
     expect(screen.getByRole('tab', { name: 'Sáng tác' })).toBeInTheDocument();
     const translated = await screen.findByRole('list', { name: 'Danh sách truyện' });
@@ -295,7 +304,7 @@ describe('PublicNovelsPage tabs', () => {
   });
 
   it('publicLegacyDataCountsAsTranslated: novels without the field stay in Truyện dịch', async () => {
-    renderMixed('/novels', EIGHT);
+    renderMixed('/novels?tab=translated', EIGHT);
 
     const translated = await screen.findByRole('list', { name: 'Danh sách truyện' });
     expect(within(translated).getAllByRole('listitem')).toHaveLength(8);
