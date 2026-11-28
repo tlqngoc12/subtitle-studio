@@ -211,10 +211,61 @@ describe('NovelPage', () => {
       const user = userEvent.setup();
       await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
 
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
       await user.click(screen.getByRole('button', { name: 'Add chapter' }));
 
       expect(await screen.findByText('chapter 44')).toBeInTheDocument();
       expect(calls.find((c) => c.method === 'POST')!.body).toBe('{}');
+    });
+
+    it('chapterActionsMenu: one ⋯ button replaces Export and Add chapter, with Sync, Add chapter, Export in order', async () => {
+      fakeFetch([{ ...getStory, body: { ...story, wattpadStoryId: '396487502' } }]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      const toolbar = document.querySelector('.toolbar') as HTMLElement;
+      expect(within(toolbar).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Chapter actions']);
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+      const labels = screen.getAllByRole('button').map((b) => b.textContent).filter(Boolean);
+      expect(labels.slice(-3)).toEqual(['Sync with Wattpad', 'Add chapter', 'Export']);
+      expect(screen.getByRole('button', { name: 'Sync with Wattpad' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    });
+
+    it('chapterActionsMenu: Sync is off with the reason when the story has no Wattpad link', async () => {
+      fakeFetch([getStory]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+      const sync = screen.getByRole('button', { name: 'Sync with Wattpad' });
+      expect(sync).toBeDisabled();
+      await expectTooltip(sync.parentElement!, 'Add a Wattpad link in Details to sync.');
+    });
+
+    it('chapterActionsMenu: Export is off while the story has no chapters', async () => {
+      fakeFetch([{ ...getStory, body: { ...story, chapters: [] } }]);
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      await user.click(screen.getByRole('button', { name: 'Chapter actions' }));
+
+      expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Add chapter' })).toBeEnabled();
+    });
+
+    it('other kinds keep the toolbar: no ⋯ menu', async () => {
+      fakeFetch([getNovel]);
+      renderPage();
+      await screen.findByRole('heading', { name: 'Tình Yêu Mùa Hạ' });
+
+      expect(screen.queryByRole('button', { name: 'Chapter actions' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
     });
 
     it('editOriginalKeepsKind: the form asks for no source fields and saves as ORIGINAL', async () => {
