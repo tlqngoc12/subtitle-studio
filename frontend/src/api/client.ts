@@ -46,6 +46,8 @@ export interface VideoDto {
   translatedByFallback: boolean;
   /** How far the hand-editing of the Vietsub has got; null = not edited yet. Only DONE videos are published. */
   editStatus: EditStatus | null;
+  /** True when `<id>.vi_manual.srt` exists on disk, so the editor can reload the Vietsub from it. */
+  viManualFile: boolean;
   /** "2/3" while part 2 of 3 of a long video is being translated; null/absent otherwise. */
   activePart?: string | null;
 }
@@ -199,6 +201,11 @@ export async function saveVietsubText(id: string, baseUpdatedAt: string | null, 
       body: JSON.stringify({ baseUpdatedAt, lines: texts.map((text, idx) => ({ idx, text })) }),
     })
   ).json();
+}
+
+/** Replaces every line with the content of `<id>.vi_manual.srt` on disk; the edit status is kept. */
+export async function reloadVietsubFromFile(id: string): Promise<VideoDto> {
+  return (await send(`/api/videos/${encodeURIComponent(id)}/vietsub/reload-file`, { method: 'POST' })).json();
 }
 
 /** Marks the Vietsub as done or back in progress (MANUAL Vietsub only). Does not change the text. */

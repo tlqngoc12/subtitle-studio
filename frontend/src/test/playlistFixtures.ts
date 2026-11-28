@@ -21,6 +21,7 @@ export function vsVideo(id: string, title: string, channel = 'Dev Channel'): Vid
     translationModel: null,
     translatedByFallback: false,
     editStatus: null,
+    viManualFile: false,
   };
 }
 

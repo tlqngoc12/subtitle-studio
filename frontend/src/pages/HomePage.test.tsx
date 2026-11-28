@@ -31,6 +31,7 @@ const autoVideo: VideoDto = {
   translationModel: null,
   translatedByFallback: false,
   editStatus: null,
+  viManualFile: false,
 };
 
 const manualVideo: VideoDto = {
