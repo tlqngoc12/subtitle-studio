@@ -592,6 +592,8 @@ public class ChapterService {
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
                 c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())
                 .withSourceType(c.getNovel().getSourceType())
+                .withWattpadLinked(c.getNovel().getSourceType() == NovelSourceType.ORIGINAL
+                        && c.getNovel().getWattpadStoryId() != null)
                 .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, gemini.current().model()));
     }
 }

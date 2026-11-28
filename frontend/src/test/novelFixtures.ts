@@ -94,6 +94,7 @@ export function chapterDetail(over: Partial<ChapterDetail> = {}): ChapterDetail 
     sourceFetchedAt: null,
     sourceLanguage: 'th',
     sourceType: 'SCREENSHOTS',
+    wattpadLinked: false,
     ...over,
   };
 }

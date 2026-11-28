@@ -961,7 +961,10 @@ class ChapterServiceTest {
 
     @Test
     void syncablePartIsTheLinkOfADraftOriginalChapter() {
-        assertThat(service.syncablePart(linkedOriginalChapter())).isEqualTo("4242");
+        long id = linkedOriginalChapter();
+        assertThat(service.syncablePart(id)).isEqualTo("4242");
+        assertThat(service.get(id).wattpadLinked()).isTrue();
+        assertThat(service.get(service.addNumbered(novel.getId(), 8, null).id()).wattpadLinked()).isFalse();
     }
 
     @Test

@@ -1927,3 +1927,70 @@ describe('ChapterPage of an original story', () => {
     expect(screen.queryByText(/Unpublish to change pages or translate again/)).not.toBeInTheDocument();
   });
 });
+
+describe('ChapterPage: Sync from Wattpad', () => {
+  const linked = (over: Partial<ChapterDetail> = {}): FakeRoute =>
+    get({
+      sourceType: 'ORIGINAL', sourceLanguage: 'vi', pages: [], text: 'Old text', translationStatus: 'NONE',
+      translationModel: null, sourceText: null, wattpadLinked: true, ...over,
+    });
+  const parts: FakeRoute = {
+    method: 'GET', path: '/api/novels/3/wattpad/parts', status: 200,
+    body: [{ partId: '7', title: 'Chapter 1: Mở đầu', wordCount: 10, createdAt: null, modifiedAt: null, deleted: false, importedChapterId: null }],
+  };
+
+  beforeEach(() => {
+    vi.mocked(toast.success).mockClear();
+  });
+
+  it('is in the menu of an original chapter with a link, and not without one or for another kind', async () => {
+    renderPage([linked()]);
+    await loaded();
+    expect(await menuItemNames()).toContain('Sync from Wattpad');
+    cleanup();
+
+    renderPage([linked({ wattpadLinked: false })]);
+    await loaded();
+    expect(await menuItemNames()).not.toContain('Sync from Wattpad');
+    cleanup();
+
+    renderPage([get()]);
+    await loaded();
+    expect(await menuItemNames()).not.toContain('Sync from Wattpad');
+  });
+
+  it('is dimmed with a reason on a published chapter', async () => {
+    renderPage([linked({ publishStatus: 'PUBLISHED' })]);
+    await loaded();
+
+    const item = await menuItem('Sync from Wattpad');
+
+    expect(item).toBeDisabled();
+    await expectTooltip(item.parentElement!, 'Unpublish to sync from Wattpad.');
+  });
+
+  it('replaces the editor text with the synced chapter, dropping unsaved edits, and says so', async () => {
+    const calls = renderPage([
+      linked(),
+      parts,
+      { method: 'POST', path: '/api/chapters/9/wattpad-sync', status: 200, body: chapterDetail({
+        sourceType: 'ORIGINAL', sourceLanguage: 'vi', pages: [], text: 'Fresh from Wattpad', translationStatus: 'NONE',
+        translationModel: null, sourceText: null, wattpadLinked: true }) },
+    ]);
+    await loaded();
+    const u = userEvent.setup();
+    await u.type(textBox(), ' unsaved');
+
+    await chooseAction('Sync from Wattpad');
+    const dialog = await screen.findByRole('dialog', { name: 'Sync from Wattpad' });
+    await within(dialog).findByRole('radio', { name: /Chapter 1: Mở đầu/ });
+    await u.click(within(dialog).getByRole('button', { name: 'Sync' }));
+    await u.click(within(dialog).getByRole('button', { name: 'Replace text' }));
+
+    await waitFor(() => expect(textBox()).toHaveValue('Fresh from Wattpad'));
+    expect(calls.some((c) => c.method === 'POST' && c.path === '/api/chapters/9/wattpad-sync')).toBe(true);
+    expect(toast.success).toHaveBeenCalledWith('Synced from Wattpad');
+    expect(screen.queryByRole('dialog', { name: 'Sync from Wattpad' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Chapter 1: Mở đầu' })).toBeInTheDocument();
+  });
+});
