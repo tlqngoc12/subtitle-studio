@@ -15,6 +15,9 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     List<Chapter> findByNovelIdAndWattpadPartIdIsNotNull(long novelId);
 
+    /** The chapters of an original story last synced from this Wattpad part (at most one). */
+    List<Chapter> findByNovelIdAndOriginalWattpadPartId(long novelId, String originalWattpadPartId);
+
     /** Rows of {partId, chapterId} for the imported Wattpad chapters (no chapter text is loaded). */
     @org.springframework.data.jpa.repository.Query("select c.wattpadPartId, c.id from Chapter c "
             + "where c.novel.id = :novelId and c.wattpadPartId is not null")

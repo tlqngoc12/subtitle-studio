@@ -704,7 +704,7 @@ class WattpadNovelServiceTest {
         storyParts(part("1", "One", false), part("2", "Two", false));
         when(wattpad.partText("2")).thenReturn("<p>Hello</p><p>***</p><p>World</p>");
         com.subtitlestudio.novel.ChapterDetail detail = mock(com.subtitlestudio.novel.ChapterDetail.class);
-        when(chapterService.replaceOriginalText(5L, "Hello\n\n***\n\nWorld")).thenReturn(detail);
+        when(chapterService.replaceOriginalText(5L, "Hello\n\n***\n\nWorld", "2", NOW)).thenReturn(detail);
 
         assertThat(service.syncOriginal(5L, "2")).isSameAs(detail);
         verify(wattpad, org.mockito.Mockito.times(1)).storyWithParts("396487502");
@@ -717,13 +717,13 @@ class WattpadNovelServiceTest {
         storyParts(part("1", "One", false));
         when(wattpad.partText("1")).thenReturn(
                 "<p>Before</p><p><img src=\"https://img.wattpad.com/a.jpg\"></p><p>After</p>");
-        when(chapterService.replaceOriginalText(anyLong(), anyString()))
+        when(chapterService.replaceOriginalText(anyLong(), anyString(), any(), any()))
                 .thenReturn(mock(com.subtitlestudio.novel.ChapterDetail.class));
 
         service.syncOriginal(5L, "1");
 
         ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
-        verify(chapterService).replaceOriginalText(eq(5L), text.capture());
+        verify(chapterService).replaceOriginalText(eq(5L), text.capture(), eq("1"), eq(NOW));
         assertThat(text.getValue()).isEqualTo("Before\n\nAfter");
         verify(wattpad, never()).downloadImage(anyString(), anyLong());
         verify(mediaService, never()).store(anyString(), any());
@@ -746,7 +746,7 @@ class WattpadNovelServiceTest {
         assertThatThrownBy(() -> service.syncOriginal(5L, "5")).isInstanceOfSatisfying(
                 WattpadPartProblemException.class, e -> assertThat(e.code()).isEqualTo("WATTPAD_PART_EMPTY"));
         verify(wattpad, never()).partText("3");
-        verify(chapterService, never()).replaceOriginalText(anyLong(), anyString());
+        verify(chapterService, never()).replaceOriginalText(anyLong(), anyString(), any(), any());
     }
 
     @Test
@@ -759,7 +759,7 @@ class WattpadNovelServiceTest {
         when(chapterService.syncablePart(6L)).thenThrow(new com.subtitlestudio.novel.ChapterPublishedException(6));
         assertThatThrownBy(() -> service.syncOriginal(6L, "1"))
                 .isInstanceOf(com.subtitlestudio.novel.ChapterPublishedException.class);
-        verify(chapterService, never()).replaceOriginalText(anyLong(), anyString());
+        verify(chapterService, never()).replaceOriginalText(anyLong(), anyString(), any(), any());
     }
 
     // ---- automatic translation profile ----

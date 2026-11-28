@@ -989,7 +989,7 @@ class ChapterServiceTest {
     void replaceOriginalTextKeepsTheTitleAndTheStatus() {
         long id = linkedOriginalChapter();
 
-        ChapterDetail d = service.replaceOriginalText(id, "New text from Wattpad");
+        ChapterDetail d = service.replaceOriginalText(id, "New text from Wattpad", "9001", null);
 
         assertThat(d.text()).isEqualTo("New text from Wattpad");
         assertThat(d.title()).isEqualTo("Chương 1: Mở đầu");
@@ -1002,7 +1002,7 @@ class ChapterServiceTest {
         assertThat(service.get(id).sourceFetchedAt()).isNull();
         clock.advance(java.time.Duration.ofHours(1));
 
-        ChapterDetail synced = service.replaceOriginalText(id, "Synced");
+        ChapterDetail synced = service.replaceOriginalText(id, "Synced", "9001", null);
 
         assertThat(synced.sourceFetchedAt()).isEqualTo(NOW.plusSeconds(3600));
         assertThat(synced.sourceText()).isNull();
@@ -1014,11 +1014,65 @@ class ChapterServiceTest {
     }
 
     @Test
+    void replaceOriginalTextRecordsThePartTheHashAndTheWattpadDate() {
+        long id = linkedOriginalChapter();
+        Instant modified = Instant.parse("2026-11-20T08:00:00Z");
+
+        ChapterDetail d = service.replaceOriginalText(id, "Synced text", "9001", modified);
+
+        assertThat(d.originalWattpadPartId()).isEqualTo("9001");
+        Chapter row = chapters.findById(id).orElseThrow();
+        assertThat(row.getOriginalWattpadPartId()).isEqualTo("9001");
+        assertThat(row.getWattpadSyncedHash()).isEqualTo(ChapterSyncHash.of("Synced text"));
+        assertThat(row.getWattpadModifiedAt()).isEqualTo(modified);
+        assertThat(row.getSourceFetchedAt()).isEqualTo(NOW);
+        assertThat(service.get(id).originalWattpadPartId()).isEqualTo("9001");
+    }
+
+    @Test
+    void replaceOriginalTextWithoutAWattpadDateClearsTheOldOne() {
+        long id = linkedOriginalChapter();
+        service.replaceOriginalText(id, "One", "9001", Instant.parse("2026-11-20T08:00:00Z"));
+
+        service.replaceOriginalText(id, "Two", "9001", null);
+
+        assertThat(chapters.findById(id).orElseThrow().getWattpadModifiedAt()).isNull();
+    }
+
+    @Test
+    void aPartMovesFromOneChapterToAnother() {
+        long a = linkedOriginalChapter();
+        long novelId = chapters.findById(a).orElseThrow().getNovel().getId();
+        long b = service.addNumbered(novelId, 2, "Chương 2: Hai").id();
+        service.replaceOriginalText(a, "Text A", "9001", null);
+
+        service.replaceOriginalText(b, "Text B", "9001", null);
+
+        assertThat(chapters.findById(a).orElseThrow().getOriginalWattpadPartId()).isNull();
+        assertThat(chapters.findById(b).orElseThrow().getOriginalWattpadPartId()).isEqualTo("9001");
+        assertThat(chapters.findById(a).orElseThrow().getTextVi()).isEqualTo("Text A");
+    }
+
+    @Test
+    void aHandSaveKeepsThePartAndTheHash() {
+        long id = linkedOriginalChapter();
+        service.replaceOriginalText(id, "Synced", "9001", null);
+        String hash = chapters.findById(id).orElseThrow().getWattpadSyncedHash();
+
+        service.update(id, new ChapterUpdateRequest(null, null, "By hand"));
+
+        Chapter row = chapters.findById(id).orElseThrow();
+        assertThat(row.getOriginalWattpadPartId()).isEqualTo("9001");
+        assertThat(row.getWattpadSyncedHash()).isEqualTo(hash);
+        assertThat(ChapterSyncHash.of(row.getTextVi())).isNotEqualTo(hash);
+    }
+
+    @Test
     void replaceOriginalTextChecksTheChapterAgain() {
         long id = linkedOriginalChapter();
         setStatus(id, ChapterTranslationStatus.NONE, ChapterPublishStatus.PUBLISHED);
 
-        assertThatThrownBy(() -> service.replaceOriginalText(id, "x")).isInstanceOf(ChapterPublishedException.class);
+        assertThatThrownBy(() -> service.replaceOriginalText(id, "x", "9001", null)).isInstanceOf(ChapterPublishedException.class);
         assertThat(service.get(id).text()).isEqualTo("Old text");
     }
 

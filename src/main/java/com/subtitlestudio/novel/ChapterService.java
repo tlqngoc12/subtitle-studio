@@ -186,16 +186,28 @@ public class ChapterService {
     }
 
     /**
-     * Replaces the whole text of a Draft chapter of a linked original story (after a sync from Wattpad). The title,
-     * status and everything else stay; the length is limited like a hand edit (the text column is unbounded).
+     * Replaces the whole text of a Draft chapter of a linked original story (after a sync from Wattpad) and records
+     * the sync: the part it came from (taken off another chapter of the novel that held it), the hash of the stored
+     * text, the part's modification date on Wattpad and when it happened. The title, status and everything else stay;
+     * the length is limited like a hand edit (the text column is unbounded).
      */
     @Transactional
-    public ChapterDetail replaceOriginalText(long id, String text) {
+    public ChapterDetail replaceOriginalText(long id, String text, String partId, Instant wattpadModifiedAt) {
         Chapter c = editable(id);
         syncable(c);
+        if (partId != null) {
+            for (Chapter other : chapters.findByNovelIdAndOriginalWattpadPartId(c.getNovel().getId(), partId)) {
+                if (!other.getId().equals(c.getId())) {
+                    other.setOriginalWattpadPartId(null);
+                    chapters.flush();
+                }
+            }
+        }
         c.setTextVi(text == null || text.isBlank() ? null : text);
-        // When it was last synced: shown on the chapter page, and nothing else reads it for an original chapter.
         c.setSourceFetchedAt(clock.instant());
+        c.setOriginalWattpadPartId(partId);
+        c.setWattpadSyncedHash(ChapterSyncHash.of(c.getTextVi()));
+        c.setWattpadModifiedAt(wattpadModifiedAt);
         touch(c);
         return detail(c);
     }
@@ -594,6 +606,7 @@ public class ChapterService {
                 ChapterText.of(c, pages.findByChapterIdOrderByPosition(c.getId())), prev, next, c.getSourceText(),
                 c.getWattpadPartId(), c.getSourceFetchedAt(), c.getNovel().getSourceLanguage())
                 .withSourceType(c.getNovel().getSourceType())
+                .withOriginalWattpadPartId(c.getOriginalWattpadPartId())
                 .withWattpadLinked(c.getNovel().getSourceType() == NovelSourceType.ORIGINAL
                         && c.getNovel().getWattpadStoryId() != null)
                 .withTranslatedByFallback(GeminiCaller.translatedByFallback(shownModel, gemini.current().model()));

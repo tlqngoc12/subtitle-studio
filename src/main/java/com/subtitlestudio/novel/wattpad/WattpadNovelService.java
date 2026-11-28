@@ -257,7 +257,7 @@ public class WattpadNovelService {
         if (text.isBlank()) {
             throw new WattpadPartProblemException(WattpadPartProblemException.EMPTY, NO_TEXT);
         }
-        ChapterDetail synced = chapterService.replaceOriginalText(chapterId, text);
+        ChapterDetail synced = chapterService.replaceOriginalText(chapterId, text, partId, part.modifiedAt());
         log.info("Synced chapter {} from Wattpad part {} ({} characters)", chapterId, partId, text.length());
         return synced;
     }
