@@ -194,6 +194,8 @@ public class ChapterService {
         Chapter c = editable(id);
         syncable(c);
         c.setTextVi(text == null || text.isBlank() ? null : text);
+        // When it was last synced: shown on the chapter page, and nothing else reads it for an original chapter.
+        c.setSourceFetchedAt(clock.instant());
         touch(c);
         return detail(c);
     }

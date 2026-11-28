@@ -87,6 +87,9 @@ class ChapterServiceTest {
     @Autowired
     private TestEntityManager em;
 
+    @Autowired
+    private MutableClock clock;
+
     private Novel novel;
 
     @BeforeEach
@@ -991,6 +994,23 @@ class ChapterServiceTest {
         assertThat(d.text()).isEqualTo("New text from Wattpad");
         assertThat(d.title()).isEqualTo("Chương 1: Mở đầu");
         assertThat(d.publishStatus()).isEqualTo(ChapterPublishStatus.DRAFT);
+    }
+
+    @Test
+    void syncRecordsWhenAndAHandSaveDoesNotChangeIt() {
+        long id = linkedOriginalChapter();
+        assertThat(service.get(id).sourceFetchedAt()).isNull();
+        clock.advance(java.time.Duration.ofHours(1));
+
+        ChapterDetail synced = service.replaceOriginalText(id, "Synced");
+
+        assertThat(synced.sourceFetchedAt()).isEqualTo(NOW.plusSeconds(3600));
+        assertThat(synced.sourceText()).isNull();
+        clock.advance(java.time.Duration.ofHours(1));
+        ChapterDetail edited = service.update(id, new ChapterUpdateRequest(null, null, "By hand"));
+        assertThat(edited.text()).isEqualTo("By hand");
+        assertThat(edited.sourceFetchedAt()).isEqualTo(NOW.plusSeconds(3600));
+        clock.reset();
     }
 
     @Test

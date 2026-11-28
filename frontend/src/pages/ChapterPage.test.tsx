@@ -1998,6 +1998,31 @@ describe('ChapterPage: Sync from Wattpad', () => {
     await expectTooltip(item.parentElement!, 'Unpublish to sync from Wattpad.');
   });
 
+  it('shows when the chapter was synced, nothing when never, and updates it after a sync', async () => {
+    renderPage([linked(), parts, { method: 'POST', path: '/api/chapters/9/wattpad-sync', status: 200, body: chapterDetail({
+      sourceType: 'ORIGINAL', sourceLanguage: 'vi', pages: [], text: 'Fresh', translationStatus: 'NONE', translationModel: null,
+      sourceText: null, wattpadLinked: true, sourceFetchedAt: '2026-11-28T03:30:00Z' }) }]);
+    await loaded();
+    expect(screen.queryByText(/Synced from Wattpad/)).not.toBeInTheDocument();
+    const u = userEvent.setup();
+
+    await chooseAction('Sync from Wattpad');
+    const dialog = await screen.findByRole('dialog', { name: 'Sync from Wattpad' });
+    await within(dialog).findByRole('radio', { name: /Chapter 1: Mở đầu/ });
+    await u.click(within(dialog).getByRole('button', { name: 'Sync' }));
+    await u.click(within(dialog).getByRole('button', { name: 'Replace text' }));
+
+    expect(await screen.findByText('Synced from Wattpad 28/11/2026 10:30')).toBeInTheDocument();
+    expect(screen.queryByText(/Fetched from Wattpad/)).not.toBeInTheDocument();
+  });
+
+  it('shows the synced time on load', async () => {
+    renderPage([linked({ sourceFetchedAt: '2026-11-28T03:30:00Z' })]);
+    await loaded();
+
+    expect(screen.getByText('Synced from Wattpad 28/11/2026 10:30')).toBeInTheDocument();
+  });
+
   it('replaces the editor text with the synced chapter, dropping unsaved edits, and says so', async () => {
     const calls = renderPage([
       linked(),
